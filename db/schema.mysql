@@ -1,0 +1,50 @@
+-- OpenDMARC database schema
+--
+-- Copyright (c) 2012, The Trusted Domain Project.
+-- 	All rights reserved.
+
+-- A table for mapping domain names to IDs
+CREATE TABLE domains (
+	id INT NOT NULL AUTO_INCREMENT,
+	name VARCHAR(255) NOT NULL,
+	firstseen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	PRIMARY KEY(id),
+	UNIQUE KEY(name)
+);
+
+-- A table for reporting hosts
+CREATE TABLE reporters (
+	id INT NOT NULL AUTO_INCREMENT,
+	name VARCHAR(255) NOT NULL,
+
+	PRIMARY KEY(id),
+	UNIQUE KEY(name)
+);
+
+-- A table for messages
+CREATE TABLE messages (
+	id INT NOT NULL AUTO_INCREMENT,
+	date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	reporter INT UNSIGNED NOT NULL,
+	from_domain INT UNSIGNED NOT NULL,
+	env_domain INT UNSIGNED NOT NULL,
+	sigcount TINYINT UNSIGNED NOT NULL,
+	spf TINYINT UNSIGNED NOT NULL,
+	align_spf TINYINT UNSIGNED NOT NULL,
+
+	PRIMARY KEY(id),
+	UNIQUE KEY(reporter, date, jobid)
+);
+
+-- A table for signatures
+CREATE TABLE signatures (
+	id INT NOT NULL AUTO_INCREMENT,
+	message INT NOT NULL,
+	domain INT NOT NULL,
+	pass TINYINT NOT NULL,
+	error TINYINT NOT NULL,
+	align TINYINT UNSIGNED NOT NULL,
+
+	PRIMARY KEY(id)
+);
