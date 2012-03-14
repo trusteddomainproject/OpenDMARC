@@ -570,6 +570,11 @@
     <t>Identifier alignment is required to prevent abuse by phishers that
        send DKIM-signed email using an arbitrary "d=" domain (such as
        a Cousin Domain) to pass authentication checks.</t>
+
+    <t>Note that a single email can contain multiple DKIM signatures, raising
+       the possibility of processing multiple signatures in an attempt
+       to establish an "in alignment" result.</t>
+
    </section> <!-- DKIM Identifiers -->
 
    <section title="SPF-authenticated Identifiers" anchor="spf_id_align">
@@ -1072,10 +1077,11 @@
            found, or abort DMARC evaluation otherwise.  See
            <xref target="policy_discovery"/> for details. </t>
 
-       <t> Perform DKIM signature verification checks.  The results of this
-           step are passed to the remainder of the algorithm and MUST include
-           the value of the "d=" tag from all DKIM signatures that
-           successfully validated. </t>
+       <t> Perform DKIM signature verification checks.  A single email
+           may contain multiple DKIM signatures.  The results of this
+           step are passed to the remainder of the algorithm and MUST
+           include the value of the "d=" tag from all DKIM signatures
+           that successfully validated. </t>
 
        <t> Perform SPF validation checks.  The results of this step are passed
            to the remainder of the algorithm and MUST include the domain name
