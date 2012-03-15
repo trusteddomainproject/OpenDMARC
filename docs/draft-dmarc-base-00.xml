@@ -578,7 +578,6 @@
     <t>Note that a single email can contain multiple DKIM signatures, raising
        the possibility of processing multiple signatures in an attempt
        to establish an "in alignment" result.</t>
-
    </section> <!-- DKIM Identifiers -->
 
    <section title="SPF-authenticated Identifiers" anchor="spf_id_align">
@@ -587,10 +586,9 @@
 
     <t>In relaxed mode, the <xref target="SPF"/>-authenticated
        RFC5321.MailFrom (commonly called the "envelope sender") domain and
-       RFC5322.From domain must match or share the same Organizational Domain.
-       The SPF-authenticated RFC5321.MailFrom domain may be a parent domain or
-       child domain of the RFC5322.From domain.  In strict mode, only an exact
-       DNS domain match is considered to produce identifier alignment.</t>
+       RFC5322.From domain must have the same Organizational Domain.
+       In strict mode, only an exact DNS domain match is considered to produce
+       identifier alignment.</t>
 
     <t>For example, if a message passes an SPF check with an
        RFC5321.MailFrom domain of "cbg.bounces.example.com", and the
@@ -598,12 +596,6 @@
        "payments@example.com", the Authenticated RFC5321.MailFrom domain
        identifier and the RFC5322.From domain are considered to be "in
        alignment" in relaxed mode, but not in strict mode.</t>
-
-    <t>For purposes of identifier alignment, in relaxed mode, Organizational
-       Domains of RFC5321.MailFrom domains that are a parent domain
-       of the RFC5322.From domain are acceptable as many large
-       organizations perform more efficient bounce processing by
-       mapping the RFC5321.MailFrom domain to specific mailstreams.</t>
    </section> <!-- SPF Identifiers -->
 
    <section title="Alignment and Extension Technologies" anchor="ext_id_align">
