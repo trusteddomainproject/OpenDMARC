@@ -815,32 +815,32 @@
 
   dmarc-version = %x76 *WSP "=" %x44.4d.41.52.43
 
-  dmarc-request = %3b *WSP %x70 *WSP "=" *WSP ( "none" / "discard" /
+  dmarc-request = %x70 *WSP "=" *WSP ( "none" / "discard" /
                                        "quarantine" / "reject" )
 
-  dmarc-srequest = *WSP %x73.70 *WSP "=" *WSP ( "none" / "discard" /
+  dmarc-srequest = %x73.70 *WSP "=" *WSP ( "none" / "discard" /
                                            "quarantine" / "reject" )
 
-  dmarc-auri = *WSP %x3b *WSP %x72.75.61 *WSP "=" *WSP
+  dmarc-auri = %x72.75.61 *WSP "=" *WSP
                 URI *(*WSP "," *WSP URI)
                 ; "URI" is imported from [URI]
 
-  dmarc-ainterval = *WSP %x3b *WSP %x72.69 *WSP "=" *WSP
+  dmarc-ainterval = %x72.69 *WSP "=" *WSP
 
-  dmarc-furi = *WSP %x3b *WSP %x72.75.66 *WSP "=" *WSP
+  dmarc-furi = %x72.75.66 *WSP "=" *WSP
                 URI *(*WSP "," *WSP URI)
                 ; "URI" is imported from [URI]
 
-  dmarc-rfmt = *WSP %x3b *WSP %x72.66 *WSP "=" *WSP
+  dmarc-rfmt = %x72.66 *WSP "=" *WSP
                ( "afrf" / "iodef" )
 
-  dmarc-percent = *WSP %x3b *WSP %x70.63.74 *WSP "=" *WSP
+  dmarc-percent = %x70.63.74 *WSP "=" *WSP
                   1*3DIGIT
 
-  dmarc-adkim = *WSP %x3b *WSP %x61.64.6b.69.6d  *WSP "=" *WSP
+  dmarc-adkim = %x61.64.6b.69.6d  *WSP "=" *WSP
                 ( "r" / "s" )
 
-  dmarc-aspf = *WSP %x3b *WSP %x61.73.70.66  *WSP "=" *WSP
+  dmarc-aspf = %x61.73.70.66  *WSP "=" *WSP
                ( "r" / "s" )
         </artwork></figure>
   </section> <!-- Format -->
