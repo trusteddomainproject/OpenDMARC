@@ -759,9 +759,9 @@
 	   {R11}
            A comma that is part of such a URI MUST be encoded per Section 2.1
 	   of <xref target="URI"/> so as to distinguish it from the list
-           delimiter.  Domain Owners MAY request feedback sent to locations
-           outside of the subject domain name, and Mail Receivers MAY enact
-           or ignore such requests as per local policy.  See
+           delimiter.  Domain Owners SHOULD NOT use feedback addresses that are
+           outside of the subject domain name; Mail Receivers SHOULD ignore
+           such requests except as approved by local policy.  See
            <xref target="sec_aa"/> for additional consideration.  Any valid
            URI can be specified.  A Mail Receiver MUST implement support for
            a "mailto:" URI, i.e. the ability to send a DMARC report via
@@ -775,7 +775,10 @@
            Mail Receivers to send detailed forensic reports about messages
            that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
            evaluation.  The format of the message to be generated MUST follow
-           that specified in the "rf" tag. </t>
+           that specified in the "rf" tag.  Domain Owners SHOULD NOT use
+	   reporting addresses that are outside of the subject domain name;
+	   Mail Receivers SHOULD ignore such requests except as approved
+           by local policy.  </t>
 
          <t hangText="sp:"> {R6} Requested Mail Receiver policy for subdomains
            (plain-text; OPTIONAL).  Indicates the policy to be enacted by the
@@ -1653,29 +1656,16 @@
   </section>
 
   <section anchor="sec_aa" title="External Reporting Addresses">
-   <t>To reduce burdens on Domain Owners, the "rua" tag is allowed to contain
-      references to report consumers outside of the subject DNS domain. 
-      Thus, the feedback reporting mechanism can be abused by malicious
-      Domain Owners to cause large volumes of reports to be sent to
-      unsuspecting report consumers.  To abuse this mechanism, a malicious
-      Domain Owner must create a DMARC record with an "rua" field that
-      contains a reference to a victim report consumer and then send email
-      to report-generating Mail Receivers.  The victim would then
-      receive unwanted reports from each DMARC-aware Mail Receiver.</t>
+   <t>To avoid abuse by bad actors, reporting addresses have to be inside
+      the domains about which reports are requested.  Mail Receivers
+      are to disregard requests that deviate from such practice except
+      where some prior arrangement has been made with the subject domain and
+      the intended report destination.  Rather, it is easier to have the
+      subject Domain Owner redirect reports from the published address to
+      the external destination so as not to impose a burden of verification
+      on Mail Receivers. </t>
 
-   <t>Although a possible nuisance, due to the long intervals between
-      Mail-Receiver-generated aggregate reports, the possibility of introducing
-      an exploitable Denial of Service mechanism is small.  Furthermore, an
-      artifact of such an attack would be feedback reports that describe
-      exactly where an attacker introduced email into each Mail Receiver.
-      Such an artifact would link an attack directly to a Domain Owner and
-      to the network resources utilized to perform the attack.</t>
-
-   <t>To further reduce the possibility of abuse, Mail Receivers will want
-      to place controls on report generation to mitigate report generation
-      spikes due to spurious Domain Owner requests for reports.</t>
-
-   <t>In addition, the addresses shown in the "ruf" tag receive more
+   <t>Note that the addresses shown in the "ruf" tag receive more
       information that might be considered private data, since it is
       possible for actual email content to appear in the forensic reports.
       The URIs identified there are thus more attractive targets for
