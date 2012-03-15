@@ -816,10 +816,10 @@
 
   dmarc-version = %x76 *WSP "=" %x44.4d.41.52.43
 
-  dmarc-request = %x70 *WSP "=" *WSP ( "none" / "discard" /
+  dmarc-request = %x70 *WSP "=" *WSP ( "none" / 
                                        "quarantine" / "reject" )
 
-  dmarc-srequest = %x73.70 *WSP "=" *WSP ( "none" / "discard" /
+  dmarc-srequest = %x73.70 *WSP "=" *WSP ( "none" / 
                                            "quarantine" / "reject" )
 
   dmarc-auri = %x72.75.61 *WSP "=" *WSP
