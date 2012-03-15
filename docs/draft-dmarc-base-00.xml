@@ -886,6 +886,14 @@
       feedback is critical to establishing and maintaining accurate
       authentication deployments. </t>
 
+  <section title="Feedback Considerations" anchor="fb_consid">
+   <t> It is advisable for a site generating reports of either aggregate
+       traffic or specific incidents to ensure the validity and safe practices
+       of the entity that will receive the reports.  Some documents that
+       provide guidance for such work are <xref target="ARF"/>,
+       <xref target="ARF-BCP"/> and <xref target="ARF-AS"/>. </t>
+  </section>
+
   <section title="Aggregate Reports" anchor="fb_aggregate">
    <t> Visibility comes in the form of daily (or more frequent)
        Mail Receiver-originated feedback reports that contain
@@ -2125,6 +2133,77 @@
 		</front>
 
 		<seriesInfo name="RFC" value="5617"/>
+	</reference>
+
+	<reference anchor="ARF">
+		<front>
+			<title> An Extensible Format for Email Feedback
+				Reports </title>
+
+			<author initials="Y." surname="Shafranovich"
+			        fullname="Y. Shafranovich">
+				<organization>
+					ShafTek Enterprises
+				</organization>
+			</author>
+
+			<author initials="J." surname="Levine"
+			        fullname="J. Levine">
+				<organization>
+					Taughannock Networks
+				</organization>
+			</author>
+
+			<author initials="M." surname="Kucherawy"
+			        fullname="M. Kucherawy">
+				<organization>
+					Cloudmark
+				</organization>
+			</author>
+
+			<date month="August" year="2010" />
+		</front>
+		<seriesInfo name="RFC" value="5965"/>
+	</reference>
+
+	<reference anchor="ARF-AS">
+		<front>
+			<title> Creation and Use of Email Feedback Reports:
+			        An Applicability Statement for the Abuse
+			        Reporting Format (ARF) </title>
+
+			<author initials="J.D." surname="Falk"
+			        fullname="J.D. Falk">
+				<organization>
+					Return Path
+				</organization>
+			</author>
+
+			<author initials="M." surname="Kucherawy"
+			        fullname="M. Kucherawy" role="editor">
+				<organization>
+					Cloudmark
+				</organization>
+			</author>
+
+			<date month="March" year="2012" />
+		</front>
+		<seriesInfo name="Internet-Draft" value="draft-ietf-marf-as"/>
+	</reference>
+
+	<reference anchor="ARF-BCP">
+		<front>
+			<title> Message Header Field for Indicating
+			        Message Authentication Status </title>
+			<author initials="J.D." surname="Falk"
+			        fullname="J.D. Falk">
+				<organization>
+					Messaging Anti-Abuse WG
+				</organization>
+			</author>
+			<date month="November" year="2011" />
+		</front>
+		<seriesInfo name="RFC" value="6449"/>
 	</reference>
 
 	<reference anchor="AUTH-RESULTS">
