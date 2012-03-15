@@ -1042,11 +1042,13 @@
       to be evaluated by DMARC. </t>
 
    <t>A message bearing multiple RFC5322.From identifiers is ambiguous
-      under DMARC, and MUST be ignored with respect to all DMARC processing.
-      This includes messages with multiple RFC5322.From fields (which is
-      also forbidden under <xref target="MAIL"/>) and a message with a
-      single RFC5322.From field containing multiple entities.  Such messages
-      SHOULD be rejected. </t>
+      under DMARC.  This includes messages with multiple RFC5322.From fields
+      (which is also forbidden under <xref target="MAIL"/>) and a message
+      with a single RFC5322.From field containing multiple entities.  Such
+      messages SHOULD be rejected.  If they are not, they MUST be ignored with
+      respect to all DMARC processing, as reliable alignment of verified
+      identifiers with what the end user will actually see cannot be
+      positively determined. </t>
   </section>
 
   <section title="Determine Domain Existence" anchor="receiver_exist">
