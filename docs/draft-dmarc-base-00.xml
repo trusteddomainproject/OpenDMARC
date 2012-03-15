@@ -780,10 +780,11 @@
            absent, the policy specified by the "p" tag MUST be applied for
            subdomains.  </t>
 
-        <t hangText="v:"> (plain-text; REQUIRED, default is "DMARC1".)
-           Identifies the record retrieved as a DMARC record.  The value of
-           this tag MUST match precisely; if it does not or it is absent,
-           the entire retrieved record MUST be ignored. </t>
+        <t hangText="v:"> Version (plain-text; REQUIRED).
+           Identifies the record retrieved as a DMARC record.  It MUST
+           have the value of "DMARC1".  The value of this tag MUST match
+           precisely; if it does not or it is absent, the entire
+           retrieved record MUST be ignored. </t>
       </list> </t>
 
     <t> Note that addition of a new tag into the registered list of tags
