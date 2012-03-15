@@ -622,8 +622,9 @@
       requests of Mail Receivers regarding the disposition of, and feedback
       on, messages purporting to be from one of the Domain Owner's domains.</t>
 
-  <t> A Mail Receiver MUST consider an arriving message to fail the DMARC
-      test if none of the underlying message authentication mechanisms pass.</t>
+  <t> A Mail Receiver MUST consider an arriving message to pass the DMARC
+      test if and only if one or more of the underlying message authentication
+      mechanisms passes.</t>
 
   <t> A Mail Receiver implementing the DMARC mechanism MUST make a best-effort
       to adhere to the Domain Owner's published DMARC policy when a message
