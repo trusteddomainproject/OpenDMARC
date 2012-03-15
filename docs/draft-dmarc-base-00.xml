@@ -1675,6 +1675,20 @@
       prospect.  Deployment of DNSSEC is advisable if this is a concern. </t>
   </section>
 
+  <section anchor="sec_fbl" title="Feedback Loops">
+   <t> Per <xref target="ARF-BCP"/> and <xref target="ARF-AS"/>, it is highly
+      advisable to vet the destinations of feedback streams to which Mail
+      Receivers will send data.  Sending reports to any party that asks
+      invites various concerns regarding privacy of the data thus exchanged
+      and the ability to keep up with what could be an enormous reporting
+      stream. </t>
+
+   <t> It is also advisable for any operator generating reports to have
+      a mechanism by which one can request that no more reports be sent
+      in case some entity becomes the unwitting recipient of undesired
+      data in high volumes. </t>
+  </section>
+
   <section anchor="sec_rejection" title="Rejecting Messages">
    <t> This proposal calls for rejection of a message during the SMTP
        session under certain circumstances.  This is typically done in one
