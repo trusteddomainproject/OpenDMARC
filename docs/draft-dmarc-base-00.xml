@@ -461,10 +461,12 @@
        Internet-facing Mail Transport Agents (MTAs).</t>
 
       <t hangText="Organizational Domain:"> For the purposes of this
-       document, an Organizational Domain is a top-level DNS domain plus one
+       document, an Organizational Domain is the domain that was registered
+       with a domain name registrar.  Heuristics are used to determine this
+       given an arbitrary domain name, since it is not always the case that
+       the registered domain name is simlpy a top-level DNS domain plus one
        component (e.g., "example.com", where "com" is a top-level domain).
-       This is also sometimes referred to as "second-level domain".  The
-       Organization Domain for a given domain is determined by applying the
+       The Organizational Domain is determined by applying the
        following algorithm:
 
        <list style="numbers">
