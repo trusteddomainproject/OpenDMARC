@@ -449,10 +449,12 @@
       <t hangText="Domain Owner:"> The entity or organization that
        "owns" a DNS domain.  The term "owns" here indicates that the
        entity or organization being referenced holds the registration
-       of that DNS domain.  Domain Owners range from complex,
-       globally-distributed organizations, to individuals responsible for
-       maintaining vanity domains, to service providers working on behalf
-       of non-technical clients.</t>
+       of that DNS domain.  Entities that are Domain Owners range from
+       complex, globally-distributed organizations, to service providers
+       working on behalf of non-technical clients, to individuals responsible
+       for maintaining personal domains.  This specification uses this
+       term as analogous to an Administrative Management Domain as defined
+       in <xref target="EMAIL-ARCH"/>. </t>
 
       <t hangText="Mail Receiver:"> The entity or organization that
        receives and processes email.  Mail Receivers operate one or more
