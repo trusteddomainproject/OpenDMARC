@@ -3278,6 +3278,7 @@
     &lt;xs:enumeration value="forwarded"/&gt;
     &lt;xs:enumeration value="sampled_out"/&gt;
     &lt;xs:enumeration value="trusted_forwarder"/&gt;
+    &lt;xs:enumeration value="mailing_list"/&gt;
     &lt;xs:enumeration value="other"/&gt;
   &lt;/xs:restriction&gt;
 &lt;/xs:simpleType&gt;
