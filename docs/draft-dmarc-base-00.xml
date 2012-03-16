@@ -751,15 +751,16 @@
 	   {R11}
            A comma that is part of such a URI MUST be encoded per Section 2.1
 	   of <xref target="URI"/> so as to distinguish it from the list
-           delimiter.  Domain Owners SHOULD NOT use feedback addresses that are
-           outside of the subject domain name; Mail Receivers SHOULD ignore
-           such requests except as approved by local policy.  See
-           <xref target="sec_aa"/> for additional consideration.  Any valid
-           URI can be specified.  A Mail Receiver MUST implement support for
+           delimiter.  <xref target="fb_verify"/> discusses actions to be
+ 	   taken where the domain name of a URI differs from that of the
+	   domain advertising the policy.  See <xref target="sec_external"/>
+	   for additional considerations.  Any valid URI can be specified.  A
+	   Mail Receiver MUST implement support for
            a "mailto:" URI, i.e. the ability to send a DMARC report via
            electronic mail.  If not provided, Mail Receivers MUST NOT
            generate aggregate feedback reports.  URIs not supported by
-           Mail Receivers MUST be ignored. </t>
+           Mail Receivers MUST be ignored.  The aggregate feedback report
+	   format is described in <xref target="fb_aggregate"/>. </t>
 
         <t hangText="ruf:"> Addresses to which message-specific forensic
            information is to be reported (comma-separated plain-text list of
@@ -767,10 +768,10 @@
            Mail Receivers to send detailed forensic reports about messages
            that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
            evaluation.  The format of the message to be generated MUST follow
-           that specified in the "rf" tag.  Domain Owners SHOULD NOT use
-	   reporting addresses that are outside of the subject domain name;
-	   Mail Receivers SHOULD ignore such requests except as approved
-           by local policy.  </t>
+           that specified in the "rf" tag.  <xref target="fb_verify"/>
+	   discusses actions to be taken where the domain name of a URI
+	   differs from that of the domain advertising the policy.  See
+	   <xref target="sec_external"/> for additional considerations.  </t>
 
          <t hangText="sp:"> {R6} Requested Mail Receiver policy for subdomains
            (plain-text; OPTIONAL).  Indicates the policy to be enacted by the
@@ -791,7 +792,7 @@
         does not itself require a new version of DMARC to be generated
         (with a corresponding change to the "v" tag's value), but a change
         to any existing tags does require a new version of DMARC. </t>
-   </section> <!-- DMARC Format -->
+   </section> <!-- General Record Format -->
 
    <section anchor="dmarc_abnf" title="Formal Definition">
     <t> The formal definition of the DMARC format using <xref target="ABNF"/>
@@ -843,8 +844,8 @@
   dmarc-aspf = %x61.73.70.66  *WSP "=" *WSP
                ( "r" / "s" )
         </artwork></figure>
-  </section> <!-- Format -->
- </section> <!-- Policy Record -->
+  </section> <!-- Formal Definition -->
+ </section> <!-- DMARC Policy Record -->
 
  <section title="Policy Enforcement Considerations"
           anchor="enforcement_policy_element">
@@ -889,7 +890,95 @@
        of the entity that will receive the reports.  Some documents that
        provide guidance for such work are <xref target="ARF"/>,
        <xref target="ARF-BCP"/> and <xref target="ARF-AS"/>. </t>
-  </section>
+  </section> <!-- Feedback Considerations -->
+
+  <section title="Verifying External Destinations" anchor="fb_verify">
+   <t> It is possible to specify destinations for the different reports
+       that are outside the domain making the request.  This is enabled
+       to allow domains that do not have mail servers to request reports
+       and have them go someplace that is able to receive and process
+       them. </t>
+
+   <t> Without checks, this would allow a bad actor to publish a DMARC policy
+       record that requests reports be sent to a victim address, and then
+       send a large volume of mail that will fail both DKIM and SPF checks
+       to a wide variety of destinations, which will in turn flood the
+       victim with unwanted reports.  Therefore, a verification mechanism
+       is included. </t>
+
+   <t> When a Mail Receiver discovers a DMARC policy in the DNS, and the domain
+       at which that record was discovered is not the same as the host
+       part of the authority component of a <xref target="URI"/> specified
+       in the "rua" or "ruf" tag, the following verification steps MUST
+       be taken:
+
+	<list style="numbers">
+		<t> Extract the host portion of the authority component of
+		    the URI.  Call this the "destination host". </t>
+
+		<t> Prepend the string "_report._dmarc". </t>
+
+		<t> Prepend the domain name from which the policy was
+		    retrieved. </t>
+
+		<t> Query the DNS for a TXT record at the constructed name.
+		    If the result of this request is a temporary DNS
+		    error of some kind (e.g., a timeout), the Mail
+		    Receiver MAY elect to temporarily fail the delivery
+		    so the verification test can be repeated later. </t>
+
+		<t> If the result includes no TXT resource records or
+		    multiple TXT resource records, a positive determination
+		    of the external reporting relationship cannot be made;
+		    stop. </t>
+
+		<t> Parse the result, if any, as a series of "tag=value"
+		    pairs, i.e., the same overall format as the policy
+		    record.  In particular, the "v=DMARC1" tag is
+		    mandatory.  If at least that tag is present and the
+		    record overall is syntactically valid per
+		    <xref target="dmarc_abnf"/>, then the external reporting
+		    arrangement was authorized by the destination ADMD. </t>
+
+		<t> If a "rua" or "ruf" tag is thus discovered, replace the
+		    corresponding value extracted from the domain's DMARC
+		    policy record with the one found in this record.  This
+		    permits the report receiver to override the report
+		    destination.  However, to prevent loops or indirect abuse,
+		    the overriding URI MUST use the same destination host from
+		    the first step. </t>
+	</list> </t>
+
+   <t> For example, if a DMARC policy query for "blue.example.com" contained
+       "rua=mailto:reports@red.example.net", the host extracted from the
+       latter ("red.example.net") does not match "blue.example.com", so this
+       procedure is enacted.  A TXT query for
+       "blue.example.com._report._dmarc.red.example.net" is issued.  If
+       a single reply comes back containing a tag of "v=DMARC1", then the
+       relationship between the two is confirmed.  Moreover, red.example.net
+       has the opportunity to override the report destination requested by
+       "blue.example.com" if needed. </t>
+
+   <t> Where the above algorithm fails to confirm that the external reporting
+       was authorized by the destination domain, the URI MUST be ignored
+       by the Mail Receiver generating the report.  Further, if the confirming
+       record includes a URI whose host is again different than the
+       domain publishing that override, the Mail Receiver generating the
+       report MUST NOT generate a report to either the original or the
+       override URI. </t>
+
+   <t> The ADMD confirming via the DNS that it wishes to receive reports
+       can use a wildcard DNS record to confirm that it is willing to receive
+       reports for any domain.  For example, a TXT resource record at
+       "*._report._dmarc.example.com" containing at least "v=DMARC1" confirms
+       that example.com is willing to receive DMARC reports for any
+       domain. </t>
+
+   <t> If the destination of the reports is overcome by volume, it can
+       simply remove the confirming DNS record.  However, due to positive
+       caching, the result could take as long as the time-to-live on the
+       record to go into effect. </t>
+  </section> <!-- Verifying External Destinations -->
 
   <section title="Aggregate Reports" anchor="fb_aggregate">
    <t> Visibility comes in the form of daily (or more frequent)
@@ -1046,7 +1135,7 @@
       respect to all DMARC processing, as reliable alignment of verified
       identifiers with what the end user will actually see cannot be
       positively determined. </t>
-  </section>
+  </section> <!-- Extract Author Domain -->
 
   <section title="Determine Domain Existence" anchor="receiver_exist">
    <t>Before undertaking DMARC evaluation itself, a DMARC participant SHOULD
@@ -1072,7 +1161,7 @@
       (from logs, reputation systems, allow lists, or other historical
       records maintained by the Mail Receiver) that the RFC5322.From field
       contains a domain known to exist. </t>
-  </section>
+  </section> <!-- Determine Domain Existence -->
    
   <section title="Determine Handling Policy" anchor="receiver_policy">
    <t>To arrive at a policy disposition for an individual message,
@@ -1647,7 +1736,7 @@
        changes while preserving the benefits of DNS caching. </t>
   </section>
 
-  <section anchor="sec_aa" title="External Reporting Addresses">
+  <section anchor="sec_external" title="External Reporting Addresses">
    <t>To avoid abuse by bad actors, reporting addresses have to be inside
       the domains about which reports are requested.  Mail Receivers
       are to disregard requests that deviate from such practice except
