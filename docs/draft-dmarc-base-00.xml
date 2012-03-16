@@ -1737,16 +1737,24 @@
   </section>
 
   <section anchor="sec_external" title="External Reporting Addresses">
-   <t>To avoid abuse by bad actors, reporting addresses have to be inside
-      the domains about which reports are requested.  Mail Receivers
-      are to disregard requests that deviate from such practice except
-      where some prior arrangement has been made with the subject domain and
-      the intended report destination.  Rather, it is easier to have the
-      subject Domain Owner redirect reports from the published address to
-      the external destination so as not to impose a burden of verification
-      on Mail Receivers. </t>
+   <t>To avoid abuse by bad actors, reporting addresses generally have to
+      be inside the domains about which reports are requested.  In order
+      to accommodate special cases such as a need to get reports about
+      domains that cannot actually receive mail, <xref target="fb_verify"/>
+      describes a DNS-based mechanism for verifying approved external
+      reporting. </t>
 
-   <t>Note that the addresses shown in the "ruf" tag receive more
+   <t>The obvious consideration here is an increased DNS load against
+      domains that are claimed as external recipients.  Negative caching
+      will mitigate this problem, but only to a limited extent, mostly
+      dependent on the default time-to-live in the domain's SOA record. </t>
+
+   <t>Where possible, external reporting is best achieved by having the
+      report be directed to domains that can receive mail and simply
+      having it automatically forwarded to the desired external
+      destination. </t>
+
+   <t>Note that the addresses whown in the "ruf" tag receive more
       information that might be considered private data, since it is
       possible for actual email content to appear in the forensic reports.
       The URIs identified there are thus more attractive targets for
