@@ -156,7 +156,15 @@
   <t>DMARC operates as a policy layer atop implementations of DKIM and
      SPF.  These technologies are the building blocks of DMARC as each
      technology is widely deployed, supported by mature tools, and is readily
-     available to both senders and receivers.</t>
+     available to both senders and receivers.  They are also complementary,
+     as each is resilient to many of the failure modes of the other.
+     Furthermore, neither of these require direct user interaction to be
+     successful, nor are they burdened by heavy considerations such as
+     public key infrastructure, which have inhibited the uptake of other
+     message signing and encryption protocols.  (For further discussion,
+     see Section 1 of <xref target="DKIM"/>.)  In addition, DMARC can
+     operate even if a message author has chosen to deploy only one of
+     these. </t>
 
   <t>DMARC differs from previous approaches to policy advertisement (e.g.,
      <xref target="SPF"/> and <xref target="ADSP"/>) in that:
@@ -616,11 +624,20 @@
       under its direct or indirect control (e.g. operated by a delegate by
       agreement with the Domain Owner).  In doing so, senders make specific
       requests of Mail Receivers regarding the disposition of, and feedback
-      on, messages purporting to be from one of the Domain Owner's domains.</t>
+      on, messages purporting to be from one of the Domain Owner's
+      domains. </t>
 
   <t> A Mail Receiver MUST consider an arriving message to pass the DMARC
       test if and only if one or more of the underlying message authentication
-      mechanisms passes.</t>
+      mechanisms passes. </t>
+
+  <t> A Domain Owner that does not advertise an SPF policy or sign with DKIM
+      is making an implicit statement that the use cases those protocols
+      satisfy are not to be considered when determining whether or
+      not the message under evaluation is valid.  For example, not publishing
+      an SPF policy is an implicit message from Domain Owners to Mail
+      Receivers that successful path authorization is not to be taken as
+      sufficient evidence that the Domain Owner authorized the message. </t>
 
   <t> A Mail Receiver implementing the DMARC mechanism MUST make a best-effort
       to adhere to the Domain Owner's published DMARC policy when a message
@@ -1201,6 +1218,12 @@
            disposed of in accordance with the discovered DMARC policy of the
            Domain Owner.  See <xref target="dmarc_format"/> for details. </t>
       </list> </t>
+
+      <t> Heuristics applied in the absence of use by a Domain Owner of either
+          SPF or DKIM (e.g., <xref target="Best-Guess-SPF"/>) SHOULD NOT
+          be used, as it may be the case that the Domain Owner wishes a
+          Message Receiver not to consider the results of that underlying
+          authentication protocol at all. </t>
      </section>
 
      <section title="Message Sampling" anchor="sampling">
@@ -2317,6 +2340,22 @@
 		</front>
 		<seriesInfo name="RFC" value="5451"/>
 	</reference>
+
+	<reference anchor="Best-Guess-SPF" target="http://www.openspf.org/FAQ/Best_guess_record">
+		<front>
+			<title>
+				Sender Policy Framework: Best guess record
+				(FAQ entry)
+			</title>
+
+			<author initials="S." surname="Kitterman"
+			        fullname="S. Kitterman">
+				<organization/>
+			</author>
+
+			<date month="May" year="2010"/>
+		</front>
+	</reference> 
 
 	<reference anchor="DKIM-DEPLOYMENT">
 		<front>
