@@ -2748,7 +2748,7 @@
          <t> Aggregate feedback reports should be sent via email to the
              addresses "dmarc-feedback@example.com" and
              "example-tld-test@thirdparty.example.net"
-             ("rua=mailto:dmarc-feedback@example.com,mailto:example-tld-test@thirdparty.example.net") </t>
+             ("rua=mailto:dmarc-feedback@example.com,mailto:tld-test@thirdparty.example.net") </t>
 
          <t> 25% of messages from this Organizational Domain are subject to
              action based on this policy ("pct=25") </t>
@@ -2761,7 +2761,7 @@
         <figure><artwork>
   % dig +short TXT _dmarc.test.example.com
   "v=DMARC1\; p=quarantine\; rua=mailto:dmarc-feedback@example.com,
-   mailto:example-tld-test@thirdparty.example.net\; pct=25"
+   mailto:tld-test@thirdparty.example.net\; pct=25"
 		</artwork></figure></t>
 
     <t> To publish such a record, the DNS administrator for the Domain Owner
@@ -2772,7 +2772,7 @@
 
   _dmarc IN  TXT  ( "v=DMARC1; p=quarantine; "
                     "rua=mailto:dmarc-feedback@example.com,"
-                    "mailto:example-tld-test@thirdparty.example.net; "
+                    "mailto:tld-test@thirdparty.example.net; "
                     "pct=25" )
         </artwork></figure></t>
    </section>
