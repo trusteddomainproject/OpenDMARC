@@ -1147,8 +1147,11 @@
           <xref target="DKIM-DEPLOYMENT"/>) and <xref target="SPF"/>. </t>
 
       <t> Align identifiers; i.e., audit internal systems so that mail
-          received by Mail Receivers will observe that Authenticated
-          Identifiers within such messages will be in alignment. </t>
+          received by external Mail Receivers will observe that Authenticated
+          Identifiers within such messages will be in alignment according
+	  to the alignment policy to be used.  It is important to be thorough
+	  with this step as failing to ensure aligned identifiers can cause
+	  undesirable handling by participating Mail Receivers. </t>
 
       <t> Prepare to receive feedback.  Create dedicated email addresses
           to receive and process feedback from the Mail Receivers. This
