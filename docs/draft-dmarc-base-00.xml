@@ -1712,6 +1712,10 @@
        Agents (MUAs) will show the display name and not the email
        address when both are available. </t>
 
+   <t> Generally, display name attacks are out of scope for DMARC as further
+       exploration of possible defenses against these attacks needs to be
+       undertaken. </t>
+
    <t> There are a few possible mechanisms that attempt mitigation of
        these attacks, such as:
        <list style="symbols">
@@ -1721,7 +1725,12 @@
 	    domain name discovered originally.  However, this addresses
 	    only a very specific attack space and is easily circumvented by
 	    spoofers simply by not using an email address in the display
-	    name. </t>
+	    name.  There are also known cases of legitimate uses of an
+            email address in the display name with a domain different from
+	    the one in the address portion, e.g.:
+		<figure><artwork>
+From: "user@example.org via Bug Tracker" &lt;support@example.com&gt;
+		</artwork></figure> </t>
 
 	<t> In the MUA, only show the display name if the DMARC mechanism
 	    succeeds.  This too is easily defeated, as an attacker could
