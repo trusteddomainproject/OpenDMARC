@@ -1735,7 +1735,7 @@
             email address in the display name with a domain different from
 	    the one in the address portion, e.g.:
 		<figure><artwork>
-From: "user@example.org via Bug Tracker" &lt;support@example.com&gt;
+     From: "user@example.org via Bug Tracker" &lt;support@example.com&gt;
 		</artwork></figure> </t>
 
 	<t> In the MUA, only show the display name if the DMARC mechanism
