@@ -1152,7 +1152,9 @@
 	  to the alignment mode to be used.  It is important to be thorough
 	  with this step, considering all possible use cases of mail outbound
 	  from the ADMD, as failing to ensure aligned identifiers can cause
-	  undesirable handling by participating Mail Receivers. </t>
+	  undesirable handling by participating Mail Receivers.  For
+          example, the possibility of mail to mailing lists, and the side
+          effects of mailing lists, needs to be considered. </t>
 
       <t> Prepare to receive feedback.  Create dedicated email addresses
           to receive and process feedback from the Mail Receivers. This
