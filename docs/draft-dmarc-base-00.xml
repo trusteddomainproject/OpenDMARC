@@ -734,6 +734,12 @@
            strict mode is in use.  See <xref target="spf_id_align"/> for
            details. </t>
 
+        <t hangText="fpct:"> (plain-text integer between 0 and 100, inclusive;
+	   OPTIONAL; default is 100).  Percentage of messages from the DNS
+	   domain's mail stream that fail message authentication for which
+           a Mail Receiver SHOULD generate forensic reports.  This MUST be
+	   ignored if no "ruf" tag is present. </t>
+
          <t hangText="p:"> Requested Mail Receiver policy (plain-text;
           REQUIRED).  Indicates the policy to be enacted by the Receiver at
           the request of the Domain Owner.  Policy applies to the domain
