@@ -1154,32 +1154,6 @@
       positively determined. </t>
   </section> <!-- Extract Author Domain -->
 
-  <section title="Determine Domain Existence" anchor="receiver_exist">
-   <t>Before undertaking DMARC evaluation itself, a DMARC participant SHOULD
-      make an attempt to determine whether or not the DNS domain found in
-      the RFC5322.From field actually exists.  For the purposes of this test,
-      that domain exists if either an MX, A or AAAA record can be found in the
-      DNS, implying it makes available a possible destination for replies
-      to messages it sends.  If none of those can be found, the Mail
-      Receiver SHOULD reject the message (see <xref target="sec_rejection"/>).
-      To be specific, a record does not exist if the header section of the DNS
-      reply indicates an RCODE of 0 and an ANCOUNT of 0 (the requested name
-      exists, but no record of the requested type is present), or if the DNS
-      reply indicates an RCODE of 3 (the requested name does not exist at
-      all). </t>
-
-   <t>A Mail Receiver MAY also elect to compute the Organizational Domain
-      and repeat the existence test against that domain (if different
-      from the RFC5322.From domain).  If that domain also fails, the message
-      MUST be rejected.  The process for computing the Organizational Domain
-      is described in <xref target="terms_and_defs"/>. </t>
-
-   <t>An example in which these tests may be skipped would be local knowledge
-      (from logs, reputation systems, allow lists, or other historical
-      records maintained by the Mail Receiver) that the RFC5322.From field
-      contains a domain known to exist. </t>
-  </section> <!-- Determine Domain Existence -->
-   
   <section title="Determine Handling Policy" anchor="receiver_policy">
    <t>To arrive at a policy disposition for an individual message,
       Mail Receivers MUST perform the following actions or their semantic
@@ -2528,6 +2502,24 @@
 		<seriesInfo name="RFC" value="2142" />
 	</reference>
  </references>
+
+ <section title="Domain Existence Test" anchor="app_dom_exist">
+  <t> A common practice among MTA operators, and indeed one documented in
+      <xref target="ADSP"/>, is a test to determine domain existence prior
+      to any more expensive processing.  This is typically done by
+      querying the DNS for MX, A or AAAA resource records for the name being
+      evaluated, and assuming the domain is non-existent if it could be
+      determined that no such records were published for that domain name. </t>
+
+  <t> The original pre-standardization version of this protocol included
+      a mandatory check of this nature.  It was ultimately removed, as
+      the method's error rate was too high without substantial manual
+      tuning and heuristic work.  There are indeed use cases this work
+      needs to address where such a method would return a negative result
+      about a domain for which reporting is desired, such as a registered
+      domain name that never sends legitimate mail and thus has none of
+      these records present in the DNS. </t>
+ </section>
 
  <section title="Examples" anchor="examples">
   <t> This section illustrates both the Domain Owner side and the Mail
