@@ -435,11 +435,11 @@
   <t>The following terms are also used:
      <list style="hanging">
       <t hangText="Authenticated Identifiers:"> Authentication technologies
-       allow MTAs to associate email with domain-level identifiers.
-       Domain-level identifiers that are established using authentication
-       technologies are referred to as "Authenticated Identifiers".
-       The following Authenticated Identifiers are considered in this
-       document:
+       allow evaluation agents to associate email with domain-level
+       identifiers.  Domain-level identifiers that are established using
+       authentication technologies are referred to as "Authenticated
+       Identifiers".  The following Authenticated Identifiers are considered
+       in this document:
 
        <list style="symbols">
         <t> <xref target="DKIM"/> provides a domain-level identifier in
@@ -677,6 +677,35 @@
       joining together the objects in order and parsing the result
       as a single string. </t>
 
+   <section anchor="dmarc_uris" title="DMARC URIs">
+    <t> <xref target="URI"/> defines a generic syntax for identifying
+        a resource.  The DMARC mechanism uses this as the format by which
+        a Domain Owner specifies the destination for either of the two
+        report types that are supported. </t>
+
+    <t> The place such URIs are specified (see <xref target="dmarc_format"/>)
+        allows a list of these to be provided, to be tried in order until
+        one of them successfully receives the report.  The list of URIs is
+	separated by commas (ASCII 0x2C). </t>
+
+    <t> Each URI can have associated with it a maximum report size that may
+        be sent to it.  This is accomplished by appending an exclamation
+	point (ASCII 0x21), followed by a maximum size indication, before
+ 	a separating comma or terminating semi-colon. </t>
+
+    <t> Thus, a DMARC URI is a URI within which any commas or exclamation
+        points are percent-encoded per <xref target="URI"/>, followed
+        by an OPTIONAL exclamation point and a maximum size specification,
+        and, if there are additional reporting URIs in the list, a comma and
+        the next URI. </t>
+
+    <t> For example, the URI "mailto:reports@example.com!50m" would request
+        a report be sent via email to "reports@example.com" so long as the
+        report payload does not exceed 50 megabytes. </t>
+
+    <t> A formal definition is provided in <xref target="dmarc_abnf"/>. </t>
+   </section>
+
    <section anchor="dmarc_format" title="General Record Format">
     <t> DMARC records follow the extensible "tag-value" syntax for DNS-based
         key records defined in <xref target="DKIM"/>. {R24} </t>
@@ -764,15 +793,16 @@
            on a best-effort basis. </t>
 
         <t hangText="rua:"> Addresses to which aggregate feedback
-           is to be sent (comma-separated plain-text list of URIs; OPTIONAL).
-	   {R11}
-           A comma that is part of such a URI MUST be encoded per Section 2.1
-	   of <xref target="URI"/> so as to distinguish it from the list
-           delimiter.  <xref target="fb_verify"/> discusses actions to be
+           is to be sent (comma-separated plain-text list of DMARC URIs;
+	   OPTIONAL).  {R11}
+           A comma or exclamation point that is part of such a DMARC URI
+	   MUST be encoded per Section 2.1 of <xref target="URI"/> so as
+	   to distinguish it from the list delimiter or an OPTIONAL size
+	   limit.  <xref target="fb_verify"/> discusses actions to be
  	   taken where the domain name of a URI differs from that of the
 	   domain advertising the policy.  See <xref target="sec_external"/>
-	   for additional considerations.  Any valid URI can be specified.  A
-	   Mail Receiver MUST implement support for
+	   for additional considerations.  Any valid URI can be specified.
+	   A Mail Receiver MUST implement support for
            a "mailto:" URI, i.e. the ability to send a DMARC report via
            electronic mail.  If not provided, Mail Receivers MUST NOT
            generate aggregate feedback reports.  URIs not supported by
@@ -781,14 +811,18 @@
 
         <t hangText="ruf:"> Addresses to which message-specific forensic
            information is to be reported (comma-separated plain-text list of
-           URIs; OPTIONAL).  {R11} If present, the Domain Owner is requesting
-           Mail Receivers to send detailed forensic reports about messages
-           that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
+           DMARC URIs; OPTIONAL).  {R11} If present, the Domain Owner is
+	   requesting Mail Receivers to send detailed forensic reports about
+	   messages that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
            evaluation.  The format of the message to be generated MUST follow
            that specified in the "rf" tag.  <xref target="fb_verify"/>
 	   discusses actions to be taken where the domain name of a URI
 	   differs from that of the domain advertising the policy.  See
-	   <xref target="sec_external"/> for additional considerations.  </t>
+	   A Mail Receiver MUST implement support for a "mailto:" URI, i.e.
+	   the ability to send a DMARC report via electronic mail.  If not
+	   provided, Mail Receivers MUST NOT generate forensic reports.
+	   See <xref target="sec_external"/> for additional
+	   considerations.  </t>
 
          <t hangText="sp:"> {R6} Requested Mail Receiver policy for subdomains
            (plain-text; OPTIONAL).  Indicates the policy to be enacted by the
@@ -816,6 +850,10 @@
         is as follows: </t>
 
         <figure><artwork>
+  dmarc-uri = URI [ "!" 1*DIGIT [ "k" / "m" / "g" / "t" ]
+            ; "URI" is imported from [URI]; commas (ASCII 0x2c)
+            ; and exclamation points (ASCII 0x21) MUST be encoded
+
   dmarc-record = dmarc-version dmarc-sep
                  dmarc-request
                  [dmarc-sep dmarc-srequest]
@@ -840,14 +878,12 @@
                                            "quarantine" / "reject" )
 
   dmarc-auri = %x72.75.61 *WSP "=" *WSP
-                URI *(*WSP "," *WSP URI)
-                ; "URI" is imported from [URI]
+                dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
   dmarc-ainterval = %x72.69 *WSP "=" *WSP
 
   dmarc-furi = %x72.75.66 *WSP "=" *WSP
-                URI *(*WSP "," *WSP URI)
-                ; "URI" is imported from [URI]
+                dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
   dmarc-rfmt = %x72.66 *WSP "=" *WSP
                ( "afrf" / "iodef" )
@@ -861,6 +897,11 @@
   dmarc-aspf = %x61.73.70.66  *WSP "=" *WSP
                ( "r" / "s" )
         </artwork></figure>
+
+   <t> A size limitation in a dmarc-uri, if provided, is interpreted as a count
+       of units followed by an OPTIONAL unit size ("k" for kilobytes, "m"
+       for megabytes, "g" for gigabytes, "t" for terabytes).  Without a unit,
+       the number is presumed to be a basic byte count. </t>
   </section> <!-- Formal Definition -->
  </section> <!-- DMARC Policy Record -->
 
@@ -1135,6 +1176,20 @@
           with a reasonably small value for "pct".  Repeat debugging
           and corrective process as necessary.</t>
      </list></t>
+
+    <t>Many URI schemes involve direct connections to the specified service
+       (e.g., http, ftp), but some involve the possibility of intermediate
+       handling (e.g. mailto).  A report generator will therefore be able
+       to tell right away if submission of a report to the former type of
+       service has succeeded or whether an alternate (if available) needs to
+       be attempted, but this will not be immediately obvious for the latter
+       type of service.  For example, a report submitted by mail may succeed
+       at least as far as the local MTA, but could bounce later; however, a
+       DMARC report generator will not immediately know about this downstream
+       error. </t>
+
+    <t>Therefore, Domain Owners SHOULD include "mailto" URIs at the end of
+       the lists of URIs they publish. </t>
  </section> <!-- Domain Owner Actions -->
 
  <section title="Mail Receiver Actions" anchor="mail_receiver_actions">
@@ -1267,8 +1322,16 @@
        a Mail Receiver generating a feedback report SHOULD apply a secure
        transport mechanism.</t>
 
+    <t>The Mail Receiver, after preparing a report, MUST evaluate the
+       provided reporting URIs in the order given.  Any reporting URI that
+       included a size limitation exceeded by the generated report
+       (after compression and after any encoding required by the particular
+       transport mechanism) MUST NOT be used. </t>
+
     <t>If transport is not possible because the services advertised by the
-       published URIs are not able to accept reports, the Mail Receiver
+       published URIs are not able to accept reports (e.g., the URI refers
+       to a service that is unreachable, or all provided URIs specify
+       size limits exceeded by the generated record), the Mail Receiver
        SHOULD send a short report (see <xref target="error_reports"/>)
        indicating that a report is available but could not be sent.  The
        Mail Receiver MAY cache that data and try again later, or MAY
