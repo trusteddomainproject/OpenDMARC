@@ -850,7 +850,7 @@
         is as follows: </t>
 
         <figure><artwork>
-  dmarc-uri = URI [ "!" 1*DIGIT [ "k" / "m" / "g" / "t" ]
+  dmarc-uri = URI [ "!" 1*DIGIT [ "k" / "m" / "g" / "t" ] ]
             ; "URI" is imported from [URI]; commas (ASCII 0x2c)
             ; and exclamation points (ASCII 0x21) MUST be encoded
 
