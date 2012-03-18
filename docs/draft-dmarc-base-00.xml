@@ -1149,8 +1149,9 @@
       <t> Align identifiers; i.e., audit internal systems so that mail
           received by external Mail Receivers will observe that Authenticated
           Identifiers within such messages will be in alignment according
-	  to the alignment policy to be used.  It is important to be thorough
-	  with this step as failing to ensure aligned identifiers can cause
+	  to the alignment mode to be used.  It is important to be thorough
+	  with this step, considering all possible use cases of mail outbound
+	  from the ADMD, as failing to ensure aligned identifiers can cause
 	  undesirable handling by participating Mail Receivers. </t>
 
       <t> Prepare to receive feedback.  Create dedicated email addresses
