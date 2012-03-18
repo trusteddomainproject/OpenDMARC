@@ -472,7 +472,7 @@
        document, an Organizational Domain is the domain that was registered
        with a domain name registrar.  Heuristics are used to determine this
        given an arbitrary domain name, since it is not always the case that
-       the registered domain name is simlpy a top-level DNS domain plus one
+       the registered domain name is simply a top-level DNS domain plus one
        component (e.g., "example.com", where "com" is a top-level domain).
        The Organizational Domain is determined by applying the
        following algorithm:
@@ -924,7 +924,7 @@
        is included. </t>
 
    <t> When a Mail Receiver discovers a DMARC policy in the DNS, and the domain
-       at which that record was discovered is not the same as the host
+       at which that record was discovered is not identical to the host
        part of the authority component of a <xref target="URI"/> specified
        in the "rua" or "ruf" tag, the following verification steps MUST
        be taken:
@@ -1751,7 +1751,7 @@
       having it automatically forwarded to the desired external
       destination. </t>
 
-   <t>Note that the addresses whown in the "ruf" tag receive more
+   <t>Note that the addresses shown in the "ruf" tag receive more
       information that might be considered private data, since it is
       possible for actual email content to appear in the forensic reports.
       The URIs identified there are thus more attractive targets for
@@ -1864,11 +1864,17 @@
             network infrastructure, or inspect messages for insight into
             abusive practices. </t>
 
-		<t> Both report types may expose sender and recipient
-		    identifiers (e.g., RFC5322.From fields), and though the
-		    <xref target="AFRF"/> format used for failed message
-		    reporting supports redaction, it is capable of
-		    exposing the entire message to the report recipient. </t>
+	<t> Both report types may expose sender and recipient
+	    identifiers (e.g., RFC5322.From fields), and although the
+	    <xref target="AFRF"/> format used for failed message
+	    reporting supports redaction, it is capable of
+	    exposing the entire message to the report recipient. </t>
+
+	<t> Domain Owners requesting reports will receive information about
+	    mail claiming to be from them, which includes mail that was not,
+	    in fact, from them.  Information about the final destination of
+	    mail where it might otherwise be obscured by intermediate systems
+	    will therefore be exposed. </t>
 	</section>
 
 	<section anchor="priv_rcpt" title="Report Recipients">
