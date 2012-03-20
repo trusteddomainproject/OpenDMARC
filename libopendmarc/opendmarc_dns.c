@@ -1,22 +1,23 @@
-/********************************************************************
+/***********************************************************************
 ** OPENDMARC_DNS.C
 **	DMARC_DNS_GET_RECORD -- looks up and returns the txt record
 **	DMARC_DNS_TEST_RECORD -- hook to test
-**********************************************************************/ 
+**  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+************************************************************************/ 
 #include "opendmarc_internal.h"
 
 /*
 ** Beware that some Linux versions incorrectly define 
 ** MAXHOSTNAMELEN as 64, but DNS lookups require a length
 ** of 255. So we don't use MAXHOSTNAMELEN here. Instead
-** we use MAXDNSHOSTNAME.
+** we use our own MAXDNSHOSTNAME.
 */
 #define MAXDNSHOSTNAME 256
 #ifndef MAXPACKET
 # define MAXPACKET        (8192)
 #endif
 
-/***************************************************************************************************
+/*************************************************************************
 ** DMARC_DNS_GET_RECORD -- looks up and returns the txt record
 **
 ** Arguments:
@@ -33,10 +34,7 @@
 **	Makes a connection to the local name server and and may block
 **	waiting for a reply.
 **
-** Notes:
-**	This routine expects your code to have already called res_init() and
-**	to have conditioned res_retries and res_retrans as appropriate.
-***************************************************************************************************/
+*************************************************************************/
 char *
 dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtlen)
 {
@@ -61,6 +59,9 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	char		hbuf[MAXDNSHOSTNAME];
 	char		namebuf[MAXDNSHOSTNAME + 1];
 	extern int	h_errno;
+#if HAVE_RES_NINIT
+	struct __res_state resp;
+#endif /* HAVE_RES_NINIT */     
 
 	/*
 	 * Short  circuit the return "reply" if no variable provided.
@@ -113,7 +114,14 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	while (*bp == '.')
 		++bp;
 
+#ifdef HAVE_RES_NINIT   
+	memset(&resp, '\0', sizeof resp);
+	res_ninit(&resp);
+	answer_len = res_nquery(&resp, bp, C_IN, T_TXT, answer_buf, sizeof answer_buf);
+	res_nclose(&resp);
+#else /* HAVE_RES_NINIT */
 	answer_len = res_query(bp, C_IN, T_TXT, answer_buf, sizeof answer_buf);
+#endif /* HAVE_RES_NINIT */
 	if (answer_len < 0)
 	{
 		*reply_ptr = h_errno;
@@ -275,7 +283,7 @@ dmarc_dns_test_record(void)
 			break;
 		}
 	}
-	printf("DNS Lookup _dmarc Records (3 Tests): %d pass, %d fail\n", success, failures);
+	printf("DNS Lookup _dmarc Records (%d Tests): %d pass, %d fail\n", i, success, failures);
 	return failures;
 }
 

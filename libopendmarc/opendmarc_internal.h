@@ -1,3 +1,5 @@
+/* Copyright (c) 2012, The Trusted Domain Project.  All rights reserved. */
+
 #ifndef OPENDMARC_INTERNAL_H
 #define OPENDMARC_INTERNAL_H
 #include "build-config.h"
