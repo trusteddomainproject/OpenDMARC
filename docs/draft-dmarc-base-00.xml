@@ -14,7 +14,7 @@
 
 <?rfc private="DMARC.org" ?>
 
-<rfc category="info" docName="draft-dmarc-base-00-01"
+<rfc category="info" docName="draft-dmarc-base-00-02"
      ipr="noModificationTrust200902">
 
 <front>
@@ -293,6 +293,32 @@
            to make that facility available. </t>
       </list>
    </t>
+  </section>
+
+  <section title="DMARC Discovery Requirements"
+           anchor="discovery_requirements">
+   <t>Contributors to DMARC have also compiled a list of requirements that
+      have informed the design of how DMARC policy is determined:
+
+     <list style="numbers">
+      <t>Simple to implement, especially for the feedback generator.</t>
+      <t>Minimize DNS queries in the discovery phase.</t>
+      <t>Resilient to abuse of the report consumer.  The ability of abusers to
+         publish feedback addresses on wildcarded domains to create a lot of
+         meaningless work for the generator is to be avoided. In recognition
+         that DMARC can be used to perform "joe-job" attacks, the feedback
+         destination URI should be within the same organizational domain.  If
+         it is not, the feedback generators need to make a best-effort attempt
+         not to joe-job the apparent feedback consumer.</t>
+      <t>Support for multiple report consumers.  Multiple consumers should be
+         able to receive feedback reports in parallel.</t>
+      <t>Transport layer security as an option.</t>
+      <t>Feedback generator verification.  Posting a URI in DNS
+         to which anyone can upload large amounts of data is always
+         dangerous.  The feedback consumer has to have a way to
+         prevent denial of service attacks by dropping or blocking
+         unwanted data.</t>
+     </list></t>
   </section>
 
   <section title="Detailed Requirements">
@@ -733,12 +759,6 @@
 	   by the Domain Owner.  If and only if the value of the string is "s", 
            strict mode is in use.  See <xref target="spf_id_align"/> for
            details. </t>
-
-        <t hangText="fpct:"> (plain-text integer between 0 and 100, inclusive;
-	   OPTIONAL; default is 100).  Percentage of messages from the DNS
-	   domain's mail stream that fail message authentication for which
-           a Mail Receiver SHOULD generate forensic reports.  This MUST be
-	   ignored if no "ruf" tag is present. </t>
 
          <t hangText="p:"> Requested Mail Receiver policy (plain-text;
           REQUIRED).  Indicates the policy to be enacted by the Receiver at
@@ -2593,22 +2613,153 @@
 	</reference>
  </references>
 
- <section title="Domain Existence Test" anchor="app_dom_exist">
-  <t> A common practice among MTA operators, and indeed one documented in
-      <xref target="ADSP"/>, is a test to determine domain existence prior
-      to any more expensive processing.  This is typically done by
-      querying the DNS for MX, A or AAAA resource records for the name being
-      evaluated, and assuming the domain is non-existent if it could be
-      determined that no such records were published for that domain name. </t>
+ <section title="Technology Considerations" anchor="app_choices">
+  <t> This section documents some design decisions that were made in the
+      development of DMARC.  Specifically, addressed here are some suggestions
+      that were considered but not included in the design.  This text
+      is included to explain why they were considered and not included
+      in this version. </t>
 
-  <t> The original pre-standardization version of this protocol included
-      a mandatory check of this nature.  It was ultimately removed, as
-      the method's error rate was too high without substantial manual
-      tuning and heuristic work.  There are indeed use cases this work
-      needs to address where such a method would return a negative result
-      about a domain for which reporting is desired, such as a registered
-      domain name that never sends legitimate mail and thus has none of
-      these records present in the DNS. </t>
+  <section title="S/MIME" anchor="app_choices_smime">
+   <t> S/MIME, or Secure Multipurpose Internet Mail Extensions, is a standard
+       for encryption and signing of MIME data in a message.  This was
+       suggested and considered as a third security protocol for authenticating
+       the source of a message. </t>
+
+   <t> DMARC is focused on authentication at the domain level (i.e., the ADMD
+       taking responsibility for the message), while S/MIME is really
+       intended for user-to-user authentication and encryption.  This alone
+       appears to make it a bad fit for DMARC's goals. </t>
+
+   <t> S/MIME also suffers from the heavyweight problem of Public Key
+       Infrastructure, which means distribution of keys used to verify
+       signatures needs to be incorporated.  In many instances, this alone
+       is a showstopper.  There have been consistent promises that PKI
+       usability and deployment will improve, but these have yet to
+       materialize.  DMARC can revisit this chouice after those barriers
+       are addressed. </t>
+
+   <t> S/MIME has extensive deployment in specific market segments
+       (government, for example), but does not enjoy similar widespread
+       deployment over the general Internet, and this shows no signs of
+       changing.  DKIM and SPF both are deployed widely over the general
+       Internet and their adoption rates continue to be positive. </t>
+
+   <t> Finally, experiements have shown that including S/MIME support in
+       the initial version of DMARC would neither cause nor enable a
+       substantial increase in the accuracy of the overall mechanism. </t>
+  </section>
+
+  <section title="Method Exclusion" anchor="app_choices_exclusion">
+   <t> It was suggested that DMARC include a mechanism by which a Domain
+       Owner could tell Message Receivers not to attempt validation by
+       one of the supported methods (e.g., "check DKIM, but not SPF"). </t>
+
+   <t> Specifically, consider a Domain Owner that has deployed one of the
+       technologies, and that technology fails for some messages, but such
+       failures don't cause enforcement action.  Deploying DMARC would
+       cause enforcement action for policies other than "none", which would
+       appear to exclude participation by that Domain Owner. </t>
+
+   <t> The DMARC development team evaluated the idea of policy exception
+       mechanisms on several occasions and invariably concluded that there
+       was not a strong enough use case to include them.  The specific target
+       audience for DMARC does not appear to have concerns about the
+       failure modes of one or the other being a barried to DMARC's
+       adoption. </t>
+
+   <t> In the scenario described above, the Domain Owner has a few options:
+
+       <list style="numbers">
+	<t> Tighten up its infrastructure to minimize the failure modes
+	    of the single deployed technology. </t>
+
+	<t> Deploy the other supported authentication mechanism, to offset
+	    the failure modes of the first. </t>
+
+	<t> Deploy DMARC in a reporting-only mode. </t>
+       </list> </t>
+  </section>
+
+  <section title="Sender Header Field" anchor="app_choices_sender">
+   <t> It has been suggested in several message authentication efforts
+       that the Sender header field be checked for an identifier of interest,
+       as the standards indicate this as the proper way to indicate a
+       re-mailing of content such as through a mailing list.  Most recently,
+       it was a protocol-level option for DomainKeys, but on evolution
+       to DKIM, this property was removed. </t>
+
+   <t> The DMARC development team considered this and decided not to include
+       support for doing so, for two primary reasons:
+
+       <list style="numbers">
+	<t> The main user protection approach is to be concerned with what
+	    the user sees when a message is rendered.  There is no consistent
+	    behaviour among MUAs regarding what to do with the content of
+	    the Sender field, if present.  Accordingly, supporting checking
+	    of the Sender identifier would mean applying policy to an
+	    identifier the end user might never actually see, which can
+	    create a vector for attack against end users by simply forging
+	    a Sender field containing some identifier that DMARC will
+	    like. </t>
+
+	<t> Although it is certainly true that this is what Sender is for,
+	    its use in this way is also unreliable, making it a poor candidate
+	    for inclusion in the DMARC evaluation algorithm. </t>
+       </list> </t>
+  </section>
+
+  <section title="Domain Existence Test" anchor="app_dom_exist">
+   <t> A common practice among MTA operators, and indeed one documented in
+       <xref target="ADSP"/>, is a test to determine domain existence prior
+       to any more expensive processing.  This is typically done by
+       querying the DNS for MX, A or AAAA resource records for the name being
+       evaluated, and assuming the domain is non-existent if it could be
+       determined that no such records were published for that domain
+       name. </t>
+
+   <t> The original pre-standardization version of this protocol included
+       a mandatory check of this nature.  It was ultimately removed, as
+       the method's error rate was too high without substantial manual
+       tuning and heuristic work.  There are indeed use cases this work
+       needs to address where such a method would return a negative result
+       about a domain for which reporting is desired, such as a registered
+       domain name that never sends legitimate mail and thus has none of
+       these records present in the DNS. </t>
+  </section>
+ 
+  <section title="Issues With ADSP In Operation" anchor="issues_with_adsp">
+   <t>DMARC has been chacarterized as a "super-ADSP" of sorts. </t>
+
+   <t>Contributors to DMARC have compiled a list of issues
+      associated with ADSP, gained from operational experience, that
+      have influenced the direction of DMARC:
+
+     <list style="numbers">
+      <t> ADSP has no support for subdomains, i.e., the ADSP record for
+          example.com does not explicitly or implicitly apply to
+          subdomain.example.com.  If wildcarding is not applied, then
+          spammers can trivially bypass ADSP by sending from a subdomain with
+          no ADSP record. </t>
+      <t> Non-existent subdomains are explicitly out of scope in ADSP.  There
+          is nothing in ADSP that states receivers should simply reject mail
+          from NXDOMAINs regardless of ADSP policy (which of course allows
+          spammers to trivially bypass ADSP by sending email from non-existent
+          subdomains). </t>
+      <t> ADSP has no operational advice on when to look up the ADSP
+          record. </t>
+      <t> ADSP has no support for using SPF as an auxiliary mechanism to
+          DKIM. </t>
+      <t> ADSP has no support for a slow roll-out, i.e., no way to configure a
+          percentage of email on which the receiver should apply the policy.
+          This is important for large-volume senders. </t>
+      <t> ADSP has no explicit support for an intermediate phase where the
+          receiver quarantines (e.g., sends to the recipient's "spam" folder)
+          rather than rejects the email. </t>
+      <t> The binding between the "From" header domain and DKIM is too tight
+          for ADSP; they must match exactly. </t>
+     </list></t>
+  </section>
  </section>
 
  <section title="Examples" anchor="examples">
@@ -3256,63 +3407,6 @@
       is not perfect, but serves this purpose reasonably well without adding
       undue burden or semantics to the DNS. </t>
  </section>
- 
- <section title="Issues With ADSP In Operation" anchor="issues_with_adsp">
-  <t>Contributors to DMARC have compiled a list of issues
-     associated with ADSP, gained from operational experience, that
-     have influenced the direction of DMARC:
-
-     <list style="numbers">
-      <t> ADSP has no support for subdomains, i.e., the ADSP record for
-          example.com does not explicitly or implicitly apply to
-          subdomain.example.com.  If wildcarding is not applied, then
-          spammers can trivially bypass ADSP by sending from a subdomain with
-          no ADSP record. </t>
-      <t> Non-existent subdomains are explicitly out of scope in ADSP.  There
-          is nothing in ADSP that states receivers should simply reject mail
-          from NXDOMAINs regardless of ADSP policy (which of course allows
-          spammers to trivially bypass ADSP by sending email from non-existent
-          subdomains). </t>
-      <t> ADSP has no operational advice on when to look up the ADSP
-          record. </t>
-      <t> ADSP has no support for using SPF as an auxiliary mechanism to
-          DKIM. </t>
-      <t> ADSP has no support for a slow roll-out, i.e., no way to configure a
-          percentage of email on which the receiver should apply the policy.
-          This is important for large-volume senders. </t>
-      <t> ADSP has no explicit support for an intermediate phase where the
-          receiver quarantines (e.g., sends to the recipient's "spam" folder)
-          rather than rejects the email. </t>
-      <t> The binding between the "From" header domain and DKIM is too tight
-          for ADSP; they must match exactly. </t>
-     </list></t>
- </section>
-
- <section title="DMARC Discovery Requirements"
-          anchor="discovery_requirements">
-  <t>Contributors to DMARC have also compiled a list of requirements that
-     have informed the design of how DMARC policy is determined:
-
-     <list style="numbers">
-      <t>Simple to implement, especially for the feedback generator.</t>
-      <t>Minimize DNS queries in the discovery phase.</t>
-      <t>Resilient to abuse of the report consumer.  The ability of abusers to
-         publish feedback addresses on wildcarded domains to create a lot of
-         meaningless work for the generator is to be avoided. In recognition
-         that DMARC can be used to perform "joe-job" attacks, the feedback
-         destination URI should be within the same organizational domain.  If
-         it is not, the feedback generators need to make a best-effort attempt
-         not to joe-job the apparent feedback consumer.</t>
-      <t>Support for multiple report consumers.  Multiple consumers should be
-         able to receive feedback reports in parallel.</t>
-      <t>Transport layer security as an option.</t>
-      <t>Feedback generator verification.  Posting a URI in DNS
-         to which anyone can upload large amounts of data is always
-         dangerous.  The feedback consumer has to have a way to
-         prevent denial of service attacks by dropping or blocking
-         unwanted data.</t>
-     </list></t>
- </section>
 
  <section title="DMARC XML Schema" anchor="xml_schema">
   <t> The following is the proposed initial schema for producing XML
@@ -3400,6 +3494,7 @@
     &lt;xs:enumeration value="sampled_out"/&gt;
     &lt;xs:enumeration value="trusted_forwarder"/&gt;
     &lt;xs:enumeration value="mailing_list"/&gt;
+    &lt;xs:enumeration value="local_policy"/&gt;
     &lt;xs:enumeration value="other"/&gt;
   &lt;/xs:restriction&gt;
 &lt;/xs:simpleType&gt;
@@ -3560,6 +3655,38 @@
 &lt;/xs:element&gt;
 &lt;/xs:schema&gt;
 	</artwork></figure> </t>
+
+	<t> Descriptions of the PolicyOverrideTypes:
+
+	    <list style="hanging">
+		<t hangText="forwarded:"> Message was relayed via a known
+			forwarded, or local heuristics identified the message
+			as likely having been forwarded.  There is no
+			expectation that authentication would pass. </t>
+
+		<t hangText="local_policy:"> The Mail Receiver's local policy
+			exempted the message from being subjected to the
+			Domain Owner's requested policy action. </t>
+
+		<t hangText="mailing_list:"> Local heuristics determined that
+			the message arrived via a mailing list, and thus
+			authentication of the original message was not
+			expected to succeed. </t>
+
+		<t hangText="other:"> Some policy exception not covered by
+			the other entries in this list occurred.  Additional
+			detail can be found in the PolicyOverrideReason's
+			"comment" field. </t>
+
+		<t hangText="sampled_out:"> Message was exempted from
+			application of policy by the "pct" setting in the
+			DMARC policy record. </t>
+
+		<t hangText="trusted_forwarder:"> Message authentication
+			failure was anticipated by other evidence linking
+			the message to a locally-maintained list of known
+			and trusted forwarders. </t>
+	    </list> </t>
  </section>
 
  <section title="Public Suffix Lists" anchor="suffixes">
