@@ -2760,6 +2760,48 @@
           for ADSP; they must match exactly. </t>
      </list></t>
   </section>
+
+  <section title="Organizational Domain Discovery Issues" anchor="od_issues">
+   <t> Although protocols like ADSP are useful for "protecting" a specific
+       domain name, they are not helpful at protecting subdomains.  If one
+       wished to protect "example.com" by requiring via ADSP that all mail
+       bearing an RFC5322.From domain of "example.com" be signed, this would
+       "protect" that domain; however, one could then craft an email whose
+       RFC5322.From domain is "security.example.com", and ADSP would not
+       provide any protection.  One could use a DNS wildcard, but this can
+       undesirably interfere with other DNS activity; one could add ADSP
+       records as fraudulent domains are discovered, but this solution does
+       not scale and is a purely reactive measure against abuse. </t>
+  
+   <t> The DNS does not provide a method by which the "domain of record",
+       or the domain that was actually registered with a domain registrar,
+       can be determined given an arbitrary domain name.  Suggestions have
+       been made that attempt to glean such information from SOA or NS
+       resource records, but these too are not fully reliable as the
+       partitioning of the DNS is not always done at administrative
+       boundaries. </t>
+
+   <t> When seeking domain-specific policy based on an arbitrary domain name,
+       one could "climb the tree", dropping labels off the left end of the
+       name until the root is reached or a policy is discovered, but then
+       one could craft a name that has a large number of nonsense labels; this
+       would cause a Mail Receiver to attempt a large number of queries in
+       search of a policy record.  Sending many such messages constitutes
+       an amplified denial-of-service attack. </t>
+
+   <t> The Organizational Domain mechanism is a necessary component to the
+       goals of DMARC.  The method described in <xref target="terms_and_defs"/>
+       is not perfect, but serves this purpose reasonably well without adding
+       undue burden or semantics to the DNS. </t>
+
+   <section title="Public Suffix Lists" anchor="suffixes">
+    <t> A public suffix list for the purposes of determining the Organizational
+        Domain can be obtained from various sources.  The most common one 
+        is maintained by the Mozilla Foundation and made public at
+        http://publicsuffix.org.  License terms governing the use of that
+        list are available at that URI. </t>
+   </section>
+  </section>
  </section>
 
  <section title="Examples" anchor="examples">
@@ -3374,40 +3416,6 @@
   </section>
  </section> <!-- Examples -->
 
- <section title="Organizational Domain Discovery Issues" anchor="od_issues">
-  <t> Although protocols like ADSP are useful for "protecting" a specific
-      domain name, they are not helpful at protecting subdomains.  If one
-      wished to protect "example.com" by requiring via ADSP that all mail
-      bearing an RFC5322.From domain of "example.com" be signed, this would
-      "protect" that domain; however, one could then craft an email whose
-      RFC5322.From domain is "security.example.com", and ADSP would not
-      provide any protection.  One could use a DNS wildcard, but this can
-      undesirably interfere with other DNS activity; one could add ADSP
-      records as fraudulent domains are discovered, but this solution does
-      not scale and is a purely reactive measure against abuse. </t>
-
-  <t> The DNS does not provide a method by which the "domain of record",
-      or the domain that was actually registered with a domain registrar,
-      can be determined given an arbitrary domain name.  Suggestions have
-      been made that attempt to glean such information from SOA or NS
-      resource records, but these too are not fully reliable as the
-      partitioning of the DNS is not always done at administrative
-      boundaries. </t>
-
-  <t> When seeking domain-specific policy based on an arbitrary domain name,
-      one could "climb the tree", dropping labels off the left end of the
-      name until the root is reached or a policy is discovered, but then
-      one could craft a name that has a large number of nonsense labels; this
-      would cause a Mail Receiver to attempt a large number of queries in
-      search of a policy record.  Sending many such messages constitutes
-      an amplified denial-of-service attack. </t>
-
-  <t> The Organizational Domain mechanism is a necessary component to the
-      goals of DMARC.  The method described in <xref target="terms_and_defs"/>
-      is not perfect, but serves this purpose reasonably well without adding
-      undue burden or semantics to the DNS. </t>
- </section>
-
  <section title="DMARC XML Schema" anchor="xml_schema">
   <t> The following is the proposed initial schema for producing XML
       formatted aggregate reports as described in this memo:
@@ -3687,14 +3695,6 @@
 			the message to a locally-maintained list of known
 			and trusted forwarders. </t>
 	    </list> </t>
- </section>
-
- <section title="Public Suffix Lists" anchor="suffixes">
-  <t> A public suffix list for the purposes of determining the Organizational
-      Domain can be obtained from various sources.  The most common one 
-      is maintained by the Mozilla Foundation and made public at
-      http://publicsuffix.org.  License terms governing the use of that
-      list are available at that URI. </t>
  </section>
 
  <section title="Public Discussion" anchor="public">
