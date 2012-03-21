@@ -2591,8 +2591,8 @@
   <t> This section documents some design decisions that were made in the
       development of DMARC.  Specifically, addressed here are some suggestions
       that were considered but not included in the design.  This text
-      is included to explain why they were considered and rejected so that
-      future evaluations need not revisit them. </t>
+      is included to explain why they were considered and not included
+      in this version. </t>
 
   <section title="S/MIME" anchor="app_choices_smime">
    <t> S/MIME, or Secure Multipurpose Internet Mail Extensions, is a standard
