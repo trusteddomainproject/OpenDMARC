@@ -2682,24 +2682,25 @@
 	    for inclusion in the DMARC evaluation algorithm. </t>
        </list> </t>
   </section>
- </section>
 
- <section title="Domain Existence Test" anchor="app_dom_exist">
-  <t> A common practice among MTA operators, and indeed one documented in
-      <xref target="ADSP"/>, is a test to determine domain existence prior
-      to any more expensive processing.  This is typically done by
-      querying the DNS for MX, A or AAAA resource records for the name being
-      evaluated, and assuming the domain is non-existent if it could be
-      determined that no such records were published for that domain name. </t>
+  <section title="Domain Existence Test" anchor="app_dom_exist">
+   <t> A common practice among MTA operators, and indeed one documented in
+       <xref target="ADSP"/>, is a test to determine domain existence prior
+       to any more expensive processing.  This is typically done by
+       querying the DNS for MX, A or AAAA resource records for the name being
+       evaluated, and assuming the domain is non-existent if it could be
+       determined that no such records were published for that domain
+       name. </t>
 
-  <t> The original pre-standardization version of this protocol included
-      a mandatory check of this nature.  It was ultimately removed, as
-      the method's error rate was too high without substantial manual
-      tuning and heuristic work.  There are indeed use cases this work
-      needs to address where such a method would return a negative result
-      about a domain for which reporting is desired, such as a registered
-      domain name that never sends legitimate mail and thus has none of
-      these records present in the DNS. </t>
+   <t> The original pre-standardization version of this protocol included
+       a mandatory check of this nature.  It was ultimately removed, as
+       the method's error rate was too high without substantial manual
+       tuning and heuristic work.  There are indeed use cases this work
+       needs to address where such a method would return a negative result
+       about a domain for which reporting is desired, such as a registered
+       domain name that never sends legitimate mail and thus has none of
+       these records present in the DNS. </t>
+  </section>
  </section>
 
  <section title="Examples" anchor="examples">
