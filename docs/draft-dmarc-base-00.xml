@@ -2663,8 +2663,8 @@
        it was a protocol-level option for DomainKeys, but on evolution
        to DKIM, this property was removed. </t>
 
-   <t> DMARC considered this and decided not to include support for doing
-       so, for two primary reasons:
+   <t> The DMARC development team considered this and decided not to include
+       support for doing so, for two primary reasons:
 
        <list style="numbers">
 	<t> The main user protection approach is to be concerned with what
