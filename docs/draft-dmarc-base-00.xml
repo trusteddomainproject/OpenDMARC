@@ -14,7 +14,7 @@
 
 <?rfc private="DMARC.org" ?>
 
-<rfc category="info" docName="draft-dmarc-base-00-01"
+<rfc category="info" docName="draft-dmarc-base-00-02"
      ipr="noModificationTrust200902">
 
 <front>
@@ -293,6 +293,32 @@
            to make that facility available. </t>
       </list>
    </t>
+  </section>
+
+  <section title="DMARC Discovery Requirements"
+           anchor="discovery_requirements">
+   <t>Contributors to DMARC have also compiled a list of requirements that
+      have informed the design of how DMARC policy is determined:
+
+     <list style="numbers">
+      <t>Simple to implement, especially for the feedback generator.</t>
+      <t>Minimize DNS queries in the discovery phase.</t>
+      <t>Resilient to abuse of the report consumer.  The ability of abusers to
+         publish feedback addresses on wildcarded domains to create a lot of
+         meaningless work for the generator is to be avoided. In recognition
+         that DMARC can be used to perform "joe-job" attacks, the feedback
+         destination URI should be within the same organizational domain.  If
+         it is not, the feedback generators need to make a best-effort attempt
+         not to joe-job the apparent feedback consumer.</t>
+      <t>Support for multiple report consumers.  Multiple consumers should be
+         able to receive feedback reports in parallel.</t>
+      <t>Transport layer security as an option.</t>
+      <t>Feedback generator verification.  Posting a URI in DNS
+         to which anyone can upload large amounts of data is always
+         dangerous.  The feedback consumer has to have a way to
+         prevent denial of service attacks by dropping or blocking
+         unwanted data.</t>
+     </list></t>
   </section>
 
   <section title="Detailed Requirements">
@@ -2701,6 +2727,39 @@
        domain name that never sends legitimate mail and thus has none of
        these records present in the DNS. </t>
   </section>
+ 
+  <section title="Issues With ADSP In Operation" anchor="issues_with_adsp">
+   <t>DMARC has been chacarterized as a "super-ADSP" of sorts. </t>
+
+   <t>Contributors to DMARC have compiled a list of issues
+      associated with ADSP, gained from operational experience, that
+      have influenced the direction of DMARC:
+
+     <list style="numbers">
+      <t> ADSP has no support for subdomains, i.e., the ADSP record for
+          example.com does not explicitly or implicitly apply to
+          subdomain.example.com.  If wildcarding is not applied, then
+          spammers can trivially bypass ADSP by sending from a subdomain with
+          no ADSP record. </t>
+      <t> Non-existent subdomains are explicitly out of scope in ADSP.  There
+          is nothing in ADSP that states receivers should simply reject mail
+          from NXDOMAINs regardless of ADSP policy (which of course allows
+          spammers to trivially bypass ADSP by sending email from non-existent
+          subdomains). </t>
+      <t> ADSP has no operational advice on when to look up the ADSP
+          record. </t>
+      <t> ADSP has no support for using SPF as an auxiliary mechanism to
+          DKIM. </t>
+      <t> ADSP has no support for a slow roll-out, i.e., no way to configure a
+          percentage of email on which the receiver should apply the policy.
+          This is important for large-volume senders. </t>
+      <t> ADSP has no explicit support for an intermediate phase where the
+          receiver quarantines (e.g., sends to the recipient's "spam" folder)
+          rather than rejects the email. </t>
+      <t> The binding between the "From" header domain and DKIM is too tight
+          for ADSP; they must match exactly. </t>
+     </list></t>
+  </section>
  </section>
 
  <section title="Examples" anchor="examples">
@@ -3347,63 +3406,6 @@
       goals of DMARC.  The method described in <xref target="terms_and_defs"/>
       is not perfect, but serves this purpose reasonably well without adding
       undue burden or semantics to the DNS. </t>
- </section>
- 
- <section title="Issues With ADSP In Operation" anchor="issues_with_adsp">
-  <t>Contributors to DMARC have compiled a list of issues
-     associated with ADSP, gained from operational experience, that
-     have influenced the direction of DMARC:
-
-     <list style="numbers">
-      <t> ADSP has no support for subdomains, i.e., the ADSP record for
-          example.com does not explicitly or implicitly apply to
-          subdomain.example.com.  If wildcarding is not applied, then
-          spammers can trivially bypass ADSP by sending from a subdomain with
-          no ADSP record. </t>
-      <t> Non-existent subdomains are explicitly out of scope in ADSP.  There
-          is nothing in ADSP that states receivers should simply reject mail
-          from NXDOMAINs regardless of ADSP policy (which of course allows
-          spammers to trivially bypass ADSP by sending email from non-existent
-          subdomains). </t>
-      <t> ADSP has no operational advice on when to look up the ADSP
-          record. </t>
-      <t> ADSP has no support for using SPF as an auxiliary mechanism to
-          DKIM. </t>
-      <t> ADSP has no support for a slow roll-out, i.e., no way to configure a
-          percentage of email on which the receiver should apply the policy.
-          This is important for large-volume senders. </t>
-      <t> ADSP has no explicit support for an intermediate phase where the
-          receiver quarantines (e.g., sends to the recipient's "spam" folder)
-          rather than rejects the email. </t>
-      <t> The binding between the "From" header domain and DKIM is too tight
-          for ADSP; they must match exactly. </t>
-     </list></t>
- </section>
-
- <section title="DMARC Discovery Requirements"
-          anchor="discovery_requirements">
-  <t>Contributors to DMARC have also compiled a list of requirements that
-     have informed the design of how DMARC policy is determined:
-
-     <list style="numbers">
-      <t>Simple to implement, especially for the feedback generator.</t>
-      <t>Minimize DNS queries in the discovery phase.</t>
-      <t>Resilient to abuse of the report consumer.  The ability of abusers to
-         publish feedback addresses on wildcarded domains to create a lot of
-         meaningless work for the generator is to be avoided. In recognition
-         that DMARC can be used to perform "joe-job" attacks, the feedback
-         destination URI should be within the same organizational domain.  If
-         it is not, the feedback generators need to make a best-effort attempt
-         not to joe-job the apparent feedback consumer.</t>
-      <t>Support for multiple report consumers.  Multiple consumers should be
-         able to receive feedback reports in parallel.</t>
-      <t>Transport layer security as an option.</t>
-      <t>Feedback generator verification.  Posting a URI in DNS
-         to which anyone can upload large amounts of data is always
-         dangerous.  The feedback consumer has to have a way to
-         prevent denial of service attacks by dropping or blocking
-         unwanted data.</t>
-     </list></t>
  </section>
 
  <section title="DMARC XML Schema" anchor="xml_schema">
