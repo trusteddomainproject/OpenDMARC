@@ -3394,6 +3394,7 @@
     &lt;xs:enumeration value="sampled_out"/&gt;
     &lt;xs:enumeration value="trusted_forwarder"/&gt;
     &lt;xs:enumeration value="mailing_list"/&gt;
+    &lt;xs:enumeration value="local_policy"/&gt;
     &lt;xs:enumeration value="other"/&gt;
   &lt;/xs:restriction&gt;
 &lt;/xs:simpleType&gt;
@@ -3554,6 +3555,38 @@
 &lt;/xs:element&gt;
 &lt;/xs:schema&gt;
 	</artwork></figure> </t>
+
+	<t> Descriptions of the PolicyOverrideTypes:
+
+	    <list style="hanging">
+		<t hangText="forwarded:"> Message was relayed via a known
+			forwarded, or local heuristics identified the message
+			as likely having been forwarded.  There is no
+			expectation that authentication would pass. </t>
+
+		<t hangText="local_policy:"> The Mail Receiver's local policy
+			exempted the message from being subjected to the
+			Domain Owner's requested policy action. </t>
+
+		<t hangText="mailing_list:"> Local heuristics determined that
+			the message arrived via a mailing list, and thus
+			authentication of the original message was not
+			expected to succeed. </t>
+
+		<t hangText="other:"> Some policy exception not covered by
+			the other entries in this list occurred.  Additional
+			detail can be found in the PolicyOverrideReason's
+			"comment" field. </t>
+
+		<t hangText="sampled_out:"> Message was exempted from
+			application of policy by the "pct" setting in the
+			DMARC policy record. </t>
+
+		<t hangText="trusted_forwarder:"> Message authentication
+			failure was anticipated by other evidence linking
+			the message to a locally-maintained list of known
+			and trusted forwarders. </t>
+	    </list> </t>
  </section>
 
  <section title="Public Suffix Lists" anchor="suffixes">
