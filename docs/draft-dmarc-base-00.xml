@@ -2659,7 +2659,9 @@
    <t> It has been suggested in several message authentication efforts
        that the Sender header field be checked for an identifier of interest,
        as the standards indicate this as the proper way to indicate a
-       re-mailing of content such as through a mailing list. </t>
+       re-mailing of content such as through a mailing list.  Most recently,
+       it was a protocol-level option for DomainKeys, but on evolution
+       to DKIM, this property was removed. </t>
 
    <t> DMARC considered this and decided not to include support for doing
        so, for two primary reasons:
