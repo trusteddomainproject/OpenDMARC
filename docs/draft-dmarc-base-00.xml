@@ -2613,7 +2613,7 @@
 	</reference>
  </references>
 
- <section title="Technology Choices" anchor="app_choices">
+ <section title="Technology Considerations" anchor="app_choices">
   <t> This section documents some design decisions that were made in the
       development of DMARC.  Specifically, addressed here are some suggestions
       that were considered but not included in the design.  This text
