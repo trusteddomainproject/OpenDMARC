@@ -2587,6 +2587,101 @@
 	</reference>
  </references>
 
+ <section title="Technology Choices" anchor="app_choices">
+  <t> This section documents some design decisions that were made in the
+      development of DMARC.  Specifically, addressed here are some suggestions
+      that were considered but not included in the design.  This text
+      is included to explain why they were considered and rejected so that
+      future evaluations need not revisit them. </t>
+
+  <section title="S/MIME" anchor="app_choices_smime">
+   <t> S/MIME, or Secure Multipurpose Internet Mail Extensions, is a standard
+       for encryption and signing of MIME data in a message.  This was
+       suggested and considered as a third security protocol for authenticating
+       the source of a message. </t>
+
+   <t> DMARC is focused on authentication at the domain level (i.e., the ADMD
+       taking responsibility for the message), while S/MIME is really
+       intended for user-to-user authentication and encryption.  This alone
+       appears to make it a bad fit for DMARC's goals. </t>
+
+   <t> S/MIME also suffers from the heavyweight problem of Public Key
+       Infrastructure, which means distribution of keys used to verify
+       signatures needs to be incorporated.  In many instances, this alone
+       is a showstopper.  There have been consistent promises that PKI
+       usability and deployment will improve, but these have yet to
+       materialize.  DMARC can revisit this chouice after those barriers
+       are addressed. </t>
+
+   <t> S/MIME has extensive deployment in specific market segments
+       (government, for example), but does not enjoy similar widespread
+       deployment over the general Internet, and this shows no signs of
+       changing.  DKIM and SPF both are deployed widely over the general
+       Internet and their adoption rates continue to be positive. </t>
+
+   <t> Finally, experiements have shown that including S/MIME support in
+       the initial version of DMARC would neither cause nor enable a
+       substantial increase in the accuracy of the overall mechanism. </t>
+  </section>
+
+  <section title="Method Exclusion" anchor="app_choices_exclusion">
+   <t> It was suggested that DMARC include a mechanism by which a Domain
+       Owner could tell Message Receivers not to attempt validation by
+       one of the supported methods (e.g., "check DKIM, but not SPF"). </t>
+
+   <t> Specifically, consider a Domain Owner that has deployed one of the
+       technologies, and that technology fails for some messages, but such
+       failures don't cause enforcement action.  Deploying DMARC would
+       cause enforcement action for policies other than "none", which would
+       appear to exclude participation by that Domain Owner. </t>
+
+   <t> The DMARC development team evaluated the idea of policy exception
+       mechanisms on several occasions and invariably concluded that there
+       was not a strong enough use case to include them.  The specific target
+       audience for DMARC does not appear to have concerns about the
+       failure modes of one or the other being a barried to DMARC's
+       adoption. </t>
+
+   <t> In the scenario described above, the Domain Owner has a few options:
+
+       <list style="numbers">
+	<t> Tighten up its infrastructure to minimize the failure modes
+	    of the single deployed technology. </t>
+
+	<t> Deploy the other supported authentication mechanism, to offset
+	    the failure modes of the first. </t>
+
+	<t> Deploy DMARC in a reporting-only mode. </t>
+       </list> </t>
+  </section>
+
+  <section title="Sender Header Field" anchor="app_choices_sender">
+   <t> It has been suggested in several message authentication efforts
+       that the Sender header field be checked for an identifier of interest,
+       as the standards indicate this as the proper way to indicate a
+       re-mailing of content such as through a mailing list. </t>
+
+   <t> DMARC considered this and decided not to include support for doing
+       so, for two primary reasons:
+
+       <list style="numbers">
+	<t> The main user protection approach is to be concerned with what
+	    the user sees when a message is rendered.  There is no consistent
+	    behaviour among MUAs regarding what to do with the content of
+	    the Sender field, if present.  Accordingly, supporting checking
+	    of the Sender identifier would mean applying policy to an
+	    identifier the end user might never actually see, which can
+	    create a vector for attack against end users by simply forging
+	    a Sender field containing some identifier that DMARC will
+	    like. </t>
+
+	<t> Although it is certainly true that this is what Sender is for,
+	    its use in this way is also unreliable, making it a poor candidate
+	    for inclusion in the DMARC evaluation algorithm. </t>
+       </list> </t>
+  </section>
+ </section>
+
  <section title="Domain Existence Test" anchor="app_dom_exist">
   <t> A common practice among MTA operators, and indeed one documented in
       <xref target="ADSP"/>, is a test to determine domain existence prior
