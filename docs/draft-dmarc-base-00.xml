@@ -1829,7 +1829,7 @@
        TTL should be considered when publishing DMARC policies.</t>
 
    <t> Conversely, long TTLs will cause records to be cached for long periods
-       of time.  This can prevent a critical change to DMARC parameters
+       of time.  This can cause a critical change to DMARC parameters
        advertised by a Domain Owner to go unnoticed for the length of the TTL
        (while waiting for DNS caches to expire).  Avoiding this problem can
        mean shorter TTLs, with the potential problems described above.  A
