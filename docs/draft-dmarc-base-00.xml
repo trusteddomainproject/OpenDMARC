@@ -2455,6 +2455,12 @@
 				</organization>
 			</author>
 
+			<author initials="E." surname="Siegel"
+			        fullname="E. Siegel">
+				<organization/>
+				</organization>
+			</author>
+
 			<author initials="D." surname="Crocker"
 			        fullname="D. Crocker">
 				<organization>
@@ -2504,7 +2510,7 @@
 
 			<date month="July" year="2009"/>
 		</front>
-		<seriesInfo name="RFC" value="5598"/>
+		<seriesInfo name="RFC" value="5585"/>
 	</reference>
 
 	<reference anchor="DSN">
