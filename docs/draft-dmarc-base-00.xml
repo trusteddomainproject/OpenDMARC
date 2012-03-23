@@ -843,7 +843,7 @@
            evaluation.  The format of the message to be generated MUST follow
            that specified in the "rf" tag.  <xref target="fb_verify"/>
 	   discusses actions to be taken where the domain name of a URI
-	   differs from that of the domain advertising the policy.  See
+	   differs from that of the domain advertising the policy. 
 	   A Mail Receiver MUST implement support for a "mailto:" URI, i.e.
 	   the ability to send a DMARC report via electronic mail.  If not
 	   provided, Mail Receivers MUST NOT generate forensic reports.
