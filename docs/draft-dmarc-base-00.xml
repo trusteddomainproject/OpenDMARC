@@ -3679,7 +3679,7 @@
 
 	    <list style="hanging">
 		<t hangText="forwarded:"> Message was relayed via a known
-			forwarded, or local heuristics identified the message
+			forwarder, or local heuristics identified the message
 			as likely having been forwarded.  There is no
 			expectation that authentication would pass. </t>
 
