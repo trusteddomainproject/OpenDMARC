@@ -655,7 +655,7 @@
 
   <t> A Mail Receiver MUST consider an arriving message to pass the DMARC
       test if and only if one or more of the underlying message authentication
-      mechanisms passes. </t>
+      mechanisms pass with proper identifier alignment. </t>
 
   <t> A Domain Owner that does not advertise an SPF policy or sign with DKIM
       is making an implicit statement that the use cases those protocols
