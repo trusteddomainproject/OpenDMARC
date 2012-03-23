@@ -1178,7 +1178,7 @@
           alignment according to the alignment mode to be used.  It is
           important to be thorough with this step, considering all
           possible use cases of mail outbound from the ADMD, as failing
-          to correctly align identifiers can cause undesirable handling
+          to align identifiers correctly can cause undesirable handling
           by participating Mail Receivers.  For example, the possibility
           of mail to mailing lists, and the side effects of mailing
           lists, needs to be considered. </t>
