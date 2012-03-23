@@ -824,8 +824,8 @@
            A comma or exclamation point that is part of such a DMARC URI
 	   MUST be encoded per Section 2.1 of <xref target="URI"/> so as
 	   to distinguish it from the list delimiter or an OPTIONAL size
-	   limit.  <xref target="fb_verify"/> discusses actions to be
- 	   taken where the domain name of a URI differs from that of the
+	   limit.  <xref target="fb_verify"/> discusses considerations that
+ 	   apply when the domain name of a URI differs from that of the
 	   domain advertising the policy.  See <xref target="sec_external"/>
 	   for additional considerations.  Any valid URI can be specified.
 	   A Mail Receiver MUST implement support for
@@ -842,7 +842,7 @@
 	   messages that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
            evaluation.  The format of the message to be generated MUST follow
            that specified in the "rf" tag.  <xref target="fb_verify"/>
-	   discusses actions to be taken where the domain name of a URI
+	   discusses considerations that apply when the domain name of a URI
 	   differs from that of the domain advertising the policy. 
 	   A Mail Receiver MUST implement support for a "mailto:" URI, i.e.
 	   the ability to send a DMARC report via electronic mail.  If not
@@ -993,7 +993,7 @@
    <t> When a Mail Receiver discovers a DMARC policy in the DNS, and the domain
        at which that record was discovered is not identical to the host
        part of the authority component of a <xref target="URI"/> specified
-       in the "rua" or "ruf" tag, the following verification steps MUST
+       in the "rua" or "ruf" tag, the following verification steps SHOULD
        be taken:
 
 	<list style="numbers">
@@ -1051,6 +1051,9 @@
        report MUST NOT generate a report to either the original or the
        override URI. </t>
 
+   <t> A report receiver MUST publish such a record in its DNS if it wishes
+       to receive reports for other domains. </t>
+
    <t> The ADMD confirming via the DNS that it wishes to receive reports
        can use a wildcard DNS record to confirm that it is willing to receive
        reports for any domain.  For example, a TXT resource record at
@@ -1062,6 +1065,10 @@
        simply remove the confirming DNS record.  However, due to positive
        caching, the result could take as long as the time-to-live on the
        record to go into effect. </t>
+
+   <t> A Mail Receiver might decide not to enact this procedure if, for
+       example, it relies on a local list of domains for which external
+       reporting addresses are permitted. </t>
   </section> <!-- Verifying External Destinations -->
 
   <section title="Aggregate Reports" anchor="fb_aggregate">
@@ -1864,6 +1871,11 @@
       attacking the DNS of the subject domain to cause forensic data to
       be routed fraudulently to an attacker's systems may be an attractive
       prospect.  Deployment of DNSSEC is advisable if this is a concern. </t>
+
+   <t>The verification mechanism presented in <xref target="fb_verify"/>
+      is currently not mandatory ("MUST") but strongly recommended ("SHOULD").
+      It is possible that it would be elevated to a "MUST" by later
+      security review. </t>
   </section>
 
   <section anchor="sec_fbl" title="Feedback Loops">
