@@ -1753,7 +1753,7 @@
        these attacks, such as:
        <list style="symbols">
 	<t> If the display name is found to include an email address
-	    (as specified in <xref target="MAIL"/>, execute the DMARC
+	    (as specified in <xref target="MAIL"/>), execute the DMARC
 	    mechanism on the domain name found there rather than the
 	    domain name discovered originally.  However, this addresses
 	    only a very specific attack space and is easily circumvented by
