@@ -3062,6 +3062,84 @@
 	    </artwork></figure> </t>
    </section>
 
+   <section title="Per-Message Forensic Reports Directed to Third Party"
+            anchor="ex_owner_2_1">
+    <t> The Domain Owner from the previous example is maintaining the same
+        policy, but now wishes to have a third party receive and process the
+        per-message forensic reports. Again, not all Receivers will honor this
+        request, but those that do may implement additional checks to validate 
+        that the third party wishes to receive the forensic reports for this
+        domain. </t>
+
+    <t> The Domain Owner needs to alter its policy record from
+        <xref target="ex_owner_2"/> as follows:
+
+	<list style="symbols">
+		<t> Per message forensic reports should be send via email
+		    to the address "auth-reports@thirdparty.example.net"
+		    ("ruf=mailto:auth-reports@thirdparty.example.net") </t>
+	</list> </t>
+
+    <t> The DMARC policy record might look like this when retrieved using a
+	common command-line tool (the output shown would appear on a single
+	line, but is wrapped here for publication):
+
+	<figure><artwork>
+  % dig +short TXT _dmarc.example.com.
+  "v=DMARC1\; p=none\; rua=mailto:dmarc-feedback@example.com\;
+   ruf=mailto:auth-reports@thirdparty.example.net"
+	</artwork></figure> </t>
+
+    <t> To publish such a record, the DNS administrator for the Domain Owner
+	might create an entry like the following in the appropriate zone file
+	(following the conventional zone file format):
+
+	<figure><artwork>
+  ; DMARC record for the domain example.com
+
+  _dmarc IN TXT ( "v=DMARC1; p=none; "
+                  "rua=mailto:dmarc-feedback@example.com; "
+                  "ruf=mailto:auth-reports@thirdparty.example.net" )
+	</artwork></figure></t>
+
+    <t> Because the address used in the "ruf" tag is outside the Organizational
+        Domain in whichthat this record is published, conforming Receivers will
+	implement additional checks as described in <xref target="fb_verify"/>
+	of this document.  In order to pass these additional checks, the third
+	party will need to publish an additional DNS record as follows:
+
+	<list style="symbols">
+		<t> Given the DMARC record published by the Domain Owner at
+		    "_dmarc.example.com", the DNS administrator for the
+		    third party will need to publish a TXT resource record at
+		    "example.com._report._dmarc.thirdparty.example.net" with
+		    the value "v=DMARC1". </t>
+	</list> </t>
+
+    <t> The resulting DNS record might look like this when retrieved using a
+        common command-line tool (the output shown would appear on a single
+        line, but is wrapped here for publication):
+
+	<figure><artwork>
+  % dig +short TXT example.com._report._dmarc.thirdparty.example.net
+  "v=DMARC1"
+	</artwork></figure></t>
+
+    <t> To publish such a record, the DNS administrator for example.net might
+        create an entry like the following in the appropriate zone file
+	(following the conventional zone file format):
+
+	<figure><artwork>
+  ; zone file for thirdparty.example.net
+  ; Accept DMARC forensic reports on behalf of example.com
+
+  example.com._report._dmarc   IN   TXT    "v=DMARC1"
+	</artwork></figure></t>
+
+    <t> Intermediaries and other third parties should refer to
+	<xref target="fb_verify"/> for the full details of this mechanism. </t>
+   </section>
+
    <section title="Sub-Domain, Sampling, and Multiple Aggregate Report URIs"
             anchor="ex_owner_3">
     <t> The Domain Owner has implemented SPF and DKIM in a sub-domain used
