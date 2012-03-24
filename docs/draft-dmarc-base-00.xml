@@ -1106,10 +1106,13 @@
   <section title="Failure Reports" anchor="fb_failure">
    <t> Message-specific authentication-failure-related forensic reporting can
        be used to identify problems with Domain-Owner-controlled
-       infrastructure and to investigate the sources and methods of fraudulent
-       messages. </t>
+       infrastructure and to investigate the sources and causes of failing
+       messages.  They might also be used to aid investigations into the
+       sources and objectives of fraudulent messages. </t>
 
-   <t> The format for these reports is defined in <xref target="AFRF"/>. </t>
+   <t> The format for these reports is defined in either
+       <xref target="AFRF"/> or <xref target="IODEF"/> depending on the
+       value found in the "rf" tag of the DMARC record (or its default). </t>
 
    <t> These reports SHOULD include the "call-to-action" URI(s) from inside
        messages that failed to authenticate. {R21} </t>
