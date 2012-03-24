@@ -286,7 +286,8 @@
            in the author domain's SPF record must be accurately maintained. </t>
        <t> In addition to the above, authors must ensure that their outbound
            mail servers are not sending unauthorized mail (e.g., are not
-           infected by spam bots or malware). </t>
+           infected by spam bots or malware, or relaying messages from
+	   systems so afflicted). </t>
        <t> DMARC relies on the concept of message quarantining as a valid
            message disposition, and thus relies on the various components
            of the recipient's mailbox service provider and the user interface
@@ -344,7 +345,7 @@
            of its organizational domain that is different for the policy
            of the organizational domain itself. </t>
        <t> Message disposition requests via DMARC override those requested
-           by any other mechanism. </t>
+           by any other public mechanism. </t>
        <t> Senders should be able to specify a percentage of their messages
            to which their policies should be applied, with the rest unaffected,
            in order to experiment and to understand and minimize deployment
@@ -862,7 +863,8 @@
            Identifies the record retrieved as a DMARC record.  It MUST
            have the value of "DMARC1".  The value of this tag MUST match
            precisely; if it does not or it is absent, the entire
-           retrieved record MUST be ignored. </t>
+           retrieved record MUST be ignored.  It MUST be the first tag in
+	   the list. </t>
       </list> </t>
 
     <t> Note that addition of a new tag into the registered list of tags
@@ -1019,7 +1021,8 @@
 		<t> Parse the result, if any, as a series of "tag=value"
 		    pairs, i.e., the same overall format as the policy
 		    record.  In particular, the "v=DMARC1" tag is
-		    mandatory.  If at least that tag is present and the
+		    mandatory and MUST appear first in the list.  If at least
+		    that tag is present and the
 		    record overall is syntactically valid per
 		    <xref target="dmarc_abnf"/>, then the external reporting
 		    arrangement was authorized by the destination ADMD. </t>
@@ -1128,7 +1131,7 @@
             the DNS domain matching the one found in the RFC5322.From domain
             in the message.  A possibly empty set of records is returned. </t>
 
-        <t> Records that do not include a "v=" tag that identifies
+        <t> Records that do not start with a "v=" tag that identifies
             the current version of DMARC are discarded. </t>
 
         <t> If the set is now empty, the Mail Receiver
@@ -1353,7 +1356,7 @@
        specifies where to send feedback.  URI schemes found in "rua" tag that
        are not implemented by a Mail Receiver MUST be ignored. </t>
 
-    <t>For on the considerations given to DMARC discovery,
+    <t>For more on the considerations given to DMARC discovery,
        see <xref target="discovery_requirements"/>.</t>
    </section> <!-- Discovery -->
 
@@ -3019,7 +3022,7 @@
 
 	<t> Not all Receivers will honor such a request, but the Domain Owner
             feels that any reports it does receive will be helpful enough to
-	    justify publishing this record. The default per-message report
+	    justify publishing this record.  The default per-message report
 	    format (<xref target="AFRF"/>) meets the Domain Owner's needs in
 	    this scenario. </t>
 
@@ -3327,7 +3330,8 @@
 
    <section title="Real-time Feedback Processing" anchor="ex_afrf">
     <t> If the DMARC record for the Author Domain of the message under
-        processing requests [AFRF]-based reporting, then the Mail Receiver can
+        processing requests <xref target="AFRF"/>-based reporting, then the
+	Mail Receiver can
         supply an AFRF report for a message that does not pass all underlying
         DMARC authentication checks.  In other words, if any DMARC-supporting
         authentication checks fail, an AFRF report should be generated and
