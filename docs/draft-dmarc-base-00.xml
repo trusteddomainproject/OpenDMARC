@@ -286,7 +286,8 @@
            in the author domain's SPF record must be accurately maintained. </t>
        <t> In addition to the above, authors must ensure that their outbound
            mail servers are not sending unauthorized mail (e.g., are not
-           infected by spam bots or malware). </t>
+           infected by spam bots or malware, or relaying messages from
+	   systems so afflicted). </t>
        <t> DMARC relies on the concept of message quarantining as a valid
            message disposition, and thus relies on the various components
            of the recipient's mailbox service provider and the user interface
@@ -344,7 +345,7 @@
            of its organizational domain that is different for the policy
            of the organizational domain itself. </t>
        <t> Message disposition requests via DMARC override those requested
-           by any other mechanism. </t>
+           by any other public mechanism. </t>
        <t> Senders should be able to specify a percentage of their messages
            to which their policies should be applied, with the rest unaffected,
            in order to experiment and to understand and minimize deployment
@@ -655,7 +656,7 @@
 
   <t> A Mail Receiver MUST consider an arriving message to pass the DMARC
       test if and only if one or more of the underlying message authentication
-      mechanisms passes. </t>
+      mechanisms pass with proper identifier alignment. </t>
 
   <t> A Domain Owner that does not advertise an SPF policy or sign with DKIM
       is making an implicit statement that the use cases those protocols
@@ -824,8 +825,8 @@
            A comma or exclamation point that is part of such a DMARC URI
 	   MUST be encoded per Section 2.1 of <xref target="URI"/> so as
 	   to distinguish it from the list delimiter or an OPTIONAL size
-	   limit.  <xref target="fb_verify"/> discusses actions to be
- 	   taken where the domain name of a URI differs from that of the
+	   limit.  <xref target="fb_verify"/> discusses considerations that
+ 	   apply when the domain name of a URI differs from that of the
 	   domain advertising the policy.  See <xref target="sec_external"/>
 	   for additional considerations.  Any valid URI can be specified.
 	   A Mail Receiver MUST implement support for
@@ -842,8 +843,8 @@
 	   messages that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
            evaluation.  The format of the message to be generated MUST follow
            that specified in the "rf" tag.  <xref target="fb_verify"/>
-	   discusses actions to be taken where the domain name of a URI
-	   differs from that of the domain advertising the policy.  See
+	   discusses considerations that apply when the domain name of a URI
+	   differs from that of the domain advertising the policy. 
 	   A Mail Receiver MUST implement support for a "mailto:" URI, i.e.
 	   the ability to send a DMARC report via electronic mail.  If not
 	   provided, Mail Receivers MUST NOT generate forensic reports.
@@ -862,7 +863,8 @@
            Identifies the record retrieved as a DMARC record.  It MUST
            have the value of "DMARC1".  The value of this tag MUST match
            precisely; if it does not or it is absent, the entire
-           retrieved record MUST be ignored. </t>
+           retrieved record MUST be ignored.  It MUST be the first tag in
+	   the list. </t>
       </list> </t>
 
     <t> Note that addition of a new tag into the registered list of tags
@@ -993,7 +995,7 @@
    <t> When a Mail Receiver discovers a DMARC policy in the DNS, and the domain
        at which that record was discovered is not identical to the host
        part of the authority component of a <xref target="URI"/> specified
-       in the "rua" or "ruf" tag, the following verification steps MUST
+       in the "rua" or "ruf" tag, the following verification steps SHOULD
        be taken:
 
 	<list style="numbers">
@@ -1019,7 +1021,8 @@
 		<t> Parse the result, if any, as a series of "tag=value"
 		    pairs, i.e., the same overall format as the policy
 		    record.  In particular, the "v=DMARC1" tag is
-		    mandatory.  If at least that tag is present and the
+		    mandatory and MUST appear first in the list.  If at least
+		    that tag is present and the
 		    record overall is syntactically valid per
 		    <xref target="dmarc_abnf"/>, then the external reporting
 		    arrangement was authorized by the destination ADMD. </t>
@@ -1051,6 +1054,9 @@
        report MUST NOT generate a report to either the original or the
        override URI. </t>
 
+   <t> A report receiver MUST publish such a record in its DNS if it wishes
+       to receive reports for other domains. </t>
+
    <t> The ADMD confirming via the DNS that it wishes to receive reports
        can use a wildcard DNS record to confirm that it is willing to receive
        reports for any domain.  For example, a TXT resource record at
@@ -1062,6 +1068,10 @@
        simply remove the confirming DNS record.  However, due to positive
        caching, the result could take as long as the time-to-live on the
        record to go into effect. </t>
+
+   <t> A Mail Receiver might decide not to enact this procedure if, for
+       example, it relies on a local list of domains for which external
+       reporting addresses are permitted. </t>
   </section> <!-- Verifying External Destinations -->
 
   <section title="Aggregate Reports" anchor="fb_aggregate">
@@ -1096,10 +1106,13 @@
   <section title="Failure Reports" anchor="fb_failure">
    <t> Message-specific authentication-failure-related forensic reporting can
        be used to identify problems with Domain-Owner-controlled
-       infrastructure and to investigate the sources and methods of fraudulent
-       messages. </t>
+       infrastructure and to investigate the sources and causes of failing
+       messages.  They might also be used to aid investigations into the
+       sources and objectives of fraudulent messages. </t>
 
-   <t> The format for these reports is defined in <xref target="AFRF"/>. </t>
+   <t> The format for these reports is defined in either
+       <xref target="AFRF"/> or <xref target="IODEF"/> depending on the
+       value found in the "rf" tag of the DMARC record (or its default). </t>
 
    <t> These reports SHOULD include the "call-to-action" URI(s) from inside
        messages that failed to authenticate. {R21} </t>
@@ -1121,7 +1134,7 @@
             the DNS domain matching the one found in the RFC5322.From domain
             in the message.  A possibly empty set of records is returned. </t>
 
-        <t> Records that do not include a "v=" tag that identifies
+        <t> Records that do not start with a "v=" tag that identifies
             the current version of DMARC are discarded. </t>
 
         <t> If the set is now empty, the Mail Receiver
@@ -1173,14 +1186,15 @@
           <xref target="DKIM-DEPLOYMENT"/>) and <xref target="SPF"/>. </t>
 
       <t> Align identifiers; i.e., audit internal systems so that mail
-          received by external Mail Receivers will observe that Authenticated
-          Identifiers within such messages will be in alignment according
-	  to the alignment mode to be used.  It is important to be thorough
-	  with this step, considering all possible use cases of mail outbound
-	  from the ADMD, as failing to ensure aligned identifiers can cause
-	  undesirable handling by participating Mail Receivers.  For
-          example, the possibility of mail to mailing lists, and the side
-          effects of mailing lists, needs to be considered. </t>
+          received by external Mail Receivers will observe that
+          Authenticated Identifiers within such messages will be in
+          alignment according to the alignment mode to be used.  It is
+          important to be thorough with this step, considering all
+          possible use cases of mail outbound from the ADMD, as failing
+          to align identifiers correctly can cause undesirable handling
+          by participating Mail Receivers.  For example, the possibility
+          of mail to mailing lists, and the side effects of mailing
+          lists, needs to be considered. </t>
 
       <t> Prepare to receive feedback.  Create dedicated email addresses
           to receive and process feedback from the Mail Receivers. This
@@ -1345,7 +1359,7 @@
        specifies where to send feedback.  URI schemes found in "rua" tag that
        are not implemented by a Mail Receiver MUST be ignored. </t>
 
-    <t>For on the considerations given to DMARC discovery,
+    <t>For more on the considerations given to DMARC discovery,
        see <xref target="discovery_requirements"/>.</t>
    </section> <!-- Discovery -->
 
@@ -1752,7 +1766,7 @@
        these attacks, such as:
        <list style="symbols">
 	<t> If the display name is found to include an email address
-	    (as specified in <xref target="MAIL"/>, execute the DMARC
+	    (as specified in <xref target="MAIL"/>), execute the DMARC
 	    mechanism on the domain name found there rather than the
 	    domain name discovered originally.  However, this addresses
 	    only a very specific attack space and is easily circumvented by
@@ -1829,7 +1843,7 @@
        TTL should be considered when publishing DMARC policies.</t>
 
    <t> Conversely, long TTLs will cause records to be cached for long periods
-       of time.  This can prevent a critical change to DMARC parameters
+       of time.  This can cause a critical change to DMARC parameters
        advertised by a Domain Owner to go unnoticed for the length of the TTL
        (while waiting for DNS caches to expire).  Avoiding this problem can
        mean shorter TTLs, with the potential problems described above.  A
@@ -1863,6 +1877,11 @@
       attacking the DNS of the subject domain to cause forensic data to
       be routed fraudulently to an attacker's systems may be an attractive
       prospect.  Deployment of DNSSEC is advisable if this is a concern. </t>
+
+   <t>The verification mechanism presented in <xref target="fb_verify"/>
+      is currently not mandatory ("MUST") but strongly recommended ("SHOULD").
+      It is possible that it would be elevated to a "MUST" by later
+      security review. </t>
   </section>
 
   <section anchor="sec_fbl" title="Feedback Loops">
@@ -2451,8 +2470,13 @@
 			<author initials="T." surname="Hansen"
 			        fullname="T. Hansen">
 				<organization>
-					AT&T Laboratories
+					AT&amp;T Laboratories
 				</organization>
+			</author>
+
+			<author initials="E." surname="Siegel"
+			        fullname="E. Siegel">
+				<organization/>
 			</author>
 
 			<author initials="D." surname="Crocker"
@@ -2484,7 +2508,7 @@
 			<author initials="T." surname="Hansen"
 			        fullname="T. Hansen">
 				<organization>
-					AT&T Laboratories
+					AT&amp;T Laboratories
 				</organization>
 			</author>
 
@@ -2504,7 +2528,7 @@
 
 			<date month="July" year="2009"/>
 		</front>
-		<seriesInfo name="RFC" value="5598"/>
+		<seriesInfo name="RFC" value="5585"/>
 	</reference>
 
 	<reference anchor="DSN">
@@ -2706,6 +2730,11 @@
 	<t> Although it is certainly true that this is what Sender is for,
 	    its use in this way is also unreliable, making it a poor candidate
 	    for inclusion in the DMARC evaluation algorithm. </t>
+
+    <t> Allowing multiple ways to discover policy introduces unacceptable
+        ambiguity into the DMARC evaluation algorithm in terms of which
+        policy is to be applied and when. </t>
+
        </list> </t>
   </section>
 
@@ -2759,6 +2788,48 @@
       <t> The binding between the "From" header domain and DKIM is too tight
           for ADSP; they must match exactly. </t>
      </list></t>
+  </section>
+
+  <section title="Organizational Domain Discovery Issues" anchor="od_issues">
+   <t> Although protocols like ADSP are useful for "protecting" a specific
+       domain name, they are not helpful at protecting subdomains.  If one
+       wished to protect "example.com" by requiring via ADSP that all mail
+       bearing an RFC5322.From domain of "example.com" be signed, this would
+       "protect" that domain; however, one could then craft an email whose
+       RFC5322.From domain is "security.example.com", and ADSP would not
+       provide any protection.  One could use a DNS wildcard, but this can
+       undesirably interfere with other DNS activity; one could add ADSP
+       records as fraudulent domains are discovered, but this solution does
+       not scale and is a purely reactive measure against abuse. </t>
+  
+   <t> The DNS does not provide a method by which the "domain of record",
+       or the domain that was actually registered with a domain registrar,
+       can be determined given an arbitrary domain name.  Suggestions have
+       been made that attempt to glean such information from SOA or NS
+       resource records, but these too are not fully reliable as the
+       partitioning of the DNS is not always done at administrative
+       boundaries. </t>
+
+   <t> When seeking domain-specific policy based on an arbitrary domain name,
+       one could "climb the tree", dropping labels off the left end of the
+       name until the root is reached or a policy is discovered, but then
+       one could craft a name that has a large number of nonsense labels; this
+       would cause a Mail Receiver to attempt a large number of queries in
+       search of a policy record.  Sending many such messages constitutes
+       an amplified denial-of-service attack. </t>
+
+   <t> The Organizational Domain mechanism is a necessary component to the
+       goals of DMARC.  The method described in <xref target="terms_and_defs"/>
+       is not perfect, but serves this purpose reasonably well without adding
+       undue burden or semantics to the DNS. </t>
+
+   <section title="Public Suffix Lists" anchor="suffixes">
+    <t> A public suffix list for the purposes of determining the Organizational
+        Domain can be obtained from various sources.  The most common one 
+        is maintained by the Mozilla Foundation and made public at
+        http://publicsuffix.org.  License terms governing the use of that
+        list are available at that URI. </t>
+   </section>
   </section>
  </section>
 
@@ -2954,7 +3025,7 @@
 
 	<t> Not all Receivers will honor such a request, but the Domain Owner
             feels that any reports it does receive will be helpful enough to
-	    justify publishing this record. The default per-message report
+	    justify publishing this record.  The default per-message report
 	    format (<xref target="AFRF"/>) meets the Domain Owner's needs in
 	    this scenario. </t>
 
@@ -2989,6 +3060,84 @@
                   "rua=mailto:dmarc-feedback@example.com; "
                   "ruf=mailto:auth-reports@example.com" )
 	    </artwork></figure> </t>
+   </section>
+
+   <section title="Per-Message Forensic Reports Directed to Third Party"
+            anchor="ex_owner_2_1">
+    <t> The Domain Owner from the previous example is maintaining the same
+        policy, but now wishes to have a third party receive and process the
+        per-message forensic reports. Again, not all Receivers will honor this
+        request, but those that do may implement additional checks to validate 
+        that the third party wishes to receive the forensic reports for this
+        domain. </t>
+
+    <t> The Domain Owner needs to alter its policy record from
+        <xref target="ex_owner_2"/> as follows:
+
+	<list style="symbols">
+		<t> Per message forensic reports should be send via email
+		    to the address "auth-reports@thirdparty.example.net"
+		    ("ruf=mailto:auth-reports@thirdparty.example.net") </t>
+	</list> </t>
+
+    <t> The DMARC policy record might look like this when retrieved using a
+	common command-line tool (the output shown would appear on a single
+	line, but is wrapped here for publication):
+
+	<figure><artwork>
+  % dig +short TXT _dmarc.example.com.
+  "v=DMARC1\; p=none\; rua=mailto:dmarc-feedback@example.com\;
+   ruf=mailto:auth-reports@thirdparty.example.net"
+	</artwork></figure> </t>
+
+    <t> To publish such a record, the DNS administrator for the Domain Owner
+	might create an entry like the following in the appropriate zone file
+	(following the conventional zone file format):
+
+	<figure><artwork>
+  ; DMARC record for the domain example.com
+
+  _dmarc IN TXT ( "v=DMARC1; p=none; "
+                  "rua=mailto:dmarc-feedback@example.com; "
+                  "ruf=mailto:auth-reports@thirdparty.example.net" )
+	</artwork></figure></t>
+
+    <t> Because the address used in the "ruf" tag is outside the Organizational
+        Domain in whichthat this record is published, conforming Receivers will
+	implement additional checks as described in <xref target="fb_verify"/>
+	of this document.  In order to pass these additional checks, the third
+	party will need to publish an additional DNS record as follows:
+
+	<list style="symbols">
+		<t> Given the DMARC record published by the Domain Owner at
+		    "_dmarc.example.com", the DNS administrator for the
+		    third party will need to publish a TXT resource record at
+		    "example.com._report._dmarc.thirdparty.example.net" with
+		    the value "v=DMARC1". </t>
+	</list> </t>
+
+    <t> The resulting DNS record might look like this when retrieved using a
+        common command-line tool (the output shown would appear on a single
+        line, but is wrapped here for publication):
+
+	<figure><artwork>
+  % dig +short TXT example.com._report._dmarc.thirdparty.example.net
+  "v=DMARC1"
+	</artwork></figure></t>
+
+    <t> To publish such a record, the DNS administrator for example.net might
+        create an entry like the following in the appropriate zone file
+	(following the conventional zone file format):
+
+	<figure><artwork>
+  ; zone file for thirdparty.example.net
+  ; Accept DMARC forensic reports on behalf of example.com
+
+  example.com._report._dmarc   IN   TXT    "v=DMARC1"
+	</artwork></figure></t>
+
+    <t> Intermediaries and other third parties should refer to
+	<xref target="fb_verify"/> for the full details of this mechanism. </t>
    </section>
 
    <section title="Sub-Domain, Sampling, and Multiple Aggregate Report URIs"
@@ -3262,7 +3411,8 @@
 
    <section title="Real-time Feedback Processing" anchor="ex_afrf">
     <t> If the DMARC record for the Author Domain of the message under
-        processing requests [AFRF]-based reporting, then the Mail Receiver can
+        processing requests <xref target="AFRF"/>-based reporting, then the
+	Mail Receiver can
         supply an AFRF report for a message that does not pass all underlying
         DMARC authentication checks.  In other words, if any DMARC-supporting
         authentication checks fail, an AFRF report should be generated and
@@ -3373,40 +3523,6 @@
 	</artwork></figure></t>
   </section>
  </section> <!-- Examples -->
-
- <section title="Organizational Domain Discovery Issues" anchor="od_issues">
-  <t> Although protocols like ADSP are useful for "protecting" a specific
-      domain name, they are not helpful at protecting subdomains.  If one
-      wished to protect "example.com" by requiring via ADSP that all mail
-      bearing an RFC5322.From domain of "example.com" be signed, this would
-      "protect" that domain; however, one could then craft an email whose
-      RFC5322.From domain is "security.example.com", and ADSP would not
-      provide any protection.  One could use a DNS wildcard, but this can
-      undesirably interfere with other DNS activity; one could add ADSP
-      records as fraudulent domains are discovered, but this solution does
-      not scale and is a purely reactive measure against abuse. </t>
-
-  <t> The DNS does not provide a method by which the "domain of record",
-      or the domain that was actually registered with a domain registrar,
-      can be determined given an arbitrary domain name.  Suggestions have
-      been made that attempt to glean such information from SOA or NS
-      resource records, but these too are not fully reliable as the
-      partitioning of the DNS is not always done at administrative
-      boundaries. </t>
-
-  <t> When seeking domain-specific policy based on an arbitrary domain name,
-      one could "climb the tree", dropping labels off the left end of the
-      name until the root is reached or a policy is discovered, but then
-      one could craft a name that has a large number of nonsense labels; this
-      would cause a Mail Receiver to attempt a large number of queries in
-      search of a policy record.  Sending many such messages constitutes
-      an amplified denial-of-service attack. </t>
-
-  <t> The Organizational Domain mechanism is a necessary component to the
-      goals of DMARC.  The method described in <xref target="terms_and_defs"/>
-      is not perfect, but serves this purpose reasonably well without adding
-      undue burden or semantics to the DNS. </t>
- </section>
 
  <section title="DMARC XML Schema" anchor="xml_schema">
   <t> The following is the proposed initial schema for producing XML
@@ -3660,7 +3776,7 @@
 
 	    <list style="hanging">
 		<t hangText="forwarded:"> Message was relayed via a known
-			forwarded, or local heuristics identified the message
+			forwarder, or local heuristics identified the message
 			as likely having been forwarded.  There is no
 			expectation that authentication would pass. </t>
 
@@ -3687,14 +3803,6 @@
 			the message to a locally-maintained list of known
 			and trusted forwarders. </t>
 	    </list> </t>
- </section>
-
- <section title="Public Suffix Lists" anchor="suffixes">
-  <t> A public suffix list for the purposes of determining the Organizational
-      Domain can be obtained from various sources.  The most common one 
-      is maintained by the Mozilla Foundation and made public at
-      http://publicsuffix.org.  License terms governing the use of that
-      list are available at that URI. </t>
  </section>
 
  <section title="Public Discussion" anchor="public">
