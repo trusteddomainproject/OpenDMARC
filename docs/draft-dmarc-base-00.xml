@@ -3671,6 +3671,9 @@
     &lt;!-- The envelope recipient domain. --&gt;
     &lt;xs:element name="envelope_to" type="xs:string"
                minOccurs="0"/&gt;
+    &lt;!-- The envelope from domain. --&gt;
+    &lt;xs:element name="envelope_from" type="xs:string"
+               minOccurs="1"/&gt;
     &lt;!-- The payload From domain. --&gt;
     &lt;xs:element name="header_from" type="xs:string"
                minOccurs="1"/&gt;
@@ -3706,6 +3709,14 @@
   &lt;/xs:all&gt;
 &lt;/xs:complexType&gt;
 
+&lt;!-- SPF domain scope --&gt;
+&lt;xs:simpleType name="SPFDomainScope"&gt;
+  &lt;xs:restriction base="xs:string"&gt;
+    &lt;xs:enumeration value="helo"/&gt;
+    &lt;xs:enumeration value="mfrom"/&gt;
+  &lt;/xs:restriction&gt;
+&lt;/xs:simpleType&gt;
+
 &lt;!-- SPF result --&gt;
 &lt;xs:simpleType name="SPFResultType"&gt;
   &lt;xs:restriction base="xs:string"&gt;
@@ -3723,8 +3734,10 @@
 
 &lt;xs:complexType name="SPFAuthResultType"&gt;
   &lt;xs:all&gt;
-    &lt;!-- The envelope From domain. --&gt;
+    &lt;!-- The checked domain. --&gt;
     &lt;xs:element name="domain" type="xs:string" minOccurs="1"/&gt;
+    &lt;!-- The scope of the checked domain. --&gt;
+    &lt;xs:element name="scope" type="SPFDomainScope" minOccurs="1"/&gt;
     &lt;!-- The SPF verification result --&gt;
     &lt;xs:element name="result" type="SPFResultType"
                 minOccurs="1"/&gt;
