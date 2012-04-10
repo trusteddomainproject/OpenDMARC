@@ -2098,7 +2098,7 @@
 			<date month="September" year="2011"/>
 		</front>
 
-		<seriesInfo name="I-D" value="draft-ietf-marf-authfailure-report"/>
+		<seriesInfo name="Internet-Draft" value="draft-ietf-marf-authfailure-report"/>
 	</reference>
 
 	<reference anchor="DKIM">
