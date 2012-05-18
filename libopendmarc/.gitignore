@@ -1,6 +1,8 @@
 THOUGHTS
+TODO
 .deps
 Makefile
 Makefile.in
-liboopendmarc.a
 *.o
+tags
+libopendmarc.a
