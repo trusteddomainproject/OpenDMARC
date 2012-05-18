@@ -1,9 +1,9 @@
-#include "../opendkim_internal.h"
+#include "../opendmarc_internal.h"
 
 int
 main(int argc, char **argv)
 {
-	if (opendmarc_dns_test_record() != 0)
+	if (dmarc_dns_test_record() != 0)
 		return 1;
 	return 0;
 }

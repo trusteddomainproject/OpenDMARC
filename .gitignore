@@ -8,3 +8,4 @@ config.log
 config.status
 stamp-h.in
 stamp-h1
+libtool

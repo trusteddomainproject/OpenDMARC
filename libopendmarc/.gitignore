@@ -1,3 +1,6 @@
+THOUGHTS
+.deps
 Makefile
 Makefile.in
+liboopendmarc.a
 *.o

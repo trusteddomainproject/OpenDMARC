@@ -27,7 +27,7 @@
 **	got_txtlen		-- size of txt record buffer
 **
 ** Return Values:
-**	got_txtbuf		-- on success
+**	got_txtbuf		-- pointer to got_txtbuf on success
 **	NULL			-- otherise, and place the h_errno error into reply
 **
 ** Side Effects:
@@ -44,7 +44,6 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	u_char *	gote_ptr = NULL;
 	int		ch	= 0;
 	short		cur_len	= 0;
-	short		got_len	= 0;
 	HEADER		header;
 	int		class	= -1;
 	int		acnt	= -1;
@@ -219,7 +218,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		/* copy the returned record into got_txtbuf */
 		got_ptr  = (u_char *)got_txtbuf;
 		gote_ptr = (u_char *)got_txtbuf + got_txtlen -1;
-		while (got_len > 0 && got_ptr < gote_ptr)
+		while (cur_len > 0 && got_ptr < gote_ptr)
 		{
 			ch = *cur_ptr++;
 			cur_len--;
@@ -235,55 +234,83 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			*reply_ptr = 0;
 			return got_txtbuf;
 		}
-		cp += cur_len;
+		cur_ptr += answer_len;
 		continue;
 	}
 	*reply_ptr = NO_DATA;
 	return NULL;
 }
 
+typedef struct {
+	char *	domain;
+	int	cpnotnull;
+	int 	replyzero;
+	char *	what;
+} DL; 
+
 int
 dmarc_dns_test_record(void)
 {
-	char * domain_list[] = {
-		"_dmarc.bcx.com",	/* has a record */
-		"_dmarc.mail.bcx.com",	/* exists but no record */
-		"_dmarc.none.bcx.com",	/* does not exist */
-		NULL,
+	DL domain_list[] = {
+		{"_dmarc.bcx.com", TRUE, TRUE, "DMARC record found"},
+		{"bcx.org._report._dmarc.bcx.com", TRUE, TRUE, "DMARC _report record found"},
+		{"_dmarc.mail.bcx.com", FALSE, FALSE, "Existing domain, no DMARC"},
+		{"_dmarc.none.bcx.com",	FALSE, FALSE, "No such domain"},
+		{NULL, 0, 0, NULL},
 	};
-	int	i;
+	DL *	dp;
 	char 	txt_record[2048];
 	int	reply;
 	char *	cp;
 	int	success, failures;
 
 	success = failures = 0;
-	for (i = 0; i < 3; ++i)
+	for (dp = domain_list; dp->domain != NULL; ++dp)
 	{
-		cp = dmarc_dns_get_record(domain_list[i], &reply, txt_record, sizeof txt_record);
-		switch (i)
+		cp = dmarc_dns_get_record(dp->domain, &reply, txt_record, sizeof txt_record);
+		if (cp == NULL)
 		{
-		    case 0:
-			if (cp != NULL)
-				++success;
-			else
+			if (dp->cpnotnull == TRUE) /* cp should be != NULL */
+			{
+				printf("\t%s(%d): %s: %s: FAIL.\n",
+						__FILE__, __LINE__, dp->domain, dp->what);
 				++failures;
-			break;
-		    case (1):
-			if (cp == NULL || reply != 0)
-				++success;
-			else
+				continue;
+			}
+			if (reply != 0 && dp->replyzero == TRUE)
+			{
+				printf("\t%s(%d): %s: %s: FAIL.\n",
+						__FILE__, __LINE__, dp->domain, dp->what);
 				++failures;
-			break;
-		    case (2)
-			if (cp == NULL)
-				++success;
-			else
-				++failures;
-			break;
+				continue;
+			}
+			printf("\t%s(%d): %s: %s: PASS.\n",
+					__FILE__, __LINE__, dp->domain, dp->what);
+			++success;
 		}
+		else
+		{
+			if (dp->cpnotnull == FALSE) /* cp should be == NULL */
+			{
+				printf("\t%s(%d): %s: %s: FAIL.\n",
+						__FILE__, __LINE__, dp->domain, dp->what);
+				++failures;
+				continue;
+			}
+			if (reply == 0 && dp->replyzero == FALSE)
+			{
+				printf("\t%s(%d): %s: %s: FAIL.\n",
+						__FILE__, __LINE__, dp->domain, dp->what);
+				++failures;
+				continue;
+			}
+			printf("\t%s(%d): %s: %s: PASS.\n",
+					__FILE__, __LINE__, dp->domain, dp->what);
+			++success;
+		}
+
 	}
-	printf("DNS Lookup _dmarc Records (%d Tests): %d pass, %d fail\n", i, success, failures);
+	printf("DNS Lookup _dmarc Records: %d pass, %d fail\n", success, failures);
 	return failures;
 }
 
