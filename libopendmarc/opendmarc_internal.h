@@ -81,6 +81,9 @@
 # if HAVE_SIGNAL_H
 #	include <signal.h>
 # endif
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+#	include <pthread.h>
+# endif
 
 # ifndef UNDEFINED
 #       define UNDEFINED	(-1) 
@@ -95,6 +98,13 @@
 #       define MAYBE		(2)
 # endif 
 # define bool int
+/*
+** Beware that some Linux versions incorrectly define 
+** MAXHOSTNAMELEN as 64, but DNS lookups require a length
+** of 255. So we don't use MAXHOSTNAMELEN here. Instead
+** we use our own MAXDNSHOSTNAME.
+*/
+#define MAXDNSHOSTNAME 256
 
 /*****************************************************************************
 ** DMARC_POLICY_T -- The opaque context for the library.
@@ -140,5 +150,45 @@ typedef struct dmarc_policy_t {
 char * dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtlen);
 int    dmarc_dns_test_record(void);
 
+/* opendmarc_hash.c */
+typedef struct entry_bucket {
+	struct entry_bucket *previous;
+	struct entry_bucket *next;
+	char  *key;
+	void  *data;
+	time_t timestamp;
+} OPENDMARC_HASH_BUCKET;
+
+typedef struct {
+	OPENDMARC_HASH_BUCKET   *bucket;
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+	pthread_mutex_t  mutex;
+# endif
+} OPENDMARC_HASH_SHELF;
+
+#define	OPENDMARC_MIN_SHELVES_LG2	4
+#define	OPENDMARC_MIN_SHELVES	(1 << OPENDMARC_MIN_SHELVES_LG2)
+
+/*
+ * max * sizeof internal_entry must fit into size_t.
+ * assumes internal_entry is <= 32 (2^5) bytes.
+ */
+#define	OPENDMARC_MAX_SHELVES_LG2	(sizeof (size_t) * 8 - 1 - 5)
+#define	OPENDMARC_MAX_SHELVES	((size_t)1 << OPENDMARC_MAX_SHELVES_LG2)
+
+typedef struct {
+	OPENDMARC_HASH_SHELF *table;
+	size_t         tablesize;
+	void (*freefunct)(void *);
+} OPENDMARC_HASH_CTX;
+
+#define OPENDMARC_DEFAULT_HASH_TABLESIZE	(2048)
+
+OPENDMARC_HASH_CTX *	opendmarc_hash_init(size_t tablesize);
+OPENDMARC_HASH_CTX *	opendmarc_hash_shutdown(OPENDMARC_HASH_CTX *hctx);
+void			opendmarc_hash_set_callback(OPENDMARC_HASH_CTX *hctx, void (*callback)(void *));
+void *      		opendmarc_hash_lookup(OPENDMARC_HASH_CTX *hctx, char *string, void *data, size_t datalen);
+int           		opendmarc_hash_drop(OPENDMARC_HASH_CTX *hctx, char *string);
+int           		opendmarc_hash_expire(OPENDMARC_HASH_CTX *hctx, time_t age);
 
 #endif /* OPENDMARC_INTERNAL_H */

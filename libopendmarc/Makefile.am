@@ -2,7 +2,9 @@
 INCLUDES		= -I. -I..
 nobase_pkglib_LIBRARIES	= libopendmarc.a
 libopendmarc_a_SOURCES	= opendmarc_dns.c \
-			  opendmarc_xml.c
+			  opendmarc_xml.c \
+			  opendmarc_tld.c \
+			  opendmarc_hash.c
 
 test:
 	cd tests; $(MAKE) clean

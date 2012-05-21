@@ -41,12 +41,11 @@ if [ ! -f config.h.in -a -f config.h.in~ ]; then
     perform "cp config.h.in~ config.h.in"
 fi
 
-ACLOCAL=aclocal
 AUTOMAKE=automake
 AUTOHEADER=autoheader
 AUTOCONF=autoconf
 
-for name in $ACLOCAL $AUTOHEADER $AUTOMAKE $AUTOCONF
+for name in $AUTOHEADER $AUTOMAKE $AUTOCONF
 do
 	echo $name
 	perform $name

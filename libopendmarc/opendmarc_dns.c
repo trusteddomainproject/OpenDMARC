@@ -6,13 +6,6 @@
 ************************************************************************/ 
 #include "opendmarc_internal.h"
 
-/*
-** Beware that some Linux versions incorrectly define 
-** MAXHOSTNAMELEN as 64, but DNS lookups require a length
-** of 255. So we don't use MAXHOSTNAMELEN here. Instead
-** we use our own MAXDNSHOSTNAME.
-*/
-#define MAXDNSHOSTNAME 256
 #ifndef MAXPACKET
 # define MAXPACKET        (8192)
 #endif

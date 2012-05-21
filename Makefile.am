@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 bindir=@LIBDMARC_DIR@/bin
 libdir=@LIBDMARC_DIR@/lib
 includedir=@LIBDMARC_DIR@/include
