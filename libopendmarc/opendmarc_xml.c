@@ -250,8 +250,14 @@ opendmarc_xml(char *b, size_t blen, char *fname)
 					(void) strlcat(type, " ", sizeof type);
 				(void) strlcat(type, cp, sizeof type);
 			}
-			else if (strcasecmp(stack[sidx], "header_from") == 0)
+			else if ((strcasecmp(stack[sidx-1], "identities") == 0 ||
+			         strcasecmp(stack[sidx-1], "identifiers") == 0) &&
+				 strcasecmp(stack[sidx], "header_from") == 0)
 			{
+				/*
+				 * Some sites put a full address in here.
+				 * Some others list mutilple address here.
+				 */
 				(void) strlcpy(fromdomain, cp, sizeof fromdomain);
 			}
 			else if (strcasecmp(stack[sidx-1], "dkim") == 0 &&

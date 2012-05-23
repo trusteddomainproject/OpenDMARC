@@ -277,7 +277,7 @@ opendmarc_hash_shutdown(OPENDMARC_HASH_CTX *hctx)
 **			replace the old data with the new.
 */
 void *
-ghash_lookup(OPENDMARC_HASH_CTX *hctx, char *string, void *data, size_t datalen)
+opendmarc_hash_lookup(OPENDMARC_HASH_CTX *hctx, char *string, void *data, size_t datalen)
 {
 	uint32_t hashval;
 	OPENDMARC_HASH_BUCKET *b, *n;

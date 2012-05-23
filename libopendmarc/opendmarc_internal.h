@@ -191,4 +191,6 @@ void *      		opendmarc_hash_lookup(OPENDMARC_HASH_CTX *hctx, char *string, void
 int           		opendmarc_hash_drop(OPENDMARC_HASH_CTX *hctx, char *string);
 int           		opendmarc_hash_expire(OPENDMARC_HASH_CTX *hctx, time_t age);
 
+/* opendmarc_tld.c */
+int 			opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
 #endif /* OPENDMARC_INTERNAL_H */
