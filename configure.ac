@@ -163,13 +163,16 @@ AC_CHECK_HEADERS(signal.h)
 AC_CHECK_HEADERS(regex.h)
 
 AC_PROG_LN_S
-AC_PROG_RANLIB
 AC_SUBST(ac_aux_dir)
 
 AC_ARG_WITH([wall],
 	AC_HELP_STRING([--with-wall], [(no default)]),
 	CC="gcc -Wall",)
 
-AC_OUTPUT([ Makefile tests/Makefile ],
+AC_OUTPUT([	Makefile
+		libopendmarc/Makefile
+		libopendmarc/tests/Makefile
+		reports/Makefile
+],
 [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h.in])
 # @end1
