@@ -46,8 +46,7 @@ ACLOCAL_AMFLAGS=-I m4
 #
 # Hexadecimal version, for use in generating dmarc.h
 #
-HEX_VERSION=$(printf %08x $(( ((VERSION_RELEASE << 8 | VERSION_MAJOR_REV) << 8 | VERSION_MINOR_REV)
-<< 8| VERSION_PATCH )))
+HEX_VERSION=$(printf %08x $(( ((VERSION_RELEASE << 8 | VERSION_MAJOR_REV) << 8 | VERSION_MINOR_REV) << 8 | VERSION_PATCH )))
 AC_SUBST([HEX_VERSION])
 
 #
@@ -175,4 +174,3 @@ AC_OUTPUT([	Makefile
 		reports/Makefile
 ],
 [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h.in])
-# @end1
