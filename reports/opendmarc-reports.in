@@ -64,7 +64,6 @@ sub usage
 	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
 	print STDERR "\t--help             print help and exit\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
-	print STDERR "\t--output=file      output file\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t--version          print version and exit\n";
 }
@@ -77,7 +76,6 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'dbuser=s' => \$dbuser,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
-                                            'output=s' => \$reportout,
                                             'verbose!' => \$verbose,
                                             'version!' => \$showversion,
                                            );
