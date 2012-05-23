@@ -1,0 +1,216 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+#
+# Script to generate regular DMARC reports.
+
+###
+### Setup
+###
+
+use strict;
+use warnings;
+
+use DBI;
+use File::Basename;
+use Getopt::Long;
+use IO::Handle;
+use POSIX;
+
+require DBD::@SQL_BACKEND@;
+
+# general
+my $progname      = basename($0);
+my $version       = "@VERSION@";
+my $verbose       = 0;
+my $helponly      = 0;
+my $showversion   = 0;
+
+my $interval;
+
+my $out;
+my $idx;
+
+my $dbi_s;
+my $dbi_h;
+my $dbi_a;
+
+# DB parameters
+my $def_dbhost    = "localhost";
+my $def_dbname    = "opendmarc";
+my $def_dbuser    = "opendmarc";
+my $def_dbpasswd  = "opendmarc";
+my $def_dbport    = "3306";
+my $def_interval  = "86400";
+my $dbhost;
+my $dbname;
+my $dbuser;
+my $dbpasswd;
+my $dbport;
+
+my $dbscheme     = "@SQL_BACKEND@";
+
+###
+### NO user-serviceable parts beyond this point
+###
+
+sub usage
+{
+	print STDERR "$progname: usage: $progname [options]\n";
+	print STDERR "\t--dbhost=host      database host [$def_dbhost]\n";
+	print STDERR "\t--dbname=name      database name [$def_dbname]\n";
+	print STDERR "\t--dbpasswd=passwd  database password [$def_dbpasswd]\n";
+	print STDERR "\t--dbport=port      database port [$def_dbport]\n";
+	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
+	print STDERR "\t--help             print help and exit\n";
+	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
+	print STDERR "\t--output=file      output file\n";
+	print STDERR "\t--verbose          verbose output\n";
+	print STDERR "\t--version          print version and exit\n";
+}
+
+# parse command line arguments
+my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
+                                            'dbname=s' => \$dbname,
+                                            'dbpasswd=s' => \$dbpasswd,
+                                            'dbport=s' => \$dbport,
+                                            'dbuser=s' => \$dbuser,
+                                            'help!' => \$helponly,
+                                            'interval=i' => \$interval,
+                                            'output=s' => \$reportout,
+                                            'verbose!' => \$verbose,
+                                            'version!' => \$showversion,
+                                           );
+
+if (!$opt_retval || $helponly)
+{
+	usage();
+
+	if ($helponly)
+	{
+		exit(0);
+	}
+	else
+	{
+		exit(1);
+	}
+}
+
+if ($showversion)
+{
+	print STDOUT "$progname v$version\n";
+	exit(0);
+}
+
+# apply defaults
+if (!defined($dbhost))
+{
+	if (defined($ENV{'OPENDMARC_DBHOST'}))
+	{
+		$dbhost = $ENV{'OPENDMARC_DBHOST'};
+	}
+	else
+	{
+		$dbhost = $def_dbhost;
+	}
+}
+
+if (!defined($dbname))
+{
+	if (defined($ENV{'OPENDMARC_DB'}))
+	{
+		$dbname = $ENV{'OPENDMARC_DB'};
+	}
+	else
+	{
+		$dbname = $def_dbname;
+	}
+}
+
+if (!defined($dbpasswd))
+{
+	if (defined($ENV{'OPENDMARC_PASSWORD'}))
+	{
+		$dbpasswd = $ENV{'OPENDMARC_PASSWORD'};
+	}
+	else
+	{
+		$dbpasswd = $def_dbpasswd;
+	}
+}
+
+if (!defined($dbport))
+{
+	if (defined($ENV{'OPENDMARC_PORT'}))
+	{
+		$dbport = $ENV{'OPENDMARC_PORT'};
+	}
+	else
+	{
+		$dbport = $def_dbport;
+	}
+}
+
+if (!defined($dbuser))
+{
+	if (defined($ENV{'OPENDMARC_USER'}))
+	{
+		$dbuser = $ENV{'OPENDMARC_USER'};
+	}
+	else
+	{
+		$dbuser = $def_dbuser;
+	}
+}
+
+if (!defined($interval))
+{
+	$interval = $def_interval;
+}
+
+if ($verbose)
+{
+	print STDERR "$progname: started at " . localtime() . "\n";
+}
+
+my $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
+              ";host=" . $dbhost . ";port=" . $dbport;
+
+$dbi_h = DBI->connect($dbi_dsn, $dbuser, $dbpasswd, { PrintError => 0 });
+if (!defined($dbi_h))
+{
+	print STDERR "$progname: unable to connect to database: $DBI::errstr\n";
+	exit(1);
+}
+
+if ($verbose)
+{
+	print STDERR "$progname: connected to database\n";
+}
+
+#
+# Select domains on which to report
+#
+
+$dbi_s = %dbi_h->prepare("SELECT name FROM domains WHERE lastreport <= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? SECOND)");
+
+# XXX -- execute
+# XXX -- for each domain
+# 	XXX -- extract messages/signatures to report
+# 	XXX -- extract reporting address
+# 	XXX -- generate and send report
+
+#
+# all done!
+#
+
+$dbi_s->finish;
+
+if ($verbose)
+{
+	print STDERR "$progname: terminating at " . localtime() . "\n";
+}
+
+$dbi_h->disconnect;
+
+exit(0);
