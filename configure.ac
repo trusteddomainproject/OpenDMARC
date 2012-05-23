@@ -168,9 +168,10 @@ AC_ARG_WITH([wall],
 	AC_HELP_STRING([--with-wall], [(no default)]),
 	CC="gcc -Wall",)
 
-AC_OUTPUT([	Makefile
-		libopendmarc/Makefile
-		libopendmarc/tests/Makefile
-		reports/Makefile
-],
-[test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h.in])
+AC_OUTPUT([ Makefile
+	docs/Makefile
+	libopendmarc/Makefile
+	libopendmarc/tests/Makefile
+	reports/Makefile
+	], [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h.in])
+# @end1

@@ -1,6 +1,11 @@
+THOUGHTS
+TODO
+.deps
 Makefile
 Makefile.in
 *.o
 .deps
 libopendmarc.a
 libtool
+tags
+libopendmarc.a

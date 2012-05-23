@@ -2,7 +2,7 @@ bindir=@LIBDMARC_DIR@/bin
 libdir=@LIBDMARC_DIR@/lib
 includedir=@LIBDMARC_DIR@/include
 
-SUBDIRS		= libopendmarc reports
+SUBDIRS		= libopendmarc docs reports
 
 auxdir		= @ac_aux_dir@
 AUX_DIST	= $(auxdir)/install-sh $(auxdir)/missing \

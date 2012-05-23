@@ -18,6 +18,8 @@ clean)
 	then
 		perform "make -s clean"
 	fi
+	rm -f config.log
+	rm -f config.status
 	rm -f *.gz
 	exit 0
 	;;

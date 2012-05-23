@@ -138,6 +138,7 @@ typedef struct dmarc_policy_t {
 
 /* dmarc_dns.c */
 char * dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtlen);
+int    dmarc_dns_test_record(void);
 
 
 #endif /* OPENDMARC_INTERNAL_H */
