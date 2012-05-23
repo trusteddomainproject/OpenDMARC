@@ -173,5 +173,6 @@ AC_OUTPUT([ Makefile
 	libopendmarc/Makefile
 	libopendmarc/tests/Makefile
 	reports/Makefile
+		reports/opendmarc-reports
 	], [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h.in])
 # @end1
