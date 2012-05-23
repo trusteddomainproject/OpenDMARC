@@ -235,7 +235,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			*reply_ptr = 0;
 			return got_txtbuf;
 		}
-		cp += cur_len;
+		cur_ptr += cur_len;
 		continue;
 	}
 	*reply_ptr = NO_DATA;
@@ -275,7 +275,7 @@ dmarc_dns_test_record(void)
 			else
 				++failures;
 			break;
-		    case (2)
+		    case (2):
 			if (cp == NULL)
 				++success;
 			else
