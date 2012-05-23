@@ -1,0 +1,66 @@
+.TH opendmarc-reports 8 "The Trusted Domain Project"
+.SH NAME
+.B opendmarc-reports
+\- OpenDMARC aggregate report generation tool
+.SH SYNOPSIS
+.B opendmarc-reports
+[options]
+.SH DESCRIPTION
+.B opendmarc-reports
+pulls data from an OpenDMARC database and generates periodic aggregate
+reports.  The database is populated by a running
+.B opendmarc(8)
+filter as messages arrive and are processed.  This includes the collection
+of reporting URIs, which this script uses to make reports available to those
+that request them.
+.SH OPTIONS
+.TP
+.I --dbhost=hostname
+Specifies the hostname on which the SQL server is running.  Defaults to
+the value of the environment variable OPENDMARC_DBHOST, or "localhost" if
+the environment variable is not set.
+.TP
+.I --dbname=name
+Specifies the SQL database name to be accessed.  Defaults to
+the value of the environment variable OPENDMARC_DB, or "opendmarc" if
+the environment variable is not set.
+.TP
+.I --dbpasswd=password
+Specifies the password for the SQL database to be accessed.  Defaults to
+the value of the environment variable OPENDMARC_PASSWORD, or "opendmarc" if
+the environment variable is not set.
+.TP
+.I --dbport=port
+Specifies the TCP port on which the SQL server is expected to be listening.
+Defaults to the value of the environment variable OPENDMARC_PORT, or 3306
+if the environment variable is not set.
+.TP
+.I --dbuser=user
+Specifies the SQL user to be used to access the database.  Defaults to
+the value of the environment variable OPENDMARC_USER, or "opendmarc" if
+the environment variable is not set.
+.TP
+.I --help
+Prints a help message and terminates.
+.TP
+.I --interval=secs
+Generates reports only for hosts that have not had a report generated in
+at least
+.I secs
+seconds.
+.TP
+.I --verbose
+Increase the amount of verbosity written to standard output.
+.TP
+.I --version
+Print version number and exit.
+.SH VERSION
+This man page covers the version of
+.I opendmarc-reports
+that shipped with version @VERSION@ of
+.I OpenDMARC.
+.SH COPYRIGHT
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+.SH SEE ALSO
+.I opendmarc(8),
+.I opendmarc.conf(5)
