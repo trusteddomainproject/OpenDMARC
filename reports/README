@@ -1,0 +1,18 @@
+OPENDMARC REPORTS
+=================
+
+This directory contains tools necessary to generate DMARC reports at regular
+intervals.  It includes the following:
+
+	opendmarc-reports	perl script to generate DMARC reports
+				whenever it is run; meant to be run from cron
+
+	opendmarc-reports.8	man page for the above
+
+The adjacent "db" directory contains an SQL schema to be used with this
+package.  The opendmarc filter populates the tables in that schema as messages
+are received and DMARC policies evaluated.  The scripts in here use the
+accumulated information to generate reports, and age out old data.
+
+--
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
