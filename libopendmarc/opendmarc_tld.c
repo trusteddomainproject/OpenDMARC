@@ -170,6 +170,7 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 	u_char	revbuf[MAXDNSHOSTNAME];
 	u_char *rp;
 	u_char  save;
+	void *	vp;
 	
 	if (domain == NULL || tld == NULL || tld_len == 0)
 		return errno = EINVAL;
@@ -182,8 +183,47 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 	{
 		if (rp == revbuf)
 		{
+			/* no match found in the hash table. */
+			(void) strlcpy(tld, domain, tld_len);
+			break;
 		}
 		if (*rp == '.')
+		{
+			save = *(rp+1);
+			*(rp+1) = '\0';
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+			(void) pthread_mutex_lock(&TLD_hctx_mutex);
+# endif
+			vp = opendmarc_hash_lookup(TLD_hctx, revbuf, NULL, 0);
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+			(void) pthread_mutex_unlock(&TLD_hctx_mutex);
+# endif
+			if (vp != NULL)
+			{
+				*(rp+1) = save;
+				(void) opendmarc_reverse_domain(revbuf, tld, tld_len);
+				return 0;
+			}
+			*(rp+1) = save;
+			*rp = '\0';
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+			(void) pthread_mutex_lock(&TLD_hctx_mutex);
+# endif
+			vp = opendmarc_hash_lookup(TLD_hctx, revbuf, NULL, 0);
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+			(void) pthread_mutex_unlock(&TLD_hctx_mutex);
+# endif
+			if (vp != NULL)
+			{
+				char * cp = strchr(revbuf, '.');
+
+				if (cp == NULL)
+					*rp = '.';
+				(void) opendmarc_reverse_domain(revbuf, tld, tld_len);
+				return 0;
+			}
+
+		}
 	}
-	
+	return 0;
 }

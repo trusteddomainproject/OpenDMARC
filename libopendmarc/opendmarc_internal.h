@@ -193,4 +193,5 @@ int           		opendmarc_hash_expire(OPENDMARC_HASH_CTX *hctx, time_t age);
 
 /* opendmarc_tld.c */
 int 			opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
+int 			opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len);
 #endif /* OPENDMARC_INTERNAL_H */
