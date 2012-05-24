@@ -3,12 +3,17 @@
 -- Copyright (c) 2012, The Trusted Domain Project.
 -- 	All rights reserved.
 
--- A table for mapping domain names to IDs
+-- A table for mapping domain names and their DMARC policies to IDs
 CREATE TABLE IF NOT EXISTS domains (
 	id INT NOT NULL AUTO_INCREMENT,
 	name VARCHAR(255) NOT NULL,
+	repuri VARCHAR(255) NOT NULL,
+        adkim TINYINT NOT NULL,
+        aspf TINYINT NOT NULL,
+        policy TINYINT NOT NULL,
+        pct TINYINT NOT NULL,
 	firstseen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	lastreport TIMESTAMP NOT NULL,
+	lastsent TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00',
 
 	PRIMARY KEY(id),
 	UNIQUE KEY(name)
@@ -40,12 +45,13 @@ CREATE TABLE IF NOT EXISTS messages (
 	date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	jobid VARCHAR(128) NOT NULL,
 	reporter INT UNSIGNED NOT NULL,
+	disp TINYINT UNSIGNED NOT NULL,
 	ip INT UNSIGNED NOT NULL,
-	from_domain INT UNSIGNED NOT NULL,
 	env_domain INT UNSIGNED NOT NULL,
-	sigcount TINYINT UNSIGNED NOT NULL,
+	from_domain INT UNSIGNED NOT NULL,
 	spf TINYINT UNSIGNED NOT NULL,
 	align_spf TINYINT UNSIGNED NOT NULL,
+	sigcount TINYINT UNSIGNED NOT NULL,
 
 	PRIMARY KEY(id),
 	UNIQUE KEY(reporter, date, jobid)
@@ -59,16 +65,6 @@ CREATE TABLE IF NOT EXISTS signatures (
 	pass TINYINT NOT NULL,
 	error TINYINT NOT NULL,
 	align TINYINT UNSIGNED NOT NULL,
-
-	PRIMARY KEY(id)
-);
-
--- A table for DMARC requests
-CREATE TABLE IF NOT EXISTS requests (
-	id INT NOT NULL AUTO_INCREMENT,
-	domain INT NOT NULL,
-	repaddr VARCHAR(255) NOT NULL,
-	lastsent TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00',
 
 	PRIMARY KEY(id)
 );
