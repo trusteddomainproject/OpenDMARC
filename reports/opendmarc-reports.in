@@ -14,11 +14,12 @@ use warnings;
 use DBI;
 use File::Basename;
 use File::Temp;
+use Net::Domain;
 use Getopt::Long;
 use IO::Handle;
 use POSIX;
 use XML::Generator;
-use WWW::Curl;
+use MIME::Base64;
 
 require DBD::@SQL_BACKEND@;
 
@@ -57,6 +58,9 @@ my $dbport;
 
 my $dbscheme     = "@SQL_BACKEND@";
 
+my $repdom       = hostdomain();
+my $repemail     = "postmaster@" . $repdom;
+
 ###
 ### NO user-serviceable parts beyond this point
 ###
@@ -85,6 +89,8 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'dbuser=s' => \$dbuser,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
+                                            'report-email=s' => \$repdom,
+                                            'report-org=s' => \$repemail,
                                             'verbose!' => \$verbose,
                                             'version!' => \$showversion,
                                            );
@@ -301,11 +307,11 @@ foreach (@$domainset)
 	}
 
 	# construct the temporary file
-	# XXX -- use standard filename
-	$tmpout = tempfile();
-	if (!defined($tmpout))
+	$repfile = $repdom . "!" . $domain . "!" . $lastsent . "!" . time() . ".xml";
+	$zipfile = $repdom . "!" . $domain . "!" . $lastsent . "!" . time() . ".zip";
+	if (!open($tmpout, ">", $repfile))
 	{
-		print STDERR "$progname: can't create temporary file for domain $domain\n";
+		print STDERR "$progname: can't create report file for domain $domain\n";
 		next;
 	}
 
@@ -406,16 +412,62 @@ foreach (@$domainset)
 
 	print $tmpout "</feedback>\n";
 
-	# XXX -- zip the report
+	close($tmpout);
 
-	# XXX -- send/post report
+	# zip the report
+	if (!(zip [ $repfile ] => $zipfile))
+	{
+		print STDERR "$progname: can't zip report for domain $domain: $!\n";
+		next;
+	}
+
+	# send/post report
 	if ($uri->scheme eq "mailto")
 	{
-		# XXX -- mail report
+		if (!open($zipin, "<", $zipfile))
+		{
+			print STDERR "$progname: can't read zipped report for $domain: $!\n";
+			next;
+		}
+		
+		# mail report
+		if (!open($mailout, "|$sendmail"))
+		{
+			print STDERR "$progname: can't send report for $domain: $!\n";
+			next;
+		}
+
+		$boundary = "report_section";
+
+		print $sendmail "From: $repemail\n";
+		print $sendmail "To: $uri->opaque\n";
+		print $sendmail "Subject: Report Domain: $domain Submitter: $reporg Report-ID: <$domain-" . time() . "@$reporg\n";
+		print $sendmail "MIME-Version: 1.0\n";
+		print $sendmail "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
+		print $sendmail "\n";
+		print $sendmail "--$boundary\n";
+		print $sendmail "This is a DMARC aggregate report for $domain\n";
+		print $sendmail "generated at " . localtime() . "\n";
+		print $sendmail "\n";
+		print $sendmail "--$boundary\n";
+		print $sendmail "Content-Disposition: attachment; filename=\"$zipfile\"\n";
+		print $sendmail "Content-Transfer-Encoding: base64\n";
+		print $sendmail "\n";
+
+		while (read($zipin, $buf, 60*57))
+		{
+			print $sendmail encode_base64($buf);
+		}
+
+		print $sendmail "--$boundary--\n";
+
+		close($sendmail);
+		close($zipin);
 	}
 	else
 	{
-		# XXX -- pass it to CURL
+		print STDERR "$progname: unsupported reporting URI scheme $uri->scheme for domain $domain\n";
+		next;
 	}
 
 	# update "last sent" timestamp
