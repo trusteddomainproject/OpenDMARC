@@ -16,7 +16,7 @@ use Switch;
 use DBI;
 use File::Basename;
 use File::Temp;
-use Net::Domain;
+use Net::Domain qw(hostdomain);
 use Getopt::Long;
 use IO::Handle;
 use IO::Compress::Zip qw(zip);
@@ -55,6 +55,7 @@ my $zipfile;
 my $zipin;
 
 my $domain;
+my $domainid;
 my $domainset;
 
 my $policy;
@@ -79,10 +80,11 @@ my $fromdomain;
 my $envdomain;
 my $dkimdomain;
 
+my $repdest;
+
 my $msgcount;
 
-my $out;
-my $idx;
+my $rowcount;
 
 my $dbi_s;
 my $dbi_h;
@@ -296,10 +298,35 @@ foreach (@$domainset)
 	}
 
 	# extract this domain's reporting parameters
-	$dbi_s = $dbi_h->prepare("SELECT repaddr, adkim, aspf, policy, pct, UNIX_TIMESTAMP(lastsent) FROM domains WHERE name = '?'");
+	$dbi_s = $dbi_h->prepare("SELECT id FROM domains WHERE name = ?");
 	if (!$dbi_s->execute($domain))
 	{
-		print STDERR "$progname: can't get reporting URI for domain $domain:  " . $dbi_h->errstr . "\n";
+		print STDERR "$progname: can't get ID for domain $domain: " . $dbi_h->errstr . "\n";
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+
+	undef $domainid;
+	while ($dbi_a = $dbi_s->fetchrow_arrayref())
+	{
+		if (defined($dbi_a->[0]))
+		{
+			$domainid = $dbi_a->[0];
+		}
+	}
+	$dbi_s->finish;
+
+	if (!defined($domainid))
+	{
+		print STDERR "$progname: ID for domain $domain not found\n";
+		next;
+	}
+
+	$dbi_s = $dbi_h->prepare("SELECT repaddr, adkim, aspf, policy, pct, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+	if (!$dbi_s->execute($domainid))
+	{
+		print STDERR "$progname: can't get reporting URI for domain $domain: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
 		$dbi_h->disconnect;
 		exit(1);
@@ -402,14 +429,16 @@ foreach (@$domainset)
 			$gen->p($policystr),
 			$gen->pct($pct));
 
-	$dbi_s = $dbi_h->prepare("SELECT COUNT(messages.id), ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf_result, d3.name, signatures.dkim_result FROM messages LEFT JOIN signatures ON signatures.message = messages.id JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id JOIN domains d3 ON signatures.domain = d3.id GROUP BY 2, 3, 4, 5, 6, 7 WHERE messages.from_domain = '?' AND messages.date > FROM_UNIXTIME(?)");
-	if (!$dbi_s->execute($domain, $lastsent))
+	$dbi_s = $dbi_h->prepare("SELECT COUNT(messages.id), ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, d3.name, signatures.pass FROM messages LEFT JOIN signatures ON signatures.message = messages.id JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id JOIN domains d3 ON signatures.domain = d3.id WHERE messages.from_domain = ? AND messages.date > FROM_UNIXTIME($lastsent) GROUP BY 2, 3, 4, 5, 6, 7");
+	if (!$dbi_s->execute($domainid))
 	{
 		print STDERR "$progname: can't extract report for domain $domain: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
 		$dbi_h->disconnect;
 		exit(1);
 	}
+
+	$rowcount = 0;
 
 	while ($dbi_a = $dbi_s->fetchrow_arrayref())
 	{
@@ -448,6 +477,13 @@ foreach (@$domainset)
 			$dkimresult = $dbi_a->[7];
 		}
 
+		if (!defined($msgcount))
+		{
+			next;
+		}
+
+		$rowcount++;
+
 		switch ($disp)
 		{
 			case 0	{ $dispstr = "none"; }
@@ -480,11 +516,6 @@ foreach (@$domainset)
 			else	{ $dkimresultstr = "unknown"; }
 		}
 
-		if (!defined($msgcount))
-		{
-			next;
-		}
-
 		print $tmpout "<record>\n";
 
 		print $tmpout $gen->row(
@@ -513,6 +544,17 @@ foreach (@$domainset)
 
 	close($tmpout);
 
+	if ($rowcount == 0)
+	{
+		if ($verbose)
+		{
+			print STDERR "$progname: no activity selected for $domain; skipping\n";
+		}
+
+		unlink($repfile);
+		next;
+	}
+
 	# zip the report
 	if (!zip [ $repfile ] => $zipfile)
 	{
@@ -523,7 +565,7 @@ foreach (@$domainset)
 	# send/post report
 	if ($uri->scheme eq "mailto")
 	{
-		if (!open($zipin, "<", $zipfile))
+		if (!open($zipin, $zipfile))
 		{
 			print STDERR "$progname: can't read zipped report for $domain: $!\n";
 			next;
@@ -533,22 +575,32 @@ foreach (@$domainset)
 		if (!open($mailout, "|$sendmail"))
 		{
 			print STDERR "$progname: can't send report for $domain: $!\n";
+			close($zipin);
 			next;
+		}
+
+		$repdest = $uri->opaque;
+
+		if ($verbose)
+		{
+			print STDERR "$progname: mailing report for $domain to $repdest\n";
 		}
 
 		$boundary = "report_section";
 
 		print $mailout "From: $repemail\n";
-		print $mailout "To: $uri->opaque\n";
-		print $mailout "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $domain . "-" . time() . "@$repdom\n";
+		print $mailout "To: $repdest\n";
+		print $mailout "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $domain . "-" . time() . "@" . $repdom . "\n";
 		print $mailout "MIME-Version: 1.0\n";
 		print $mailout "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
 		print $mailout "\n";
 		print $mailout "--$boundary\n";
+		print $mailout "\n";
 		print $mailout "This is a DMARC aggregate report for $domain\n";
 		print $mailout "generated at " . localtime() . "\n";
 		print $mailout "\n";
 		print $mailout "--$boundary\n";
+		print $mailout "Content-Type: application/octet-stream\n";
 		print $mailout "Content-Disposition: attachment; filename=\"$zipfile\"\n";
 		print $mailout "Content-Transfer-Encoding: base64\n";
 		print $mailout "\n";
@@ -556,8 +608,10 @@ foreach (@$domainset)
 		while (read($zipin, $buf, 60*57))
 		{
 			print $mailout encode_base64($buf);
+			print STDERR encode_base64($buf);
 		}
 
+		print $mailout "\n";
 		print $mailout "--$boundary--\n";
 		print $mailout "\n";
 
@@ -571,8 +625,8 @@ foreach (@$domainset)
 	}
 
 	# update "last sent" timestamp
-	$dbi_s = $dbi_h->prepare("UPDATE domains SET lastsent = CURRENT_TIMESTAMP() WHERE name = '?'");
-	if (!$dbi_s->execute($domain))
+	$dbi_s = $dbi_h->prepare("UPDATE requests SET lastsent = CURRENT_TIMESTAMP() WHERE domain = ?");
+	if (!$dbi_s->execute($domainid))
 	{
 		print STDERR "$progname: can't update last sent time for domain $domain: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
