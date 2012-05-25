@@ -11,6 +11,8 @@
 use strict;
 use warnings;
 
+use Switch;
+
 use DBI;
 use File::Basename;
 use File::Temp;
@@ -56,13 +58,16 @@ my $domain;
 my $domainset;
 
 my $policy;
+my $policystr;
 my $pct;
 
 my $repuri;
 my $lastsent;
 
 my $aspf;
+my $aspfstr;
 my $adkim;
+my $adkimstr;
 my $spfresult;
 my $dkimresult;
 my $disp;
@@ -355,6 +360,28 @@ foreach (@$domainset)
 		next;
 	}
 
+	switch ($adkim)
+	{
+		case 0	{ $adkimstr = "r"; }
+		case 1	{ $adkimstr = "s"; }
+		else	{ $adkimstr = "unknown"; }
+	}
+
+	switch ($aspf)
+	{
+		case 0	{ $aspfstr = "r"; }
+		case 1	{ $aspfstr = "s"; }
+		else	{ $aspfstr = "unknown"; }
+	}
+
+	switch ($policy)
+	{
+		case 0	{ $policystr = "none"; }
+		case 1	{ $policystr = "quarantine"; }
+		case 2	{ $policystr = "reject"; }
+		else	{ $policystr = "unknown"; }
+	}
+
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 	print $tmpout "<feedback>\n";
 
@@ -370,9 +397,9 @@ foreach (@$domainset)
 
 	print $tmpout $gen->policy_published(
 			$gen->domain($domain),
-			$gen->adkim($adkim),
-			$gen->aspf($aspf),
-			$gen->p($policy),
+			$gen->adkim($adkimstr),
+			$gen->aspf($aspfstr),
+			$gen->p($policystr),
 			$gen->pct($pct));
 
 	$dbi_s = $dbi_h->prepare("SELECT COUNT(messages.id), ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf_result, d3.name, signatures.dkim_result FROM messages LEFT JOIN signatures ON signatures.message = messages.id JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id JOIN domains d3 ON signatures.domain = d3.id GROUP BY 2, 3, 4, 5, 6, 7 WHERE messages.from_domain = '?' AND messages.date > FROM_UNIXTIME(?)");
@@ -419,6 +446,38 @@ foreach (@$domainset)
 		if (defined($dbi_a->[7]))
 		{
 			$dkimresult = $dbi_a->[7];
+		}
+
+		switch ($disp)
+		{
+			case 0	{ $dispstr = "none"; }
+			case 1	{ $dispstr = "quarantine"; }
+			case 2	{ $dispstr = "reject"; }
+			else	{ $dispstr = "unknown"; }
+		}
+
+		switch ($spfresult)
+		{
+			case 0	{ $spfresultstr = "none"; }
+			case 1	{ $spfresultstr = "neutral"; }
+			case 2	{ $spfresultstr = "pass"; }
+			case 3	{ $spfresultstr = "fail"; }
+			case 4	{ $spfresultstr = "softfail"; }
+			case 5	{ $spfresultstr = "temperror"; }
+			case 6	{ $spfresultstr = "permerror"; }
+			else	{ $spfresultstr = "unknown"; }
+		}
+
+		switch ($dkimresult)
+		{
+			case 0	{ $dkimresultstr = "none"; }
+			case 1	{ $dkimresultstr = "pass"; }
+			case 2	{ $dkimresultstr = "fail"; }
+			case 3	{ $dkimresultstr = "policy"; }
+			case 4	{ $dkimresultstr = "neutral"; }
+			case 5	{ $dkimresultstr = "temperror"; }
+			case 6	{ $dkimresultstr = "permerror"; }
+			else	{ $dkimresultstr = "unknown"; }
 		}
 
 		if (!defined($msgcount))
