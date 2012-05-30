@@ -2,8 +2,6 @@
 # Process this file with autoconf to produce a configure script.
 #
 # Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
-# 
-# $Id$
 
 # Acceptable arguments to configure are:
 # 	The usual CC= etc.
@@ -178,12 +176,157 @@ AC_ARG_WITH([sql-backend],
 AC_SUBST(SQL_BACKEND)
 AC_DEFINE_UNQUOTED(SQL_BACKEND, "$SQL_BACKEND", [default SQL back-end])
 
+#
+# opendmarc
+# 
+AC_ARG_ENABLE([filter],
+              AS_HELP_STRING([--disable-filter],
+                             [do not compile the opendmarc filter]),
+              [enable_filter=$enableval],
+              [enable_filter=yes])
+AM_CONDITIONAL([BUILD_FILTER], [test x"$enable_filter" != x"no"])
+
+#
+# libmilter
+#
+AC_MSG_CHECKING([for milter library and includes])
+AC_ARG_WITH([milter],
+            AS_HELP_STRING([--with-milter],
+                           [location of milter includes and library]),
+            [milterpath="$withval"], [milterpath="auto"])
+
+if test x"$enable_filter" = x"no"
+then
+	milterpath="no"
+fi
+
+if test "$milterpath" = "auto" -o "$milterpath" = "yes"
+then
+	milterdirs="/usr/local /opt/local /usr"
+	for d in $milterdirs
+	do
+		if test -f $d/include/libmilter/mfapi.h
+		then
+			milterpath=$d
+			break
+		fi
+	done
+fi
+case "$milterpath" in
+	no)
+		if test x"$enable_filter" = x"yes"
+		then
+			AC_MSG_ERROR([milter is required])
+		fi
+		AC_MSG_RESULT(disabled)
+		;;
+	auto)
+		AC_MSG_ERROR([milter not found])
+		;;
+	*/*)
+		if ! test -f $milterpath/include/libmilter/mfapi.h
+		then
+			AC_MSG_ERROR([milter includes not found at $milterpath])
+		fi
+		AC_MSG_RESULT([$milterpath])
+		;;
+	*)
+		AC_MSG_ERROR([milter not found])
+		;;
+esac
+
+LIBMILTER_INCDIRS=""
+LIBMILTER_LIBDIRS=""
+LIBMILTER_LIBS=""
+
+if test x"$milterpath" != x"no"
+then
+	LIBMILTER_INCDIRS="-I$milterpath/include"
+
+	saved_CC="$CC"
+	saved_CFLAGS="$CFLAGS"
+	saved_CPPFLAGS="$CPPFLAGS"
+	saved_LDFLAGS="$LDFLAGS"
+	saved_LIBS="$LIBS"
+
+	CC="$PTHREAD_CC"
+	LIBS="$PTHREAD_LIBS $saved_LIBS"
+	CPPFLAGS="$LIBMILTER_INCDIRS $saved_CPPFLAGS"
+	CFLAGS="$PTHREAD_CFLAGS $saved_CFLAGS"
+	LDFLAGS="$PTHREAD_CFLAGS $saved_LDFLAGS"
+
+	breakloop="no"
+	for d in lib lib/libmilter
+	do
+		unset ac_cv_search_smfi_register
+		LDFLAGS="$PTHREAD_CFLAGS -L$milterpath/$d $saved_LDFLAGS"
+		AC_SEARCH_LIBS([smfi_register], [milter],
+		               [
+		               	LIBMILTER_LIBDIRS="-L$milterpath/$d"
+		               	LIBMILTER_LIBS="-lmilter"
+		               	breakloop="yes"
+		               ])
+
+		AC_CHECK_FUNC([smfi_insheader],
+			      AC_DEFINE([HAVE_SMFI_INSHEADER], 1,
+					[Define if libmilter has smfi_insheader()]))
+
+		AC_CHECK_FUNC([smfi_opensocket],
+			      AC_DEFINE([HAVE_SMFI_OPENSOCKET], 1,
+					[Define if libmilter has smfi_opensocket()]))
+
+		AC_CHECK_FUNC([smfi_progress],
+			      AC_DEFINE([HAVE_SMFI_PROGRESS], 1,
+					[Define if libmilter has smfi_progress()]))
+
+		AC_CHECK_FUNC([smfi_setsymlist],
+			      AC_DEFINE([HAVE_SMFI_SETSYMLIST], 1,
+					[Define if libmilter has smfi_setsymlist()]))
+
+		AC_CHECK_FUNC([smfi_version],
+			      AC_DEFINE([HAVE_SMFI_VERSION], 1,
+					[Define if libmilter has smfi_version()]))
+
+		if test x"$breakloop" = x"yes"
+		then
+			break
+		fi
+	done
+	if test x"$LIBMILTER_LIBDIRS" = x""
+	then
+		AC_MSG_ERROR([libmilter not found])
+	fi
+
+	CC="$saved_CC"
+	CPPFLAGS="$saved_CPPFLAGS"
+	CFLAGS="$saved_CFLAGS"
+	LDFLAGS="$saved_LDFLAGS"
+	LIBS="$saved_LIBS"
+fi
+
+AC_SUBST(LIBMILTER_INCDIRS)
+AC_SUBST(LIBMILTER_LIBDIRS)
+AC_SUBST(LIBMILTER_LIBS)
+
+#
+# Final substitutions
+# 
+CPPFLAGS="$CPPFLAGS -DCONFIG_BASE=\\\"$sysconfdir\\\""
+test "x$prefix" = xNONE && prefix=$ac_default_prefix
+SYSCONFDIR=`eval echo "$sysconfdir"`
+AC_SUBST([SYSCONFDIR])
+
+#
+# Generate files
+#
 AC_OUTPUT([ Makefile
 	docs/Makefile
 	libopendmarc/Makefile
 	libopendmarc/tests/Makefile
+	opendmarc/Makefile
 	reports/Makefile
 		reports/opendmarc-reports
 		reports/opendmarc-reports.8
 	], [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h.in])
+
 # @end1
