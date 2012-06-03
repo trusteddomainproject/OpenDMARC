@@ -294,7 +294,7 @@ then
 	done
 	if test x"$LIBMILTER_LIBDIRS" = x""
 	then
-		AC_MSG_ERROR([libmilter not found])
+		AC_MSG_WARN([libmilter not found])
 	fi
 
 	CC="$saved_CC"

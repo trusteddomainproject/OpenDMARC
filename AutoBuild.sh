@@ -51,7 +51,7 @@ do
 	perform $name
 done
 
-CONF="./configure --with-wall  -q"
+CONF="./configure --with-wall -q"
 echo ${CONF}
 perform "$CONF"
 perform "make -s"

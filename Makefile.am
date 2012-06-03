@@ -18,7 +18,6 @@ MAINTAINERCLEANFILES 	= Makefile.in aclocal.m4 configure \
 			  $(AUX_DIST)
 
 ACLOCAL		= aclocal -I $(auxdir)
-ACLOCAL_AMFLAGS = -I m4
 
 dist-hook:	
 	 [ -f $(distdir)/libopendmarc.h ] && rm -f $(distdir)/libopendmarc.h

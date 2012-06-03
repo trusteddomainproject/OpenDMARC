@@ -1,6 +1,5 @@
 INCLUDES		= -I. -I..
 lib_LTLIBRARIES = libopendmarc.la
-nobase_pkglib_LIBRARIES	= libopendmarc.a
 libopendmarc_la_SOURCES	= opendmarc_dns.c \
 			  opendmarc_xml.c \
 			  opendmarc_tld.c \
