@@ -20,7 +20,7 @@ MAINTAINERCLEANFILES 	= Makefile.in aclocal.m4 configure \
 ACLOCAL		= aclocal -I $(auxdir)
 
 dist-hook:	
-	 [ -f $(distdir)/libdmarc.h ] && rm -f $(distdir)/libdmarc.h
+	 [ -f $(distdir)/libopendmarc.h ] && rm -f $(distdir)/libopendmarc.h
 	 sed -e '/OPENDMARC_LIB_VERSION/s/0x[0-9]*/0x@HEX_VERSION@/' < $(srcdir)/libopendmarc.h > $(distdir)/libopendmarc.h
 
 

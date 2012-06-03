@@ -108,6 +108,10 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 
 #ifdef HAVE_RES_NINIT   
 	memset(&resp, '\0', sizeof resp);
+	resp.options |= RES_DEFAULT;
+#if defined RES_USE_DNSSEC
+	resp.options |= RES_USE_DNSSEC;
+#endif
 	res_ninit(&resp);
 	answer_len = res_nquery(&resp, bp, C_IN, T_TXT, answer_buf, sizeof answer_buf);
 	res_nclose(&resp);

@@ -4,6 +4,8 @@ nobase_pkglib_LIBRARIES	= libopendmarc.a
 libopendmarc_a_SOURCES	= opendmarc_dns.c \
 			  opendmarc_xml.c \
 			  opendmarc_tld.c \
+			  opendmarc_policy.c \
+			  opendmarc_util.c \
 			  opendmarc_hash.c
 
 test:

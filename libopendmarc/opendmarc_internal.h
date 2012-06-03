@@ -110,41 +110,42 @@
 ** DMARC_POLICY_T -- The opaque context for the library.
 ** 	Memory needs to be allocated and freed.
 *****************************************************************************/
+
 typedef struct dmarc_policy_t {
-	char *	domain;		/* Input: domain sought */
+	/*
+	 * Supplied information
+	 */
+	u_char *	domain;			/* Input: domain sought */
+	u_char *	ip_addr;		/* Input: connected IPV4 or IPV6 address */
+	int 		ip_type;		/* Input: IPv4 or IPv6 */
+	int 	 	spf_origin;		/* Input: was domain MAIL From: or HELO for SPF check */
+	int		spf_outcome;		/* Input: What was the outcome of the SPF check */
+	u_char *	spf_human_outcome;	/* Input: What was the outcome of the SPF check in human readable form */
+	int		dkim_outcome;		/* Input: What was the outcome of the DKIM check */
+	u_char *	dkim_human_outcome;	/* Input: What was the outcome of the DKIM check in human readable form */
 
 	/*
-	 * Computed Organizational domain if subdomain lacked a record.
+	 * Computed Organizational domain, if subdomain lacked a record.
 	 */
-	char *	organizational_domain;
+	u_char *	organizational_domain;
 
 	/*
-	 * Found in the _dmarc record.
+	 * Found in the _dmarc record or supplied to us.
 	 */
-	int	h_error;	/* Zero if found */
-	int	adkim;
-	int	aspf;
-	int	p;
-	int	sp;
-	int	pct;
-	int	rf;
-	uint32_t ri;
-	int	rua_cnt;
-	char **	rua_list;
-	int	ruf_cnt;
-	char **	ruf_list;
+	int		h_error;	/* Zero if found, else DNS error */
+	int		adkim;
+	int		aspf;
+	int		p;
+	int		sp;
+	int		pct;
+	int		rf;
+	uint32_t	ri;
+	int		rua_cnt;
+	u_char **	rua_list;
+	int		ruf_cnt;
+	u_char **	ruf_list;
 } DMARC_POLICY_T;
 
-#define DMARC_RECORD_A_UNSPECIFIED	('\0')		/* adkim and aspf */
-#define DMARC_RECORD_A_STRICT		('s')		/* adkim and aspf */
-#define DMARC_RECORD_A_RELAXED		('r')		/* adkim and aspf */
-#define DMARC_RECORD_P_UNSPECIFIED	('\0')		/* p and sp */
-#define DMARC_RECORD_P_NONE		('n')		/* p and sp */
-#define DMARC_RECORD_P_QUARANTINE	('q')		/* p and sp */
-#define DMARC_RECORD_P_REJECT		('r')		/* p and sp */
-#define DMARC_RECORD_R_UNSPECIFIED	(0x0)		/* rf, a bitmap */
-#define DMARC_RECORD_R_AFRF		(0x1)		/* rf, a bitmap */
-#define DMARC_RECORD_R_IODEF		(0x2)		/* rf, a bitmap */
 
 /* dmarc_dns.c */
 char * dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtlen);
@@ -194,4 +195,9 @@ int           		opendmarc_hash_expire(OPENDMARC_HASH_CTX *hctx, time_t age);
 /* opendmarc_tld.c */
 int 			opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
 int 			opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len);
+
+/* opendmarc_util.c */
+u_char ** opendmarc_util_clearargv(u_char **ary);
+u_char ** opendmarc_util_pushargv(u_char *str, u_char **ary);
+
 #endif /* OPENDMARC_INTERNAL_H */
