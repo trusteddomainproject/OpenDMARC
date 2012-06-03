@@ -1,0 +1,39 @@
+This directory contains the OpenDMARC schema plus any related files.
+
+The tables in this schema are populated by the opendmarc filter as it processes
+messages and downloads policies.  The rows are then consumed by the scripts
+in the "reports" directory to generate regular aggregate reports.
+
+The tables are summarized here:
+
+domains		A table that maps domain names to unique integer IDs.
+		Automatically tracks a "first seen" timestamp, and includes
+		a column to record when the last report was sent.
+
+reporters	A table mapping reporting hosts to unique integer IDs.
+		Intended for use by multi-MX systems so it's possible to tell
+		where an inbound message landed.
+
+ipaddr		A table mapping IP addresses (as strings) to unique IDs.
+		Also tracks the "first seen" timestamp for each.
+
+messages	A table tracking salient properties of all messages received.
+		A messages is uniquely identified by a {date, jobid, reporter}
+		tuple.  Includes references to the "domains" table to track
+		the RFC5321.MailFrom domain, the RFC5322.From domain.
+		Also records the count of DKIM signatures, the SPF result,
+		and whether or not the SPF result was aligned with the
+		RFC5322.From domain.
+
+signatures	A table tracking DKIM signatures, each of which refers to
+		a rown in the "messages" table.  Tracks the signing domain,
+		whether the signature passed, whether there was a verification
+		error other than a broken signature, and whether or not the
+		signing domain aligned with the RFC5322.From domain.
+
+requests	A table containing a cache of DMARC reporting requests.
+		For each domain, the destination reporting URI for aggregate
+		reports is recorded along with a "last report sent" timestamp.
+
+--
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.

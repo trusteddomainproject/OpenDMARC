@@ -4,7 +4,7 @@ bindir=@LIBDMARC_DIR@/bin
 libdir=@LIBDMARC_DIR@/lib
 includedir=@LIBDMARC_DIR@/include
 
-SUBDIRS		= libopendmarc docs
+SUBDIRS		= libopendmarc docs opendmarc reports
 
 auxdir		= @ac_aux_dir@
 AUX_DIST	= $(auxdir)/install-sh $(auxdir)/missing \
@@ -18,6 +18,7 @@ MAINTAINERCLEANFILES 	= Makefile.in aclocal.m4 configure \
 			  $(AUX_DIST)
 
 ACLOCAL		= aclocal -I $(auxdir)
+ACLOCAL_AMFLAGS = -I m4
 
 dist-hook:	
 	 [ -f $(distdir)/libopendmarc.h ] && rm -f $(distdir)/libopendmarc.h

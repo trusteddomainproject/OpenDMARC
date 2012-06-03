@@ -231,6 +231,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			*reply_ptr = 0;
 			return got_txtbuf;
 		}
+		cur_ptr += cur_len;
 		cur_ptr += answer_len;
 		continue;
 	}

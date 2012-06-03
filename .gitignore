@@ -3,9 +3,11 @@ Makefile.in
 autom4te.cache/
 configure
 build-config.h
+build-config.h.in
 build-config.h.in~
 config.log
 config.status
 stamp-h.in
 stamp-h1
 libtool
+opendmarc-[0-9].[0-9].[0-9]
