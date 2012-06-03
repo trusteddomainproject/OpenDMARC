@@ -20,6 +20,7 @@
 #include <libmilter/mfapi.h>
 
 /* libopendmarc */
+/* #include "libopendmarc.h"
 /* XXX -- not yet available... -- #include "dmarc.h" */
 
 /* make sure we have TRUE and FALSE */
