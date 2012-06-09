@@ -1,7 +1,7 @@
 /* Copyright (c) 2012, The Trusted Domain Project.  All rights reserved. */
 
-#ifndef OPENDMARC_H
-#define OPENDMARC_H
+#ifndef LIBOPENDMARC_H
+#define LIBOPENDMARC_H
 
 # define DMARC_POLICY_IP_TYPE_IPV4	(4)
 # define DMARC_POLICY_IP_TYPE_IPV6	(6)
@@ -25,6 +25,11 @@
 #define DMARC_RECORD_R_AFRF		(0x1)		/* rf, a bitmap */
 #define DMARC_RECORD_R_IODEF		(0x2)		/* rf, a bitmap */
 
+#define DMARC_PARSE_ERROR_EMPTY		(1)		/* Nothing to parse */
+#define DMARC_PARSE_ERROR_BAD_VERSION	(2)		/* Such as v=DBOB1 */
+#define DMARC_PARSE_ERROR_BAD_VALUE	(3)		/* Bad token value like p=bob */
+#define DMARC_PARSE_ERROR_NO_REQUIRED_P	(4)		/* Required p= missing */
+
 #ifndef OPENDMARC_POLICY_C
  typedef struct dmarc_policy_t DMARC_POLICY_T;
 #endif
@@ -33,4 +38,4 @@ DMARC_POLICY_T * opendmarc_policy_connect_init(u_char *ip_addr, int ip_type);
 DMARC_POLICY_T * opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx);
 
 
-#endif /* OPENDMARC_H */
+#endif /* LIBOPENDMARC_H */
