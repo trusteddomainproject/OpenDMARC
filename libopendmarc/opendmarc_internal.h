@@ -115,9 +115,10 @@ typedef struct dmarc_policy_t {
 	/*
 	 * Supplied information
 	 */
-	u_char *	domain;			/* Input: domain sought */
+	u_char *	from_domain;		/* Input: From: header domain */
 	u_char *	ip_addr;		/* Input: connected IPV4 or IPV6 address */
 	int 		ip_type;		/* Input: IPv4 or IPv6 */
+	u_char * 	spf_domain;		/* Input: Domain used to verify SPF */
 	int 	 	spf_origin;		/* Input: was domain MAIL From: or HELO for SPF check */
 	int		spf_outcome;		/* Input: What was the outcome of the SPF check */
 	u_char *	spf_human_outcome;	/* Input: What was the outcome of the SPF check in human readable form */
@@ -198,6 +199,8 @@ int 			opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len);
 
 /* opendmarc_util.c */
 u_char ** opendmarc_util_clearargv(u_char **ary);
-u_char ** opendmarc_util_pushargv(u_char *str, u_char **ary);
+u_char ** opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt);
+u_char *  opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen);
+u_char *  opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen);
 
 #endif /* OPENDMARC_INTERNAL_H */

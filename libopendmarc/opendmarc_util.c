@@ -38,6 +38,7 @@ opendmarc_util_clearargv(u_char **ary)
 **	Parameters:
 **		str	-- The string to add.
 **		ary	-- The array to extend.
+**		cnt	-- Points to number of elements.
 **	Returns:
 **		ary on success.
 **		NULL on error and sets errno.
@@ -45,7 +46,7 @@ opendmarc_util_clearargv(u_char **ary)
 **		Allocates and reallocates memory.
 */
 u_char **
-opendmarc_util_pushargv(u_char *str, u_char **ary)
+opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt)
 {
 	int   	 i;
 	u_char **tmp;
@@ -67,13 +68,20 @@ opendmarc_util_pushargv(u_char *str, u_char **ary)
 			(void) free(ary);
 			return NULL;
 		}
+		if (cnt != NULL)
+			*cnt = 1;
 		return ary;
 	}
-	for (i = 0; ;i++)
+	if (cnt == NULL)
 	{
-		if (ary[i] == NULL)
-			break;
+		for (i = 0; ;i++)
+		{
+			if (ary[i] == NULL)
+				break;
+		}
 	}
+	else
+		i = *cnt;
 	tmp = realloc((void *)ary, sizeof(char **) * (i+2));
 	if (tmp == NULL)
 	{
@@ -88,5 +96,165 @@ opendmarc_util_pushargv(u_char *str, u_char **ary)
 		return NULL;
 	}
 	ary[i+1] = NULL;
+	if (cnt != NULL)
+		*cnt = i + 1;
 	return ary;
+}
+
+/*****************************************************
+**  OPENDMARC_UTIL_CLEANUP -- Remove whitespace
+**
+**	Parameters:
+**		str	-- The string cleanup
+**		buf	-- Where to place result
+**		buflen	-- Length of buf
+**	Returns:
+**		buf on success.
+**		NULL on error and sets errno.
+**	Side Effects:
+*/
+u_char *
+opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen)
+{
+	char *sp, *bp;
+
+	if (str == NULL || buf == NULL)
+	{
+		errno = EINVAL;
+		return NULL;
+	}
+	if (strlen((char *)str) > buflen)
+	{
+		errno = EINVAL;
+		return NULL;
+	}
+	(void) memset(buf, '\0', buflen);
+
+	for (sp = str; *sp != '\0'; ++sp)
+	{
+		if (! isspace((int)*sp))
+			break;
+	}
+	if (*sp == '\0')
+		return buf;
+	for (bp = buf; *sp != '\0'; ++sp)
+	{
+		if (isspace((int)*sp))
+			break;
+		*bp++ = *sp;
+	}
+	*bp = '\0';
+	return buf;
+}
+
+/************************************************************
+** OPENDMARC_UTIL_FINDDOMAIN --Focus on the domain
+**
+**	Parameters:
+**		raw	-- The address containing domain
+**		buf	-- Where to place result
+**		buflen	-- Length of buf
+**	Returns:
+**		buf on success.
+**		NULL on error and sets errno.
+**	Side Effects:
+** 	   e.g. (foo) a@a.com (bar) --->  a.com
+**	        "foo" <a@a.com> "foo" --> a.com
+**		a@a.com, b@b.com, c@c.com --> a.com
+*/
+u_char *
+opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
+{
+	u_char *a     	= NULL;
+	u_char *b     	= NULL;
+	u_char *ep    	= NULL;
+	u_char  copy[BUFSIZ];
+	u_char *cp	= NULL;
+	int 	inparen	= 0;
+	size_t  len;
+
+	if (raw == NULL)
+		return NULL;
+
+	(void) memset(copy, '\0', sizeof copy);
+	len = strlen((char *)raw);
+	if (len > BUFSIZ)
+		len = BUFSIZ - 1;
+	(void) strncpy(copy, raw, len);
+
+	if (*copy == ',')
+		ep = strchr(copy+1, ',');
+	else
+		ep = strchr(copy, ',');
+	if (ep != NULL && ep != copy)
+		*ep = '\0';
+	ep = copy + strlen((char *)copy);
+	for (b = ep-1; b > copy; --b)
+	{
+		if (*b == '<')
+			break;
+	}
+	if (*b == '<')
+	{
+		for (a = b; a < ep; ++a)
+		{
+			if (*a == '>')
+				break;
+		}
+		if (*a == '>')
+		{
+			*a = '\0';
+			cp = ++b;
+			goto strip_local_part;
+		}
+	}
+	for (a = copy; a < ep; a++)
+	{
+		if (isspace((int)*a))
+			continue;
+		if (*a == '(')
+		{
+			inparen = 1;
+			continue;
+		}
+		if (inparen == 1 && *a != ')')
+			continue;
+		if (inparen == 1 && *a == ')')
+		{
+			inparen = 0;
+			continue;
+		}
+		break;
+	}
+	for (b = ep -1; b > a; --b)
+	{
+		if (isspace((int)*b))
+			continue;
+		if (*b == ')')
+		{
+			inparen = 1;
+			continue;
+		}
+		if (inparen == 1 && *b != '(')
+			continue;
+		if (inparen == 1 && *b == '(')
+		{
+			inparen = 0;
+			continue;
+		}
+		break;
+	}
+	*(b+1) ='\0';
+	cp = a;
+strip_local_part:
+	if (cp == NULL)
+		cp = copy;
+	ep = strchr(cp, '@');
+	if (cp != NULL)
+		cp = ep + 1;
+	len = strlen((char *)cp);
+	if (len > buflen)
+		cp[buflen -1] = '\0';
+	(void) strncpy(buf, cp, buflen);
+	return buf;
 }
