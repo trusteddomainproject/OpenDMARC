@@ -52,6 +52,11 @@ usage(void)
 	return EX_USAGE;
 }
 
+/* XXX -- signal handler functions */
+/* XXX -- config reload and apply function */
+/* XXX -- milter callbacks */
+/* XXX -- milter registration object */
+
 /*
 **  MAIN -- program mainline
 **
@@ -112,6 +117,15 @@ main(int argc, char **argv)
 		        progname, path, line, config_error());
 		return EX_CONFIG;
 	}
+
+	/* XXX -- create config object */
+	/* XXX -- fork if requested */
+	/* XXX -- set up signal handlers */
+	/* XXX -- change user */
+	/* XXX -- open database */
+	/* XXX -- register milter stuff */
+	/* XXX -- enter milter mode */
+	/* XXX -- close database */
 
 	return EX_OK;
 }
