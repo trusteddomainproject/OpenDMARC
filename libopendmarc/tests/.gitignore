@@ -5,3 +5,4 @@ Makefile.in
 test_dns_lookup
 test_tld
 test_finddomain
+test_dmarc_parse

@@ -320,7 +320,7 @@ opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record)
 	u_char cbuf[512];
 	u_char vbuf[512];
 
-	if (pctx == NULL || record == NULL)
+	if (pctx == NULL || record == NULL || strlen((char *)record) == 0)
 	{
 		return DMARC_PARSE_ERROR_EMPTY;
 	}
@@ -332,14 +332,19 @@ opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record)
 	pctx->ri  = -1;
 
 	(void) memset((char *)copy, '\0', sizeof copy);
+# if HAVE_STRLCPY
 	(void) strlcpy((char *)copy, (char *)record, sizeof copy);
-	ep = (u_char *)strlen((char *)copy);
+# else
+	(void) strncpy((char *)copy, (char *)record, sizeof copy);
+# endif
+	ep = copy + strlen((char *)copy);
 
-	for (cp = copy; cp < ep; ++cp)
+
+	for (cp = copy; cp != NULL && cp <= ep; )
 	{
 		sp = (u_char *)strchr(cp, ';');
 		if (sp != NULL)
-			*sp = '\0';
+			*sp++ = '\0';
 		eqp = (u_char *)strchr((char *)cp, '=');
 		if (eqp == NULL)
 		{
@@ -460,6 +465,13 @@ opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record)
 		}
 		else if (strcasecmp((char *)cp, "ri") == 0)
 		{
+			char *xp;
+
+			for (xp = cp; *xp != '\0'; ++xp)
+			{
+				if (! isdigit((int)*xp))
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+			}
 			errno = 0;
 			pctx->ri = strtoul(vp, NULL, 10);
 			if (errno == EINVAL || errno == ERANGE)
@@ -585,3 +597,42 @@ opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record)
 	return DMARC_PARSE_OKAY;
 }
 
+/**************************************************************************
+** DMARC LOOKUP HOOKS
+***************************************************************************/
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_pct(DMARC_POLICY_T *pctx, int *pctp)
+{
+	if (pctx == NULL)
+	{
+		return DMARC_PARSE_ERROR_EMPTY;
+	}
+	if (pctp == NULL)
+	{
+		return DMARC_PARSE_ERROR_EMPTY;
+	}
+	*pctp = pctx->pct;
+	return DMARC_PARSE_OKAY;
+}
+
+#if 0
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_adkim()
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_aspf()
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_p()
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_sp()
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_rua()
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_ruf()
+
+#endif /*0 */
