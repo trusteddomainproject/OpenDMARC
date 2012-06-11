@@ -4,7 +4,7 @@
 
 sbin_PROGRAMS = opendmarc
 opendmarc_SOURCES = config.c config.h opendmarc.c opendmarc.h \
-	opendmarc-config.h
+	opendmarc-ar.c opendmarc-ar.h opendmarc-config.h
 opendmarc_CC = $(PTHREAD_CC)
 opendmarc_CFLAGS = $(PTHREAD_CFLAGS) 
 opendmarc_CPPFLAGS = $(LIBMILTER_INCDIRS) -I$(srcdir)/../libopendmarc
