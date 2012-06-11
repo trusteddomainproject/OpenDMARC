@@ -120,7 +120,7 @@ opendmarc_policy_connect_rset(DMARC_POLICY_T *pctx)
 	ip_save       = pctx->ip_addr;
 	pctx->ip_addr = NULL;
 	ip_type       = pctx->ip_type;
-	pctx->ip_type = NULL;
+	pctx->ip_type = -1;
 
 	pctx = opendmarc_policy_connect_clear(pctx);
 
