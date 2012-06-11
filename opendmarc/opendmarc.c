@@ -21,6 +21,7 @@
 /* opendmarc */
 #include "opendmarc.h"
 #include "config.h"
+#include "opendmarc-ar.h"
 #include "opendmarc-config.h"
 
 /* macros */
