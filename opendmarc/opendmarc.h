@@ -37,6 +37,7 @@
 #define	HOSTUNKNOWN	"unknown-host"
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
 #define	MAXARGV		65536
+#define	MAXHEADER	1024
 #define	TEMPFILE	"/var/tmp/dmarcXXXXXX"
 
 #define AUTHRESULTSHDR	"Authentication-Results"
