@@ -3,6 +3,8 @@
 #ifndef DMARC_H
 #define DMARC_H
 
+#define	DMARC_MAXHOSTNAMELEN		(256)
+
 # define DMARC_POLICY_IP_TYPE_IPV4		(4)
 # define DMARC_POLICY_IP_TYPE_IPV6		(6)
 
