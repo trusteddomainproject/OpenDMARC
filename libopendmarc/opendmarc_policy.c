@@ -1,5 +1,7 @@
 /*************************************************************************
 ** $Id: opendmarc_policy.c,v 1.2 2010/12/03 23:06:48 bcx Exp $
+** The user interface to the rest of this library.
+**
 **  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 #include "opendmarc_internal.h"
@@ -261,18 +263,8 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 /**************************************************************************
 ** OPENDMARC_POLICY_STORE_DKIM -- Store dkim results
 ***************************************************************************/
-int
+OPENDMARC_STATUS_T
 opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *domain, u_char *result, u_char *human_result)
-{
-	return 0;
-}
-
-/**************************************************************************
-** OPENDMARC_POLICY_STORE_DMARC -- The application looked up the dmarc record
-**					and hands it to us here.
-***************************************************************************/
-int
-opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dmarc_record, u_char *organizationaldomain)
 {
 	return 0;
 }
@@ -282,7 +274,7 @@ opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dmarc_record, u_char 
 **					specified domain. If not found
 **				  	try the organizational domain.
 ***************************************************************************/
-int
+OPENDMARC_STATUS_T
 opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 {
 	return 0;
@@ -596,6 +588,39 @@ opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record)
 
 	return DMARC_PARSE_OKAY;
 }
+
+/**************************************************************************
+** OPENDMARC_POLICY_STORE_DMARC -- The application looked up the dmarc record
+**					and hands it to us here.
+***************************************************************************/
+OPENDMARC_STATUS_T
+opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dmarc_record, u_char *domain, u_char *organizationaldomain)
+{
+	OPENDMARC_STATUS_T status;
+
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	if (dmarc_record == NULL)
+		return DMARC_PARSE_ERROR_EMPTY;
+	if (domain == NULL)
+		return DMARC_PARSE_ERROR_NO_DOMAIN;
+
+	status = opendmarc_parse_dmarc(pctx, dmarc_record);
+	if (status != DMARC_PARSE_OKAY)
+		return status;
+
+	if (pctx->domain != NULL)
+		(void) free(pctx->domain);
+	pctx->domain = strdup(domain);
+	if (organizationaldomain != NULL)
+	{
+		if (pctx->organizational_domain != NULL)
+			(void) free(pctx->organizational_domain);
+		pctx->organizational_domain = (u_char *)strdup(organizationaldomain);
+	}
+	return DMARC_PARSE_OKAY;
+}
+
 
 /**************************************************************************
 ** DMARC LOOKUP HOOKS

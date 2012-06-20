@@ -29,7 +29,7 @@ main(int argc, char **argv)
 		(void) opendmarc_get_tld(tldp->domain, tldbuf, sizeof tldbuf);
 		if (memcmp(tldp->tld, tldbuf, strlen(tldp->tld)) == 0)
 		{
-			printf("\tTLD find test: %d: PASS\n", count);
+			//printf("\tTLD find test: %d: PASS\n", count);
 			pass += 1;
 		}
 		else
