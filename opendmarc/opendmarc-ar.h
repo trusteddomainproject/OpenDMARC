@@ -2,7 +2,7 @@
 **  Copyright (c) 2007-2009 Sendmail, Inc. and its suppliers.
 **	All rights reserved.
 **
-**  Copyright (c) 2009, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2009, 2012, The Trusted Domain Project.  All rights reserved.
 */
 
 #ifndef _OPENDMARC_AR_H_
@@ -16,6 +16,7 @@
 #include "dmarc.h"
 
 /* limits */
+#define	AUTHRESHDRNAME	"Authentication-Results"
 #define	MAXARESULTS	16
 #define	MAXPROPS	16
 #define	MAXAVALUE	256

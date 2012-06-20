@@ -7,32 +7,1280 @@
 /* system includes */
 #include <sys/param.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #ifdef HAVE_STDBOOL_H
 # include <stdbool.h>
 #endif /* HAVE_STDBOOL_H */
 #ifdef HAVE_PATHS_H
 # include <paths.h>
 #endif /* HAVE_PATHS_H */
+#include <fcntl.h>
+#include <pwd.h>
+#include <grp.h>
 #include <sysexits.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <signal.h>
+#include <pthread.h>
+#include <syslog.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <errno.h>
+#include <assert.h>
 
-/* opendmarc */
+/* libmilter */
+#include <libmilter/mfapi.h>
+
+/* opendmarc includes */
 #include "opendmarc.h"
 #include "config.h"
+#include "util.h"
 #include "opendmarc-ar.h"
 #include "opendmarc-config.h"
 
 /* macros */
 #define	CMDLINEOPTS	"c:V"
+#define	DEFTIMEOUT	5
 
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
 #endif /* ! _PATH_DEVNULL */
 
+#define	TRYFREE(x)	do { \
+				if ((x) != NULL) \
+				{ \
+					free(x); \
+					(x) = NULL; \
+				} \
+			} while (0)
+
+/* data types */
+/* DMARCF_HEADER -- a linked list of header fields */
+struct dmarcf_header
+{
+	char *			hdr_name;
+	char *			hdr_value;
+	struct dmarcf_header *	hdr_next;
+	struct dmarcf_header *	hdr_prev;
+};
+
+/* DMARCF_MSGCTX -- message-specific context */
+struct dmarcf_msgctx
+{
+	char *			mctx_jobid;
+	struct dmarcf_header *	mctx_hqhead;
+	struct dmarcf_header *	mctx_hqtail;
+};
+typedef struct dmarcf_msgctx * DMARCF_MSGCTX;
+
+/* DMARCF_CONNCTX -- connection-specific context */
+struct dmarcf_connctx
+{
+	_Bool			cctx_milterv2;
+	DMARCF_MSGCTX		cctx_msg;
+	struct dmarcf_config *	cctx_config;
+	struct sockaddr_storage	cctx_ip;
+	char			cctx_host[MAXHOSTNAMELEN + 1];
+};
+typedef struct dmarcf_connctx * DMARCF_CONNCTX;
+
+/* DMARCF_CONFIG -- configuration object */
+struct dmarcf_config
+{
+	_Bool			conf_dolog;
+	_Bool			conf_enablecores;
+	_Bool			conf_addswhdr;
+	_Bool			conf_authservidwithjobid;
+	unsigned int		conf_refcnt;
+	unsigned int		conf_dnstimeout;
+	struct config *		conf_data;
+	char *			conf_tmpdir;
+	char *			conf_authservid;
+};
+
+/* LOOKUP -- lookup table */
+struct lookup
+{
+	char *		str;
+	int		code;
+};
+
+/* table of syslog facilities mapped to names */
+struct lookup log_facilities[] =
+{
+	{ "auth",		LOG_AUTH },
+	{ "cron",		LOG_CRON },
+	{ "daemon",		LOG_DAEMON },
+	{ "kern",		LOG_KERN },
+	{ "lpr",		LOG_LPR },
+	{ "mail",		LOG_MAIL },
+	{ "news",		LOG_NEWS },
+	{ "security",		LOG_AUTH },       /* DEPRECATED */
+	{ "syslog",		LOG_SYSLOG },
+	{ "user",		LOG_USER },
+	{ "uucp",		LOG_UUCP },
+	{ "local0",		LOG_LOCAL0 },
+	{ "local1",		LOG_LOCAL1 },
+	{ "local2",		LOG_LOCAL2 },
+	{ "local3",		LOG_LOCAL3 },
+	{ "local4",		LOG_LOCAL4 },
+	{ "local5",		LOG_LOCAL5 },
+	{ "local6",		LOG_LOCAL6 },
+	{ "local7",		LOG_LOCAL7 },
+	{ NULL,			-1 }
+};
+
+/* prototypes */
+sfsistat mlfi_abort __P((SMFICTX *));
+sfsistat mlfi_close __P((SMFICTX *));
+sfsistat mlfi_connect __P((SMFICTX *, char *, _SOCK_ADDR *));
+sfsistat mlfi_eoh __P((SMFICTX *));
+sfsistat mlfi_eom __P((SMFICTX *));
+sfsistat mlfi_header __P((SMFICTX *, char *, char *));
+sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
+                                        unsigned long, unsigned long,
+                                        unsigned long *, unsigned long *,
+                                        unsigned long *, unsigned long *));
+
+static void dmarcf_config_free __P((struct dmarcf_config *));
+static struct dmarcf_config *dmarcf_config_new __P((void));
+static _Bool dmarcf_config_setlib __P((struct dmarcf_config *, char **));
+
 /* globals */
+_Bool dolog;
+_Bool die;
+_Bool reload;
+_Bool no_i_whine;
+int diesig;
+struct dmarcf_config *curconf;
 char *progname;
+char *conffile;
+char *sock;
+char myhostname[MAXHOSTNAMELEN + 1];
+pthread_mutex_t conf_lock;
+
+/*
+**  DMARCF_GETPRIV -- wrapper for smfi_getpriv()
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**
+**  Return value:
+**  	The stored private pointer, or NULL.
+*/
+
+void *
+dmarcf_getpriv(SMFICTX *ctx)
+{
+	assert(ctx != NULL);
+
+	return smfi_getpriv(ctx);
+}
+
+/*
+**  DMARCF_SETPRIV -- wrapper for smfi_setpriv()
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**
+**  Return value:
+**  	An sfsistat.
+*/
+
+sfsistat
+dmarcf_setpriv(SMFICTX *ctx, void *ptr)
+{
+	assert(ctx != NULL);
+
+	return smfi_setpriv(ctx, ptr);
+}
+
+/*
+**  DMARCF_GETSYMVAL -- wrapper for smfi_getsymval()
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**  	sym -- symbol to retrieve
+**
+**  Return value:
+**  	Pointer to the value of the requested MTA symbol.
+*/
+
+char *
+dmarcf_getsymval(SMFICTX *ctx, char *sym)
+{
+	assert(ctx != NULL);
+	assert(sym != NULL);
+
+	return smfi_getsymval(ctx, sym);
+}
+
+/*
+**  DMARCF_INIT_SYSLOG -- initialize syslog()
+**
+**  Parameters:
+**  	facility -- name of the syslog facility to use when logging;
+**  	            can be NULL to request the default
+**
+**  Return value:
+**  	None.
+*/
+
+static void
+dmarcf_init_syslog(char *facility)
+{
+#ifdef LOG_MAIL
+	int code;
+	struct lookup *p = NULL;
+
+	closelog();
+
+	code = LOG_MAIL;
+	if (facility != NULL)
+	{
+		for (p = log_facilities; p != NULL; p++)
+		{
+			if (strcasecmp(p->str, facility) == 0)
+			{
+				code = p->code;
+				break;
+			}
+		}
+	}
+
+	openlog(progname, LOG_PID, code);
+#else /* LOG_MAIL */
+	closelog();
+
+	openlog(progname, LOG_PID);
+#endif /* LOG_MAIL */
+}
+
+/*
+**  DMARCF_CONFIG_LOAD -- load a configuration handle based on file content
+**
+**  Paramters:
+**  	data -- configuration data loaded from config file
+**  	conf -- configuration structure to load
+**  	err -- where to write errors
+**  	errlen -- bytes available at "err"
+**
+**  Return value:
+**  	0 -- success
+**  	!0 -- error
+**
+**  Side effects:
+**  	openlog() may be called by this function
+*/
+
+static int
+dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
+                   char *err, size_t errlen)
+{
+	int maxsign;
+	int dbflags = 0;
+	char *str;
+	char confstr[BUFRSZ + 1];
+	char basedir[MAXPATHLEN + 1];
+
+	assert(conf != NULL);
+	assert(err != NULL);
+
+	memset(basedir, '\0', sizeof basedir);
+	memset(confstr, '\0', sizeof confstr);
+
+	if (data != NULL)
+	{
+		str = NULL;
+		(void) config_get(data, "AuthservID", &str, sizeof str);
+		if (str != NULL)
+		{
+			if (strcmp(str, "HOSTNAME") == 0)
+				conf->conf_authservid = strdup(myhostname);
+			else	
+				conf->conf_authservid = strdup(str);
+		}
+
+		(void) config_get(data, "AuthservIDWithJobID",
+		                  &conf->conf_authservidwithjobid,
+		                  sizeof conf->conf_authservidwithjobid);
+
+		str = NULL;
+		(void) config_get(data, "BaseDirectory", &str, sizeof str);
+		if (str != NULL)
+			strlcpy(basedir, str, sizeof basedir);
+
+		if (conf->conf_dnstimeout == DEFTIMEOUT)
+		{
+			(void) config_get(data, "DNSTimeout",
+			                  &conf->conf_dnstimeout,
+			                  sizeof conf->conf_dnstimeout);
+		}
+
+		(void) config_get(data, "EnableCoredumps",
+		                  &conf->conf_enablecores,
+		                  sizeof conf->conf_enablecores);
+
+		(void) config_get(data, "TemporaryDirectory",
+		                  &conf->conf_tmpdir,
+		                  sizeof conf->conf_tmpdir);
+
+		if (!conf->conf_dolog)
+		{
+			(void) config_get(data, "Syslog", &conf->conf_dolog,
+			                  sizeof conf->conf_dolog);
+		}
+
+		if (!conf->conf_addswhdr)
+		{
+			(void) config_get(data, "SoftwareHeader",
+			                  &conf->conf_addswhdr,
+			                  sizeof conf->conf_addswhdr);
+		}
+	}
+
+	if (basedir[0] != '\0')
+	{
+		if (chdir(basedir) != 0)
+		{
+			snprintf(err, errlen, "%s: chdir(): %s",
+			         basedir, strerror(errno));
+			return -1;
+		}
+	}
+
+	/* activate logging if requested */
+	if (conf->conf_dolog)
+	{
+		char *log_facility = NULL;
+
+		if (data != NULL)
+		{
+			(void) config_get(data, "SyslogFacility", &log_facility,
+			                  sizeof log_facility);
+		}
+
+		dmarcf_init_syslog(log_facility);
+	}
+
+	return 0;
+}
+
+/*
+**  DMARCF_CONFIG_RELOAD -- reload configuration if requested
+**
+**  Parameters:
+**   	None.
+**
+**  Return value:
+**  	None.
+**
+**  Side effects:
+**  	If a reload was requested and is successful, "curconf" now points
+**  	to a new configuration handle.
+*/
+
+static void
+dmarcf_config_reload(void)
+{
+	struct dmarcf_config *new;
+	char errbuf[BUFRSZ + 1];
+
+	pthread_mutex_lock(&conf_lock);
+
+	if (!reload)
+	{
+		pthread_mutex_unlock(&conf_lock);
+		return;
+	}
+
+	if (conffile == NULL)
+	{
+		if (curconf->conf_dolog)
+			syslog(LOG_ERR, "ignoring reload signal");
+
+		reload = FALSE;
+
+		pthread_mutex_unlock(&conf_lock);
+		return;
+	}
+
+	new = dmarcf_config_new();
+	if (new == NULL)
+	{
+		if (curconf->conf_dolog)
+			syslog(LOG_ERR, "malloc(): %s", strerror(errno));
+	}
+	else
+	{
+		_Bool err = FALSE;
+		u_int line;
+		struct config *cfg;
+		char *missing;
+		char *errstr = NULL;
+		char path[MAXPATHLEN + 1];
+
+		strlcpy(path, conffile, sizeof path);
+
+		cfg = config_load(conffile, dmarcf_config, &line,
+		                  path, sizeof path);
+
+		if (cfg == NULL)
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR,
+				       "%s: configuration error at line %u: %s",
+				        path, line, config_error());
+			}
+			dmarcf_config_free(new);
+			err = TRUE;
+		}
+
+		if (!err)
+		{
+			missing = config_check(cfg, dmarcf_config);
+			if (missing != NULL)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					        "%s: required parameter \"%s\" missing",
+					        conffile, missing);
+				}
+				config_free(cfg);
+				dmarcf_config_free(new);
+				err = TRUE;
+			}
+		}
+
+		if (!err && dmarcf_config_load(cfg, new, errbuf,
+		                               sizeof errbuf) != 0)
+		{
+			if (curconf->conf_dolog)
+				syslog(LOG_ERR, "%s: %s", conffile, errbuf);
+			config_free(cfg);
+			dmarcf_config_free(new);
+			err = TRUE;
+		}
+
+		if (!err && !dmarcf_config_setlib(new, &errstr))
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_WARNING,
+				       "can't configure DKIM library: %s; continuing",
+				       errstr);
+			}
+			config_free(cfg);
+			dmarcf_config_free(new);
+			err = TRUE;
+		}
+
+		if (!err)
+		{
+			if (curconf->conf_refcnt == 0)
+				dmarcf_config_free(curconf);
+
+			dolog = new->conf_dolog;
+			curconf = new;
+			new->conf_data = cfg;
+
+			if (new->conf_dolog)
+			{
+				syslog(LOG_INFO,
+				       "configuration reloaded from %s",
+				       conffile);
+			}
+		}
+	}
+
+	reload = FALSE;
+
+	pthread_mutex_unlock(&conf_lock);
+
+	return;
+}
+
+/*
+**  DMARCF_CLEANUP -- release local resources related to a message
+**
+**  Parameters:
+**  	ctx -- milter context
+**
+**  Return value:
+**  	None.
+*/
+
+static void
+dmarcf_cleanup(SMFICTX *ctx)
+{
+	DMARCF_MSGCTX dfc;
+	DMARCF_CONNCTX cc;
+
+	assert(ctx != NULL);
+
+	cc = (DMARCF_CONNCTX) dmarcf_getpriv(ctx);
+
+	if (cc == NULL)
+		return;
+
+	dfc = cc->cctx_msg;
+
+	/* release memory, reset state */
+	if (dfc != NULL)
+	{
+		if (dfc->mctx_hqhead != NULL)
+		{
+			struct dmarcf_header *hdr;
+			struct dmarcf_header *prev;
+
+			hdr = dfc->mctx_hqhead;
+			while (hdr != NULL)
+			{
+				TRYFREE(hdr->hdr_name);
+				TRYFREE(hdr->hdr_value);
+				prev = hdr;
+				hdr = hdr->hdr_next;
+				TRYFREE(prev);
+			}
+		}
+
+		free(dfc);
+		cc->cctx_msg = NULL;
+	}
+}
+
+#if SMFI_VERSION >= 0x01000000
+/*
+**  MLFI_NEGOTIATE -- handler called on new SMTP connection to negotiate
+**                    MTA options
+**
+**  Parameters:
+**  	ctx -- milter context
+**	f0  -- actions offered by the MTA
+**	f1  -- protocol steps offered by the MTA
+**	f2  -- reserved for future extensions
+**	f3  -- reserved for future extensions
+**	pf0 -- actions requested by the milter
+**	pf1 -- protocol steps requested by the milter
+**	pf2 -- reserved for future extensions
+**	pf3 -- reserved for future extensions
+**
+**  Return value:
+**  	An SMFIS_* constant.
+*/
+
+sfsistat
+mlfi_negotiate(SMFICTX *ctx,
+	unsigned long f0, unsigned long f1,
+	unsigned long f2, unsigned long f3,
+	unsigned long *pf0, unsigned long *pf1,
+	unsigned long *pf2, unsigned long *pf3)
+{
+	unsigned long reqactions = SMFIF_ADDHDRS;
+	unsigned long wantactions = 0;
+	unsigned long protosteps = (SMFIP_NOHELO |
+	                            SMFIP_NOUNKNOWN |
+	                            SMFIP_NOBODY |
+	                            SMFIP_NODATA |
+	                            SMFIP_SKIP );
+	DMARCF_CONNCTX cc;
+	struct dmarcf_config *conf;
+
+	dmarcf_config_reload();
+
+	/* initialize connection context */
+	cc = malloc(sizeof(struct dmarcf_connctx));
+	if (cc == NULL)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_ERR, "mlfi_negotiate(): malloc(): %s",
+			       strerror(errno));
+		}
+
+		return SMFIS_TEMPFAIL;
+	}
+
+	memset(cc, '\0', sizeof(struct dmarcf_connctx));
+
+	pthread_mutex_lock(&conf_lock);
+
+	cc->cctx_config = curconf;
+	curconf->conf_refcnt++;
+	conf = curconf;
+
+	pthread_mutex_unlock(&conf_lock);
+
+	/* verify the actions we need are available */
+	if ((f0 & reqactions) != reqactions)
+	{
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_ERR,
+			       "mlfi_negotiate(): required milter action(s) not available (got 0x%lx, need 0x%lx)",
+			       f0, reqactions);
+		}
+
+		pthread_mutex_lock(&conf_lock);
+		conf->conf_refcnt--;
+		pthread_mutex_unlock(&conf_lock);
+
+		free(cc);
+
+		return SMFIS_REJECT;
+	}
+
+	/* also try to get some nice features */
+	wantactions = (wantactions & f0);
+
+	/* set the actions we want */
+	*pf0 = (reqactions | wantactions);
+
+	/* disable as many protocol steps we don't need as are available */
+	*pf1 = (protosteps & f1);
+	*pf2 = 0;
+	*pf3 = 0;
+
+	/* set "milterv2" flag if SMFIP_SKIP was available */
+	if ((f1 & SMFIP_SKIP) != 0)
+		cc->cctx_milterv2 = TRUE;
+
+	(void) dmarcf_setpriv(ctx, cc);
+
+	return SMFIS_CONTINUE;
+}
+#endif /* SMFI_VERSION >= 0x01000000 */
+
+/*
+**  MLFI_CONNECT -- connection handler
+**
+**  Parameters:
+**  	ctx -- milter context
+**  	host -- hostname
+**  	ip -- address, in in_addr form
+**
+**  Return value:
+**  	An SMFIS_* constant.
+*/
+
+sfsistat
+mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
+{
+	DMARCF_CONNCTX cc;
+	struct dmarcf_config *conf;
+
+	dmarcf_config_reload();
+
+	/* copy hostname and IP information to a connection context */
+	cc = dmarcf_getpriv(ctx);
+	if (cc == NULL)
+	{
+		cc = malloc(sizeof(struct dmarcf_connctx));
+		if (cc == NULL)
+		{
+			pthread_mutex_lock(&conf_lock);
+
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s malloc(): %s", host,
+				       strerror(errno));
+			}
+
+			pthread_mutex_unlock(&conf_lock);
+
+			return SMFIS_TEMPFAIL;
+		}
+
+		memset(cc, '\0', sizeof(struct dmarcf_connctx));
+
+		pthread_mutex_lock(&conf_lock);
+
+		cc->cctx_config = curconf;
+		curconf->conf_refcnt++;
+
+		conf = curconf;
+
+		pthread_mutex_unlock(&conf_lock);
+
+		dmarcf_setpriv(ctx, cc);
+	}
+	else
+	{
+		conf = cc->cctx_config;
+	}
+
+	if (host != NULL)
+		strlcpy(cc->cctx_host, host, sizeof cc->cctx_host);
+
+	if (ip == NULL)
+	{
+		struct sockaddr_in sa;
+
+		memset(&sa, '\0', sizeof sa);
+		sa.sin_family = AF_INET;
+		sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+		memcpy(&cc->cctx_ip, &sa, sizeof sa);
+	}
+	else if (ip->sa_family == AF_INET)
+	{
+		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in));
+	}
+#ifdef AF_INET6
+	else if (ip->sa_family == AF_INET6)
+	{
+		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in6));
+	}
+#endif /* AF_INET6 */
+
+	cc->cctx_msg = NULL;
+
+	return SMFIS_CONTINUE;
+}
+
+/*
+**  MLFI_HEADER -- handler for mail headers; stores the header in a vector
+**                 of headers for later perusal, removing RFC822 comment
+**                 substrings
+**
+**  Parameters:
+**  	ctx -- milter context
+**  	headerf -- header
+**  	headerv -- value
+**
+**  Return value:
+**  	An SMFIS_* constant.
+*/
+
+sfsistat
+mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
+{
+	DMARCF_MSGCTX dfc;
+	DMARCF_CONNCTX cc;
+	struct dmarcf_header *newhdr;
+	struct dmarcf_config *conf;
+
+	assert(ctx != NULL);
+	assert(headerf != NULL);
+	assert(headerv != NULL);
+
+	cc = (DMARCF_CONNCTX) dmarcf_getpriv(ctx);
+	assert(cc != NULL);
+	dfc = cc->cctx_msg;
+	assert(dfc != NULL);
+	conf = cc->cctx_config;
+
+	newhdr = (struct dmarcf_header *) malloc(sizeof(struct dmarcf_header));
+	if (newhdr == NULL)
+	{
+		if (conf->conf_dolog)
+			syslog(LOG_ERR, "malloc(): %s", strerror(errno));
+
+		dmarcf_cleanup(ctx);
+		return SMFIS_TEMPFAIL;
+	}
+
+	(void) memset(newhdr, '\0', sizeof(struct dmarcf_header));
+
+	newhdr->hdr_name = strdup(headerf);
+	newhdr->hdr_value = strdup(headerv);
+	newhdr->hdr_next = NULL;
+	newhdr->hdr_prev = dfc->mctx_hqtail;
+
+	if (newhdr->hdr_name == NULL || newhdr->hdr_value == NULL)
+	{
+		if (conf->conf_dolog)
+			syslog(LOG_ERR, "malloc(): %s", strerror(errno));
+
+		TRYFREE(newhdr->hdr_name);
+		TRYFREE(newhdr->hdr_value);
+		TRYFREE(newhdr);
+		dmarcf_cleanup(ctx);
+		return SMFIS_TEMPFAIL;
+	}
+
+	if (dfc->mctx_hqhead == NULL)
+		dfc->mctx_hqhead = newhdr;
+
+	if (dfc->mctx_hqtail != NULL)
+		dfc->mctx_hqtail->hdr_next = newhdr;
+
+	dfc->mctx_hqtail = newhdr;
+
+	return SMFIS_CONTINUE;
+}
+
+/*
+**  MLFI_EOM -- handler called at the end of the message; we can now decide
+**              based on the configuration if and how to add the text
+**              to this message, then release resources
+**
+**  Parameters:
+**  	ctx -- milter context
+**
+**  Return value:
+**  	An SMFIS_* constant.
+*/
+
+sfsistat
+mlfi_eom(SMFICTX *ctx)
+{
+	int c;
+	sfsistat ret = SMFIS_CONTINUE;
+	char *hostname = NULL;
+	char *authservid = NULL;
+	DMARCF_CONNCTX cc;
+	DMARCF_MSGCTX dfc;
+	struct dmarcf_config *conf;
+	struct dmarcf_header *hdr;
+	struct dmarcf_header *from;
+	unsigned char header[MAXHEADER + 1];
+	struct authres ar;
+
+	assert(ctx != NULL);
+
+	cc = (DMARCF_CONNCTX) dmarcf_getpriv(ctx);
+	assert(cc != NULL);
+	dfc = cc->cctx_msg;
+	assert(dfc != NULL);
+	conf = cc->cctx_config;
+
+	/*
+	**  If necessary, try again to get the job ID in case it came down
+	**  later than expected (e.g. postfix).
+	*/
+
+	if (strcmp((char *) dfc->mctx_jobid, JOBIDUNKNOWN) == 0)
+	{
+		dfc->mctx_jobid = (u_char *) dmarcf_getsymval(ctx, "i");
+		if (dfc->mctx_jobid == NULL)
+		{
+			if (no_i_whine && conf->conf_dolog)
+			{
+				syslog(LOG_WARNING,
+				       "WARNING: symbol 'i' not available");
+				no_i_whine = FALSE;
+			}
+			dfc->mctx_jobid = (u_char *) JOBIDUNKNOWN;
+		}
+	}
+
+	/* get hostname; used in the X header and in new MIME boundaries */
+	hostname = dmarcf_getsymval(ctx, "j");
+	if (hostname == NULL)
+		hostname = HOSTUNKNOWN;
+
+	/* select authserv-id to use when generating result headers */
+	authservid = conf->conf_authservid;
+	if (authservid == NULL)
+		authservid = hostname;
+
+	/* extract From: domain */
+	from = NULL;
+	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
+	{
+		if (strcasecmp(hdr->hdr_name, "from") == 0)
+		{
+			from = hdr;
+			break;
+		}
+	}
+
+	if (from == NULL)
+	{
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: no From header field found",
+			       dfc->mctx_jobid);
+			return SMFIS_ACCEPT;
+		}
+	}
+
+	/*
+	**  Walk through Authentication-Results fields and pull out data.
+	*/
+
+	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
+	{
+		/* skip it if it's not Authentication-Results */
+		if (strcasecmp(hdr->hdr_name, AUTHRESHDRNAME) != 0)
+			continue;
+
+		/* parse it */
+		memset(&ar, '\0', sizeof ar);
+		if (ares_parse(hdr->hdr_value, &ar) != 0)
+			continue;
+
+		/* skip it if it's not one of ours */
+		/* XXX -- check for appended jobid */
+		if (strcasecmp(ar.ares_host, authservid) != 0)
+			continue;
+
+		/* walk through what was found */
+		for (c = 0; c < ar.ares_count; c++)
+		{
+			/* skip things that aren't a "pass" */
+			if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+				continue;
+
+			/* XXX -- see if there was an SPF match */
+			/* XXX -- see if there was a DKIM match */
+		}
+	}
+
+	/*
+	**  Interact with libopendmarc.
+	*/
+
+	/* XXX -- provide From domain */
+	/* XXX -- provide SPF results */
+	/* XXX -- provide DKIM results */
+	/* XXX -- retrieve DMARC verdict and requested action */
+
+	/*
+	**  Record activity in the database.
+	*/
+
+	/* XXX -- add data to database for reports */
+
+	/*
+	**  Generate a forensic report.
+	*/
+
+	/* XXX -- generate forensic report if requested */
+
+	/*
+	**  Select policy based on DMARC results.
+	*/
+
+	/* XXX -- select DMARC policy */
+
+	dmarcf_cleanup(ctx);
+
+	return ret;
+}
+
+/*
+**  MLFI_ABORT -- handler called if an earlier filter in the filter process
+**                rejects the message
+**
+**  Parameters:
+**  	ctx -- milter context
+**
+**  Return value:
+**  	An SMFIS_* constant.
+*/
+
+sfsistat
+mlfi_abort(SMFICTX *ctx)
+{
+	dmarcf_cleanup(ctx);
+	return SMFIS_CONTINUE;
+}
+
+/*
+**  MLFI_CLOSE -- handler called on connection shutdown
+**
+**  Parameters:
+**  	ctx -- milter context
+**
+**  Return value:
+**  	An SMFIS_* constant.
+*/
+
+sfsistat
+mlfi_close(SMFICTX *ctx)
+{
+	DMARCF_CONNCTX cc;
+
+	dmarcf_cleanup(ctx);
+
+	cc = (DMARCF_CONNCTX) dmarcf_getpriv(ctx);
+	if (cc != NULL)
+	{
+		pthread_mutex_lock(&conf_lock);
+
+		cc->cctx_config->conf_refcnt--;
+
+		if (cc->cctx_config->conf_refcnt == 0 &&
+		    cc->cctx_config != curconf)
+			dmarcf_config_free(cc->cctx_config);
+
+		pthread_mutex_unlock(&conf_lock);
+
+		free(cc);
+		dmarcf_setpriv(ctx, NULL);
+	}
+
+	return SMFIS_CONTINUE;
+}
+
+/*
+**  smfilter -- the milter module description
+*/
+
+struct smfiDesc smfilter =
+{
+	DMARCF_PRODUCT,	/* filter name */
+	SMFI_VERSION,	/* version code -- do not change */
+	0,		/* flags; updated in main() */
+	mlfi_connect,	/* connection info filter */
+	NULL,		/* SMTP HELO command filter */
+	NULL,		/* envelope sender filter */
+	NULL,		/* envelope recipient filter */
+	mlfi_header,	/* header filter */
+	NULL,		/* end of header */
+	NULL,		/* body block filter */
+	mlfi_eom,	/* end of message */
+	mlfi_abort,	/* message aborted */
+	mlfi_close,	/* shutdown */
+#if SMFI_VERSION > 2
+	NULL,		/* unrecognised command */
+#endif
+#if SMFI_VERSION > 3
+	NULL,		/* DATA */
+#endif
+#if SMFI_VERSION >= 0x01000000
+	mlfi_negotiate	/* negotiation callback */
+#endif
+};
+
+/*
+**  DMARCF_SIGHANDLER -- signal handler
+**
+**  Parameters:
+**  	sig -- signal received
+**
+**  Return value:
+**  	None.
+*/
+
+static void
+dmarcf_sighandler(int sig)
+{
+	if (sig == SIGINT || sig == SIGTERM || sig == SIGHUP)
+	{
+		diesig = sig;
+		die = TRUE;
+	}
+	else if (sig == SIGUSR1)
+	{
+		if (conffile != NULL)
+			reload = TRUE;
+	}
+}
+
+/*
+**  DMARCF_RELOADER -- reload signal thread
+**
+**  Parameters:
+**  	vp -- void pointer required by thread API but not used
+**
+**  Return value:
+**  	NULL.
+*/
+
+static void *
+dmarcf_reloader(/* UNUSED */ void *vp)
+{
+	int sig;
+	sigset_t mask;
+
+	(void) pthread_detach(pthread_self());
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGUSR1);
+
+	while (!die)
+	{
+		(void) sigwait(&mask, &sig);
+
+		if (conffile != NULL)
+			reload = TRUE;
+	}
+
+	return NULL;
+}
+
+/*
+**  DMARCF_KILLCHILD -- kill child process
+**
+**  Parameters:
+**  	pid -- process ID to signal
+**  	sig -- signal to use
+**  	dolog -- log it?
+**
+**  Return value:
+**  	None.
+*/
+
+static void
+dmarcf_killchild(pid_t pid, int sig, _Bool dolog)
+{
+	if (kill(pid, sig) == -1 && dolog)
+	{
+		syslog(LOG_ERR, "kill(%d, %d): %s", pid, sig,
+		       strerror(errno));
+	}
+}
+
+/*
+**  DMARCF_RESTART_CHECK -- initialize/check restart rate information
+**
+**  Parameters:
+**  	n -- size of restart rate array to initialize/enforce
+**  	t -- maximum time range for restarts (0 == init)
+**
+**  Return value:
+**  	TRUE -- OK to continue
+**  	FALSE -- error
+*/
+
+static _Bool
+dmarcf_restart_check(int n, time_t t)
+{
+	static int idx;				/* last filled slot */
+	static int alen;			/* allocated length */
+	static time_t *list;
+
+	if (t == 0)
+	{
+		alen = n * sizeof(time_t);
+
+		list = (time_t *) malloc(alen);
+
+		if (list == NULL)
+			return FALSE;
+
+		memset(list, '\0', alen);
+
+		idx = 0;
+		alen = n;
+
+		return TRUE;
+	}
+	else
+	{
+		int which;
+
+		time_t now;
+
+		(void) time(&now);
+
+		which = (idx - 1) % alen;
+		if (which == -1)
+			which = alen - 1;
+
+		if (list[which] != 0 &&
+		    list[which] + t > now)
+			return FALSE;
+
+		list[which] = t;
+		idx++;
+
+		return TRUE;
+	}
+}
+
+/*
+**  DMARCF_STDIO -- set up the base descriptors to go nowhere
+**
+**  Parameters:
+**  	None.
+**
+**  Return value:
+**  	None.
+*/
+
+static void
+dmarcf_stdio(void)
+{
+	int devnull;
+
+	/* this only fails silently, but that's OK */
+	devnull = open(_PATH_DEVNULL, O_RDWR, 0);
+	if (devnull != -1)
+	{
+		(void) dup2(devnull, 0);
+		(void) dup2(devnull, 1);
+		(void) dup2(devnull, 2);
+		if (devnull > 2)
+			(void) close(devnull);
+	}
+
+	(void) setsid();
+}
+
+/*
+**  DMARCF_CONFIG_NEW -- get a new configuration handle
+**
+**  Parameters:
+**  	None.
+**
+**  Return value:
+**  	A new configuration handle, or NULL on error.
+*/
+
+static struct dmarcf_config *
+dmarcf_config_new(void)
+{
+	struct dmarcf_config *new;
+
+	new = (struct dmarcf_config *) malloc(sizeof(struct dmarcf_config));
+	if (new == NULL)
+		return NULL;
+
+	memset(new, '\0', sizeof(struct dmarcf_config));
+
+	return new;
+}
+
+/*
+**  DMARCF_CONFIG_FREE -- destroy a configuration handle
+**
+**  Parameters:
+**  	conf -- pointer to the configuration handle to be destroyed
+**
+**  Return value:
+**  	None.
+*/
+
+static void
+dmarcf_config_free(struct dmarcf_config *conf)
+{
+	assert(conf != NULL);
+	assert(conf->conf_refcnt == 0);
+
+	if (conf->conf_data != NULL)
+		config_free(conf->conf_data);
+
+	free(conf);
+}
+
+/*
+**  DMARCF_CONFIG_SETLIB -- set library options based on configuration file
+**
+**  Parameters:
+**  	conf -- DMARC filter configuration data
+**  	err -- error string (returned; may be NULL)
+**
+**  Return value:
+**  	TRUE on success, FALSE otherwise.
+*/
+
+static _Bool
+dmarcf_config_setlib(struct dmarcf_config *conf, char **err)
+{
+	/* XXX -- FINISH ME */
+
+	return TRUE;
+}
 
 /*
 **  USAGE -- print a usage message and exit
@@ -52,11 +1300,6 @@ usage(void)
 	return EX_USAGE;
 }
 
-/* XXX -- signal handler functions */
-/* XXX -- config reload and apply function */
-/* XXX -- milter callbacks */
-/* XXX -- milter registration object */
-
 /*
 **  MAIN -- program mainline
 **
@@ -70,25 +1313,117 @@ usage(void)
 int
 main(int argc, char **argv)
 {
+	_Bool autorestart = FALSE;
+	_Bool gotp = FALSE;
+	_Bool dofork = TRUE;
+	_Bool stricttest = FALSE;
+	_Bool configonly = FALSE;
+	_Bool querytest = FALSE;
 	int c;
-	int mvmajor;
-	int mvminor;
-	int mvrelease;
-	int line;
+	int status;
+	int n;
+	int verbose = 0;
+	int maxrestarts = 0;
+	int maxrestartrate_n = 0;
+	int filemask = -1;
+	int mdebug = 0;
+#ifdef HAVE_SMFI_VERSION
+	u_int mvmajor;
+	u_int mvminor;
+	u_int mvrelease;
+#endif /* HAVE_SMFI_VERSION */
+	time_t now;
+	gid_t gid = (gid_t) -1;
+	sigset_t sigset;
+	time_t maxrestartrate_t = 0;
+	pthread_t rt;
+	unsigned long tmpl;
+	const char *args = CMDLINEOPTS;
+	FILE *f;
+	struct passwd *pw = NULL;
+	struct group *gr = NULL;
+	char *become = NULL;
+	char *chrootdir = NULL;
+	char *extract = NULL;
 	char *p;
-	char *conffile = NULL;
-	char *version = NULL;
+	char *pidfile = NULL;
 	struct config *cfg = NULL;
-	char path[MAXPATHLEN + 1];
+	char *end;
+	char argstr[MAXARGV];
+	char err[BUFRSZ + 1];
+
+	/* initialize */
+	reload = FALSE;
+	sock = NULL;
+	no_i_whine = TRUE;
+	conffile = NULL;
+
+	memset(myhostname, '\0', sizeof myhostname);
+	(void) gethostname(myhostname, sizeof myhostname);
 
 	progname = (p = strrchr(argv[0], '/')) == NULL ? argv[0] : p + 1;
 
-	while ((c = getopt(argc, argv, CMDLINEOPTS)) != -1)
+	(void) time(&now);
+	srandom(now);
+
+	curconf = dmarcf_config_new();
+	if (curconf == NULL)
+	{
+		fprintf(stderr, "%s: malloc(): %s\n", progname,
+		        strerror(errno));
+
+		return EX_OSERR;
+	}
+
+	/* process command line options */
+	while ((c = getopt(argc, argv, args)) != -1)
 	{
 		switch (c)
 		{
+		  case 'A':
+			autorestart = TRUE;
+			break;
+
 		  case 'c':
+			if (optarg == NULL || *optarg == '\0')
+				return usage();
 			conffile = optarg;
+			break;
+
+		  case 'f':
+			dofork = FALSE;
+			break;
+
+		  case 'l':
+			curconf->conf_dolog = TRUE;
+			break;
+
+		  case 'n':
+			configonly = TRUE;
+			break;
+
+		  case 'p':
+			if (optarg == NULL || *optarg == '\0')
+				return usage();
+			sock = optarg;
+			(void) smfi_setconn(optarg);
+			gotp = TRUE;
+			break;
+
+		  case 'P':
+			if (optarg == NULL || *optarg == '\0')
+				return usage();
+			pidfile = optarg;
+			break;
+
+		  case 'u':
+			if (optarg == NULL || *optarg == '\0')
+				return usage();
+			become = optarg;
+			break;
+
+		  case 'v':
+			verbose++;
 			break;
 
 		  case 'V':
@@ -100,6 +1435,7 @@ main(int argc, char **argv)
 			printf("\tlibmilter version %d.%d.%d\n",
 			       mvmajor, mvminor, mvrelease);
 #endif /* HAVE_SMFI_VERSION */
+			dmarcf_optlist(stdout);
 			return EX_OK;
 
 		  default:
@@ -107,25 +1443,869 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (conffile == NULL)
-		conffile = _PATH_DEVNULL;
+	if (optind != argc)
+		return usage();
 
-	cfg = config_load(conffile, dmarcf_config, &line, path, sizeof path);
-	if (cfg == NULL)
+	/* if there's a default config file readable, use it */
+	if (conffile == NULL && access(DEFCONFFILE, R_OK) == 0)
+		conffile = DEFCONFFILE;
+
+	if (conffile != NULL)
 	{
-		fprintf(stderr, "%s: %s: configuration error at line %u: %s\n",
-		        progname, path, line, config_error());
+		u_int line = 0;
+		char *missing;
+		char path[MAXPATHLEN + 1];
+
+		cfg = config_load(conffile, dmarcf_config,
+		                  &line, path, sizeof path);
+
+		if (cfg == NULL)
+		{
+			fprintf(stderr,
+			        "%s: %s: configuration error at line %u: %s\n",
+			        progname, path, line,
+			        config_error());
+			dmarcf_config_free(curconf);
+			return EX_CONFIG;
+		}
+
+#ifdef DEBUG
+		(void) config_dump(cfg, stdout, NULL);
+#endif /* DEBUG */
+
+		missing = config_check(cfg, dmarcf_config);
+		if (missing != NULL)
+		{
+			fprintf(stderr,
+			        "%s: %s: required parameter \"%s\" missing\n",
+			        progname, conffile, missing);
+			config_free(cfg);
+			dmarcf_config_free(curconf);
+			return EX_CONFIG;
+		}
+	}
+
+	if (dmarcf_config_load(cfg, curconf, err, sizeof err) != 0)
+	{
+		if (conffile == NULL)
+			conffile = "(stdin)";
+		fprintf(stderr, "%s: %s: %s\n", progname, conffile, err);
+		config_free(cfg);
+		dmarcf_config_free(curconf);
 		return EX_CONFIG;
 	}
 
-	/* XXX -- create config object */
-	/* XXX -- fork if requested */
-	/* XXX -- set up signal handlers */
-	/* XXX -- change user */
-	/* XXX -- open database */
-	/* XXX -- register milter stuff */
-	/* XXX -- enter milter mode */
-	/* XXX -- close database */
+	if (configonly)
+	{
+		config_free(cfg);
+		dmarcf_config_free(curconf);
+		return EX_OK;
+	}
 
-	return EX_OK;
+	if (extract)
+	{
+		int ret = EX_OK;
+
+		if (cfg != NULL)
+		{
+			if (!config_validname(dmarcf_config, extract))
+				ret = EX_DATAERR;
+			else if (config_dump(cfg, stdout, extract) == 0)
+				ret = EX_CONFIG;
+			config_free(cfg);
+			dmarcf_config_free(curconf);
+		}
+		return ret;
+	}
+
+	dolog = curconf->conf_dolog;
+	curconf->conf_data = cfg;
+
+	/*
+	**  Use values found in the configuration file, if any.  Note that
+	**  these are operational parameters for the filter (e.g which socket
+	**  to use which userid to become, etc.) and aren't reloaded upon a
+	**  reload signal.  Reloadable values are handled via the
+	**  dmarcf_config_load() function, which has already been called.
+	*/
+
+	if (cfg != NULL)
+	{
+		if (!autorestart)
+		{
+			(void) config_get(cfg, "AutoRestart", &autorestart,
+			                  sizeof autorestart);
+		}
+
+		if (autorestart)
+		{
+			char *rate = NULL;
+
+			(void) config_get(cfg, "AutoRestartCount",
+			                  &maxrestarts, sizeof maxrestarts);
+
+			(void) config_get(cfg, "AutoRestartRate", &rate,
+			                  sizeof rate);
+
+			if (rate != NULL)
+			{
+				time_t t;
+				char *q;
+
+				p = strchr(rate, '/');
+				if (p == NULL)
+				{
+					fprintf(stderr,
+					        "%s: AutoRestartRate invalid\n",
+					        progname);
+					config_free(cfg);
+					return EX_CONFIG;
+				}
+
+				*p = '\0';
+				n = strtol(rate, &q, 10);
+				if (n < 0 || *q != '\0')
+				{
+					fprintf(stderr,
+					        "%s: AutoRestartRate invalid\n",
+					        progname);
+					config_free(cfg);
+					return EX_CONFIG;
+				}
+
+				t = (time_t) strtoul(p + 1, &q, 10);
+				switch (*q)
+				{
+				  case 'd':
+				  case 'D':
+					t *= 86400;
+					break;
+
+				  case 'h':
+				  case 'H':
+					t *= 3600;
+					break;
+
+				  case 'm':
+				  case 'M':
+					t *= 60;
+					break;
+
+				  case '\0':
+				  case 's':
+				  case 'S':
+					break;
+
+				  default:
+					t = 0;
+					break;
+				}
+
+				if (*q != '\0' && *(q + 1) != '\0')
+					t = 0;
+
+				if (t == 0)
+				{
+					fprintf(stderr,
+					        "%s: AutoRestartRate invalid\n",
+					        progname);
+					config_free(cfg);
+					return EX_CONFIG;
+				}
+
+				maxrestartrate_n = n;
+				maxrestartrate_t = t;
+			}
+		}
+
+		if (dofork)
+		{
+			(void) config_get(cfg, "Background", &dofork,
+			                  sizeof dofork);
+		}
+
+		(void) config_get(cfg, "MilterDebug", &mdebug, sizeof mdebug);
+
+		if (!gotp)
+		{
+			(void) config_get(cfg, "Socket", &sock, sizeof sock);
+			if (sock != NULL)
+			{
+				gotp = TRUE;
+				(void) smfi_setconn(sock);
+			}
+		}
+
+		if (pidfile == NULL)
+		{
+			(void) config_get(cfg, "PidFile", &pidfile,
+			                  sizeof pidfile);
+		}
+
+		(void) config_get(cfg, "UMask", &filemask, sizeof filemask);
+
+		if (become == NULL)
+		{
+			(void) config_get(cfg, "Userid", &become,
+			                  sizeof become);
+		}
+
+		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
+		                  sizeof chrootdir);
+	}
+
+	if (!gotp)
+	{
+		fprintf(stderr, "%s: milter socket must be specified\n",
+		        progname);
+		if (argc == 1)
+			fprintf(stderr, "\t(use \"-?\" for help)\n");
+		return EX_CONFIG;
+	}
+
+	dmarcf_setmaxfd();
+
+	/* prepare to change user if appropriate */
+	if (become != NULL)
+	{
+		char *colon;
+
+		/* see if there was a group specified; if so, validate */
+		colon = strchr(become, ':');
+		if (colon != NULL)
+		{
+			*colon = '\0';
+
+			gr = getgrnam(colon + 1);
+			if (gr == NULL)
+			{
+				char *q;
+
+				gid = (gid_t) strtol(colon + 1, &q, 10);
+				if (*q == '\0')
+					gr = getgrgid(gid);
+
+				if (gr == NULL)
+				{
+					if (curconf->conf_dolog)
+					{
+						syslog(LOG_ERR,
+						       "no such group or gid '%s'",
+						       colon + 1);
+					}
+
+					fprintf(stderr,
+					        "%s: no such group '%s'\n",
+					        progname, colon + 1);
+
+					return EX_DATAERR;
+				}
+			}
+		}
+
+		/* validate the user */
+		pw = getpwnam(become);
+		if (pw == NULL)
+		{
+			char *q;
+			uid_t uid;
+
+			uid = (uid_t) strtoul(become, &q, 10);
+			if (*q == '\0')
+				pw = getpwuid(uid);
+
+			if (pw == NULL)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "no such user or uid '%s'",
+					       become);
+				}
+
+				fprintf(stderr, "%s: no such user '%s'\n",
+				        progname, become);
+
+				return EX_DATAERR;
+			}
+		}
+
+		if (gr == NULL)
+			gid = pw->pw_gid;
+		else
+			gid = gr->gr_gid;
+	}
+
+	/* change root if requested */
+	if (chrootdir != NULL)
+	{
+		/* warn if doing so as root without then giving up root */
+		if (become == NULL && getuid() == 0)
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_WARNING,
+				       "using ChangeRootDirectory without Userid not advised");
+			}
+
+			fprintf(stderr,
+			        "%s: use of ChangeRootDirectory without Userid not advised\n",
+			        progname);
+		}
+
+		/* change to the new root first */
+		if (chdir(chrootdir) != 0)
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: chdir(): %s",
+				       chrootdir, strerror(errno));
+			}
+
+			fprintf(stderr, "%s: %s: chdir(): %s\n", progname,
+			        chrootdir, strerror(errno));
+			return EX_OSERR;
+		}
+
+		/* now change the root */
+		if (chroot(chrootdir) != 0)
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: chroot(): %s",
+				       chrootdir, strerror(errno));
+			}
+
+			fprintf(stderr, "%s: %s: chroot(): %s\n", progname,
+			        chrootdir, strerror(errno));
+			return EX_OSERR;
+		}
+	}
+
+	/* now enact the user change */
+	if (become != NULL)
+	{
+		/* make all the process changes */
+		if (getuid() != pw->pw_uid)
+		{
+			if (initgroups(pw->pw_name, gid) != 0)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR, "initgroups(): %s",
+					       strerror(errno));
+				}
+
+				fprintf(stderr, "%s: initgroups(): %s\n",
+				        progname, strerror(errno));
+
+				return EX_NOPERM;
+			}
+			else if (setgid(gid) != 0)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR, "setgid(): %s",
+					       strerror(errno));
+				}
+
+				fprintf(stderr, "%s: setgid(): %s\n", progname,
+				        strerror(errno));
+
+				return EX_NOPERM;
+			}
+			else if (setuid(pw->pw_uid) != 0)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR, "setuid(): %s",
+					       strerror(errno));
+				}
+
+				fprintf(stderr, "%s: setuid(): %s\n", progname,
+				        strerror(errno));
+
+				return EX_NOPERM;
+			}
+		}
+
+		(void) endpwent();
+	}
+
+	if (curconf->conf_enablecores)
+	{
+		_Bool enabled = FALSE;
+
+#ifdef __linux__
+		if (prctl(PR_SET_DUMPABLE, 1) == -1)
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR, "prctl(): %s",
+				       strerror(errno));
+			}
+
+			fprintf(stderr, "%s: prctl(): %s\n",
+			        progname, strerror(errno));
+		}
+		else
+		{
+			enabled = TRUE;
+		}
+#endif /* __linux__ */
+
+		if (!enabled)
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_WARNING,
+				       "can't enable coredumps; continuing");
+			}
+
+			fprintf(stderr,
+			        "%s: can't enable coredumps; continuing\n",
+			        progname);
+		}
+	}
+
+	die = FALSE;
+
+	/* initialize DMARC library */
+	if (!dmarcf_config_setlib(curconf, &p))
+	{
+		fprintf(stderr, "%s: can't configure DMARC library: %s\n",
+		        progname, p);
+		return EX_SOFTWARE;
+	}
+
+	if (autorestart)
+	{
+		_Bool quitloop = FALSE;
+		int restarts = 0;
+		int status;
+		pid_t pid;
+		pid_t wpid;
+		struct sigaction sa;
+
+		if (dofork)
+		{
+			pid = fork();
+			switch (pid)
+			{
+			  case -1:
+				if (curconf->conf_dolog)
+				{
+					int saveerrno;
+
+					saveerrno = errno;
+
+					syslog(LOG_ERR, "fork(): %s",
+					       strerror(errno));
+
+					errno = saveerrno;
+				}
+
+				fprintf(stderr, "%s: fork(): %s\n",
+				        progname, strerror(errno));
+
+				return EX_OSERR;
+
+			  case 0:
+				dmarcf_stdio();
+				break;
+
+			  default:
+				return EX_OK;
+			}
+		}
+
+		if (pidfile != NULL)
+		{
+			f = fopen(pidfile, "w");
+			if (f != NULL)
+			{
+				fprintf(f, "%ld\n", (long) getpid());
+				(void) fclose(f);
+			}
+			else
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "can't write pid to %s: %s",
+					       pidfile, strerror(errno));
+				}
+			}
+		}
+
+		sa.sa_handler = dmarcf_sighandler;
+		sigemptyset(&sa.sa_mask);
+		sigaddset(&sa.sa_mask, SIGHUP);
+		sigaddset(&sa.sa_mask, SIGINT);
+		sigaddset(&sa.sa_mask, SIGTERM);
+		sigaddset(&sa.sa_mask, SIGUSR1);
+		sa.sa_flags = 0;
+
+		if (sigaction(SIGHUP, &sa, NULL) != 0 ||
+		    sigaction(SIGINT, &sa, NULL) != 0 ||
+		    sigaction(SIGTERM, &sa, NULL) != 0 ||
+		    sigaction(SIGUSR1, &sa, NULL) != 0)
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR, "[parent] sigaction(): %s",
+				       strerror(errno));
+			}
+		}
+
+		if (maxrestartrate_n > 0)
+			dmarcf_restart_check(maxrestartrate_n, 0);
+
+		while (!quitloop)
+		{
+			status = dmarcf_socket_cleanup(sock);
+			if (status != 0)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "[parent] socket cleanup failed: %s",
+					       strerror(status));
+				}
+				return EX_UNAVAILABLE;
+			}
+
+			pid = fork();
+			switch (pid)
+			{
+			  case -1:
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR, "fork(): %s",
+					       strerror(errno));
+				}
+
+				return EX_OSERR;
+
+			  case 0:
+				sa.sa_handler = SIG_DFL;
+
+				if (sigaction(SIGHUP, &sa, NULL) != 0 ||
+				    sigaction(SIGINT, &sa, NULL) != 0 ||
+				    sigaction(SIGTERM, &sa, NULL) != 0)
+				{
+					if (curconf->conf_dolog)
+					{
+						syslog(LOG_ERR,
+						       "[child] sigaction(): %s",
+						       strerror(errno));
+					}
+				}
+
+				quitloop = TRUE;
+				break;
+
+			  default:
+				for (;;)
+				{
+					wpid = wait(&status);
+
+					if (wpid == -1 && errno == EINTR)
+					{
+						if (die)
+						{
+							dmarcf_killchild(pid,
+							                diesig,
+							                curconf->conf_dolog);
+							while (wpid != pid)
+								wpid = wait(&status);
+
+							if (pidfile != NULL)
+								(void) unlink(pidfile);
+
+							exit(EX_OK);
+						}
+						else if (reload)
+						{
+							dmarcf_killchild(pid,
+							                SIGUSR1,
+							                curconf->conf_dolog);
+
+							reload = FALSE;
+
+							continue;
+						}
+					}
+
+					if (pid != wpid)
+						continue;
+
+					if (wpid != -1 && curconf->conf_dolog)
+					{
+						if (WIFSIGNALED(status))
+						{
+							syslog(LOG_NOTICE,
+							       "terminated with signal %d, restarting",
+							       WTERMSIG(status));
+						}
+						else if (WIFEXITED(status))
+						{
+							if (WEXITSTATUS(status) == EX_CONFIG ||
+							    WEXITSTATUS(status) == EX_SOFTWARE)
+							{
+								syslog(LOG_NOTICE,
+								       "exited with status %d",
+								       WEXITSTATUS(status));
+								quitloop = TRUE;
+							}
+							else
+							{
+								syslog(LOG_NOTICE,
+								       "exited with status %d, restarting",
+								       WEXITSTATUS(status));
+							}
+						}
+					}
+
+					if (conffile != NULL)
+						reload = TRUE;
+
+					break;
+				}
+				break;
+			}
+
+			if (maxrestarts > 0 && restarts >= maxrestarts)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "maximum restart count exceeded");
+				}
+
+				return EX_UNAVAILABLE;
+			}
+
+			if (maxrestartrate_n > 0 &&
+			    maxrestartrate_t > 0 &&
+			    !dmarcf_restart_check(0, maxrestartrate_t))
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "maximum restart rate exceeded");
+				}
+
+				return EX_UNAVAILABLE;
+			}
+
+			restarts++;
+		}
+	}
+
+	if (filemask != -1)
+		(void) umask((mode_t) filemask);
+
+	if (mdebug > 0)
+		(void) smfi_setdbg(mdebug);
+
+	/* try to clean up the socket */
+	status = dmarcf_socket_cleanup(sock);
+	if (status != 0)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_ERR, "socket cleanup failed: %s",
+			       strerror(status));
+		}
+
+		fprintf(stderr, "%s: socket cleanup failed: %s\n",
+		        progname, strerror(status));
+
+		if (!autorestart && pidfile != NULL)
+			(void) unlink(pidfile);
+
+		return EX_UNAVAILABLE;
+	}
+
+	smfilter.xxfi_flags = SMFIF_CHGHDRS|SMFIF_QUARANTINE;
+#ifdef SMFIF_SETSYMLIST
+	smfilter.xxfi_flags |= SMFIF_SETSYMLIST;
+#endif /* SMFIF_SETSYMLIST */
+
+	/* register with the milter interface */
+	if (smfi_register(smfilter) == MI_FAILURE)
+	{
+		if (curconf->conf_dolog)
+			syslog(LOG_ERR, "smfi_register() failed");
+
+		fprintf(stderr, "%s: smfi_register() failed\n",
+		        progname);
+
+		if (!autorestart && pidfile != NULL)
+			(void) unlink(pidfile);
+
+		return EX_UNAVAILABLE;
+	}
+
+#ifdef HAVE_SMFI_OPENSOCKET
+	/* try to establish the milter socket */
+	if (smfi_opensocket(FALSE) == MI_FAILURE)
+	{
+		if (curconf->conf_dolog)
+			syslog(LOG_ERR, "smfi_opensocket() failed");
+
+		fprintf(stderr, "%s: smfi_opensocket() failed\n",
+		        progname);
+
+		return EX_UNAVAILABLE;
+	}
+#endif /* HAVE_SMFI_OPENSOCKET */
+
+	if (!autorestart && dofork)
+	{
+		pid_t pid;
+
+		pid = fork();
+		switch (pid)
+		{
+		  case -1:
+			if (curconf->conf_dolog)
+			{
+				int saveerrno;
+
+				saveerrno = errno;
+
+				syslog(LOG_ERR, "fork(): %s", strerror(errno));
+
+				errno = saveerrno;
+			}
+
+			fprintf(stderr, "%s: fork(): %s\n", progname,
+			        strerror(errno));
+
+			return EX_OSERR;
+
+		  case 0:
+			dmarcf_stdio();
+			break;
+
+		  default:
+			return EX_OK;
+		}
+	}
+
+	/* write out the pid */
+	if (!autorestart && pidfile != NULL)
+	{
+		f = fopen(pidfile, "w");
+		if (f != NULL)
+		{
+			fprintf(f, "%ld\n", (long) getpid());
+			(void) fclose(f);
+		}
+		else
+		{
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR, "can't write pid to %s: %s",
+				       pidfile, strerror(errno));
+			}
+		}
+	}
+
+	/*
+	**  Block SIGUSR1 for use of our reload thread, and SIGHUP, SIGINT
+	**  and SIGTERM for use of libmilter's signal handling thread.
+	*/
+
+	sigemptyset(&sigset);
+	sigaddset(&sigset, SIGUSR1);
+	sigaddset(&sigset, SIGHUP);
+	sigaddset(&sigset, SIGTERM);
+	sigaddset(&sigset, SIGINT);
+	status = pthread_sigmask(SIG_BLOCK, &sigset, NULL);
+	if (status != 0)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_ERR, "pthread_sigprocmask(): %s",
+			       strerror(status));
+		}
+
+		fprintf(stderr, "%s: pthread_sigprocmask(): %s\n", progname,
+		        strerror(status));
+
+		return EX_OSERR;
+	}
+
+	pthread_mutex_init(&conf_lock, NULL);
+
+	memset(argstr, '\0', sizeof argstr);
+	end = &argstr[sizeof argstr - 1];
+	n = sizeof argstr;
+	for (c = 1, p = argstr; c < argc && p < end; c++)
+	{
+		if (strchr(argv[c], ' ') != NULL)
+		{
+			status = snprintf(p, n, "%s \"%s\"",
+			                  c == 1 ? "args:" : "",
+			                  argv[c]);
+		}
+		else
+		{
+			status = snprintf(p, n, "%s %s",
+			                  c == 1 ? "args:" : "",
+			                  argv[c]);
+		}
+
+		p += status;
+		n -= status;
+	}
+
+	if (curconf->conf_dolog)
+	{
+		syslog(LOG_INFO, "%s v%s starting (%s)", DMARCF_PRODUCT,
+		       VERSION, argstr);
+	}
+
+	/* spawn the SIGUSR1 handler */
+	status = pthread_create(&rt, NULL, dmarcf_reloader, NULL);
+	if (status != 0)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_ERR, "pthread_create(): %s",
+			       strerror(status));
+
+			if (!autorestart && pidfile != NULL)
+				(void) unlink(pidfile);
+
+			return EX_OSERR;
+		}
+	}
+
+	/* XXX -- open the database */
+
+	/* call the milter mainline */
+	errno = 0;
+	status = smfi_main();
+
+	if (curconf->conf_dolog)
+	{
+		syslog(LOG_INFO,
+		       "%s v%s terminating with status %d, errno = %d",
+		       DMARCF_PRODUCT, VERSION, status, errno);
+	}
+
+	/* XXX -- close opendbx connection */
+
+	/* tell the reloader thread to die */
+	die = TRUE;
+	(void) raise(SIGUSR1);
+
+	if (!autorestart && pidfile != NULL)
+		(void) unlink(pidfile);
+
+	return status;
 }
