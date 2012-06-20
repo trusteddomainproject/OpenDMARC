@@ -16,14 +16,26 @@
 /* config definition */
 struct configdef dmarcf_config[] =
 {
+	{ "AuthservID",			CONFIG_TYPE_STRING,	FALSE },
+	{ "AuthservIDWithJobID",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "AutoRestart",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "AutoRestartCount",		CONFIG_TYPE_INTEGER,	FALSE },
 	{ "AutoRestartRate",		CONFIG_TYPE_STRING,	FALSE },
 	{ "Background",			CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "BaseDirectory",		CONFIG_TYPE_STRING,	FALSE },
+	{ "ChangeRootDirectory",	CONFIG_TYPE_STRING,	FALSE },
 	{ "Database",			CONFIG_TYPE_STRING,	FALSE },
+	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
+	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "MilterDebug",		CONFIG_TYPE_INTEGER,	FALSE },
+	{ "PidFile",			CONFIG_TYPE_STRING,	FALSE },
 	{ "Socket",			CONFIG_TYPE_STRING,	FALSE },
+	{ "SoftwareHeader",		CONFIG_TYPE_STRING,	FALSE },
 	{ "Syslog",			CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "SyslogFacility",		CONFIG_TYPE_STRING,	FALSE },
+	{ "TemporaryDirectory",		CONFIG_TYPE_STRING,	FALSE },
+	{ "UMask",			CONFIG_TYPE_INTEGER,	FALSE },
+	{ "Userid",			CONFIG_TYPE_STRING,	FALSE },
 	{ NULL,				(u_int) -1,		FALSE }
 };
 
