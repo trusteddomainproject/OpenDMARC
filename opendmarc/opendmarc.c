@@ -831,6 +831,7 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 sfsistat
 mlfi_eom(SMFICTX *ctx)
 {
+	int c;
 	sfsistat ret = SMFIS_CONTINUE;
 	char *hostname = NULL;
 	char *authservid = NULL;
@@ -838,7 +839,9 @@ mlfi_eom(SMFICTX *ctx)
 	DMARCF_MSGCTX dfc;
 	struct dmarcf_config *conf;
 	struct dmarcf_header *hdr;
+	struct dmarcf_header *from;
 	unsigned char header[MAXHEADER + 1];
+	struct authres ar;
 
 	assert(ctx != NULL);
 
@@ -878,13 +881,85 @@ mlfi_eom(SMFICTX *ctx)
 	if (authservid == NULL)
 		authservid = hostname;
 
-	/* XXX -- extract From: domain */
-	/* XXX -- see if there was a DKIM match */
-	/* XXX -- see if there was an SPF match */
-	/* XXX -- retrieve DMARC policy */
+	/* extract From: domain */
+	from = NULL;
+	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
+	{
+		if (strcasecmp(hdr->hdr_name, "from") == 0)
+		{
+			from = hdr;
+			break;
+		}
+	}
+
+	if (from == NULL)
+	{
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: no From header field found",
+			       dfc->mctx_jobid);
+			return SMFIS_ACCEPT;
+		}
+	}
+
+	/*
+	**  Walk through Authentication-Results fields and pull out data.
+	*/
+
+	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
+	{
+		/* skip it if it's not Authentication-Results */
+		if (strcasecmp(hdr->hdr_name, AUTHRESHDRNAME) != 0)
+			continue;
+
+		/* parse it */
+		memset(&ar, '\0', sizeof ar);
+		if (ares_parse(hdr->hdr_value, &ar) != 0)
+			continue;
+
+		/* skip it if it's not one of ours */
+		/* XXX -- check for appended jobid */
+		if (strcasecmp(ar.ares_host, authservid) != 0)
+			continue;
+
+		/* walk through what was found */
+		for (c = 0; c < ar.ares_count; c++)
+		{
+			/* skip things that aren't a "pass" */
+			if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+				continue;
+
+			/* XXX -- see if there was an SPF match */
+			/* XXX -- see if there was a DKIM match */
+		}
+	}
+
+	/*
+	**  Interact with libopendmarc.
+	*/
+
+	/* XXX -- provide From domain */
+	/* XXX -- provide SPF results */
+	/* XXX -- provide DKIM results */
+	/* XXX -- retrieve DMARC verdict and requested action */
+
+	/*
+	**  Record activity in the database.
+	*/
+
 	/* XXX -- add data to database for reports */
+
+	/*
+	**  Generate a forensic report.
+	*/
+
 	/* XXX -- generate forensic report if requested */
-	/* XXX -- enact DMARC policy */
+
+	/*
+	**  Select policy based on DMARC results.
+	*/
+
+	/* XXX -- select DMARC policy */
 
 	dmarcf_cleanup(ctx);
 
@@ -1224,10 +1299,6 @@ usage(void)
 	        progname, progname);
 	return EX_USAGE;
 }
-
-/* XXX -- config reload and apply function */
-/* XXX -- milter callbacks */
-/* XXX -- milter registration object */
 
 /*
 **  MAIN -- program mainline
@@ -2213,6 +2284,8 @@ main(int argc, char **argv)
 			return EX_OSERR;
 		}
 	}
+
+	/* XXX -- open the database */
 
 	/* call the milter mainline */
 	errno = 0;
