@@ -133,6 +133,7 @@ typedef struct dmarc_policy_t {
 	/*
 	 * Found in the _dmarc record or supplied to us.
 	 */
+	u_char *	domain;
 	int		h_error;	/* Zero if found, else DNS error */
 	int		adkim;
 	int		aspf;
@@ -150,7 +151,6 @@ typedef struct dmarc_policy_t {
 
 /* dmarc_dns.c */
 char * dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtlen);
-int    dmarc_dns_test_record(void);
 
 /* opendmarc_hash.c */
 typedef struct entry_bucket {

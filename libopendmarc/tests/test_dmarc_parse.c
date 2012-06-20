@@ -51,7 +51,7 @@ main(int argc, char **argv)
 		status = opendmarc_parse_dmarc(pctx, dpp->dmarc);
 		if (status == dpp->outcome)
 		{
-			printf("\tDMARC Policy Parse: %d: PASS\n", count);
+			//printf("\tDMARC Policy Parse: %d: PASS\n", count);
 			pass += 1;
 		}
 		else

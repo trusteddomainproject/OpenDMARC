@@ -60,4 +60,9 @@ DMARC_POLICY_T * opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx);
  */
 OPENDMARC_STATUS_T opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record);
 
+/*
+ * Access to parts of the DMARC record.
+ */
+
+
 #endif /* DMARC_H */

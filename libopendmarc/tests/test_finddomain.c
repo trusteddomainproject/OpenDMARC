@@ -38,7 +38,7 @@ main(int argc, char **argv)
 		}
 		if (strcmp(dbuf, domp->should_get) == 0)
 		{
-			printf("\tFinddomain test: %d: PASS\n", count);
+			//printf("\tFinddomain test: %d: PASS\n", count);
 			pass += 1;
 		}
 		else
