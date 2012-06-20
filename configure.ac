@@ -324,6 +324,7 @@ AC_OUTPUT([ Makefile
 	libopendmarc/Makefile
 	libopendmarc/tests/Makefile
 	opendmarc/Makefile
+		opendmarc/opendmarc.conf.5
 		opendmarc/opendmarc.8
 	reports/Makefile
 		reports/opendmarc-reports
