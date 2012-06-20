@@ -11,5 +11,5 @@ opendmarc_CPPFLAGS = $(LIBMILTER_INCDIRS) -I$(srcdir)/../libopendmarc
 opendmarc_LDFLAGS = $(LIBMILTER_LIBDIRS) $(PTHREAD_CFLAGS)
 opendmarc_LDADD = ../libopendmarc/libopendmarc.la $(LIBMILTER_LIBS) $(PTHREAD_LIBS)
 
-# XXX
-# man_MANS = opendmarc.conf.5 opendmarc.8
+man_MANS = opendmarc.8
+# man_MANS += opendmarc.conf.5

@@ -1,0 +1,151 @@
+.TH opendmarc 8 "The OpenDKIM Project"
+.SH NAME
+.B opendmarc
+\- DKIM signing and verifying filter for MTAs
+.SH SYNOPSIS
+.B opendmarc
+\-p socketspec
+[\-A]
+[\-c configfile]
+[\-f]
+[\-l]
+[\-n]
+[\-p socketspec]
+[\-P pidfile]
+[\-u userid[:group]]
+[\-v]
+[\-V]
+.SH DESCRIPTION
+.B opendmarc
+implements the prooposed
+.B DMARC
+specification for authentication of message and reporting of observed
+traffic.
+
+.B opendmarc
+uses the
+.I milter
+interface, originally distributed as part of version 8.11 of
+.B sendmail(8),
+to provide a DMARC processing service for mail transiting
+a milter-aware MTA.
+
+Most, if not all, of the command line options listed below can also be set
+using a configuration file.  See the
+.I \-c
+option for details.
+.SH OPTIONS
+.TP
+.I \-A
+Automatically re-start on failures.  Use with caution; if the filter
+fails instantly after it starts, this can cause a tight
+.I fork(2)
+loop.  This can be mitigated using some values in the configuration file
+to limit restarting.  See
+.I opendmarc.conf(5).
+.TP
+.I \-c configfile
+Read the named configuration file.  See the
+.I opendmarc.conf(5)
+man page for details.  Values in the configuration file are overridden
+when their equivalents are provided on the command line until a configuration
+reload occurs.  The OPERATION section describes how reloads are triggered.
+The default is to read a configuration file from
+.I @SYSCONFDIR@/opendmarc.conf
+if one exists, or otherwise to apply defaults to all values.
+.TP
+.I \-f
+Normally
+.I opendmarc
+forks and exits immediately, leaving the service running in the background.
+This flag suppresses that behaviour so that it runs in the foreground.
+.TP
+.I \-l
+Log via calls to
+.I syslog(3)
+any interesting activity.
+.TP
+.I \-n
+Parse the configuration file and command line arguments, reporting any
+errors found, and then exit.  The exit value will be 0 if the filter would
+start up without complaint, or non-zero otherwise.
+.TP
+.I \-p socketspec
+Specifies the socket that should be established by the filter to receive
+connections from
+.I sendmail(8)
+in order to provide service.
+.I socketspec
+is in one of two forms:
+.I local:path
+which creates a UNIX domain socket at the specified
+.I path,
+or
+.I inet:port[@host]
+which creates a TCP socket on the specified
+.I port.
+If the
+.I host
+is not given as either a hostname or an IP address, the socket will be
+listening on all interfaces.  If neither socket type is specified,
+.I local
+is assumed, meaning the parameter is interpreted as a path at which
+the socket should be created.  This parameter is mandatory.
+.TP
+.I \-P pidfile
+Specifies a file into which the filter should write its process ID at startup.
+.TP
+.I \-u userid[:group]
+Attempts to be come the specified
+.I userid
+before starting operations.  The process will be assigned all of the groups
+and primary group ID of the named
+.I userid
+unless an alternate
+.I group
+is specified.  See the FILE PERMISSIONS section for more information.
+.TP
+.I \-v
+Increase verbose output during test mode (see
+.I \-t
+above).  May be specified more than once to request increasing amounts of
+output.
+.TP
+.I \-V
+Print the version number and supported canonicalization and signature
+algorithms, and then exit without doing anything else.
+.SH SIGNALS
+Upon receiving SIGUSR1, if the filter was started with a configuration
+file, it will be re-read and the new values used.  Note that any
+command line overrides provided at startup time will be lost when this is
+done.  Also, the following configuration file values (and their corresponding
+command line items, if any) are not reloaded through this process:
+AutoRestart (\-A),
+AutoRestartCount,
+AutoRestartRate,
+Background,
+MilterDebug,
+PidFile (\-P),
+Socket (\-p),
+UMask,
+UserID (-u).  The filter does not automatically check the configuration
+file for changes and reload.
+.SH VERSION
+This man page covers version @VERSION@ of
+.I opendmarc.
+.SH COPYRIGHT
+Copyright (c) 2009-2012, The Trusted Domain Project.  All rights reserved.
+.SH SEE ALSO
+.I opendmarc.conf(5), sendmail(8)
+.P
+Sendmail Operations Guide
+.P
+RFC4408 - Sender Policy Framework
+.P
+RFC5321 - Simple Mail Transfer Protocol
+.P
+RFC5322 - Internet Messages
+.P
+RFC5451 - Message Header Field for Indicating Message Authentication Status
+.P
+RFC6376 - DomainKeys Identified Mail
