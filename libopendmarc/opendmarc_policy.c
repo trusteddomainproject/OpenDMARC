@@ -273,11 +273,74 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *domain, u_char *result
 ** OPENDMARC_POLICY_QUERY_DMARC -- Look up the _dmarc record for the 
 **					specified domain. If not found
 **				  	try the organizational domain.
+**	Parameters:
+**		pctx	-- The context to uptdate
+**		domain 	-- The domain for which to lookup the DMARC record
+**	Returns:
+**		DMARC_PARSE_OKAY		-- On success, and fills pctx
+**		DMARC_PARSE_ERROR_NULL_CTX	-- If pctx was NULL
+**		DMARC_PARSE_ERROR_EMPTY		-- if domain NULL or zero
+**		DMARC_PARSE_ERROR_NO_DOMAIN	-- No domain in domain
+**		DMARC_DNS_ERROR_NXDOMAIN	-- No domain found in DNS
+**		DMARC_DNS_ERROR_TMPERR		-- No domain, try again later
+**		DMARC_DNS_ERROR_NO_RECORD	-- No DMARC record found.
+**	Side Effects:
+**		Performs one or more DNS lookups
+**		Allocates memory.
+**	Note:
+**		Does not check to insure that the domain is a
+**		syntactically valid domain.
+**		Looks up domain first. If that fails, finds the tld and
+**		looks up topmost domain under tld. If this later is found
+**		updates pctx->organizational_domain with the result.
+**	Warning:
+**		If no TLD file has been loaded, will silenty not do that
+**		fallback lookup.
+** 
 ***************************************************************************/
 OPENDMARC_STATUS_T
 opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 {
-	return 0;
+	u_char 		buf[BUFSIZ];
+	u_char 		copy[256];
+	u_char 		tld[256];
+	u_char *	bp = NULL;
+	int		reply = 0;
+
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	if (domain == NULL || strlen(domain) == 0)
+		return DMARC_PARSE_ERROR_EMPTY;
+
+	(void) memset(copy, '\0', sizeof copy);
+	(void) snprintf(copy, sizeof copy, "_dmarc.%s", domain);
+
+	bp = dmarc_dns_get_record(copy, &reply, buf, sizeof buf);
+	if (bp == NULL || reply != 0)
+	{
+		(void) memset(tld, '\0', sizeof tld);
+		reply = opendmarc_get_tld(domain, tld, sizeof tld);
+		if (reply == 0 && strlen(tld) > 0 && strcasecmp(domain, tld) != 0)
+		{
+			(void) snprintf(copy, sizeof copy, "_dmarc.%s", tld);
+			bp = dmarc_dns_get_record(copy, &reply, buf, sizeof buf);
+			if (bp == NULL || reply != 0)
+			switch (reply)
+			{
+				case HOST_NOT_FOUND:
+					return DMARC_DNS_ERROR_NXDOMAIN;
+				case NO_DATA:
+				case NO_RECOVERY:
+					return DMARC_DNS_ERROR_NO_RECORD;
+				case TRY_AGAIN:
+					return DMARC_DNS_ERROR_TMPERR;
+				default:
+					return reply;
+
+			}
+		}
+	}
+	return opendmarc_parse_dmarc(pctx, buf);
 }
 
 /**************************************************************************

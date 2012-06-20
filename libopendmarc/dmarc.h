@@ -35,7 +35,10 @@
 #define DMARC_PARSE_ERROR_NO_REQUIRED_P		(5)	/* Required p= missing */
 #define DMARC_PARSE_ERROR_NO_DOMAIN		(6)	/* No domain, e.g. <>  */
 #define DMARC_PARSE_ERROR_NO_ALLOC		(7)	/* Memory Allocation Faliure */
-#define DMARC_PARSE_ERROR_BAD_SPF_MACRO		(7)	/* Was not a macro from above */
+#define DMARC_PARSE_ERROR_BAD_SPF_MACRO		(8)	/* Was not a macro from above */
+#define DMARC_DNS_ERROR_NO_RECORD		(9)	/* No DMARC record was found */
+#define DMARC_DNS_ERROR_NXDOMAIN		(10)	/* No such domain exists */
+#define DMARC_DNS_ERROR_TMPERR			(11)	/* Recoveralble DNS error */
 
 #ifndef OPENDMARC_POLICY_C
  typedef struct dmarc_policy_t DMARC_POLICY_T;

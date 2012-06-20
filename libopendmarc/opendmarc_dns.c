@@ -124,7 +124,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		return NULL;
 	}
 	/*
-	 * Truncate answer it too big.
+	 * Truncate answer if it is too big.
 	 */
 	if (answer_len > sizeof answer_buf)
 		answer_len = sizeof answer_buf;
