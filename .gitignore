@@ -1,3 +1,4 @@
+aclocal.m4
 Makefile
 Makefile.in
 autom4te.cache/
