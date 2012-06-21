@@ -100,6 +100,7 @@ struct dmarcf_config
 	struct config *		conf_data;
 	char *			conf_tmpdir;
 	char *			conf_authservid;
+	char *			conf_historyfile;
 };
 
 /* LOOKUP -- lookup table */
@@ -341,6 +342,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			                  &conf->conf_addswhdr,
 			                  sizeof conf->conf_addswhdr);
 		}
+
+		(void) config_get(data, "HistoryFile",
+		                  &conf->conf_historyfile,
+		                  sizeof conf->conf_historyfile);
 	}
 
 	if (basedir[0] != '\0')
@@ -2284,8 +2289,6 @@ main(int argc, char **argv)
 			return EX_OSERR;
 		}
 	}
-
-	/* XXX -- open the database */
 
 	/* call the milter mainline */
 	errno = 0;

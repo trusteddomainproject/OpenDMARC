@@ -128,6 +128,16 @@ user ID has changed during the lifetime of the process.  Currently only
 supported on Linux.
 
 .TP
+.I HistoryFile (string)
+If set, specifies the location of a text file to which records are written
+that can be used to generate DMARC aggregate reports.  Records are
+tab-delimited rows containing information about a single received message,
+and include all relevant information needed to generate a DMARC aggregate
+report.  It is expected that this will not be used in its raw form, but
+rather periodically imported into a relational database from which the
+aggregate reports can be extracted.
+
+.TP
 .I MilterDebug (integer)
 Sets the debug level to be requested from the milter library.  The
 default is 0.
