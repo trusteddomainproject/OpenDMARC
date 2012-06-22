@@ -15,6 +15,8 @@
 #include <errno.h>
 #include <syslog.h>
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef HAVE_PATHS_H
 # include <paths.h>

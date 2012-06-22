@@ -1,3 +1,4 @@
 .deps
 *.o
 opendmarc
+*.[1-9]

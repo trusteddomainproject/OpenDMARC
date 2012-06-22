@@ -1,0 +1,254 @@
+.TH opendmarc.conf 5 "The Trusted Domain Project"
+
+.SH NAME
+.B opendmarc.conf
+\- Configuration file for opendmarc
+
+.SH LOCATION
+.I @SYSCONFDIR@/opendmarc.conf
+
+.SH DESCRIPTION
+.I opendmarc(8)
+implements the proposed
+.B DMARC
+specification for message authentication, policy enforcement, and reporting.
+This file is its configuration file.
+
+Blank lines are ignored.  Lines containing a hash ("#") character are
+truncated at the hash character to allow for comments in the file.
+
+Other content should be the name of a parameter, followed by white space,
+followed by the value of that parameter, each on a separate line.
+
+For parameters that are Boolean in nature, only the first byte of
+the value is processed.  For positive values, the following are accepted:
+"T", "t", "Y", "y", "1".  For negative values, the following are accepted:
+"F", "f", "N", "n", "0".
+
+Some, but not all, of these parameters are also available as command
+line options to
+.I opendmarc(8).
+However, new parameters are generally not added as command line options
+so the complete set of options is available here, and thus use of the
+configuration file is encouraged.  In some future release, the
+set of available command line options is likely to get trimmed.
+
+See the 
+.I opendmarc(8)
+man page for details about how and when the configuration file contents
+are reloaded.
+
+Unless otherwise stated, Boolean values default to "false", integer values
+default to 0, and string and dataset values default to being undefined.
+
+.SH PARAMETERS
+.TP
+.I AuthservID (string)
+Sets the "authserv-id" to use when generating the Authentication-Results:
+header field after verifying a message.  The default is to use the name of
+the MTA processing the message.  If the string "HOSTNAME" is provided, the
+name of the host running the filter (as returned by the
+.I gethostname(3)
+function) will be used.
+
+.TP
+.I AuthservIDWithJobID (Boolean)
+If "true", requests that the authserv-id portion of the added
+Authentication-Results: header fields contain the job ID of the message being
+evaluated.
+
+.TP
+.I AutoRestart (Boolean)
+Automatically re-start on failures.  Use with caution; if the filter
+fails instantly after it starts, this can cause a tight
+.I fork(2)
+loop.
+
+.TP
+.I AutoRestartCount (integer)
+Sets the maximum automatic restart count.  After this number of
+automatic restarts, the filter will give up and terminate.
+A value of 0 implies no limit; this is the default.
+
+.TP
+.I AutoRestartRate (string)
+Sets the maximum automatic restart rate.  If the filter begins restarting
+faster than the rate defined here, it will give up and terminate.
+This is a string of the form
+.I n/t[u]
+where
+.I n
+is an integer limiting the count of restarts in the given interval and
+.I t[u]
+defines the time interval through which the rate is calculated;
+.I t
+is an integer and
+.I u
+defines the units thus represented ("s" or "S" for seconds, the default;
+"m" or "M" for minutes; "h" or "H" for hours; "d" or "D" for days).  For
+example, a value of "10/1h" limits the restarts to 10 in one hour.  There
+is no default, meaning restart rate is not limited.
+
+.TP
+.I Background (Boolean)
+Causes
+.I opendmarc
+to fork and exits immediately, leaving the service running in the background.
+The default is "true".
+
+.TP
+.I BaseDirectory (string)
+If set, instructs the filter to change to the specified directory using
+.I chdir(2)
+before doing anything else.  This means any files referenced elsewhere
+in the configuration file can be specified relative to this directory.
+It's also useful for arranging that any crash dumps will be saved to
+a specific location.
+
+.TP
+.I ChangeRootDirectory (string)
+Requests that the operating system change the effective root directory
+of the process to the one specified here prior to beginning execution.
+.BR chroot (2)
+requires superuser access. A warning will be generated if
+.I UserID
+is not also set.
+
+.TP
+.I DNSTimeout (integer)
+Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
+The default is 5.  Ignored if not using an asynchronous resolver package.
+
+.TP
+.I EnableCoredumps (boolean)
+On systems that have such support, make an explicit request to the kernel
+to dump cores when the filter crashes for some reason.  Some modern UNIX
+systems suppress core dumps during crashes for security reasons if the
+user ID has changed during the lifetime of the process.  Currently only
+supported on Linux.
+
+.TP
+.I HistoryFile (string)
+If set, specifies the location of a text file to which records are written
+that can be used to generate DMARC aggregate reports.  Records are
+tab-delimited rows containing information about a single received message,
+and include all relevant information needed to generate a DMARC aggregate
+report.  It is expected that this will not be used in its raw form, but
+rather periodically imported into a relational database from which the
+aggregate reports can be extracted.
+
+.TP
+.I MilterDebug (integer)
+Sets the debug level to be requested from the milter library.  The
+default is 0.
+
+.TP
+.I PidFile (string)
+Specifies the path to a file that should be created at process start
+containing the process ID.
+
+.TP
+.I Socket (string)
+Specifies the socket that should be established by the filter to receive
+connections from
+.I sendmail(8)
+in order to provide service.
+.I socketspec
+is in one of two forms:
+.I local:path,
+which creates a UNIX domain socket at the specified
+.I path,
+or
+.I inet:port[@host],
+which creates a TCP socket on the specified
+.I port.
+If the
+.I host
+is not given as either a hostname or an IP address, the socket will be
+listening on all interfaces.  This option is mandatory either in the
+configuration file or on the command line.
+
+.TP
+.I SoftwareHeader (Boolean)
+Causes
+.I opendmarc
+to add an "DMARC-Filter" header field indicating the presence of this filter in
+the path of the message from injection to delivery.  The product's name,
+version, and the job ID are included in the header field's contents.  Note
+that the header field is not added if the
+.I Mode
+setting causes the message to be ignored (e.g., if only signing mode is enabled
+and the configuration causes the message not to be signed, or only verify
+mode is enabled and configuration would otherwise have caused the message to
+be signed, then it will not have this header field added).
+
+.TP
+.I Syslog (Boolean)
+Log via calls to
+.I syslog(3)
+any interesting activity.
+
+.TP
+.I SyslogFacility (string)
+Log via calls to
+.I syslog(3)
+using the named facility.  The facility names are the same as the ones
+allowed in
+.I syslog.conf(5).
+The default is "mail".
+
+.TP
+.I TemporaryDirectory (string)
+Specifies the directory in which temporary canonicalization files should
+be written.  The default is to use the
+.I libdkim
+default location, currently
+.I /var/tmp.
+
+.TP
+.I UMask (integer)
+Requests a specific permissions mask to be used for file creation.
+This only really applies to creation of the socket when
+.I Socket
+specifies a UNIX domain socket, and to the
+.I PidFile
+(if any); temporary files are created by the
+.I mkstemp(3)
+function that enforces a specific file mode on creation regardless
+of the process umask.  See
+.I umask(2)
+for more information.
+
+.TP
+.I UserID (string)
+Attempts to become the specified userid before starting operations.
+The value is of the form
+.I userid[:group].
+The process will be assigned all of the groups and primary group ID of
+the named
+.I userid
+unless an alternate
+.I group
+is specified.
+.SH FILES
+.TP
+.I @SYSCONFDIR@/opendmarc.conf
+Default location of this file.
+.SH VERSION
+This man page covers version @VERSION@ of
+.I opendmarc.
+
+.SH COPYRIGHT
+Copyright (c) 2009-2012, The Trusted Domain Project.  All rights reserved.
+.SH SEE ALSO
+.I opendmarc(8), sendmail(8)
+.P
+RFC4408 - Sender Policy Framework
+.P
+RFC5451 - Message Header Field for Indicating Message Authentication Status
+.P
+RFC5617 - DKIM Author Domain Signing Practises
+.P
+RFC5965 - An Extensible Format for Email Feedback Reports
+.P
+RFC6376 - DomainKeys Identified Mail
