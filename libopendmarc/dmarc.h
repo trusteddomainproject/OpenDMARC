@@ -55,14 +55,20 @@ DMARC_POLICY_T * opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx);
  * Store information routines.
  */
 
+OPENDMARC_STATUS_T opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *domain, u_char *result, u_char *human_result);
+OPENDMARC_STATUS_T opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *domain);
+OPENDMARC_STATUS_T opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int origin, u_char *human_result);
+
 /*
  * The DMARC record itself.
  */
+
 OPENDMARC_STATUS_T opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record);
 
 /*
  * Access to parts of the DMARC record.
  */
 
+int opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx);
 
 #endif /* DMARC_H */
