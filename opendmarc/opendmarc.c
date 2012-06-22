@@ -157,7 +157,6 @@ sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
 
 static void dmarcf_config_free __P((struct dmarcf_config *));
 static struct dmarcf_config *dmarcf_config_new __P((void));
-static _Bool dmarcf_config_setlib __P((struct dmarcf_config *, char **));
 
 /* globals */
 _Bool dolog;
@@ -476,19 +475,6 @@ dmarcf_config_reload(void)
 		{
 			if (curconf->conf_dolog)
 				syslog(LOG_ERR, "%s: %s", conffile, errbuf);
-			config_free(cfg);
-			dmarcf_config_free(new);
-			err = TRUE;
-		}
-
-		if (!err && !dmarcf_config_setlib(new, &errstr))
-		{
-			if (curconf->conf_dolog)
-			{
-				syslog(LOG_WARNING,
-				       "can't configure DKIM library: %s; continuing",
-				       errstr);
-			}
 			config_free(cfg);
 			dmarcf_config_free(new);
 			err = TRUE;
@@ -1518,25 +1504,6 @@ dmarcf_config_free(struct dmarcf_config *conf)
 }
 
 /*
-**  DMARCF_CONFIG_SETLIB -- set library options based on configuration file
-**
-**  Parameters:
-**  	conf -- DMARC filter configuration data
-**  	err -- error string (returned; may be NULL)
-**
-**  Return value:
-**  	TRUE on success, FALSE otherwise.
-*/
-
-static _Bool
-dmarcf_config_setlib(struct dmarcf_config *conf, char **err)
-{
-	/* XXX -- FINISH ME */
-
-	return TRUE;
-}
-
-/*
 **  USAGE -- print a usage message and exit
 **
 **  Parameters:
@@ -2123,14 +2090,6 @@ main(int argc, char **argv)
 	}
 
 	die = FALSE;
-
-	/* initialize DMARC library */
-	if (!dmarcf_config_setlib(curconf, &p))
-	{
-		fprintf(stderr, "%s: can't configure DMARC library: %s\n",
-		        progname, p);
-		return EX_SOFTWARE;
-	}
 
 	if (autorestart)
 	{
