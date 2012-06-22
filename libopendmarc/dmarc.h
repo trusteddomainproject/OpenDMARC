@@ -75,6 +75,11 @@ typedef struct {
 } OPENDMARC_LIB_T;
 
 #define OPENDMARC_TLD_TYPE_MOZILLA (1)	/* mozilla.org effective_tld_names.dat */
+               
+/*
+ * Library one time initialization.
+ */
+OPENDMARC_STATUS_T  opendmarc_policy_library_init(OPENDMARC_LIB_T *lib_init);
 
 /*
  * Context management.
@@ -101,8 +106,14 @@ OPENDMARC_STATUS_T opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dm
 /*
  * Access to parts of the DMARC record.
  */
-int                opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx);
+OPENDMARC_STATUS_T opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_pct(DMARC_POLICY_T *pctx, int *pctp);
-
+OPENDMARC_STATUS_T opendmarc_policy_fetch_pct(DMARC_POLICY_T *pctx, int *pctp);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_adkim(DMARC_POLICY_T *pctx, int *adkim);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_aspf(DMARC_POLICY_T *pctx, int *aspf);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_p(DMARC_POLICY_T *pctx, int *p);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf);
 
 #endif /* DMARC_H */
