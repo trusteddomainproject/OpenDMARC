@@ -16,6 +16,11 @@
 # define DMARC_POLICY_SPF_OUTCOME_FAIL		(2)
 # define DMARC_POLICY_SPF_OUTCOME_TMPFAIL 	(3)
 
+# define DMARC_POLICY_DKIM_OUTCOME_NONE		(0)
+# define DMARC_POLICY_DKIM_OUTCOME_PASS		(1)
+# define DMARC_POLICY_DKIM_OUTCOME_FAIL		(2)
+# define DMARC_POLICY_DKIM_OUTCOME_TMPFAIL 	(3)
+
 #define DMARC_RECORD_A_UNSPECIFIED	('\0')		/* adkim and aspf */
 #define DMARC_RECORD_A_STRICT		('s')		/* adkim and aspf */
 #define DMARC_RECORD_A_RELAXED		('r')		/* adkim and aspf */
@@ -27,7 +32,7 @@
 #define DMARC_RECORD_RF_AFRF		(0x1)		/* rf, a bitmap */
 #define DMARC_RECORD_RF_IODEF		(0x2)		/* rf, a bitmap */
 
-#define DMARC_PARSE_OKAY			(0)	/* Nothing to parse */
+#define DMARC_PARSE_OKAY			(0)	/* Okay to continue */
 #define DMARC_PARSE_ERROR_EMPTY			(1)	/* Nothing to parse */
 #define DMARC_PARSE_ERROR_NULL_CTX		(2)	/* Got a NULL context */
 #define DMARC_PARSE_ERROR_BAD_VERSION		(3)	/* Such as v=DBOB1 */
@@ -36,15 +41,40 @@
 #define DMARC_PARSE_ERROR_NO_DOMAIN		(6)	/* No domain, e.g. <>  */
 #define DMARC_PARSE_ERROR_NO_ALLOC		(7)	/* Memory Allocation Faliure */
 #define DMARC_PARSE_ERROR_BAD_SPF_MACRO		(8)	/* Was not a macro from above */
+#define DMARC_PARSE_ERROR_BAD_DKIM_MACRO	DMARC_PARSE_ERROR_BAD_SPF_MACRO
 #define DMARC_DNS_ERROR_NO_RECORD		(9)	/* No DMARC record was found */
 #define DMARC_DNS_ERROR_NXDOMAIN		(10)	/* No such domain exists */
 #define DMARC_DNS_ERROR_TMPERR			(11)	/* Recoveralble DNS error */
+#define DMARC_TLD_ERROR_UNKNOWN			(12)	/* Undefined TLD type    */
+#define DMARC_FROM_DOMAIN_ABSENT		(13)	/* Undefined TLD type    */
+
+#define DMARC_POLICY_ABSENT			(14)	/* Policy OK so accept message */
+#define DMARC_POLICY_PASS			(15)	/* Policy OK so accept message */
+#define DMARC_POLICY_REJECT			(16)	/* Policy says to reject message */
+#define DMARC_POLICY_QUARANTINE			(17)	/* Policy says to quarantine message */
+#define DMARC_POLICY_NONE			(18)	/* Policy says to monitor and report */
 
 #ifndef OPENDMARC_POLICY_C
  typedef struct dmarc_policy_t DMARC_POLICY_T;
 #endif
 
 #define OPENDMARC_STATUS_T int
+
+#ifndef MAXPATHLEN
+# define MAXPATHLEN (2048)
+#endif
+#ifndef MAXNS
+# define MAXNS (3)
+#endif
+#define OPENDMARC_MAX_NSADDRLIST (8)
+typedef struct {
+	int			tld_type;
+	u_char 			tld_source_file[MAXPATHLEN];
+	int    			nscount;
+	struct sockaddr_in 	nsaddr_list[MAXNS];
+} OPENDMARC_LIB_T;
+
+#define OPENDMARC_TLD_TYPE_MOZILLA (1)	/* mozilla.org effective_tld_names.dat */
 
 /*
  * Context management.
@@ -57,21 +87,22 @@ DMARC_POLICY_T * opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx);
 /*
  * Store information routines.
  */
-
-OPENDMARC_STATUS_T opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *domain, u_char *result, u_char *human_result);
 OPENDMARC_STATUS_T opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *domain);
+OPENDMARC_STATUS_T opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *domain, int result, u_char *human_result);
 OPENDMARC_STATUS_T opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int origin, u_char *human_result);
 
 /*
  * The DMARC record itself.
  */
-
-OPENDMARC_STATUS_T opendmarc_parse_dmarc(DMARC_POLICY_T *pctx, u_char *record);
+OPENDMARC_STATUS_T opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain);
+OPENDMARC_STATUS_T opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *record);
+OPENDMARC_STATUS_T opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dmarc_record, u_char *domain, u_char *organizationaldomain);
 
 /*
  * Access to parts of the DMARC record.
  */
+int                opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_pct(DMARC_POLICY_T *pctx, int *pctp);
 
-int opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx);
 
 #endif /* DMARC_H */

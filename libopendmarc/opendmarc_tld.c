@@ -11,7 +11,7 @@ static OPENDMARC_HASH_CTX *TLDbak_hctx = NULL;
 #endif
 static char TLDfile[MAXPATHLEN];
 
-static int
+int
 opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
 {
 	u_char *dp, *ep;

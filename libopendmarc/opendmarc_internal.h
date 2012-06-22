@@ -122,6 +122,7 @@ typedef struct dmarc_policy_t {
 	int 	 	spf_origin;		/* Input: was domain MAIL From: or HELO for SPF check */
 	int		spf_outcome;		/* Input: What was the outcome of the SPF check */
 	u_char *	spf_human_outcome;	/* Input: What was the outcome of the SPF check in human readable form */
+	u_char * 	dkim_domain;		/* Input: The d= domain */
 	int		dkim_outcome;		/* Input: What was the outcome of the DKIM check */
 	u_char *	dkim_human_outcome;	/* Input: What was the outcome of the DKIM check in human readable form */
 
@@ -196,11 +197,16 @@ int           		opendmarc_hash_expire(OPENDMARC_HASH_CTX *hctx, time_t age);
 /* opendmarc_tld.c */
 int 			opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
 int 			opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len);
+int                     opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen);
+
 
 /* opendmarc_util.c */
 u_char ** opendmarc_util_clearargv(u_char **ary);
 u_char ** opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt);
 u_char *  opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen);
 u_char *  opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen);
+
+/* opendmarc_policy.c */
+void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in **nsaddr_list);
 
 #endif /* OPENDMARC_INTERNAL_H */
