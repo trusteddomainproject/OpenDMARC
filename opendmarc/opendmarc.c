@@ -923,6 +923,7 @@ sfsistat
 mlfi_eom(SMFICTX *ctx)
 {
 	int c;
+	int pc;
 	int policy;
 	int status;
 	sfsistat ret = SMFIS_CONTINUE;
@@ -1090,7 +1091,17 @@ mlfi_eom(SMFICTX *ctx)
 					return SMFIS_ACCEPT;
 				}
 
-				/* XXX -- HELO or MAILFROM ? */
+				spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
+
+				for (pc = 0;
+				     pc < ar.ares_result[c].result_props;
+				     pc++)
+				{
+					if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_SMTP &&
+					    strcasecmp(ar.ares_result[c].result_property[pc],
+					               "mailfrom") == 0)
+						spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
+				}
 
 				ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc,
 				                                     domain,
@@ -1112,8 +1123,30 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method ==  ARES_METHOD_DKIM)
 			{
+				for (pc = 0;
+				     pc < ar.ares_result[c].result_props;
+				     pc++)
+				{
+					if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_HEADER)
+					{
+						if (ar.ares_result[c].result_property[pc][0] == 'd')
+						{
+							domain = ar.ares_result[c].result_value[pc];
+						}
+						else if (ar.ares_result[c].result_property[pc][0] == 'i')
+						{
+							char *at;
 
-				/* XXX -- domain = header.d or header.i domain */
+							at = strchr(ar.ares_result[c].result_value[pc], '@');
+							if (at == NULL)
+								domain = NULL;
+							else
+								domain = at + 1;
+						}
+
+					}
+				}
+
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
 				                                      domain,
 				                                      NULL,
@@ -1141,10 +1174,31 @@ mlfi_eom(SMFICTX *ctx)
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
 
 	/*
-	**  Record activity in the database.
+	**  Record activity in the history file.
 	*/
 
-	/* XXX -- add data to database for reports */
+	if (conf->conf_historyfile != NULL)
+	{
+		FILE *f;
+
+		f = fopen(conf->conf_historyfile, "a");
+		if (f == NULL)
+		{
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: %s: fopen(): %s",
+				       dfc->mctx_jobid,
+				       conf->conf_historyfile,
+				       strerror(errno));
+			}
+
+			return SMFIS_TEMPFAIL;
+		}
+
+		/* XXX -- write stuff */
+
+		fclose(f);
+	}
 
 	/*
 	**  Generate a forensic report.
@@ -2495,8 +2549,6 @@ main(int argc, char **argv)
 		       "%s v%s terminating with status %d, errno = %d",
 		       DMARCF_PRODUCT, VERSION, status, errno);
 	}
-
-	/* XXX -- close opendbx connection */
 
 	/* tell the reloader thread to die */
 	die = TRUE;
