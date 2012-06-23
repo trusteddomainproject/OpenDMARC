@@ -34,7 +34,6 @@
 /* defaults, limits, etc. */
 #define	BUFRSZ		1024
 #define	DEFCONFFILE	CONFIG_BASE "/opendmarc.conf"
-#define	HOSTUNKNOWN	"unknown-host"
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
 #define	MAXARGV		65536
 #define	MAXHEADER	1024
