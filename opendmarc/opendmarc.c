@@ -1135,7 +1135,7 @@ mlfi_eom(SMFICTX *ctx)
 
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
 				                                      domain,
-				                                      NULL,
+				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
 				                                      NULL);
 				                                     
 				if (ostatus != DMARC_PARSE_OKAY)

@@ -3,6 +3,10 @@
 #ifndef DMARC_H
 #define DMARC_H
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 #define	DMARC_MAXHOSTNAMELEN		(256)
 
 # define DMARC_POLICY_IP_TYPE_IPV4		(4)

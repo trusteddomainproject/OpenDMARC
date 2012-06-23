@@ -337,8 +337,6 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (d_equal_domain == NULL || strlen((char *)d_equal_domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
-	if (dkim_result == NULL || strlen((char *)dkim_result) == 0)
-		return DMARC_PARSE_ERROR_EMPTY;
 	switch (dkim_result)
 	{
 		case DMARC_POLICY_DKIM_OUTCOME_NONE:
