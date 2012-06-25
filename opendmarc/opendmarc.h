@@ -42,4 +42,7 @@
 #define AUTHRESULTSHDR	"Authentication-Results"
 #define	SWHEADERNAME	"DMARC-Filter"
 
+#define	DMARC_REJECT_SMTP	"451"
+#define	DMARC_REJECT_ESC	"4.7.1"
+
 #endif /* _OPENDMARC_H_ */
