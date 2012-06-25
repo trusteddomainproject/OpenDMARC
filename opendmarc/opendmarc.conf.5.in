@@ -148,6 +148,12 @@ Specifies the path to a file that should be created at process start
 containing the process ID.
 
 .TP
+.I PublicSuffixList (string)
+Specifies the path to a file that contains top-level domains (TLDs) that
+will be used to compute the Organizational Domain for a given domain name,
+as described in the DMARC specification.  If not provided,
+
+.TP
 .I Socket (string)
 Specifies the socket that should be established by the filter to receive
 connections from

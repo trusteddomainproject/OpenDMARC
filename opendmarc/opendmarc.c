@@ -115,6 +115,7 @@ struct dmarcf_config
 	char *			conf_tmpdir;
 	char *			conf_authservid;
 	char *			conf_historyfile;
+	char *			conf_pslist;
 };
 
 /* LOOKUP -- lookup table */
@@ -345,6 +346,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_tmpdir,
 		                  sizeof conf->conf_tmpdir);
 
+		(void) config_get(data, "PublicSuffixList",
+		                  &conf->conf_pslist,
+		                  sizeof conf->conf_pslist);
+
 		if (!conf->conf_dolog)
 		{
 			(void) config_get(data, "Syslog", &conf->conf_dolog,
@@ -489,6 +494,24 @@ dmarcf_config_reload(void)
 			err = TRUE;
 		}
 
+		if (curconf->conf_pslist != NULL)
+		{
+			/* XXX -- opendmarc_tld_shutdown() */
+		}
+
+		if (new->conf_pslist != NULL)
+		{
+			if (opendmarc_tld_read_file(new->conf_pslist, "#",
+			                            NULL, NULL) != 0)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR, "%s: read/parse error",
+					       new->conf_pslist);
+				}
+			}
+		}
+ 
 		if (!err)
 		{
 			if (curconf->conf_refcnt == 0)
