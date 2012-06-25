@@ -120,4 +120,9 @@ OPENDMARC_STATUS_T opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf);
 
+/*
+ * TLD processing
+ */
+int opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
+
 #endif /* DMARC_H */
