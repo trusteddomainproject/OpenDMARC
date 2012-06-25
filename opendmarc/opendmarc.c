@@ -55,6 +55,9 @@
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
 #endif /* ! _PATH_DEVNULL */
+#ifndef _PATH_SENDMAIL
+# define _PATH_SENDMAIL	"/usr/sbin/sendmail"
+#endif /* ! _PATH_SENDMAIL */
 
 #define	TRYFREE(x)	do { \
 				if ((x) != NULL) \
@@ -980,6 +983,7 @@ mlfi_eom(SMFICTX *ctx)
 	OPENDMARC_STATUS_T ostatus;
 	char *hostname = NULL;
 	char *authservid = NULL;
+	char *pdomain = NULL;
 	DMARCF_CONNCTX cc;
 	DMARCF_MSGCTX dfc;
 	struct dmarcf_config *conf;
@@ -989,6 +993,7 @@ mlfi_eom(SMFICTX *ctx)
 	u_char *domain;
 	unsigned char header[MAXHEADER + 1];
 	unsigned char addrbuf[BUFRSZ + 1];
+	unsigned char replybuf[BUFRSZ + 1];
 	struct authres ar;
 
 	assert(ctx != NULL);
@@ -1245,6 +1250,7 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
+	/* XXX -- pdomain = opendmarc_get_organizational_domain(cc->cctx_dmarc); */
 
 	/*
 	**  Record activity in the history file.
@@ -1293,8 +1299,44 @@ mlfi_eom(SMFICTX *ctx)
 	**  Enact policy based on DMARC results.
 	*/
 
-	/* XXX -- enact DMARC policy */
-		/* XXX -- map "policy" to a "ret" with a possible SMTP string */
+	switch (policy)
+	{
+	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
+	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
+	  case DMARC_POLICY_NONE:		/* Accept and report */
+	  case DMARC_POLICY_PASS:		/* Explicit accept */
+		ret = SMFIS_ACCEPT;
+		break;
+
+	  case DMARC_POLICY_REJECT:		/* Explicit reject */
+		snprintf(replybuf, sizeof replybuf,
+		         "rejected by DMARC policy for %s", pdomain);
+
+		status = smfi_setreply(ctx, DMARC_REJECT_SMTP, DMARC_REJECT_ESC,
+		                       replybuf);
+		if (status != MI_SUCCESS && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: smfi_setreply() failed",
+			       dfc->mctx_jobid);
+		}
+
+		ret = SMFIS_REJECT;
+		break;
+
+	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
+		snprintf(replybuf, sizeof replybuf,
+		         "quarantined by DMARC policy for %s", pdomain);
+
+		status = smfi_quarantine(ctx, replybuf);
+		if (status != MI_SUCCESS && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: smfi_quarantine() failed",
+			       dfc->mctx_jobid);
+		}
+
+		ret = SMFIS_TEMPFAIL;
+		break;
+	}
 
 	dmarcf_cleanup(ctx);
 
