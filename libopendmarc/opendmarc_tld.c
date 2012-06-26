@@ -163,6 +163,32 @@ got_xn:
 	return 0;
 }
 
+/**************************************************************************************
+** OPENDMARC_TLD_SHUTDOWN -- Free the tld hash and return
+** Arguments:
+**		none 	--- void agrguments
+** Returns:
+**	0		-- Always
+** Side Effect:
+**	Frees memory
+**	Locks and sets the hash to NULL
+**************************************************************************************/
+void
+opendmarc_tld_shutdown()
+{
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+	(void) pthread_mutex_lock(&TLD_hctx_mutex);
+# endif
+	if (TLDbak_hctx != NULL)
+		TLDbak_hctx = opendmarc_hash_shutdown(TLDbak_hctx);
+	if (TLD_hctx != NULL)
+		TLD_hctx = opendmarc_hash_shutdown(TLD_hctx);
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+	(void) pthread_mutex_unlock(&TLD_hctx_mutex);
+# endif
+	return;
+}
+
 int
 opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 {

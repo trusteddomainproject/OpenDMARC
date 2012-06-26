@@ -102,6 +102,33 @@ opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt)
 }
 
 /*****************************************************
+**  OPENDMARC_UTIL_DUPE_ARGV -- Duplicate an argv
+**
+**	Parameters:
+**		ary	-- Pointer to array to dupe
+**	Returns:
+**		u_char **	-- On success
+**		NULL		-- on error
+**	Side Effects:
+**		Allocates and reallocates memory.
+*/
+u_char **
+opendmarc_util_dupe_argv(u_char **ary)
+{
+	u_char **new = NULL;
+	int      new_cnt = 0;
+
+	if (ary != NULL)
+	{
+		u_char **arp;
+
+		for (arp = ary; *arp != NULL; ++arp)
+			new = opendmarc_util_pushargv(*arp, new, &new_cnt);
+	}
+	return new;
+}
+
+/*****************************************************
 **  OPENDMARC_UTIL_CLEANUP -- Remove whitespace
 **
 **	Parameters:
