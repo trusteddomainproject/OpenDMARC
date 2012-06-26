@@ -125,6 +125,19 @@ AC_SEARCH_LIBS(res_ninit, resolv,
 	[Define to 1 if you have the `res_ninit()' function.]))
 AC_CHECK_LIB(idn, idn_free)
 AC_CHECK_LIB(rt, nanosleep)
+AC_SEARCH_LIBS(inet_addr, nsl)
+AC_SEARCH_LIBS(freehostent, resolv)
+AC_SEARCH_LIBS(inet_pton, resolv,
+               AC_DEFINE(HAVE_INET_PTON, 1,
+                         [Define to 1 if you have the `inet_pton()' function.]))
+AC_SEARCH_LIBS(inet_ntop, resolv,
+               AC_DEFINE(HAVE_INET_NTOP, 1,
+                        [Define to 1 if you have the `inet_ntop()' function.]))
+AC_SEARCH_LIBS(getipnodebyname, resolv,
+               AC_DEFINE(HAVE_GETADDRINFO, 1,
+                         [Define to 1 if you have the `getipnodebyname()' function.]))
+
+AC_HEADER_RESOLV
 
 AC_C_BIGENDIAN
 AC_STRUCT_TM
