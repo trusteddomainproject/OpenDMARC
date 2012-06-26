@@ -47,6 +47,22 @@ opendmarc_policy_library_init(OPENDMARC_LIB_T *lib_init)
 	return DMARC_PARSE_OKAY;
 }
 
+/**************************************************************************
+** OPENDMARC_POLICY_LIBRARY_SHUTDOWN -- Shutdown The Libarary
+**	Parameters:
+**		lib_init	-- The prior DMARC_LIB_T strucgture
+**	Returns:
+**		DMARC_PARSE_OKAY		-- always
+**	Side Effects:
+**		May free memory
+**	Warning:
+***************************************************************************/
+OPENDMARC_STATUS_T
+opendmarc_policy_library_shutdown(OPENDMARC_LIB_T *lib_init)
+{
+	(void) opendmarc_tld_shutdown();
+	return DMARC_PARSE_OKAY;
+}
 
 /**************************************************************************
 ** OPENDMARC_POLICY_CONNECT_INIT -- Get policy context for connection
@@ -477,7 +493,7 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
 
-	if (pctx->domain == NULL)
+	if (pctx->from_domain == NULL)
 		return DMARC_POLICY_ABSENT;
 
 	if (pctx->from_domain == NULL)
@@ -832,7 +848,8 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 	if (pctx->ri == -1)
 		pctx->ri = 86400;
 
-	pctx->domain = strdup(domain);
+	if (pctx->from_domain == NULL)
+		pctx->from_domain = strdup(domain);
 	return DMARC_PARSE_OKAY;
 }
 
@@ -856,9 +873,9 @@ opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dmarc_record, u_char 
 	if (status != DMARC_PARSE_OKAY)
 		return status;
 
-	if (pctx->domain != NULL)
-		(void) free(pctx->domain);
-	pctx->domain = strdup(domain);
+	if (pctx->from_domain != NULL)
+		(void) free(pctx->from_domain);
+	pctx->from_domain = strdup(domain);
 	if (organizationaldomain != NULL)
 	{
 		if (pctx->organizational_domain != NULL)
@@ -948,73 +965,112 @@ opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp)
 	return DMARC_PARSE_OKAY;
 }
 
-OPENDMARC_STATUS_T
-opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf)
+u_char **
+opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant)
 {
 	u_char *sp, *ep, *rp;
 	int	i;
 
 	if (pctx == NULL)
 	{
-		return DMARC_PARSE_ERROR_NULL_CTX;
+		return NULL;
 	}
-	if (list_buf == NULL || size_of_buf == 0)
+	if (list_buf != NULL && size_of_buf > 0)
 	{
-		return DMARC_PARSE_ERROR_EMPTY;
-	}
-	(void) memset(list_buf, '\0', size_of_buf);
-	sp = list_buf;
-	ep = list_buf + size_of_buf;
-	for (i = 0; i < pctx->rua_cnt; i++)
-	{
-		for (rp = (pctx->rua_list)[i]; *rp != '\0'; ++rp)
+		(void) memset(list_buf, '\0', size_of_buf);
+		sp = list_buf;
+		ep = list_buf + size_of_buf;
+		for (i = 0; i < pctx->rua_cnt; i++)
 		{
-			*sp++ = *rp;
+			for (rp = (pctx->rua_list)[i]; *rp != '\0'; ++rp)
+			{
+				*sp++ = *rp;
+				if (sp >= (ep - 2))
+					break;
+			}
+			if (sp >= (ep - 2))
+				break;
+			if (i != (pctx->rua_cnt -1))
+				*sp++ = ',';
 			if (sp >= (ep - 2))
 				break;
 		}
-		if (sp >= (ep - 2))
-			break;
-		if (i != (pctx->rua_cnt -1))
-			*sp++ = ',';
-		if (sp >= (ep - 2))
-			break;
 	}
-	return DMARC_PARSE_OKAY;
+	if (constant != 0)
+		return pctx->rua_list;
+	return opendmarc_util_dupe_argv(pctx->rua_list);
 }
 
-OPENDMARC_STATUS_T
-opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf)
+u_char **
+opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant)
 {
 	u_char *sp, *ep, *rp;
 	int	i;
 
 	if (pctx == NULL)
 	{
-		return DMARC_PARSE_ERROR_NULL_CTX;
+		return NULL;
 	}
-	if (list_buf == NULL || size_of_buf == 0)
+	if (list_buf != NULL || size_of_buf > 0)
 	{
-		return DMARC_PARSE_ERROR_EMPTY;
-	}
-	(void) memset(list_buf, '\0', size_of_buf);
-	sp = list_buf;
-	ep = list_buf + size_of_buf;
-	for (i = 0; i < pctx->ruf_cnt; i++)
-	{
-		for (rp = (pctx->ruf_list)[i]; *rp != '\0'; ++rp)
+		(void) memset(list_buf, '\0', size_of_buf);
+		sp = list_buf;
+		ep = list_buf + size_of_buf;
+		for (i = 0; i < pctx->ruf_cnt; i++)
 		{
-			*sp++ = *rp;
+			for (rp = (pctx->ruf_list)[i]; *rp != '\0'; ++rp)
+			{
+				*sp++ = *rp;
+				if (sp >= (ep - 2))
+					break;
+			}
+			if (sp >= (ep - 2))
+				break;
+			if (i != (pctx->ruf_cnt -1))
+				*sp++ = ',';
 			if (sp >= (ep - 2))
 				break;
 		}
-		if (sp >= (ep - 2))
-			break;
-		if (i != (pctx->ruf_cnt -1))
-			*sp++ = ',';
-		if (sp >= (ep - 2))
-			break;
 	}
+	if (constant != 0)
+		return pctx->ruf_list;
+	return opendmarc_util_dupe_argv(pctx->ruf_list);
+}
+
+/**************************************************************************************************
+** OPENDMARC_POLICY_FETCH_UTILIZED_DOMAIN -- Return domain used to get the dmarc record
+**					     Either the From: domain or the organizational domain
+**	Arguments
+**		pctx	-- Address of a policy context
+**		bud	-- Where to scribble result
+**		buflen	-- Size of buffer
+**	Returns
+**		DMARC_PARSE_OKAY		-- On success
+**		DMARC_PARSE_ERROR_NULL_CTX	-- If context NULL
+**		DMARC_PARSE_ERROR_EMPTY 	-- If buf null or buflen 0 sized
+**		DMARC_PARSE_ERROR_NO_DOMAIN 	-- If neigher address is available
+**/
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen)
+{
+	u_char *which = NULL;
+
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	if (buf == NULL || buflen == 0)
+		return DMARC_PARSE_ERROR_EMPTY;
+
+	if (pctx->organizational_domain != NULL)
+		which = pctx->organizational_domain;
+	if (pctx->from_domain != NULL)
+		which = pctx->from_domain;
+	if (which == NULL)
+		return DMARC_PARSE_ERROR_NO_DOMAIN;
+# if HAVE_STRLCPY
+	(void) strlcpy((char *)buf, (char *)which, buflen);
+# else
+	(void) strncpy((char *)buf, (char *)which, buflen);
+# endif
 	return DMARC_PARSE_OKAY;
 }
 
@@ -1022,7 +1078,7 @@ opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 ** OPENDMARC_POLICY_LIBRARY_DNS_HOOK -- Internal hook for dmarc_dns_get_record
 *******************************************************************************/
 void
-opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in **nsaddr_list)
+opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *(nsaddr_list[]))
 {
 	int i;
 
