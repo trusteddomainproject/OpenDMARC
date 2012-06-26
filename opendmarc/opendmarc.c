@@ -46,6 +46,7 @@
 #include "util.h"
 #include "opendmarc-ar.h"
 #include "opendmarc-config.h"
+#include "opendmarc-dstring.h"
 
 /* macros */
 #define	CMDLINEOPTS	"c:V"
@@ -54,6 +55,9 @@
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
 #endif /* ! _PATH_DEVNULL */
+#ifndef _PATH_SENDMAIL
+# define _PATH_SENDMAIL	"/usr/sbin/sendmail"
+#endif /* ! _PATH_SENDMAIL */
 
 #define	TRYFREE(x)	do { \
 				if ((x) != NULL) \
@@ -76,10 +80,15 @@ struct dmarcf_header
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {
+	int			mctx_spfresult;
+	int			mctx_spfalign;
 	char *			mctx_jobid;
 	struct dmarcf_header *	mctx_hqhead;
 	struct dmarcf_header *	mctx_hqtail;
+	struct dmarcf_dstring *	mctx_histbuf;
 	unsigned char		mctx_envfrom[BUFRSZ + 1];
+	unsigned char		mctx_envdomain[BUFRSZ + 1];
+	unsigned char		mctx_fromdomain[BUFRSZ + 1];
 };
 typedef struct dmarcf_msgctx * DMARCF_MSGCTX;
 
@@ -91,6 +100,7 @@ struct dmarcf_connctx
 	DMARC_POLICY_T *	cctx_dmarc;
 	struct dmarcf_config *	cctx_config;
 	struct sockaddr_storage	cctx_ip;
+	char			cctx_ipstr[BUFRSZ + 1];
 	char			cctx_host[MAXHOSTNAMELEN + 1];
 };
 typedef struct dmarcf_connctx * DMARCF_CONNCTX;
@@ -108,6 +118,7 @@ struct dmarcf_config
 	char *			conf_tmpdir;
 	char *			conf_authservid;
 	char *			conf_historyfile;
+	char *			conf_pslist;
 };
 
 /* LOOKUP -- lookup table */
@@ -317,10 +328,11 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_authservidwithjobid,
 		                  sizeof conf->conf_authservidwithjobid);
 
+		memset(basedir, '\0', sizeof basedir);
 		str = NULL;
 		(void) config_get(data, "BaseDirectory", &str, sizeof str);
 		if (str != NULL)
-			strlcpy(basedir, str, sizeof basedir);
+			strncpy(basedir, str, sizeof basedir - 1);
 
 		if (conf->conf_dnstimeout == DEFTIMEOUT)
 		{
@@ -336,6 +348,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "TemporaryDirectory",
 		                  &conf->conf_tmpdir,
 		                  sizeof conf->conf_tmpdir);
+
+		(void) config_get(data, "PublicSuffixList",
+		                  &conf->conf_pslist,
+		                  sizeof conf->conf_pslist);
 
 		if (!conf->conf_dolog)
 		{
@@ -436,7 +452,8 @@ dmarcf_config_reload(void)
 		char *errstr = NULL;
 		char path[MAXPATHLEN + 1];
 
-		strlcpy(path, conffile, sizeof path);
+		memset(path, '\0', sizeof path);
+		strncpy(path, conffile, sizeof path - 1);
 
 		cfg = config_load(conffile, dmarcf_config, &line,
 		                  path, sizeof path);
@@ -480,6 +497,24 @@ dmarcf_config_reload(void)
 			err = TRUE;
 		}
 
+		if (curconf->conf_pslist != NULL)
+		{
+			/* XXX -- opendmarc_tld_shutdown() */
+		}
+
+		if (new->conf_pslist != NULL)
+		{
+			if (opendmarc_tld_read_file(new->conf_pslist, "#",
+			                            NULL, NULL) != 0)
+			{
+				if (curconf->conf_dolog)
+				{
+					syslog(LOG_ERR, "%s: read/parse error",
+					       new->conf_pslist);
+				}
+			}
+		}
+ 
 		if (!err)
 		{
 			if (curconf->conf_refcnt == 0)
@@ -673,7 +708,6 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 {
 	DMARCF_CONNCTX cc;
 	struct dmarcf_config *conf;
-	char ipstr[BUFRSZ + 1];
 
 	dmarcf_config_reload();
 
@@ -716,9 +750,7 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 	}
 
 	if (host != NULL)
-		strlcpy(cc->cctx_host, host, sizeof cc->cctx_host);
-
-	memset(ipstr, '\0', sizeof ipstr);
+		strncpy(cc->cctx_host, host, sizeof cc->cctx_host - 1);
 
 	if (ip == NULL)
 	{
@@ -729,21 +761,27 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 		sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 		memcpy(&cc->cctx_ip, &sa, sizeof sa);
-		(void) inet_ntop(AF_INET, &sa.sin_addr, ipstr, sizeof ipstr);
-		cc->cctx_dmarc = opendmarc_policy_connect_init(ipstr, FALSE);
+		(void) inet_ntop(AF_INET, &sa.sin_addr, cc->cctx_ipstr,
+		                 sizeof cc->cctx_ipstr);
+		cc->cctx_dmarc = opendmarc_policy_connect_init(cc->cctx_ipstr,
+		                                               FALSE);
 	}
 	else if (ip->sa_family == AF_INET)
 	{
 		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in));
-		(void) inet_ntop(AF_INET, ip, ipstr, sizeof ipstr);
-		cc->cctx_dmarc = opendmarc_policy_connect_init(ipstr, FALSE);
+		(void) inet_ntop(AF_INET, ip, cc->cctx_ipstr,
+		                 sizeof cc->cctx_ipstr);
+		cc->cctx_dmarc = opendmarc_policy_connect_init(cc->cctx_ipstr,
+		                                               FALSE);
 	}
 #ifdef AF_INET6
 	else if (ip->sa_family == AF_INET6)
 	{
 		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in6));
-		(void) inet_ntop(AF_INET6, ip, ipstr, sizeof ipstr);
-		cc->cctx_dmarc = opendmarc_policy_connect_init(ipstr, TRUE);
+		(void) inet_ntop(AF_INET6, ip, cc->cctx_ipstr,
+		                 sizeof cc->cctx_ipstr);
+		cc->cctx_dmarc = opendmarc_policy_connect_init(cc->cctx_ipstr,
+		                                               TRUE);
 	}
 #endif /* AF_INET6 */
 
@@ -784,9 +822,34 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 	cc = (DMARCF_CONNCTX) dmarcf_getpriv(ctx);
 	assert(cc != NULL);
-	dfc = cc->cctx_msg;
-	assert(dfc != NULL);
 	conf = cc->cctx_config;
+
+	if (cc->cctx_msg != NULL)
+		dmarcf_cleanup(ctx);
+
+	dfc = (DMARCF_MSGCTX) malloc(sizeof(struct dmarcf_msgctx));
+	if (dfc == NULL)
+	{
+		if (conf->conf_dolog)
+			syslog(LOG_ERR, "malloc(): %s", strerror(errno));
+
+		return SMFIS_TEMPFAIL;
+	}
+
+	memset(dfc, '\0', sizeof(struct dmarcf_msgctx));
+
+	cc->cctx_msg = dfc;
+
+	dfc->mctx_histbuf = dmarcf_dstring_new(BUFRSZ, 0);
+	if (dfc->mctx_histbuf == NULL)
+	{
+		if (conf->conf_dolog)
+			syslog(LOG_ERR, "malloc(): %s", strerror(errno));
+
+		return SMFIS_TEMPFAIL;
+	}
+
+	dfc->mctx_spfalign = -1;
 
 	if (cc->cctx_dmarc != NULL)
 		(void) opendmarc_policy_connect_rset(cc->cctx_dmarc);
@@ -797,8 +860,8 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 		unsigned char *p;
 		unsigned char *q;
 
-		strlcpy(dfc->mctx_envfrom, envfrom[0],
-		        sizeof dfc->mctx_envfrom);
+		strncpy(dfc->mctx_envfrom, envfrom[0],
+		        sizeof dfc->mctx_envfrom - 1);
 
 		len = strlen(dfc->mctx_envfrom);
 		p = dfc->mctx_envfrom;
@@ -816,6 +879,10 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 			*(q + 1) = '\0';
 			memmove(dfc->mctx_envfrom, p, len + 1);
 		}
+
+		p = strchr(dfc->mctx_envfrom, '@');
+		if (p != NULL)
+			strncpy(dfc->mctx_envdomain, p + 1, strlen(p + 1));
 	}
 
 	return SMFIS_CONTINUE;
@@ -916,6 +983,7 @@ mlfi_eom(SMFICTX *ctx)
 	OPENDMARC_STATUS_T ostatus;
 	char *hostname = NULL;
 	char *authservid = NULL;
+	char *pdomain = NULL;
 	DMARCF_CONNCTX cc;
 	DMARCF_MSGCTX dfc;
 	struct dmarcf_config *conf;
@@ -925,6 +993,7 @@ mlfi_eom(SMFICTX *ctx)
 	u_char *domain;
 	unsigned char header[MAXHEADER + 1];
 	unsigned char addrbuf[BUFRSZ + 1];
+	unsigned char replybuf[BUFRSZ + 1];
 	struct authres ar;
 
 	assert(ctx != NULL);
@@ -955,10 +1024,10 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
-	/* get hostname; used in the X header and in new MIME boundaries */
+	/* get hostname; used in software header and new MIME boundaries */
 	hostname = dmarcf_getsymval(ctx, "j");
 	if (hostname == NULL)
-		hostname = HOSTUNKNOWN;
+		hostname = myhostname;
 
 	/* select authserv-id to use when generating result headers */
 	authservid = conf->conf_authservid;
@@ -1001,6 +1070,8 @@ mlfi_eom(SMFICTX *ctx)
 		return SMFIS_ACCEPT;
 	}
 
+	strncpy(dfc->mctx_fromdomain, domain, sizeof dfc->mctx_fromdomain - 1);
+
 	ostatus = opendmarc_policy_store_from_domain(cc->cctx_dmarc,
 	                                             domain);
 	if (ostatus != DMARC_PARSE_OKAY)
@@ -1014,6 +1085,15 @@ mlfi_eom(SMFICTX *ctx)
 
 		return SMFIS_TEMPFAIL;
 	}
+
+	/* first part of the history buffer */
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "job %s\n", dfc->mctx_jobid);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "reporter %s\n", hostname);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "ipaddr %s\n", cc->cctx_ipstr);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "from %s\n",
+	                      dfc->mctx_fromdomain);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "mfrom %s\n",
+	                      dfc->mctx_envdomain);
 
 	/*
 	**  Walk through Authentication-Results fields and pull out data.
@@ -1052,13 +1132,11 @@ mlfi_eom(SMFICTX *ctx)
 		/* walk through what was found */
 		for (c = 0; c < ar.ares_count; c++)
 		{
-			/* skip things that aren't a "pass" */
-			if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
-				continue;
-
 			if (ar.ares_result[c].result_method ==  ARES_METHOD_SPF)
 			{
 				int spfmode;
+
+				dfc->mctx_spfresult = ar.ares_result[c].result_result;
 
 				strncpy(addrbuf, dfc->mctx_envfrom,
 				        sizeof addrbuf - 1);
@@ -1106,6 +1184,13 @@ mlfi_eom(SMFICTX *ctx)
 
 					return SMFIS_TEMPFAIL;
 				}
+
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf %d\n",
+				                      dfc->mctx_spfresult);
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "aspf %d\n",
+				                      dfc->mctx_spfalign);
 			}
 			else if (ar.ares_result[c].result_method ==  ARES_METHOD_DKIM)
 			{
@@ -1133,6 +1218,13 @@ mlfi_eom(SMFICTX *ctx)
 					}
 				}
 
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "dkim %s %d\n", domain,
+				                      ar.ares_result[c].result_result);
+
+				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+					continue;
+
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
 				                                      domain,
 				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
@@ -1158,6 +1250,7 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
+	/* XXX -- pdomain = opendmarc_get_organizational_domain(cc->cctx_dmarc); */
 
 	/*
 	**  Record activity in the history file.
@@ -1181,7 +1274,17 @@ mlfi_eom(SMFICTX *ctx)
 			return SMFIS_TEMPFAIL;
 		}
 
-		/* XXX -- write stuff */
+		/* write out the buffer */
+		clearerr(f);
+		fwrite(dmarcf_dstring_get(dfc->mctx_histbuf), 1,
+		       dmarcf_dstring_len(dfc->mctx_histbuf), f);
+		if (ferror(f) && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: %s: fwrite(): %s",
+			       dfc->mctx_jobid,
+			       conf->conf_historyfile,
+			       strerror(errno));
+		}
 
 		fclose(f);
 	}
@@ -1196,8 +1299,44 @@ mlfi_eom(SMFICTX *ctx)
 	**  Enact policy based on DMARC results.
 	*/
 
-	/* XXX -- enact DMARC policy */
-		/* XXX -- map "policy" to a "ret" with a possible SMTP string */
+	switch (policy)
+	{
+	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
+	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
+	  case DMARC_POLICY_NONE:		/* Accept and report */
+	  case DMARC_POLICY_PASS:		/* Explicit accept */
+		ret = SMFIS_ACCEPT;
+		break;
+
+	  case DMARC_POLICY_REJECT:		/* Explicit reject */
+		snprintf(replybuf, sizeof replybuf,
+		         "rejected by DMARC policy for %s", pdomain);
+
+		status = smfi_setreply(ctx, DMARC_REJECT_SMTP, DMARC_REJECT_ESC,
+		                       replybuf);
+		if (status != MI_SUCCESS && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: smfi_setreply() failed",
+			       dfc->mctx_jobid);
+		}
+
+		ret = SMFIS_REJECT;
+		break;
+
+	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
+		snprintf(replybuf, sizeof replybuf,
+		         "quarantined by DMARC policy for %s", pdomain);
+
+		status = smfi_quarantine(ctx, replybuf);
+		if (status != MI_SUCCESS && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: smfi_quarantine() failed",
+			       dfc->mctx_jobid);
+		}
+
+		ret = SMFIS_TEMPFAIL;
+		break;
+	}
 
 	dmarcf_cleanup(ctx);
 
