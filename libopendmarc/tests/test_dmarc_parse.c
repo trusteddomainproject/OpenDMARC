@@ -48,7 +48,7 @@ main(int argc, char **argv)
 			(void) fprintf(stderr, "opendmarc_policy_connect_init: %s\n", strerror(errno));
 			return 1;
 		}
-		status = opendmarc_parse_dmarc(pctx, dpp->dmarc);
+		status = opendmarc_policy_parse_dmarc(pctx, "abuse.net", dpp->dmarc);
 		if (status == dpp->outcome)
 		{
 			//printf("\tDMARC Policy Parse: %d: PASS\n", count);
