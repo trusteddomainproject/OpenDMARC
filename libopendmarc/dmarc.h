@@ -78,6 +78,7 @@ typedef struct {
 	struct sockaddr_in 	nsaddr_list[MAXNS];
 } OPENDMARC_LIB_T;
 
+#define OPENDMARC_TLD_TYPE_NONE    (0)	/* Will not use a tld file             */
 #define OPENDMARC_TLD_TYPE_MOZILLA (1)	/* mozilla.org effective_tld_names.dat */
                
 /*
