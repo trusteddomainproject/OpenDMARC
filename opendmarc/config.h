@@ -23,6 +23,16 @@ static char config_h_id[] = "@(#)$Id: config.h,v 1.3.34.1 2010/10/27 21:43:09 cm
 #endif /* HAVE_STDBOOL_H */
 #include <stdio.h>
 
+#ifdef __STDC__
+# ifndef __P
+#  define __P(x)  x
+# endif /* ! __P */
+#else /* __STDC__ */
+# ifndef __P
+#  define __P(x)  ()
+# endif /* ! __P */
+#endif /* __STDC__ */
+
 /* types and things */
 #define	CONFIG_TYPE_STRING	0
 #define	CONFIG_TYPE_INTEGER	1
