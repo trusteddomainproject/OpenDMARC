@@ -32,6 +32,9 @@
 #include <limits.h>
 #include <errno.h>
 #include <assert.h>
+#ifdef HAVE_NETDB_H
+# include <netdb.h>
+#endif
 
 /* libmilter */
 #include <libmilter/mfapi.h>
