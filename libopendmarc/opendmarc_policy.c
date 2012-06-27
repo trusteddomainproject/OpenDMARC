@@ -28,23 +28,28 @@ static OPENDMARC_LIB_T Opendmarc_Lib;
 OPENDMARC_STATUS_T
 opendmarc_policy_library_init(OPENDMARC_LIB_T *lib_init)
 {
+	int ret = DMARC_PARSE_OKAY;
+
 	if (lib_init == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	(void) memcpy(&Opendmarc_Lib, lib_init, sizeof(OPENDMARC_LIB_T));
 	Opendmarc_Libp = &Opendmarc_Lib;
+	errno = 0;
 	if ((Opendmarc_Libp->tld_source_file)[0] != '\0')
 	{
 		switch (Opendmarc_Libp->tld_type)
 		{
 			case OPENDMARC_TLD_TYPE_MOZILLA:
-				(void) opendmarc_tld_read_file(Opendmarc_Libp->tld_source_file,
+				ret = opendmarc_tld_read_file(Opendmarc_Libp->tld_source_file,
 						"//", "*.", "!");
+				if (ret != 0)
+					ret = errno;
 				break;
 			default:
 				return DMARC_TLD_ERROR_UNKNOWN;
 		}
 	}
-	return DMARC_PARSE_OKAY;
+	return ret;
 }
 
 /**************************************************************************

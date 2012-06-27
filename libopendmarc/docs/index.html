@@ -1,0 +1,194 @@
+<html>
+<head>
+<title>OpenDMARC Library (libopendmarc)</title>
+</head>
+<body>
+<!--
+$Id: index.html,v 1.12 2010/08/30 22:01:56 cm-msk Exp $
+-->
+
+<h1>OpenDMARC Library (libopendmarc)</h1>
+
+<h2>Introduction</h2>
+
+<b>DMARC</b> stands for "Domain-based Message Authentication, Reporting &amp; Conformance".
+It is a technical specification created by a group of organizations to help reduce the potential for
+email-based abuse by solving long-standing operational, deployment, and reporting
+issues related to the existing email authentication protocols of DKIM and SPF. More information
+about <b>DMARC</b> can be found at the <a href="http://www.dmarc.org">dmarc.org</a> website.
+<p>
+This API (<tt>libopendmarc</tt>) at its current release, allows an application 
+to look up DMARC records and to apply policy to application supplied DKIM and SPF results.
+An implementation of a filter, using Sendmail's <b>milter</b>
+package, uses this <tt>libopendmarc</tt> library.
+
+
+<h2>Data Types</h2>
+
+<table columns="2" border="1">
+ <tr>
+  <td> <b> Data Type </b> </td>
+  <td> <b> Description </b> </td>
+ </tr>
+
+ <tr>
+  <td> <a href="opendmarc_lib_t.html"> <tt>OPENDMARC_LIB_T</tt> </a> </td>
+  <td>The structure used to initialize the library at startup</td>
+ </tr>
+
+ <tr>
+  <td> <a href="dmarc_policy_t.html"> <tt>DMARC_POLICY_T</tt> </a> </td>
+  <td>The context used per inbound envelope.</td>
+ </tr>
+
+ <tr>
+  <td> <a href="opendmarc_status_t.html"> <tt>OPENDMARC_STATUS_T</tt> </a> </td>
+  <td>The type returned by many library functions.</td>
+ </tr>
+
+</table>
+
+<h2>Functions</h2>
+
+<table columns="2" border="1">
+ <tr>
+  <td> <b> Function </b> </td>
+  <td> <b> Description </b> </td>
+ </tr>
+
+ <tr>
+  <td colspan="2"> <b>Program Startup/Shutdown</b>
+ </tr>
+ <tr>
+  <td> <a href="opendmarc_policy_library_init.html"> <tt>opendmarc_policy_library_init()</tt> </a> </td>
+  <td> Initialize the library on program startup. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_library_shutdown.html"> <tt>opendmarc_policy_library_shutdown()</tt> </a> </td>
+  <td> Shut down the library to free resources. </td>
+ </tr>
+
+
+ <tr>
+  <td colspan="2"> <b>Per-Envelope Context Functions</b>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_connect_init.html"> <tt>opendmarc_policy_connect_init()</tt> </a> </td>
+  <td> Allocate a new context for an inbound envelope. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_connect_clear.html"> <tt>opendmarc_policy_connect_clear()</tt> </a> </td>
+  <td> Clears (zeros) a context for reuse. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_connect_rset.html"> <tt>opendmarc_policy_connect_rset()</tt> </a> </td>
+  <td> Partially clears the context as part of an SMTP RSET. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_connect_shutdown.html"> <tt>opendmarc_policy_connect_shutdown()</tt> </a> </td>
+  <td> Deallocate and free a context to conclude its use. </td>
+ </tr>
+
+ <tr>
+  <td colspan="2"> <b>Information Storage Functions</b>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_store_from_domain.html"> <tt>opendmarc_policy_store_from_domain()</tt> </a> </td>
+  <td> Give the policy processor the From: header's domain. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_store_dkim.html"> <tt>opendmarc_policy_store_dkim()</tt> </a> </td>
+  <td> Give the policy processor the results of DKIM processing. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_store_spf.html"> <tt>opendmarc_policy_store_spf()</tt> </a> </td>
+  <td> Give the policy processor the results of SPF processing. </td>
+ </tr>
+
+ <tr>
+  <td colspan="2"> <b>DMARC Record Functions</b>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_query_dmarc.html"> <tt>opendmarc_policy_query_dmarc()</tt> </a> </td>
+  <td> DNS lookup a DMARC record and parse it. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_parse_dmarc.html"> <tt>opendmarc_policy_parse_dmarc()</tt> </a> </td>
+  <td> Parse a user supplied DMARC record. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_store_dmarc.html"> <tt>opendmarc_policy_store_dmarc()</tt> </a> </td>
+  <td> The user process looked up the DMARC record and provids it to the library in one gulp. </td>
+ </tr>
+
+ <tr>
+  <td colspan="2"> <b>DMARC Result Functions</b>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_get_policy_to_enforce.html"> <tt>opendmarc_get_policy_to_enforce()</tt> </a> </td>
+  <td> Returns the policy for the MTA to enforce. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_pct.html"> <tt>opendmarc_policy_fetch_pct()</tt> </a> </td>
+  <td> Fetch the value of the pct= DMARC setting to determine sampling rate. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_adkim.html"> <tt>opendmarc_policy_fetch_adkim()</tt> </a> </td>
+  <td> Fetch the value of the adkim= DMARC setting to determine alignment policy. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_aspf.html"> <tt>opendmarc_policy_fetch_aspf()</tt> </a> </td>
+  <td> Fetch the value of the aspf= DMARC setting to determine alignment policy. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_p.html"> <tt>opendmarc_policy_fetch_p()</tt> </a> </td>
+  <td> Fetch the value of the p= DMARC setting to determine desired policy. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_sp.html"> <tt>opendmarc_policy_fetch_sp()</tt> </a> </td>
+  <td> Fetch the value of the sp= DMARC setting to determine desired subdomain policy. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_rua.html"> <tt>opendmarc_policy_fetch_rua()</tt> </a> </td>
+  <td> Fetch a list of the rua= DMARC URI stateing where to send reports. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_ruf.html"> <tt>opendmarc_policy_fetch_ruf()</tt> </a> </td>
+  <td> Fetch a list of the ruf= DMARC URI stateing where to send failed messages notifications. </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_policy_fetch_utilized_domain.html"> <tt>opendmarc_policy_fetch_utilized_domain()</tt> </a> </td>
+  <td> Fetch the domain that was used to find the DMARC record. </td>
+ </tr>
+
+ <tr>
+  <td colspan="2"> <b>TLD Functions</b>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_tld_read_file.html"> <tt>opendmarc_tld_read_file()</tt> </a> </td>
+  <td> Read and re-read a TLD file for library use.
+  (See also <a href="opendmarc_policy_library_init.html"> <tt>opendmarc_policy_library_init()</tt>)
+  </td>
+ </tr>
+ <tr>
+  <td> <x href="opendmarc_tld_shutdown.html"> <tt>opendmarc_tld_shutdown()</tt> </a> 
+  <td> Deallocate the cached TLD information as part of program shutdown.
+  (See also <a href="opendmarc_policy_library_init.html"> <tt>opendmarc_policy_library_init()</tt>)
+  </td>
+ </tr>
+
+</table> <br>
+
+An overview of the general use of this API is available
+<x href="overview.html">here</a>.  An overview of the DNS resolver portion
+of the API is available <x href="dns.html">here</a>.
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

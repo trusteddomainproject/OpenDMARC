@@ -1,0 +1,101 @@
+<html>
+<head><title>OPENDMARC_LIB_T</title></head>
+<body>
+<!--
+$Id: dkim_alg_t.html,v 1.2 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>OPENDMARC_LIB_T</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Purpose</th>
+<td>The <tt>OPENDMARC_LIB_T</tt> is used to pass startup information into the library.
+    It is designed to require that nothing inside it needs to ever be allocated nor freed.
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">Synopsis</th>
+<td>
+<blockquote>
+#include &lt;dmarc.h&gt;
+<p>
+OPENDMARC_LIB_T lib;
+</blockquote>
+</td>
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">OPENDMARC_LIB_T</th>
+<td>
+The items inside the <tt>OPENDMARC_LIB_T</tt> structure, and their legal values are:
+<p>
+<tt>int tld_type</tt>
+<blockquote>
+Can be assigned one of two possible values:
+<ul>
+<li><tt>OPENDMARC_TLD_TYPE_NONE</tt> -- If you do not want to use any TLD file to resolve the organizational domain
+</li>
+<li><tt>OPENDMARC_TLD_TYPE_MOZILLA</tt> -- If you will supply a current version of the <tt>effective_tld_names.dat</tt>
+ file from mozilla.org.
+</li>
+</ul>
+</blockquote>
+
+<tt>u_char&nbsp;tld_source_file[MAXPATHLEN]</tt>
+<blockquote>
+The full or relative path to the TLD file to parse and use.
+</blockquote>
+
+<tt>int nscount</tt>
+<blockquote>
+If you want the dmarc records looked up by other than the name servers listed in
+<tt>/etc/resolv.conf</tt>. This is the count of the number of entries in <tt>nsaddr_list</tt>.
+</blockquote>
+
+<tt>struct&nbsp;sockaddr_in&nbsp;nsaddr_list[MAXNS]</tt>
+<blockquote>
+This is an array of IP addresses of name servers to use
+converted to the type <tt>struct sockaddr_in</tt>.
+</blockquote>
+
+</td>
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">Usage</th>
+<td>
+When your program first starts to run, it should pass a pointer to this <tt>OPENDMARC_LIB_T</tt> structure
+to the <a href="opendmarc_policy_library_init.html"><tt>opendmarc_policy_library_init</tt></a> function, and when 
+your program finally shuts down, it should pass a pointer to this <tt>OPENDMARC_LIB_T</tt> structure
+to the <a href="opendmarc_policy_library_shutdown.html"><tt>opendmarc_policy_library_shutdown</tt></a> function.
+</td>
+</tr>
+
+
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li><tt>OPENDMARC_LIB_T</tt> is <i>not</i> thread safe. It <i>must only</i> be used once from inside
+the main thread for startup and shutdown purposes. Multiple threads <i>must not</i> independantly 
+attemtp to start/stop the library with separate settings.
+</ul>
+</td>
+</tr>
+
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

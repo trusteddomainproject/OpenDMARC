@@ -1,0 +1,106 @@
+<html>
+<head><title>OPENDMARC_STATUS_T</title></head>
+<body>
+<!--
+$Id: dkim_alg_t.html,v 1.2 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>OPENDMARC_STATUS_T</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Purpose</th>
+<td>The <tt>OPENDMARC_STATUS_T</tt> is the type returned by many of the functions in this library.
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">Synopsis</th>
+<td>
+<blockquote>
+#include &lt;dmarc.h&gt;
+<p>
+OPENDMARC_STATUS_T return_value;
+</blockquote>
+</td>
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">OPENDMARC_STATUS_T</th>
+<td>
+The values that can be returned from functions that return <tt>OPENDMARC_STATUS_T</tt> include:
+<ul>
+<li><tt>DMARC_PARSE_OKAY</tt> -- Success.
+</li>
+<li><tt>DMARC_PARSE_ERROR_EMPTY</tt> -- An argument was empty or NULL or zero length.
+</li>
+<li><tt>DMARC_PARSE_ERROR_NULL_CTX</tt> -- Received a NULL pointer as the context or library initializer.
+</li>
+<li><tt>DMARC_PARSE_ERROR_BAD_VERSION</tt> -- DMARC record contained a bad v=.
+</li>
+<li><tt>DMARC_PARSE_ERROR_BAD_VALUE</tt> -- DMARC record a bad value, e.g. p=bob.
+</li>
+<li><tt>DMARC_PARSE_ERROR_NO_REQUIRED_P</tt> -- DMARC record lacked a required p=.
+</li>
+<li><tt>DMARC_PARSE_ERROR_NO_DOMAIN</tt> -- Parsing required a domain but got <>.
+</li>
+<li><tt>DMARC_PARSE_ERROR_NO_ALLOC</tt> -- Memory allocatation error. Also sets errno to ENOMEM.
+</li>
+<li><tt>DMARC_PARSE_ERROR_BAD_SPF_MACRO</tt> -- Bad value given to <a href="opendmarc_policy_store_spf.html>opendmarc_policy_store_spf()</a>.
+</li>
+<li><tt>DMARC_PARSE_ERROR_BAD_DKIM_MACRO</tt> -- Bad value given to <a href="opendmarc_policy_store_dkim.html>opendmarc_policy_store_dkim()</a>.
+</li>
+<li><tt>DMARC_DNS_ERROR_NO_RECORD</tt> -- No DMARC record was found.
+</li>
+<li><tt>DMARC_DNS_ERROR_NXDOMAIN</tt> -- No such domain exists.
+</li>
+<li><tt>DMARC_DNS_ERROR_TMPERR</tt> -- Lookup of DMARC record got a recoverable error. Try again later.
+</li>
+<li><tt>DMARC_TLD_ERROR_UNKNOWN</tt> -- Type of TLD file was not a known type.
+</li>
+<li><tt>DMARC_FROM_DOMAIN_ABSENT</tt> -- Expected a From: domain but it was absent.
+</li>
+</ul>
+
+</td>
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">Usage</th>
+<td>
+<ul>
+<li>Individual functions return specific values. Only check for those documented per function.
+</li>
+<li>You may used these marcos anywhere an integer expression may be used.
+</li>
+</td>
+</tr>
+
+
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>You should use these macros rather than looking for particular integers, such as zero.
+</li>
+<li>These underlying values
+currently conflict with some <tt>errno</tt> values and may be changed in the future.
+</li>
+</ul>
+</td>
+</tr>
+
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>
