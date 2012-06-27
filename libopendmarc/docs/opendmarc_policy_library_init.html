@@ -16,7 +16,7 @@ $Id: dkim_eom.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
 	<a href="opendmarc_lib_t.html"><tt>OPENDMARC_LIB_T</tt></a> *lib
 );
 </pre>
-One time initialization of the libarary for use at program startup.
+One time initialization of the library for use at program startup.
 </td></tr>
 
 <!----------- Description ---------->
@@ -59,9 +59,9 @@ One time initialization of the libarary for use at program startup.
 <td>
 <ul>
 <li>This function is not thread safe and must only be called once and only once when the
-program starts and before mutlti-threading begins.
+program starts and before multi-threading begins.
 <li>If you fail to use a TLD file, the library will not be able to perform a second lookup
-for a DMARC record by converting a subdomain into an orgazational domain. So will only perform the
+for a DMARC record by converting a subdomain into an organizational domain. So will only perform the
 first lookup of the subdomain, possibly missing a valid DMARC record.
 </ul>
 </td>
