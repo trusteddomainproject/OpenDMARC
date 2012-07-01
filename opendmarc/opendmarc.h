@@ -43,4 +43,15 @@
 #define	DMARC_REJECT_SMTP	"451"
 #define	DMARC_REJECT_ESC	"4.7.1"
 
+/* prototypes, etc., exported for test.c */
+extern char *progname;
+
+extern sfsistat mlfi_connect __P((SMFICTX *, char *, _SOCK_ADDR *));
+extern sfsistat mlfi_envfrom __P((SMFICTX *, char **));
+extern sfsistat mlfi_header __P((SMFICTX *, char *, char *));
+extern sfsistat mlfi_eoh __P((SMFICTX *));
+extern sfsistat mlfi_eom __P((SMFICTX *));
+extern sfsistat mlfi_abort __P((SMFICTX *));
+extern sfsistat mlfi_close __P((SMFICTX *));
+
 #endif /* _OPENDMARC_H_ */

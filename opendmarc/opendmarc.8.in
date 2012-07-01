@@ -12,6 +12,7 @@
 [\-n]
 [\-p socketspec]
 [\-P pidfile]
+[\-t file[,file[...]]]
 [\-u userid[:group]]
 [\-v]
 [\-V]
@@ -94,6 +95,11 @@ the socket should be created.  This parameter is mandatory.
 .TP
 .I \-P pidfile
 Specifies a file into which the filter should write its process ID at startup.
+.TP
+.I \-t file[,file[,...]]
+Reads email messages from the named files and processes them as if they were
+received by the filter.  The service is not started, and actions normally
+sent back to the MTA will instead be printed on standard output.
 .TP
 .I \-u userid[:group]
 Attempts to be come the specified

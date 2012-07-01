@@ -46,13 +46,14 @@
 #include "opendmarc.h"
 #include "config.h"
 #include "parse.h"
+#include "test.h"
 #include "util.h"
 #include "opendmarc-ar.h"
 #include "opendmarc-config.h"
 #include "opendmarc-dstring.h"
 
 /* macros */
-#define	CMDLINEOPTS	"c:V"
+#define	CMDLINEOPTS	"Ac:flnp:P:t:u:vV"
 #define	DEFTIMEOUT	5
 
 #ifndef _PATH_DEVNULL
@@ -177,6 +178,7 @@ _Bool dolog;
 _Bool die;
 _Bool reload;
 _Bool no_i_whine;
+_Bool testmode;
 int diesig;
 struct dmarcf_config *curconf;
 char *progname;
@@ -843,6 +845,8 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 	cc->cctx_msg = dfc;
 
+	dfc->mctx_jobid = JOBIDUNKNOWN;
+
 	dfc->mctx_histbuf = dmarcf_dstring_new(BUFRSZ, 0);
 	if (dfc->mctx_histbuf == NULL)
 	{
@@ -1076,7 +1080,7 @@ mlfi_eom(SMFICTX *ctx)
 	strncpy(dfc->mctx_fromdomain, domain, sizeof dfc->mctx_fromdomain - 1);
 
 	ostatus = opendmarc_policy_store_from_domain(cc->cctx_dmarc,
-	                                             domain);
+	                                             from->hdr_value);
 	if (ostatus != DMARC_PARSE_OKAY)
 	{
 		if (conf->conf_dolog)
@@ -1710,12 +1714,14 @@ main(int argc, char **argv)
 	char *extract = NULL;
 	char *p;
 	char *pidfile = NULL;
+	char *testfile = NULL;
 	struct config *cfg = NULL;
 	char *end;
 	char argstr[MAXARGV];
 	char err[BUFRSZ + 1];
 
 	/* initialize */
+	testmode = FALSE;
 	reload = FALSE;
 	sock = NULL;
 	no_i_whine = TRUE;
@@ -1777,6 +1783,13 @@ main(int argc, char **argv)
 			if (optarg == NULL || *optarg == '\0')
 				return usage();
 			pidfile = optarg;
+			break;
+
+		  case 't':
+			if (optarg == NULL || *optarg == '\0')
+				return usage();
+			testmode = TRUE;
+			testfile = optarg;
 			break;
 
 		  case 'u':
@@ -2017,13 +2030,24 @@ main(int argc, char **argv)
 		                  sizeof chrootdir);
 	}
 
-	if (!gotp)
+	if (!gotp && !testmode)
 	{
 		fprintf(stderr, "%s: milter socket must be specified\n",
 		        progname);
 		if (argc == 1)
 			fprintf(stderr, "\t(use \"-?\" for help)\n");
 		return EX_CONFIG;
+	}
+
+	/* suppress a bunch of things if we're in test mode */
+	if (testmode)
+	{
+		curconf->conf_dolog = FALSE;
+		autorestart = FALSE;
+		dofork = FALSE;
+		become = NULL;
+		pidfile = NULL;
+		chrootdir = NULL;
 	}
 
 	dmarcf_setmaxfd();
@@ -2464,58 +2488,61 @@ main(int argc, char **argv)
 	if (mdebug > 0)
 		(void) smfi_setdbg(mdebug);
 
-	/* try to clean up the socket */
-	status = dmarcf_socket_cleanup(sock);
-	if (status != 0)
+	if (!testmode)
 	{
-		if (curconf->conf_dolog)
+		/* try to clean up the socket */
+		status = dmarcf_socket_cleanup(sock);
+		if (status != 0)
 		{
-			syslog(LOG_ERR, "socket cleanup failed: %s",
-			       strerror(status));
+			if (curconf->conf_dolog)
+			{
+				syslog(LOG_ERR, "socket cleanup failed: %s",
+				       strerror(status));
+			}
+
+			fprintf(stderr, "%s: socket cleanup failed: %s\n",
+				progname, strerror(status));
+
+			if (!autorestart && pidfile != NULL)
+				(void) unlink(pidfile);
+
+			return EX_UNAVAILABLE;
 		}
 
-		fprintf(stderr, "%s: socket cleanup failed: %s\n",
-		        progname, strerror(status));
-
-		if (!autorestart && pidfile != NULL)
-			(void) unlink(pidfile);
-
-		return EX_UNAVAILABLE;
-	}
-
-	smfilter.xxfi_flags = SMFIF_CHGHDRS|SMFIF_QUARANTINE;
+		smfilter.xxfi_flags = SMFIF_CHGHDRS|SMFIF_QUARANTINE;
 #ifdef SMFIF_SETSYMLIST
-	smfilter.xxfi_flags |= SMFIF_SETSYMLIST;
+		smfilter.xxfi_flags |= SMFIF_SETSYMLIST;
 #endif /* SMFIF_SETSYMLIST */
 
-	/* register with the milter interface */
-	if (smfi_register(smfilter) == MI_FAILURE)
-	{
-		if (curconf->conf_dolog)
-			syslog(LOG_ERR, "smfi_register() failed");
+		/* register with the milter interface */
+		if (smfi_register(smfilter) == MI_FAILURE)
+		{
+			if (curconf->conf_dolog)
+				syslog(LOG_ERR, "smfi_register() failed");
 
-		fprintf(stderr, "%s: smfi_register() failed\n",
-		        progname);
+			fprintf(stderr, "%s: smfi_register() failed\n",
+				progname);
 
-		if (!autorestart && pidfile != NULL)
-			(void) unlink(pidfile);
+			if (!autorestart && pidfile != NULL)
+				(void) unlink(pidfile);
 
-		return EX_UNAVAILABLE;
-	}
+			return EX_UNAVAILABLE;
+		}
 
 #ifdef HAVE_SMFI_OPENSOCKET
-	/* try to establish the milter socket */
-	if (smfi_opensocket(FALSE) == MI_FAILURE)
-	{
-		if (curconf->conf_dolog)
-			syslog(LOG_ERR, "smfi_opensocket() failed");
+		/* try to establish the milter socket */
+		if (smfi_opensocket(FALSE) == MI_FAILURE)
+		{
+			if (curconf->conf_dolog)
+				syslog(LOG_ERR, "smfi_opensocket() failed");
 
-		fprintf(stderr, "%s: smfi_opensocket() failed\n",
-		        progname);
+			fprintf(stderr, "%s: smfi_opensocket() failed\n",
+				progname);
 
-		return EX_UNAVAILABLE;
-	}
+			return EX_UNAVAILABLE;
+		}
 #endif /* HAVE_SMFI_OPENSOCKET */
+	}
 
 	if (!autorestart && dofork)
 	{
@@ -2595,6 +2622,13 @@ main(int argc, char **argv)
 	}
 
 	pthread_mutex_init(&conf_lock, NULL);
+
+	/* perform test mode */
+	if (testfile != NULL)
+	{
+		status = dmarcf_testfiles(testfile, stricttest, verbose);
+		return status;
+	}
 
 	memset(argstr, '\0', sizeof argstr);
 	end = &argstr[sizeof argstr - 1];
