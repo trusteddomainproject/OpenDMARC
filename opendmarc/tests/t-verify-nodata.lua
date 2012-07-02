@@ -8,7 +8,7 @@
 mt.echo("*** no data reject test")
 
 -- setup
-sock = "unix:" .. mt.getcwd() .. "/t-verify-ss.sock"
+sock = "unix:" .. mt.getcwd() .. "/t-verify-nodata.sock"
 binpath = mt.getcwd() .. "/.."
 if os.getenv("srcdir") ~= nil then
 	mt.chdir(os.getenv("srcdir"))
@@ -97,7 +97,6 @@ n = 0
 found = 0
 while true do
 	ar = mt.getheader(conn, "Authentication-Results", n)
-mt.echo(ar)
 	if ar == nil then
 		break
 	end
