@@ -2,6 +2,10 @@
 #
 # $Id: Makefile.am,v 1.85 2010/10/28 04:12:55 cm-msk Exp $
 
+if FILTER_TESTS
+SUBDIRS=tests
+endif
+
 sbin_PROGRAMS = opendmarc
 opendmarc_SOURCES = config.c config.h opendmarc.c opendmarc.h \
 	opendmarc-ar.c opendmarc-ar.h opendmarc-config.h \

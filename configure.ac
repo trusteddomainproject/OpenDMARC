@@ -173,6 +173,7 @@ AC_CHECK_HEADERS(signal.h)
 AC_CHECK_HEADERS(regex.h)
 
 AC_PROG_LN_S
+AC_CHECK_PROG(miltertest, miltertest, "yes", "no")
 AC_SUBST(ac_aux_dir)
 
 AC_ARG_WITH([wall],
@@ -198,6 +199,17 @@ AC_ARG_ENABLE([filter],
               [enable_filter=$enableval],
               [enable_filter=yes])
 AM_CONDITIONAL([BUILD_FILTER], [test x"$enable_filter" != x"no"])
+
+AC_ARG_ENABLE([filter-tests],
+              AS_HELP_STRING([--enable-filter-tests],
+                             [enable Lua-based filter unit tests]),
+              [enable_filter_tests=$enableval],
+              [enable_filter_tests=yes])
+AM_CONDITIONAL([FILTER_TESTS], [test x"$enable_filter_tests" = x"yes"])
+if test x"$enable_filter_tests" = x"yes" -a x"$miltertest" != x"yes"
+then
+	AC_MSG_ERROR([miltertest is required for filter tests])
+fi
 
 #
 # libmilter
@@ -339,6 +351,7 @@ AC_OUTPUT([ Makefile
 	opendmarc/Makefile
 		opendmarc/opendmarc.conf.5
 		opendmarc/opendmarc.8
+	opendmarc/tests/Makefile
 	reports/Makefile
 		reports/opendmarc-reports
 		reports/opendmarc-reports.8
