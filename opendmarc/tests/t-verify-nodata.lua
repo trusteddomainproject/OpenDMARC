@@ -78,14 +78,6 @@ if mt.getreply(conn) ~= SMFIR_CONTINUE then
 	error("mt.eoh() unexpected reply")
 end
 
--- send body
-if mt.bodystring(conn, "This is a test!\r\n") ~= nil then
-	error("mt.bodystring() failed")
-end
-if mt.getreply(conn) ~= SMFIR_CONTINUE then
-	error("mt.bodystring() unexpected reply")
-end
-
 -- end of message; let the filter react
 if mt.eom(conn) ~= nil then
 	error("mt.eom() failed")
@@ -105,6 +97,7 @@ n = 0
 found = 0
 while true do
 	ar = mt.getheader(conn, "Authentication-Results", n)
+mt.echo(ar)
 	if ar == nil then
 		break
 	end
