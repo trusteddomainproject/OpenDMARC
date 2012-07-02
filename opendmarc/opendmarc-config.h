@@ -16,6 +16,7 @@
 /* config definition */
 struct configdef dmarcf_config[] =
 {
+	{ "AlwaysDeliver",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "AuthservID",			CONFIG_TYPE_STRING,	FALSE },
 	{ "AuthservIDWithJobID",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "AutoRestart",		CONFIG_TYPE_BOOLEAN,	FALSE },

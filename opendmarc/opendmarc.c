@@ -112,6 +112,7 @@ typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 /* DMARCF_CONFIG -- configuration object */
 struct dmarcf_config
 {
+	_Bool			conf_deliver;
 	_Bool			conf_dolog;
 	_Bool			conf_enablecores;
 	_Bool			conf_addswhdr;
@@ -172,6 +173,7 @@ sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
 
 static void dmarcf_config_free __P((struct dmarcf_config *));
 static struct dmarcf_config *dmarcf_config_new __P((void));
+sfsistat dkimf_insheader __P((SMFICTX *, int, char *, char *));
 
 /* globals */
 _Bool dolog;
@@ -186,6 +188,36 @@ char *conffile;
 char *sock;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+
+/*
+**  DMARCF_INSHEADER -- wrapper for smfi_insheader()
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**  	idx -- index at which to insert
+**  	hname -- header name
+**  	hvalue -- header value
+**
+**  Return value:
+**  	An sfsistat.
+*/
+
+sfsistat
+dmarcf_insheader(SMFICTX *ctx, int idx, char *hname, char *hvalue)
+{
+	assert(ctx != NULL);
+	assert(hname != NULL);
+	assert(hvalue != NULL);
+
+	if (testmode)
+		return dmarcf_test_insheader(ctx, idx, hname, hvalue);
+	else
+#ifdef HAVE_SMFI_INSHEADER
+		return smfi_insheader(ctx, idx, hname, hvalue);
+#else /* HAVE_SMFI_INSHEADER */
+		return smfi_addheader(ctx, hname, hvalue);
+#endif /* HAVE_SMFI_INSHEADER */
+}
 
 /*
 **  DMARCF_GETPRIV -- wrapper for smfi_getpriv()
@@ -328,6 +360,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			else	
 				conf->conf_authservid = strdup(str);
 		}
+		else
+		{
+			conf->conf_authservid = strdup(myhostname);
+		}
 
 		(void) config_get(data, "AuthservIDWithJobID",
 		                  &conf->conf_authservidwithjobid,
@@ -349,6 +385,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "EnableCoredumps",
 		                  &conf->conf_enablecores,
 		                  sizeof conf->conf_enablecores);
+
+		(void) config_get(data, "AlwaysDeliver",
+		                  &conf->conf_deliver,
+		                  sizeof conf->conf_deliver);
 
 		(void) config_get(data, "TemporaryDirectory",
 		                  &conf->conf_tmpdir,
@@ -988,6 +1028,7 @@ mlfi_eom(SMFICTX *ctx)
 	int status;
 	sfsistat ret = SMFIS_CONTINUE;
 	OPENDMARC_STATUS_T ostatus;
+	char *aresult = NULL;
 	char *hostname = NULL;
 	char *authservid = NULL;
 	char *pdomain = NULL;
@@ -1311,11 +1352,18 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
 	  case DMARC_POLICY_NONE:		/* Accept and report */
+		aresult = "none";
+		ret = SMFIS_ACCEPT;
+		break;
+
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
+		aresult = "pass";
 		ret = SMFIS_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
+		aresult = "fail";
+
 		snprintf(replybuf, sizeof replybuf,
 		         "rejected by DMARC policy for %s", pdomain);
 
@@ -1331,6 +1379,8 @@ mlfi_eom(SMFICTX *ctx)
 		break;
 
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
+		aresult = "fail";
+
 		snprintf(replybuf, sizeof replybuf,
 		         "quarantined by DMARC policy for %s", pdomain);
 
@@ -1343,6 +1393,25 @@ mlfi_eom(SMFICTX *ctx)
 
 		ret = SMFIS_TEMPFAIL;
 		break;
+	}
+
+	/* if the final action isn't TEMPFAIL or REJECT, add an A-R field */
+	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
+	{
+		snprintf(header, sizeof header, "%s; dmarc=%s header.d=%s",
+		         conf->conf_authservid, aresult, dfc->mctx_fromdomain);
+
+		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+		                     header) == MI_FAILURE)
+		{
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_ERR,
+				       "%s: %s header add failed",
+				       dfc->mctx_jobid,
+				       AUTHRESULTSHDR);
+			}
+		}
 	}
 
 	dmarcf_cleanup(ctx);

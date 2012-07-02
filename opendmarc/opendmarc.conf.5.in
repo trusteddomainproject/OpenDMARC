@@ -43,6 +43,12 @@ default to 0, and string and dataset values default to being undefined.
 
 .SH PARAMETERS
 .TP
+.I AlwaysDeliver (Boolean)
+If set, no message will be rejected or temp-failed regardless of the outcome
+of the DMARC evaluation of the message.  Instead, an Authentication-Results
+header field will be added.  The default is "false".
+
+.TP
 .I AuthservID (string)
 Sets the "authserv-id" to use when generating the Authentication-Results:
 header field after verifying a message.  The default is to use the name of
