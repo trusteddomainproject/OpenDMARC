@@ -204,7 +204,7 @@ AC_ARG_ENABLE([filter-tests],
               AS_HELP_STRING([--enable-filter-tests],
                              [enable Lua-based filter unit tests]),
               [enable_filter_tests=$enableval],
-              [enable_filter_tests=yes])
+              [enable_filter_tests=no])
 AM_CONDITIONAL([FILTER_TESTS], [test x"$enable_filter_tests" = x"yes"])
 if test x"$enable_filter_tests" = x"yes" -a x"$miltertest" != x"yes"
 then
