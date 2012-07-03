@@ -82,7 +82,7 @@ end
 if mt.eom(conn) ~= nil then
 	error("mt.eom() failed")
 end
-if mt.getreply(conn) ~= SMFIR_ACCEPT then
+if mt.getreply(conn) ~= SMFIR_CONTINUE then
 	error("mt.eom() unexpected reply")
 end
 
