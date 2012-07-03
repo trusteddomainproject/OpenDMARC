@@ -1031,7 +1031,6 @@ mlfi_eom(SMFICTX *ctx)
 	char *aresult = NULL;
 	char *hostname = NULL;
 	char *authservid = NULL;
-	char *pdomain = NULL;
 	DMARCF_CONNCTX cc;
 	DMARCF_MSGCTX dfc;
 	struct dmarcf_config *conf;
@@ -1042,6 +1041,7 @@ mlfi_eom(SMFICTX *ctx)
 	unsigned char header[MAXHEADER + 1];
 	unsigned char addrbuf[BUFRSZ + 1];
 	unsigned char replybuf[BUFRSZ + 1];
+	unsigned char pdomain[MAXHOSTNAMELEN + 1];
 	struct authres ar;
 
 	assert(ctx != NULL);
@@ -1297,8 +1297,12 @@ mlfi_eom(SMFICTX *ctx)
 	**  Interact with libopendmarc.
 	*/
 
-	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
-	/* XXX -- pdomain = opendmarc_get_organizational_domain(cc->cctx_dmarc); */
+	opendmarc_policy_query_dmarc(cc->cctx_dmarc, dfc->mctx_fromdomain);
+
+	memset(pdomain, '\0', sizeof pdomain);
+	opendmarc_policy_fetch_utilized_domain(cc->cctx_dmarc,
+	                                       pdomain, sizeof pdomain);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "pdomain %s\n", pdomain);
 
 	/*
 	**  Record activity in the history file.
