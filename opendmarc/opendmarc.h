@@ -40,8 +40,10 @@
 #define AUTHRESULTSHDR	"Authentication-Results"
 #define	SWHEADERNAME	"DMARC-Filter"
 
-#define	DMARC_REJECT_SMTP	"451"
-#define	DMARC_REJECT_ESC	"4.7.1"
+#define	DMARC_TEMPFAIL_SMTP	"451"
+#define	DMARC_TEMPFAIL_ESC	"4.7.1"
+#define	DMARC_REJECT_SMTP	"550"
+#define	DMARC_REJECT_ESC	"5.7.1"
 
 /* prototypes, etc., exported for test.c */
 extern char *progname;
