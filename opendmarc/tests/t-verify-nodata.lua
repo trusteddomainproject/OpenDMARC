@@ -3,9 +3,10 @@
 -- Test message from paypal.com with no DKIM or SPF DATA
 -- 
 -- Confirms that a message with no authentication data claiming to be from a
--- "p=reject" domain will provoke a rejection.
+-- "p=reject" domain will provoke a rejection.  This variant confirms failure
+-- by checking for an appropriate Authentication-Results field.
 
-mt.echo("*** no data reject test")
+mt.echo("*** no data reject test (Authentication-Results)")
 
 -- setup
 sock = "unix:" .. mt.getcwd() .. "/t-verify-nodata.sock"

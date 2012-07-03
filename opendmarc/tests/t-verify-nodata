@@ -3,7 +3,9 @@
 # Test a forged message from paypal.com with no SPF or DKIM data.
 #
 # As of 7/1/2012, paypal.com advertises a "p=reject" DMARC policy, so a message
-# with no SPF or DKIM data on it should be rejected.
+# with no SPF or DKIM data on it should be rejected.  This version checks
+# for proper generation of an Authentication-Results field rather than outright
+# rejection.
 
 if [ x"$srcdir" = x"" ]
 then
