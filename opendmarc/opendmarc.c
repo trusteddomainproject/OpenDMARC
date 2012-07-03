@@ -1304,6 +1304,8 @@ mlfi_eom(SMFICTX *ctx)
 	                                       pdomain, sizeof pdomain);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "pdomain %s\n", pdomain);
 
+	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
+
 	/*
 	**  Record activity in the history file.
 	*/
@@ -1368,33 +1370,47 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
 
-		snprintf(replybuf, sizeof replybuf,
-		         "rejected by DMARC policy for %s", pdomain);
-
-		status = smfi_setreply(ctx, DMARC_REJECT_SMTP, DMARC_REJECT_ESC,
-		                       replybuf);
-		if (status != MI_SUCCESS && conf->conf_dolog)
+		if (!conf->conf_deliver)
 		{
-			syslog(LOG_ERR, "%s: smfi_setreply() failed",
-			       dfc->mctx_jobid);
+			snprintf(replybuf, sizeof replybuf,
+			         "rejected by DMARC policy for %s", pdomain);
+
+			status = smfi_setreply(ctx, DMARC_REJECT_SMTP,
+			                       DMARC_REJECT_ESC, replybuf);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_setreply() failed",
+				       dfc->mctx_jobid);
+			}
+
+			ret = SMFIS_REJECT;
 		}
 
-		ret = SMFIS_REJECT;
 		break;
 
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
 
-		snprintf(replybuf, sizeof replybuf,
-		         "quarantined by DMARC policy for %s", pdomain);
-
-		status = smfi_quarantine(ctx, replybuf);
-		if (status != MI_SUCCESS && conf->conf_dolog)
+		if (!conf->conf_deliver)
 		{
-			syslog(LOG_ERR, "%s: smfi_quarantine() failed",
-			       dfc->mctx_jobid);
+			snprintf(replybuf, sizeof replybuf,
+			         "quarantined by DMARC policy for %s",
+			         pdomain);
+
+			status = smfi_quarantine(ctx, replybuf);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_quarantine() failed",
+				       dfc->mctx_jobid);
+			}
+
+			ret = SMFIS_ACCEPT;
 		}
 
+		break;
+
+	  default:
+		aresult = "temperror";
 		ret = SMFIS_TEMPFAIL;
 		break;
 	}
