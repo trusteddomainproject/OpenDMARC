@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# Test a forged message from paypal.com with no SPF or DKIM data.
+#
+# As of 7/1/2012, paypal.com advertises a "p=reject" DMARC policy, so a message
+# with no SPF or DKIM data on it should be rejected.  This variant actually
+# does rejection, rather than testing Authentication-Results header field
+# generation.
+
+if [ x"$srcdir" = x"" ]
+then
+	srcdir=`pwd`
+fi
+
+miltertest -s $srcdir/t-verify-nodata-reject.lua
