@@ -174,6 +174,7 @@ sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
 static void dmarcf_config_free __P((struct dmarcf_config *));
 static struct dmarcf_config *dmarcf_config_new __P((void));
 sfsistat dkimf_insheader __P((SMFICTX *, int, char *, char *));
+sfsistat dkimf_setreply __P((SMFICTX *, char *, char *, char *));
 
 /* globals */
 _Bool dolog;
@@ -188,6 +189,30 @@ char *conffile;
 char *sock;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+
+/*
+**  DMARCF_SETREPLY -- wrapper for smfi_setreply()
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**  	rcode -- SMTP reply code
+**  	xcode -- SMTP enhanced status code
+**  	replytxt -- reply text
+**
+**  Return value:
+**  	An sfsistat.
+*/
+
+sfsistat
+dmarcf_setreply(SMFICTX *ctx, char *rcode, char *xcode, char *replytxt)
+{
+	assert(ctx != NULL);
+
+	if (testmode)
+		return dmarcf_test_setreply(ctx, rcode, xcode, replytxt);
+	else
+		return smfi_setreply(ctx, rcode, xcode, replytxt);
+}
 
 /*
 **  DMARCF_INSHEADER -- wrapper for smfi_insheader()
@@ -1375,8 +1400,8 @@ mlfi_eom(SMFICTX *ctx)
 			snprintf(replybuf, sizeof replybuf,
 			         "rejected by DMARC policy for %s", pdomain);
 
-			status = smfi_setreply(ctx, DMARC_REJECT_SMTP,
-			                       DMARC_REJECT_ESC, replybuf);
+			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
+			                         DMARC_REJECT_ESC, replybuf);
 			if (status != MI_SUCCESS && conf->conf_dolog)
 			{
 				syslog(LOG_ERR, "%s: smfi_setreply() failed",
