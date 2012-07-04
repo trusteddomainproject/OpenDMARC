@@ -89,13 +89,10 @@ AC_CHECK_HEADERS(string.h)
 AC_CHECK_HEADERS(sys/param.h)
 AC_CHECK_HEADERS(sys/socket.h)
 AC_CHECK_HEADERS(sys/types.h)
-
-
+AC_CHECK_HEADERS(sys/types.h)
 AC_CHECK_HEADERS(arpa/inet.h sys/socket.h netdb.h sys/ioctl.h)
-[#if HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-]
+AC_CHECK_HEADERS(iso/limits_iso.h)
+
 AC_CHECK_HEADERS([netinet/in.h], [], [],
 [#if HAVE_SYS_TYPES_H
 # include <sys/types.h>

@@ -10,6 +10,9 @@
 /* system includes */
 #include <sys/param.h>
 #include <sys/types.h>
+#ifdef HAVE_ISO_LIMITS_ISO_H
+# include <iso/limits_iso.h>
+#endif /* HAVE_ISO_LIMITS_ISO_H */
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
