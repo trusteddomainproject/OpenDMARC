@@ -4,6 +4,10 @@
 
 #include "build-config.h"
 
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# define _POSIX_PTHREAD_SEMANTICS
+#endif /* ! _POSIX_PTHREAD_SEMANTICS */
+
 /* system includes */
 #include <sys/param.h>
 #include <sys/types.h>
