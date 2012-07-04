@@ -842,20 +842,28 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 	}
 	else if (ip->sa_family == AF_INET)
 	{
-		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in));
-		(void) inet_ntop(AF_INET, ip, cc->cctx_ipstr,
+		struct sockaddr_in sa;
+
+		memcpy(&sa, ip, sizeof(struct sockaddr_in));
+		(void) inet_ntop(AF_INET, &sa.sin_addr, cc->cctx_ipstr,
 		                 sizeof cc->cctx_ipstr);
 		cc->cctx_dmarc = opendmarc_policy_connect_init(cc->cctx_ipstr,
 		                                               FALSE);
+
+		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in));
 	}
 #ifdef AF_INET6
 	else if (ip->sa_family == AF_INET6)
 	{
-		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in6));
-		(void) inet_ntop(AF_INET6, ip, cc->cctx_ipstr,
+		struct sockaddr_in6 sa;
+
+		memcpy(&sa, ip, sizeof(struct sockaddr_in6));
+		(void) inet_ntop(AF_INET6, &sa.sin6_addr, cc->cctx_ipstr,
 		                 sizeof cc->cctx_ipstr);
 		cc->cctx_dmarc = opendmarc_policy_connect_init(cc->cctx_ipstr,
 		                                               TRUE);
+
+		memcpy(&cc->cctx_ip, ip, sizeof(struct sockaddr_in6));
 	}
 #endif /* AF_INET6 */
 
@@ -1166,6 +1174,7 @@ mlfi_eom(SMFICTX *ctx)
 	/* first part of the history buffer */
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "job %s\n", dfc->mctx_jobid);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "reporter %s\n", hostname);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "received %ld\n", time(NULL));
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "ipaddr %s\n", cc->cctx_ipstr);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "from %s\n",
 	                      dfc->mctx_fromdomain);
