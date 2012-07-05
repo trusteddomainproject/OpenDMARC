@@ -4,7 +4,7 @@
 \- OpenDMARC aggregate report data import tool
 .SH SYNOPSIS
 .B opendmarc-import
-[options] infile
+[options]
 .SH DESCRIPTION
 .B opendmarc-import
 reads per-message data recorded by an instance of
@@ -13,8 +13,7 @@ and inserts it into an SQL database, for later use by
 .B opendmarc-reports(8)
 to generate aggregat reports.
 
-Records are read from
-.I infile.
+Records are read from standard input.
 .SH OPTIONS
 .TP
 .I --dbhost=hostname
