@@ -366,8 +366,6 @@ static int
 dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
                    char *err, size_t errlen)
 {
-	int maxsign;
-	int dbflags = 0;
 	char *str;
 	char confstr[BUFRSZ + 1];
 	char basedir[MAXPATHLEN + 1];
@@ -523,7 +521,6 @@ dmarcf_config_reload(void)
 		u_int line;
 		struct config *cfg;
 		char *missing;
-		char *errstr = NULL;
 		char path[MAXPATHLEN + 1];
 
 		memset(path, '\0', sizeof path);
@@ -1812,7 +1809,6 @@ main(int argc, char **argv)
 	_Bool dofork = TRUE;
 	_Bool stricttest = FALSE;
 	_Bool configonly = FALSE;
-	_Bool querytest = FALSE;
 	int c;
 	int status;
 	int n;
@@ -1831,7 +1827,6 @@ main(int argc, char **argv)
 	sigset_t sigset;
 	time_t maxrestartrate_t = 0;
 	pthread_t rt;
-	unsigned long tmpl;
 	const char *args = CMDLINEOPTS;
 	FILE *f;
 	struct passwd *pw = NULL;
