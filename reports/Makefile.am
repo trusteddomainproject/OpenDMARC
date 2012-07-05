@@ -6,4 +6,4 @@ dist_doc_DATA = README
 
 dist_bin_SCRIPTS = opendmarc-reports
 
-dist_man_MANS = opendmarc-reports.8
+dist_man_MANS = opendmarc-imports.8 opendmarc-reports.8
