@@ -1,3 +1,5 @@
 Makefile.in
+opendmarc-import
+opendmarc-import.8
 opendmarc-reports
 opendmarc-reports.8
