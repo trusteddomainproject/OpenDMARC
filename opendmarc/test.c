@@ -355,14 +355,11 @@ dmarcf_testfile(struct test_context *tctx, FILE *f, char *file,
                 _Bool strict, int tverbose)
 {
 	bool inheaders = TRUE;
-	int len = 0;
-	int buflen = 0;
 	int lineno = 0;
 	int hslineno = 0;
 	int c;
 	char *p;
 	sfsistat ms;
-	struct sockaddr_in sin;
 	char buf[BUFRSZ];
 	char line[BUFRSZ];
 
