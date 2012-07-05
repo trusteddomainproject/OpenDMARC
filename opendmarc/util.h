@@ -9,6 +9,16 @@
 #include <sys/types.h>
 #include <stdio.h>
 
+#ifdef __STDC__
+# ifndef __P
+#  define __P(x)  x
+# endif /* ! __P */
+#else /* __STDC__ */
+# ifndef __P
+#  define __P(x)  ()
+# endif /* ! __P */
+#endif /* __STDC__ */
+
 /* PROTOTYPES */
 extern void dmarcf_optlist __P((FILE *));
 extern void dmarcf_setmaxfd __P((void));
