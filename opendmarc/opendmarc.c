@@ -568,11 +568,6 @@ dmarcf_config_reload(void)
 			err = TRUE;
 		}
 
-		if (curconf->conf_pslist != NULL)
-		{
-			/* XXX -- opendmarc_tld_shutdown() */
-		}
-
 		if (new->conf_pslist != NULL)
 		{
 			if (opendmarc_tld_read_file(new->conf_pslist, "#",
