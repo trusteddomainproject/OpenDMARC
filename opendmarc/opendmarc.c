@@ -1341,42 +1341,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
 
-	/*
-	**  Record activity in the history file.
-	*/
-
-	if (conf->conf_historyfile != NULL)
-	{
-		FILE *f;
-
-		f = fopen(conf->conf_historyfile, "a");
-		if (f == NULL)
-		{
-			if (conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: %s: fopen(): %s",
-				       dfc->mctx_jobid,
-				       conf->conf_historyfile,
-				       strerror(errno));
-			}
-
-			return SMFIS_TEMPFAIL;
-		}
-
-		/* write out the buffer */
-		clearerr(f);
-		fwrite(dmarcf_dstring_get(dfc->mctx_histbuf), 1,
-		       dmarcf_dstring_len(dfc->mctx_histbuf), f);
-		if (ferror(f) && conf->conf_dolog)
-		{
-			syslog(LOG_ERR, "%s: %s: fwrite(): %s",
-			       dfc->mctx_jobid,
-			       conf->conf_historyfile,
-			       strerror(errno));
-		}
-
-		fclose(f);
-	}
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "policy %d\n", policy);
 
 	/*
 	**  Generate a forensic report.
@@ -1467,6 +1432,45 @@ mlfi_eom(SMFICTX *ctx)
 				       AUTHRESULTSHDR);
 			}
 		}
+	}
+
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "action %d\n", ret);
+
+	/*
+	**  Record activity in the history file.
+	*/
+
+	if (conf->conf_historyfile != NULL)
+	{
+		FILE *f;
+
+		f = fopen(conf->conf_historyfile, "a");
+		if (f == NULL)
+		{
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: %s: fopen(): %s",
+				       dfc->mctx_jobid,
+				       conf->conf_historyfile,
+				       strerror(errno));
+			}
+
+			return SMFIS_TEMPFAIL;
+		}
+
+		/* write out the buffer */
+		clearerr(f);
+		fwrite(dmarcf_dstring_get(dfc->mctx_histbuf), 1,
+		       dmarcf_dstring_len(dfc->mctx_histbuf), f);
+		if (ferror(f) && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: %s: fwrite(): %s",
+			       dfc->mctx_jobid,
+			       conf->conf_historyfile,
+			       strerror(errno));
+		}
+
+		fclose(f);
 	}
 
 	dmarcf_cleanup(ctx);
