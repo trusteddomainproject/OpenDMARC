@@ -277,7 +277,7 @@ strip_local_part:
 	if (cp == NULL)
 		cp = copy;
 	ep = strchr(cp, '@');
-	if (cp != NULL)
+	if (ep != NULL)
 		cp = ep + 1;
 	len = strlen((char *)cp);
 	if (len > buflen)

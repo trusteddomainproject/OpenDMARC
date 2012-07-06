@@ -309,6 +309,7 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 		case DMARC_POLICY_SPF_OUTCOME_FAIL:
 		case DMARC_POLICY_SPF_OUTCOME_TMPFAIL:
 			pctx->spf_outcome = result;
+			break;
 		default:
 			return DMARC_PARSE_ERROR_BAD_SPF_MACRO;
 	}
@@ -317,6 +318,7 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 		case DMARC_POLICY_SPF_ORIGIN_MAILFROM:
 		case DMARC_POLICY_SPF_ORIGIN_HELO:
 			pctx->spf_origin = origin;
+			break;
 		default:
 			return DMARC_PARSE_ERROR_BAD_SPF_MACRO;
 	}
@@ -365,6 +367,7 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 		case DMARC_POLICY_DKIM_OUTCOME_FAIL:
 		case DMARC_POLICY_DKIM_OUTCOME_TMPFAIL:
 			result = dkim_result;
+			break;
 		default:
 			return DMARC_PARSE_ERROR_BAD_DKIM_MACRO;
 	}
