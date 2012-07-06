@@ -568,11 +568,6 @@ dmarcf_config_reload(void)
 			err = TRUE;
 		}
 
-		if (curconf->conf_pslist != NULL)
-		{
-			/* XXX -- opendmarc_tld_shutdown() */
-		}
-
 		if (new->conf_pslist != NULL)
 		{
 			if (opendmarc_tld_read_file(new->conf_pslist, "#",
@@ -1056,10 +1051,16 @@ mlfi_header(SMFICTX *ctx, char *headerf, char *headerv)
 sfsistat
 mlfi_eom(SMFICTX *ctx)
 {
+	_Bool wspf = FALSE;
 	int c;
 	int pc;
 	int policy;
 	int status;
+	int adkim;
+	int aspf;
+	int pct;
+	int p;
+	int sp;
 	sfsistat ret = SMFIS_CONTINUE;
 	OPENDMARC_STATUS_T ostatus;
 	char *aresult = NULL;
@@ -1275,6 +1276,7 @@ mlfi_eom(SMFICTX *ctx)
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "aspf %d\n",
 				                      dfc->mctx_spfalign);
+				wspf = TRUE;
 			}
 			else if (ar.ares_result[c].result_method ==  ARES_METHOD_DKIM)
 			{
@@ -1303,8 +1305,9 @@ mlfi_eom(SMFICTX *ctx)
 				}
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "dkim %s %d\n", domain,
-				                      ar.ares_result[c].result_result);
+				                      "dkim %s %d %d\n", domain,
+				                      ar.ares_result[c].result_result,
+				                      -1); /* XXX */
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
@@ -1329,6 +1332,12 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
+	if (!wspf)
+	{
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf -1\n");
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf -1\n");
+	}
+
 	/*
 	**  Interact with libopendmarc.
 	*/
@@ -1346,6 +1355,26 @@ mlfi_eom(SMFICTX *ctx)
 	ruav = opendmarc_policy_fetch_rua(cc->cctx_dmarc, NULL, 0, TRUE);
 	for (c = 0; ruav[c] != NULL; c++)
 		dmarcf_dstring_printf(dfc->mctx_histbuf, "rua %s\n", ruav[c]);
+
+	opendmarc_policy_fetch_pct(cc->cctx_dmarc, &pct);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "pct %d\n", pct);
+
+	opendmarc_policy_fetch_adkim(cc->cctx_dmarc, &adkim);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "adkim %d\n", adkim);
+
+	opendmarc_policy_fetch_aspf(cc->cctx_dmarc, &aspf);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "aspf %d\n", aspf);
+
+	opendmarc_policy_fetch_p(cc->cctx_dmarc, &p);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "p %d\n", p);
+
+	opendmarc_policy_fetch_sp(cc->cctx_dmarc, &sp);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "sp %d\n", sp);
+
+	/*
+	opendmarc_policy_fetch_align_spf(cc->cctx_dmarc, &align_spf);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf %d\n", align_spf);
+	*/
 
 	/*
 	**  Generate a forensic report.
