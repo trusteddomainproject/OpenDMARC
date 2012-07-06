@@ -1305,9 +1305,8 @@ mlfi_eom(SMFICTX *ctx)
 				}
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "dkim %s %d %d\n", domain,
-				                      ar.ares_result[c].result_result,
-				                      -1); /* XXX */
+				                      "dkim %s %d\n", domain,
+				                      ar.ares_result[c].result_result);
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
@@ -1333,10 +1332,7 @@ mlfi_eom(SMFICTX *ctx)
 	}
 
 	if (!wspf)
-	{
 		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf -1\n");
-		dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf -1\n");
-	}
 
 	/*
 	**  Interact with libopendmarc.
@@ -1371,10 +1367,11 @@ mlfi_eom(SMFICTX *ctx)
 	opendmarc_policy_fetch_sp(cc->cctx_dmarc, &sp);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "sp %d\n", sp);
 
-	/*
-	opendmarc_policy_fetch_align_spf(cc->cctx_dmarc, &align_spf);
+	opendmarc_policy_fetch_alignment(cc->cctx_dmarc, &align_dkim,
+	                                 &align_spf);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_dkim %d\n",
+	                      align_dkim);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf %d\n", align_spf);
-	*/
 
 	/*
 	**  Generate a forensic report.

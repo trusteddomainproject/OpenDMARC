@@ -176,8 +176,8 @@ sub update_db
 		return;
 	}
 
-	$dbi_s = $dbi_h->prepare("INSERT INTO messages (date, jobid, reporter, policy, disp, ip, env_domain, from_domain, spf, align_spf, sigcount) VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-	if (!$dbi_s->execute($received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id, $spf, $align_spf, $sigcount))
+	$dbi_s = $dbi_h->prepare("INSERT INTO messages (date, jobid, reporter, policy, disp, ip, env_domain, from_domain, spf, align_spf, align_dkim, sigcount) VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+	if (!$dbi_s->execute($received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id, $spf, $align_spf, $align_dkim, $sigcount))
 	{
 		print STDERR "$progname: failed to insert message: " . $dbi_h->errstr . "\n";
 		return;
@@ -209,10 +209,10 @@ sub update_db
 		return;
 	}
 
-	$dbi_s = $dbi_h->prepare("INSERT INTO signatures (message, domain, pass, error, align) VALUES(?, ?, ?, ?, ?)");
+	$dbi_s = $dbi_h->prepare("INSERT INTO signatures (message, domain, pass, error) VALUES(?, ?, ?, ?)");
 	foreach (@dkim_data)
 	{
-		my ($sdomain, $pass, $error, $align) = $_;
+		my ($sdomain, $pass, $error) = $_;
 
 		$sdomain_id = get_table_id($sdomain, "domains");
 		if (!defined($sdomain_id))
@@ -220,7 +220,7 @@ sub update_db
 			next;
 		}
 
-		if (!$dbi_s->execute($msg_id, $sdomain_id, $pass, $error, $align))
+		if (!$dbi_s->execute($msg_id, $sdomain_id, $pass, $error))
 		{
 			print STDERR "$progname: failed to insert DKIM data: " . $dbi_h->errstr . "\n";
 			$dbi_s->finish;
@@ -390,7 +390,7 @@ while (<STDIN>)
 	$lineno++;
 
 	chomp;
-	($key, $value, $dkim_domain, $dkim_result, $dkim_align) = split;
+	($key, $value, $dkim_domain, $dkim_result) = split;
 
 	switch ($key)
 	{
@@ -400,6 +400,10 @@ while (<STDIN>)
 
 	  case "adkim"		{
 					$adkim = $value;
+				}
+
+	  case "align_dkim"	{
+					$align_dkim = $value;
 				}
 
 	  case "align_spf"	{
@@ -430,7 +434,6 @@ while (<STDIN>)
 					{
 						push(@dkim_entry, 0);
 					}
-					push(@dkim_entry, $dkim_align);
 					push(@dkim_data, [ @dkim_entry ]);
 
 					$sigcount++;
@@ -447,6 +450,7 @@ while (<STDIN>)
 
 						undef $action;
 						undef $adkim;
+						undef $align_dkim;
 						undef $align_spf;
 						undef $aspf;
 						undef @dkim_data;
