@@ -1061,6 +1061,8 @@ mlfi_eom(SMFICTX *ctx)
 	int pct;
 	int p;
 	int sp;
+	int align_dkim;
+	int align_spf;
 	sfsistat ret = SMFIS_CONTINUE;
 	OPENDMARC_STATUS_T ostatus;
 	char *aresult = NULL;
