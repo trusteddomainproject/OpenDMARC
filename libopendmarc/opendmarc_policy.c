@@ -512,6 +512,8 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 	 * If dkim passes and dkim aligns OR spf passes and spf aligns
 	 * Accept the message.
 	 */
+	pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_FAIL;
+	pctx->spf_alignment  = DMARC_POLICY_SPF_ALIGNMENT_FAIL;
 	if (pctx->dkim_domain != NULL && pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
 	{
 		
@@ -519,12 +521,18 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 		if (pctx->adkim == DMARC_RECORD_A_STRICT)
 		{
 			if (strcasecmp((char *)rev_from_domain, (char *)rev_dkim_domain) == 0)
+			{
+				pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_PASS;
 				return DMARC_POLICY_PASS;
+			}
 		}
 		else
 		{
 			if (strncasecmp((char *)rev_from_domain, (char *)rev_dkim_domain, strlen((char *)rev_dkim_domain)) == 0)
+			{
+				pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_PASS;
 				return DMARC_POLICY_PASS;
+			}
 		}
 	}
 
@@ -535,12 +543,18 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 		if (pctx->aspf == DMARC_RECORD_A_STRICT)
 		{
 			if (strcasecmp((char *)rev_from_domain, (char *)rev_spf_domain) == 0)
+			{
+				pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
 				return DMARC_POLICY_PASS;
+			}
 		}
 		else
 		{
 			if (strncasecmp((char *)rev_from_domain, (char *)rev_spf_domain, strlen((char *)rev_spf_domain)) == 0)
+			{
+				pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
 				return DMARC_POLICY_PASS;
+			}
 		}
 	}
 
@@ -1007,6 +1021,24 @@ opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 	if (constant != 0)
 		return pctx->rua_list;
 	return opendmarc_util_dupe_argv(pctx->rua_list);
+}
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_alignment(DMARC_POLICY_T *pctx, int *dkim_alignment, int *spf_alignment)
+{
+	if (pctx == NULL)
+	{
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	}
+	if (dkim_alignment != NULL)
+	{
+		*dkim_alignment = pctx->dkim_alignment;
+	}
+	if (spf_alignment != NULL)
+	{
+		*spf_alignment = pctx->spf_alignment;
+	}
+	return DMARC_PARSE_OKAY;
 }
 
 u_char **

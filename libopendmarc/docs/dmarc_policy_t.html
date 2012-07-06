@@ -1,0 +1,69 @@
+<html>
+<head><title>DMARC_POLICY_T</title></head>
+<body>
+<!--
+$Id: dmarc_policy_t.html,v 1.2 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>DMARC_POLICY_T</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Purpose</th>
+<td>The <tt>DMARC_POLICY_T</tt> is an opaque structure used to communicate on a per message
+    basis with the library. It is to enter information into policy and to receive information
+    from policy.
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">Synopsis</th>
+<td>
+<blockquote>
+#include &lt;dmarc.h&gt;
+<p>
+DMARC_POLICY_T *pctx;
+</blockquote>
+</td>
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">DMARC_POLICY_T</th>
+<td>
+This opaque data type must be initialized using <a href="opendmarc_policy_connect_init.html">opendmarc_policy_connect_init()</a> and later freed using <a href="opendmarc_policy_connect_shutdown.html">opendmarc_policy_connect_shutdown()</a>.
+<p>
+In generally you may initialize it when the connection is first accepted and keep it active until the remote client disconnects. If there are multiple envelopes per envelope, you may call <a href="opendmarc_policy_connect_rset.html">opendmarc_policy_connect_rset()</a> to reset the opaque structure for re-use with the next message.
+</td>
+</tr>
+
+<tr align="left" valign=top>
+<th width="80">Usage</th>
+<td>
+Each connection from a client to your SMTP server will require its own <tt>DMARC_POLICY_T</tt> pointer. Be certain to free this structure by calling <a href="opendmarc_policy_connect_shutdown.html"></a> when the connection is discontinued to avoid a memory leak.
+</td>
+</tr>
+
+
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li><tt>DMARC_POLICY_T</tt> is thread safe provided it is not used cocurrently by two or more threads. There should be a minimum of one DMARC_POLICY_T pointer per thread.
+</ul>
+</td>
+</tr>
+
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>
