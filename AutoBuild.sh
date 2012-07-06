@@ -41,15 +41,7 @@ if [ ! -f config.h.in -a -f config.h.in~ ]; then
     perform "cp config.h.in~ config.h.in"
 fi
 
-AUTOMAKE=automake
-AUTOHEADER=autoheader
-AUTOCONF=autoconf
-
-for name in $AUTOHEADER $AUTOMAKE $AUTOCONF
-do
-	echo $name
-	perform $name
-done
+autoreconf -v -i
 
 CONF="./configure --with-wall -C"
 echo ${CONF}

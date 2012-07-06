@@ -126,6 +126,12 @@ typedef struct dmarc_policy_t {
 	u_char *	dkim_human_outcome;	/* Input: What was the outcome of the DKIM check in human readable form */
 
 	/*
+	 * Computed outcomes
+	 */
+	int		dkim_alignment;
+	int		spf_alignment;
+
+	/*
 	 * Computed Organizational domain, if subdomain lacked a record.
 	 */
 	u_char *	from_domain;		/* Input: From: header domain */
