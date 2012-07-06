@@ -1072,6 +1072,7 @@ mlfi_eom(SMFICTX *ctx)
 	struct dmarcf_header *from;
 	u_char *user;
 	u_char *domain;
+	u_char **ruav;
 	unsigned char header[MAXHEADER + 1];
 	unsigned char addrbuf[BUFRSZ + 1];
 	unsigned char replybuf[BUFRSZ + 1];
@@ -1340,8 +1341,11 @@ mlfi_eom(SMFICTX *ctx)
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "pdomain %s\n", pdomain);
 
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
-
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "policy %d\n", policy);
+
+	ruav = opendmarc_policy_fetch_rua(cc->cctx_dmarc, NULL, 0, TRUE);
+	for (c = 0; ruav[c] != NULL; c++)
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "rua %s\n", ruav[c]);
 
 	/*
 	**  Generate a forensic report.
