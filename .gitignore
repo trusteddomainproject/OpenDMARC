@@ -13,3 +13,6 @@ stamp-h.in
 stamp-h1
 libtool
 opendmarc-[0-9].[0-9].[0-9]
+*.gz
+*.gz.sha1
+*.gz.md5
