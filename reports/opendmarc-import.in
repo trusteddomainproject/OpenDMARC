@@ -53,8 +53,10 @@ my $value;
 
 my $action;
 my $adkim;
+my $align_dkim;
 my $align_spf;
 my $aspf;
+my $dd;
 my $dkim_align;
 my @dkim_data;
 my $dkim_domain;
@@ -83,16 +85,22 @@ sub get_table_id
 {
 	my $name;
 	my $table;
+	my $column;
 	my $out;
 
-	($name, $table) = @_;
+	($name, $table, $column) = @_;
 
 	if (!defined($name) || !defined($table))
 	{
 		return undef;
 	}
 
-	$dbi_t = $dbi_h->prepare("SELECT id FROM $table WHERE name = ?");
+	if (!defined($column))
+	{
+		$column = "name";
+	}
+
+	$dbi_t = $dbi_h->prepare("SELECT id FROM $table WHERE $column = ?");
 	if (!$dbi_t->execute($name))
 	{
 		print STDERR "$progname: failed to retrieve table ID: " . $dbi_h->errstr . "\n";
@@ -112,7 +120,7 @@ sub get_table_id
 
 	if (!defined($out))
 	{
-		$dbi_t = $dbi_h->prepare("INSERT INTO $table (name) VALUES(?)");
+		$dbi_t = $dbi_h->prepare("INSERT INTO $table ($column) VALUES(?)");
 		if (!$dbi_t->execute($name))
 		{
 			print STDERR "$progname: failed to create table ID: " . $dbi_h->errstr . "\n";
@@ -166,14 +174,15 @@ sub update_db
 	$from_id = get_table_id($fdomain, "domains");
 	$envfrom_id = get_table_id($envdomain, "domains");
 	$pdomain_id = get_table_id($pdomain, "domains");
-	$ipaddr_id = get_table_id($ipaddr, "ipaddr");
-	$request_id = get_table_id($fdomain, "requests");
+	$ipaddr_id = get_table_id($ipaddr, "ipaddr", "addr");
+	$request_id = get_table_id($from_id, "requests", "domain");
 
 	if (!defined($rep_id) ||
 	    !defined($from_id) ||
 	    !defined($envfrom_id) ||
 	    !defined($pdomain_id) ||
-	    !defined($ipaddr_id))
+	    !defined($ipaddr_id) ||
+	    !defined($request_id))
 	{
 		return;
 	}
@@ -212,9 +221,15 @@ sub update_db
 	}
 
 	$dbi_s = $dbi_h->prepare("INSERT INTO signatures (message, domain, pass, error) VALUES(?, ?, ?, ?)");
-	foreach (@dkim_data)
+	foreach $dd (0 .. $#dkim_data)
 	{
-		my ($sdomain, $pass, $error) = $_;
+		my $sdomain;
+		my $pass;
+		my $error;
+
+		$sdomain = $dkim_data[$dd][0];
+		$pass = $dkim_data[$dd][1];
+		$error = $dkim_data[$dd][2];
 
 		$sdomain_id = get_table_id($sdomain, "domains");
 		if (!defined($sdomain_id))
@@ -392,7 +407,7 @@ while (<STDIN>)
 	$lineno++;
 
 	chomp;
-	($key, $value, $dkim_domain, $dkim_result) = split;
+	($key, $value, $dkim_result) = split;
 
 	switch ($key)
 	{
@@ -418,8 +433,8 @@ while (<STDIN>)
 
 	  case "dkim"		{
 					undef @dkim_entry;
-					push(@dkim_entry, $dkim_domain);
-					if ($dkim_result == 1)
+					push(@dkim_entry, $value);
+					if ($dkim_result eq "1")
 					{
 						push(@dkim_entry, 1);
 					}
@@ -427,8 +442,8 @@ while (<STDIN>)
 					{
 						push(@dkim_entry, 0);
 					}
-					if ($dkim_result == 4 ||
-					    $dkim_result == 5)
+					if ($dkim_result eq "4" ||
+					    $dkim_result eq "5")
 					{
 						push(@dkim_entry, 1);
 					}
