@@ -441,7 +441,12 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (domain == NULL || strlen(domain) == 0)
-		return DMARC_PARSE_ERROR_EMPTY;
+	{
+		if (pctx->from_domain != NULL)
+			domain = pctx->from_domain;
+		else
+			return DMARC_PARSE_ERROR_EMPTY;
+	}
 
 	(void) memset(copy, '\0', sizeof copy);
 	(void) snprintf(copy, sizeof copy, "_dmarc.%s", domain);
