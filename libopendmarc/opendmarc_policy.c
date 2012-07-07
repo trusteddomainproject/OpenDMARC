@@ -285,7 +285,7 @@ opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *from_domain)
 **		puney decoded into 8-bit data.
 ***************************************************************************/
 OPENDMARC_STATUS_T
-opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int origin, u_char *human_result)
+opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int origin, u_char *human_readable)
 {
 	char domain_buf[256];
 	char *dp;
@@ -297,8 +297,8 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 	dp = opendmarc_util_finddomain(domain, domain_buf, sizeof domain_buf);
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
-	if (human_result != NULL)
-		pctx->spf_human_outcome = strdup((char *)human_result);
+	if (human_readable != NULL)
+		pctx->spf_human_outcome = strdup((char *)human_readable);
 	pctx->spf_domain = strdup((char *)dp);
 	if (pctx->spf_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;

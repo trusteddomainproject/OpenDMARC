@@ -1,0 +1,102 @@
+<html>
+<head><title>opendmarc_policy_store_spf()</title></head>
+<body>
+<!--
+$Id: opendmarc_policy_store_spf.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_policy_store_spf()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * opendmarc_policy_store_spf(
+	<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * pctx,
+	u_char *domain, int result, int origin, u_char *human_readable
+);
+</pre>
+One you have found the outcome of the SPF check you may call this function to prepare it for a DMARC policy
+decision. You should call it even if you found no SPF record.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_policy_store_spf()</tt>
+	may be called as soon as you have made an SPF decision. If you have no way of validating SPF,
+	you may ignore this function.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>pctx</td>
+	<td>A pointer to type <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a>.
+	</td></tr>
+    <tr valign="top"><td>domain</td>
+	<td>A pointer to an unsigned string containing the domain used to check <tt>SPF</tt>.
+	This may be the domain from
+	the <tt>SMTP MAIL From:</tt> command or, if that contained no domain,
+	the domain from the <tt>SMTP HELO/EHLO</tt> command.
+	</td></tr>
+    <tr valign="top"><td>result</td>
+	<td>Integer specifying the result of the <tt>SPF</tt> check. Choose from one of:
+	<tt>DMARC_POLICY_SPF_OUTCOME_NONE</tt> if there was no <tt>SPF</tt> record;
+	<tt>DMARC_POLICY_SPF_OUTCOME_PASS</tt> if the <tt>SPF</tt> check passed;
+	<tt>DMARC_POLICY_SPF_OUTCOME_FAIL</tt> if the <tt>SPF</tt> check failed; or
+	<tt>DMARC_POLICY_SPF_OUTCOME_TMPFAIL</tt> if the check returned a temporary failure.
+	</td></tr>
+    <tr valign="top"><td>origin</td>
+	<td>Integer specifying the which part of the <tt>SMTP</tt> session contained the domain to check.
+	Select from one of:
+	<tt>DMARC_POLICY_SPF_ORIGIN_MAILFROM</tt> if the domain came from the <tt>SMTP MAIL From:</tt> command; or 
+	<tt>DMARC_POLICY_SPF_ORIGIN_HELO</tt> if the domain came from the <tt>SMTP HELO/EHLO</tt> command.
+	</td></tr>
+    <tr valign="top"><td>human_readable</td>
+	<td>If not NULL, is a string containing an arbitrary, human readable and freindly SPF result.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>DMARC_PARSE_OKAY</tt> -- On success
+<li><tt>DMARC_PARSE_ERROR_NULL_CTX</tt> -- If pctx was NULL
+<li><tt>DMARC_PARSE_ERROR_EMPTY</tt> -- If domain was NULL or zero length
+<li><tt>DMARC_PARSE_ERROR_NO_DOMAIN</tt> -- If domain did not contain a domain, e.g. "&lt;&gt;"
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>You may pass the whole <tt>SMTP MAIL From:</tt> command to this function,
+or the value of the <tt>SMTP MAIL From:</tt> command inside angle braces or just the domain
+you parsed from that address. This function will correctly handle whatever you feed it.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>
