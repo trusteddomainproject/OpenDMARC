@@ -1,0 +1,80 @@
+<html>
+<head><title>opendmarc_policy_connect_init()</title></head>
+<body>
+<!--
+$Id: opendmarc_policy_connect_init.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_policy_connect_init()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * opendmarc_policy_connect_init(
+	u_char *ip_addr, int is_ipv6
+);
+</pre>
+Start processing a connection by fetching a pointer of type <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a>.
+Pre-fill the opaque structure behind that pointer with the connecting IP address and whether or not it is
+an IPv6 address.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_policy_connect_init()</tt>
+	may be called after the initial client connection, but before you use any of the library 
+	routines that require the <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> pointer type as input.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>ip_addr</td>
+	<td>A string containing the IP address of the conneting client.
+	</td></tr>
+    <tr valign="top"><td>is_ipv6</td>
+	<td>An integer of value 0 if the address in <tt>ip_addr</tt> is an IPv4 address.
+	Or the value non-zero if the address in <tt>ip_addr</tt> is an IPv6 address.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * -- on success
+<li>NULL -- On error and sets <tt>errno</tt>
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>If this function returns NULL it means that no more memory could be allocated.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>
