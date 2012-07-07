@@ -45,6 +45,12 @@
 #define	DMARC_REJECT_SMTP	"550"
 #define	DMARC_REJECT_ESC	"5.7.1"
 
+#define	DMARC_RESULT_REJECT	0
+#define	DMARC_RESULT_DISCARD	1
+#define	DMARC_RESULT_ACCEPT	2
+#define	DMARC_RESULT_TEMPFAIL	3
+#define	DMARC_RESULT_QUARANTINE	4
+
 /* prototypes, etc., exported for test.c */
 extern char *progname;
 

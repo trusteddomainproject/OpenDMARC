@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#define	OPENDMARC_LIB_VERSION	0x00000000
+
 #define	DMARC_MAXHOSTNAMELEN		(256)
 
 # define DMARC_POLICY_IP_TYPE_IPV4		(4)
@@ -117,6 +119,7 @@ OPENDMARC_STATUS_T opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dm
  * Access to parts of the DMARC record.
  */
 OPENDMARC_STATUS_T opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_alignment(DMARC_POLICY_T *pctx, int *dkim_alignment, int *spf_alignment);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_pct(DMARC_POLICY_T *pctx, int *pctp);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_adkim(DMARC_POLICY_T *pctx, int *adkim);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_aspf(DMARC_POLICY_T *pctx, int *aspf);

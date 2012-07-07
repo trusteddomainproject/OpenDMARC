@@ -1063,6 +1063,7 @@ mlfi_eom(SMFICTX *ctx)
 	int sp;
 	int align_dkim;
 	int align_spf;
+	int result;
 	sfsistat ret = SMFIS_CONTINUE;
 	OPENDMARC_STATUS_T ostatus;
 	char *aresult = NULL;
@@ -1385,6 +1386,8 @@ mlfi_eom(SMFICTX *ctx)
 	**  Enact policy based on DMARC results.
 	*/
 
+	result = DMARC_RESULT_ACCEPT;
+
 	switch (policy)
 	{
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
@@ -1392,11 +1395,13 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_NONE:		/* Accept and report */
 		aresult = "none";
 		ret = SMFIS_ACCEPT;
+		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
 		ret = SMFIS_ACCEPT;
+		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
@@ -1416,6 +1421,7 @@ mlfi_eom(SMFICTX *ctx)
 			}
 
 			ret = SMFIS_REJECT;
+			result = DMARC_RESULT_REJECT;
 		}
 
 		break;
@@ -1437,6 +1443,7 @@ mlfi_eom(SMFICTX *ctx)
 			}
 
 			ret = SMFIS_ACCEPT;
+			result = DMARC_RESULT_QUARANTINE;
 		}
 
 		break;
@@ -1444,6 +1451,7 @@ mlfi_eom(SMFICTX *ctx)
 	  default:
 		aresult = "temperror";
 		ret = SMFIS_TEMPFAIL;
+		result = DMARC_RESULT_TEMPFAIL;
 		break;
 	}
 
@@ -1466,7 +1474,7 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
-	dmarcf_dstring_printf(dfc->mctx_histbuf, "action %d\n", ret);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "action %d\n", result);
 
 	/*
 	**  Record activity in the history file.

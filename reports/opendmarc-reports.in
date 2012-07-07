@@ -393,24 +393,24 @@ foreach (@$domainset)
 
 	switch ($adkim)
 	{
-		case 0	{ $adkimstr = "r"; }
-		case 1	{ $adkimstr = "s"; }
-		else	{ $adkimstr = "unknown"; }
+		case ord("r")	{ $adkimstr = "r"; }
+		case ord("s")	{ $adkimstr = "s"; }
+		else		{ $adkimstr = "unknown"; }
 	}
 
 	switch ($aspf)
 	{
-		case 0	{ $aspfstr = "r"; }
-		case 1	{ $aspfstr = "s"; }
-		else	{ $aspfstr = "unknown"; }
+		case ord("r")	{ $aspfstr = "r"; }
+		case ord("s")	{ $aspfstr = "s"; }
+		else		{ $aspfstr = "unknown"; }
 	}
 
 	switch ($policy)
 	{
-		case 0	{ $policystr = "none"; }
-		case 1	{ $policystr = "quarantine"; }
-		case 2	{ $policystr = "reject"; }
-		else	{ $policystr = "unknown"; }
+		case ord("n")	{ $policystr = "none"; }
+		case ord("q")	{ $policystr = "quarantine"; }
+		case ord("r")	{ $policystr = "reject"; }
+		else		{ $policystr = "unknown"; }
 	}
 
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
@@ -425,6 +425,7 @@ foreach (@$domainset)
 			$gen->date_range(
 				$gen->begin($lastsent),
 				$gen->end(time())));
+	print $tmpout "\n";
 
 	print $tmpout $gen->policy_published(
 			$gen->domain($domain),
@@ -432,6 +433,7 @@ foreach (@$domainset)
 			$gen->aspf($aspfstr),
 			$gen->p($policystr),
 			$gen->pct($pct));
+	print $tmpout "\n";
 
 	$dbi_s = $dbi_h->prepare("SELECT COUNT(messages.id), ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, d3.name, signatures.pass, messages.align_spf, messages.align_dkim FROM messages LEFT JOIN signatures ON signatures.message = messages.id JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id JOIN domains d3 ON signatures.domain = d3.id WHERE messages.from_domain = ? AND messages.date > FROM_UNIXTIME($lastsent) GROUP BY 2, 3, 4, 5, 6, 7, 8, 9");
 	if (!$dbi_s->execute($domainid))
@@ -498,77 +500,81 @@ foreach (@$domainset)
 
 		switch ($disp)
 		{
-			case 0	{ $dispstr = "none"; }
-			case 1	{ $dispstr = "quarantine"; }
-			case 2	{ $dispstr = "reject"; }
-			else	{ $dispstr = "unknown"; }
+			case 0		{ $dispstr = "reject"; }
+			case 1		{ $dispstr = "reject"; }
+			case 2		{ $dispstr = "none"; }
+			case 4		{ $dispstr = "quarantine"; }
+			else		{ $dispstr = "unknown"; }
 		}
 
 		switch ($spfresult)
 		{
-			case 0	{ $spfresultstr = "none"; }
-			case 1	{ $spfresultstr = "neutral"; }
-			case 2	{ $spfresultstr = "pass"; }
-			case 3	{ $spfresultstr = "fail"; }
-			case 4	{ $spfresultstr = "softfail"; }
-			case 5	{ $spfresultstr = "temperror"; }
-			case 6	{ $spfresultstr = "permerror"; }
+			case 0	{ $spfresultstr = "pass"; }
+			case 2	{ $spfresultstr = "softfail"; }
+			case 3	{ $spfresultstr = "neutral"; }
+			case 4	{ $spfresultstr = "temperror"; }
+			case 5	{ $spfresultstr = "permerror"; }
+			case 6	{ $spfresultstr = "none"; }
+			case 7	{ $spfresultstr = "fail"; }
+			case 8	{ $spfresultstr = "policy"; }
+			case 9	{ $spfresultstr = "nxdomain"; }
+			case 10	{ $spfresultstr = "signed"; }
+			case 12	{ $spfresultstr = "discard"; }
 			else	{ $spfresultstr = "unknown"; }
 		}
 
 		switch ($dkimresult)
 		{
-			case 0	{ $dkimresultstr = "none"; }
-			case 1	{ $dkimresultstr = "pass"; }
-			case 2	{ $dkimresultstr = "fail"; }
-			case 3	{ $dkimresultstr = "policy"; }
-			case 4	{ $dkimresultstr = "neutral"; }
-			case 5	{ $dkimresultstr = "temperror"; }
-			case 6	{ $dkimresultstr = "permerror"; }
+			case 0	{ $dkimresultstr = "pass"; }
+			case 2	{ $dkimresultstr = "softfail"; }
+			case 3	{ $dkimresultstr = "neutral"; }
+			case 4	{ $dkimresultstr = "temperror"; }
+			case 5	{ $dkimresultstr = "permerror"; }
+			case 6	{ $dkimresultstr = "none"; }
+			case 7	{ $dkimresultstr = "fail"; }
+			case 8	{ $dkimresultstr = "policy"; }
+			case 9	{ $dkimresultstr = "nxdomain"; }
+			case 10	{ $dkimresultstr = "signed"; }
+			case 12	{ $dkimresultstr = "discard"; }
 			else	{ $dkimresultstr = "unknown"; }
 		}
 
 		switch ($align_dkim)
 		{
-			case 0	{ $align_dkimstr = "fail"; }
-			case 1	{ $align_dkimstr = "pass"; }
+			case 4	{ $align_dkimstr = "pass"; }
+			case 5	{ $align_dkimstr = "fail"; }
 			else	{ $align_dkimstr = "unknown"; }
 		}
 
 		switch ($align_spf)
 		{
-			case 0	{ $align_spfstr = "fail"; }
-			case 1	{ $align_spfstr = "pass"; }
+			case 4	{ $align_spfstr = "pass"; }
+			case 5	{ $align_spfstr = "fail"; }
 			else	{ $align_spfstr = "unknown"; }
 		}
 
-		print $tmpout "<record>\n";
-
-		print $tmpout $gen->row(
-			$gen->source_ip($ipaddr),
-			$gen->count($msgcount),
-			$gen->policy_evaluated(
-				$gen->disposition($dispstr),
-				$gen->dkim($align_dkimstr),
-				$gen->spf($align_spfstr)));
-
-		print $tmpout $gen->identities(
-			$gen->header_from($fromdomain));
-
-		print $tmpout $gen->auth_results(
-			$gen->dkim(
-				$gen->domain($dkimdomain),
-				$gen->result($dkimresultstr)),
-			$gen->spf(
-				$gen->domain($envdomain),
-				$gen->result($spfresultstr)));
-
-		print $tmpout "</record>\n";
+		print $tmpout $gen->record(
+			$gen->row(
+				$gen->source_ip($ipaddr),
+				$gen->count($msgcount),
+				$gen->policy_evaluated(
+					$gen->disposition($dispstr),
+					$gen->dkim($align_dkimstr),
+					$gen->spf($align_spfstr)),
+				$gen->identities(
+					$gen->header_from($fromdomain)),
+				$gen->auth_results(
+					$gen->dkim(
+						$gen->domain($dkimdomain),
+						$gen->result($dkimresultstr)),
+					$gen->spf(
+						$gen->domain($envdomain),
+						$gen->result($spfresultstr)))));
 	}
 
 	$dbi_s->finish;
 
-	print $tmpout "</feedback>\n";
+	print $tmpout "\n</feedback>\n";
 
 	close($tmpout);
 
