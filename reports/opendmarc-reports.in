@@ -660,6 +660,9 @@ foreach (@$domainset)
 		$dbi_h->disconnect;
 		exit(1);
 	}
+
+	unlink($zipfile);
+	unlink($repfile);
 }
 
 #
