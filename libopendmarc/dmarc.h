@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#define	OPENDMARC_LIB_VERSION	0x00000000
+
 #define	DMARC_MAXHOSTNAMELEN		(256)
 
 # define DMARC_POLICY_IP_TYPE_IPV4		(4)
