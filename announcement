@@ -1,0 +1,28 @@
+From: Murray S. Kucherawy <msk@trusteddomain.org>
+To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
+Subject: OpenDMARC v0.1.0 released
+
+The Trusted Domain Project is pleased to announce the availability of
+OpenDMARC v0.1.0, now available for download from SourceForge.
+
+This is a beta release.  It is still undergoing shakedown in various production
+environments.  You are welcome to download it and try it in your environment.
+*PLEASE* provide feedback about any bugs you find or suggestions you may
+have via the opendmarc-users mailing list.
+
+The full RELEASE_NOTES for this version:
+
+1.0.0		2012/07/??
+	Initial release.
+
+0.1.0		2012/07/07
+	Initial Beta release.
+
+Please use the mailing lists at http://www.trusteddomain.org/ to report
+problems, make suggestions, or as questions.  After the first formal
+release (v1.0.0) we will begin using bug tracking software for specific
+requests, but the lists will be used for general support and other dialog.
+
+Welcome to OpenDMARC!
+
+The Trusted Domain Project
