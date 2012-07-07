@@ -7,6 +7,17 @@
 CREATE TABLE IF NOT EXISTS domains (
 	id INT NOT NULL AUTO_INCREMENT,
 	name VARCHAR(255) NOT NULL,
+	firstseen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	lastsent TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00',
+
+	PRIMARY KEY(id),
+	UNIQUE KEY(name)
+);
+
+-- A table for logging reporting requests
+CREATE TABLE IF NOT EXISTS requests (
+	id INT NOT NULL AUTO_INCREMENT,
+	domain INT NOT NULL,
 	repuri VARCHAR(255) NOT NULL,
         adkim TINYINT NOT NULL,
         aspf TINYINT NOT NULL,
@@ -17,7 +28,7 @@ CREATE TABLE IF NOT EXISTS domains (
 	lastsent TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00',
 
 	PRIMARY KEY(id),
-	UNIQUE KEY(name)
+	UNIQUE KEY(domain)
 );
 
 -- A table for reporting hosts
