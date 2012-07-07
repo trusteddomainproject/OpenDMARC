@@ -62,5 +62,5 @@ main(int argc, char **argv)
 		pctx = opendmarc_policy_connect_shutdown(pctx);
 	}
 	printf("DMARC Policy Parse: pass=%d, fail=%d\n", pass, fails);
-	return 0;
+	return fails;
 }

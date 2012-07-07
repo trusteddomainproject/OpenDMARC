@@ -18,6 +18,7 @@ MAINTAINERCLEANFILES 	= Makefile.in aclocal.m4 configure \
 			  $(AUX_DIST)
 
 ACLOCAL		= aclocal -I $(auxdir)
+EXTRA_DIST	= libopendmarc/tests/testfiles/effective_tld_names.dat
 
 dist-hook:	
 	 if [ -f opendmarc-0.1.0/dmarc.h ]; then rm -f opendmarc-0.1.0/dmarc.h; fi

@@ -48,5 +48,5 @@ main(int argc, char **argv)
 		}
 	}
 	printf("Finddomain test: pass=%d, fail=%d\n", pass, fails);
-	return 0;
+	return fails;
 }
