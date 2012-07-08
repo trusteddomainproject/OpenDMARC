@@ -1,0 +1,47 @@
+-- database of dmarc data
+
+USE dmarc
+
+CREATE TABLE report (
+  serial int(10) unsigned NOT NULL AUTO_INCREMENT,
+  mindate timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  maxdate timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  domain varchar(255) NOT NULL,
+  org varchar(255) NOT NULL,
+  reportid varchar(255) NOT NULL,
+  PRIMARY KEY (serial),
+  UNIQUE KEY domain (domain,reportid)
+);
+
+CREATE TABLE rptrecord (
+  serial int(10) unsigned NOT NULL,
+  ip int(10) unsigned NOT NULL,
+  rcount int(10) unsigned NOT NULL,
+  disposition enum('none','quarantine','reject'),
+  reason varchar(255),
+  dkimdomain varchar(255),
+  dkimresult enum('none','pass','fail','neutral','policy','temperror','permerror'),
+  spfdomain varchar(255),
+  spfresult enum('none','neutral','pass','fail','softfail','temperror','permerror'),
+  KEY serial (serial,ip)
+);
+
+CREATE TABLE failure (
+  serial int(10) unsigned NOT NULL AUTO_INCREMENT,
+  org varchar(255) NOT NULL, -- reported-domain
+  bouncedomain varchar(255), -- MAIL FROM bouncebox@bouncedomain
+  bouncebox varchar(255),
+  fromdomain varchar(255), -- From: frombox@fromdomain
+  frombox varchar(255),
+  arrival TIMESTAMP,
+  sourceip int unsigned, -- inet_aton(source-ip)
+  sourceip6 BINARY(16), -- inet_6top(source-ip)
+  headers TEXT,
+  PRIMARY KEY(serial),
+  KEY(sourceip),
+  KEY(fromdomain),
+  KEY(bouncedomain)
+) charset=utf8;
+
+GRANT all on dmarc.* to dmarc identified by 'xxx';
+GRANT all on dmarc.* to dmarc@localhost identified by 'xxx';

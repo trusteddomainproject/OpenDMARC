@@ -342,6 +342,8 @@ AC_SUBST([SYSCONFDIR])
 # Generate files
 #
 AC_OUTPUT([ Makefile
+	contrib/Makefile
+	contrib/rddmarc/Makefile
 	docs/Makefile
 	libopendmarc/Makefile
 	libopendmarc/tests/Makefile

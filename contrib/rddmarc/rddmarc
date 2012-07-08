@@ -1,0 +1,141 @@
+#!/usr/bin/perl
+
+use strict;
+use MIME::Parser;
+use MIME::Words qw(:all);
+use XML::Simple;
+use DBI;
+
+my $dbh = DBI->connect("DBI:mysql:database=dmarc",
+			    "dmarc", "xxx")
+	    or die "Cannot connect to database\n";
+
+foreach my $i (@ARGV) {
+	print "parsing $i\n";
+
+	my $parser = new MIME::Parser;
+	$parser->output_dir("/tmp");
+
+	my $ent = $parser->parse_open($i);
+
+	my $body = $ent->bodyhandle;
+	my $zip = $body;
+	my $mtype = $ent->mime_type;
+	my $subj = decode_mimewords($ent->get('subject'));
+	print " $subj";
+	# if multipart/whatever, look through the parts to find a ZIP
+	if(lc $mtype =~ "multipart/") {
+		print "Look through $mtype\n";
+		$zip = undef;
+		my $npart = $ent->parts;
+		for my $n (0..($npart-1)) {
+			my $part = $ent->parts($n);
+			if(lc $part->mime_type eq "application/zip"
+			   or lc $part->mime_type eq "application/x-zip-compressed") {
+				$zip = $part->bodyhandle;
+				last;
+			} else {
+				$part->bodyhandle->purge; # not useful
+			}
+		}
+		die "no zip" unless $zip;
+	}
+	elsif(lc $mtype ne "application/zip") {
+		print "don't understand $mtype\n";
+		next;
+	}
+	if(defined($zip->path)) {
+		#print "body is in " . $zip->path . "\n";
+	} else {
+		print "body is nowhere\n";
+		next;
+	}
+	open(XML,"unzip -p " . $zip->path . " |")
+			or die "cannot unzip $zip->path";
+	my $xml = "";
+	$xml .= $_ while <XML>;
+	close XML;
+
+	my $xs = XML::Simple->new();
+
+	my $ref = $xs->XMLin($xml);
+	my %xml = %{$ref};
+	#print join "\n",keys %xml;
+	#print "\n";
+	my $from = $xml{'report_metadata'}->{'date_range'}->{'begin'};
+	my $to = $xml{'report_metadata'}->{'date_range'}->{'end'};
+	my $org = $xml{'report_metadata'}->{'org_name'};
+	my $id = $xml{'report_metadata'}->{'report_id'};
+	my $domain =  $xml{'policy_published'}->{'domain'};
+	# see if already stored
+	my ($xorg,$xid) = $dbh->selectrow_array(qq{SELECT org,reportid FROM report WHERE reportid=?}, undef, $id);
+	if($xorg) {
+		print "Already have $xorg $xid, skipped\n";
+		$zip->purge;
+		$ent->purge;
+		next;
+	}
+
+	my $sql = qq{INSERT INTO report(serial,mindate,maxdate,domain,org,reportid)
+		VALUES(NULL,FROM_UNIXTIME(?),FROM_UNIXTIME(?),?,?,?)};
+	$dbh->do($sql, undef, $from, $to, $domain, $org, $id)
+			or die "cannot make report" . $dbh->errstr;
+	my $serial = $dbh->{'mysql_insertid'} ||  $dbh->{'insertid'};
+	print " serial $serial ";
+	my $record = $xml{'record'};
+	sub dorow($$) {
+		my ($serial,$recp) = @_;
+		my %r = %$recp;
+
+		my $ip = $r{'row'}->{'source_ip'};
+		#print "ip $ip\n";
+		my $count = $r{'row'}->{'count'};
+		my $disp = $r{'row'}->{'policy_evaluated'}->{'disposition'};
+		my ($dkim, $dkimresult, $spf, $spfresult, $reason);
+		my $rp = $r{'auth_results'}->{'dkim'};
+		if(ref $rp eq "HASH") {
+			$dkim = $rp->{'domain'};
+			$dkim = undef if ref $dkim eq "HASH";
+			$dkimresult = $rp->{'result'};
+		} else { # array
+			# glom sigs together, report first result
+			$dkim = join '/',map { my $d = $_->{'domain'}; ref $d eq "HASH"?"": $d } @$rp;
+			$dkimresult = $rp->[0]->{'result'};
+		}
+		$rp = $r{'auth_results'}->{'spf'};
+		if(ref $rp eq "HASH") {
+			$spf = $rp->{'domain'};
+			$spfresult = $rp->{'result'};
+		} else { # array
+			# glom domains together, report first result
+			$spf = join '/',map { my $d = $_->{'domain'}; ref $d eq "HASH"? "": $d } @$rp;
+			$spfresult = $rp->[0]->{'result'};
+		}
+
+		$rp = $r{'row'}->{'policy_evaluated'}->{'reason'};
+		if(ref $rp eq "HASH") {
+			$reason = $rp->{'type'};
+		} else {
+			$reason = join '/',map { $_->{'type'} } @$rp;
+		}
+		#print "ip=$ip, count=$count, disp=$disp, r=$reason,";
+		#print "dkim=$dkim/$dkimresult, spf=$spf/$spfresult\n";
+		$dbh->do(qq{INSERT INTO rptrecord(serial,ip,rcount,disposition,reason,dkimdomain,dkimresult,spfdomain,spfresult)
+		  VALUES(?,INET_ATON(?),?,?,?,?,?,?,?)},undef, $serial,$ip,$count,$disp,$reason,$dkim,$dkimresult,$spf,$spfresult)
+				or die "cannot insert record " . $dbh->{'mysql_error'};
+	}
+
+	if(ref $record eq "HASH") {
+		print "single record\n";
+		dorow($serial,$record);
+	} elsif(ref $record eq "ARRAY") {
+		print "multi record\n";
+		foreach my $row (@$record) {
+			dorow($serial,$row);
+		}
+	} else {
+		print "mystery type " . ref($record) . "\n";
+	}
+	$zip->purge;
+	$ent->purge;
+}

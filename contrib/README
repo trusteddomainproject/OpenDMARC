@@ -1,0 +1,11 @@
+This "contrib" directory of the OpenDMARC package and its subdirectories
+contain files contributed by members of the community that provide functions
+not directly supported by the project team.  The copyrights on the files in
+and/or below this directory are owned by the files' owners and not by
+The Trusted Domain Project.
+
+Support for files contained here are provided only on a best-effort basis by
+the project team and by the files' owners.
+
+--
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
