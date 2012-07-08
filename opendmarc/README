@@ -1,0 +1,105 @@
+INTRODUCTION
+============
+
+This document will walk you through the process of configuring and activating
+the OpenDMARC filter once it has been compiled and installed.  In doing so you
+will:
+
+o Choose a local socket interface between the filter and your MTA
+o Configure your filter
+o Activate your filter
+o Test your filter
+
+
+COMPILING AND INSTALLING
+========================
+
+The INSTALL document in the root of the build directory covers the compilation
+and software installation of opendmarc and its prerequisites.  You should
+complete that process before continuing with the next section.
+
+
+CONFIGURING OPENDMARC
+=====================
+
+(1) Take a look at the opendmarc.conf.simple as an example configuration file 
+    for your domain.  If you wish to run with anything other than default
+    settings, copy that file to /etc/mail/opendmarc.conf and make your changes
+    there.
+
+(6) Start opendmarc.  You will need at least the "-p" option, unless you
+    specified it in opendmarc.conf above.  If you did set up a configuration
+    file, you'll also need to tell opendmarc where to find it (if not
+    /etc/mail/opendmarc.conf) via the "-c" option.  For example:
+
+	opendmarc -c CONFPATH
+
+    ...where CONFPATH is the path to the configuration file you wish to
+    use.  One or more configuration example files are provided.
+
+(7) Configure your MTA:
+
+    For Sendmail:
+
+    (a) Choose a socket at which the MTA and the filter will rendezvous
+        (see the documentation in libmilter for details)
+
+    (b) Add a line like this example to your sendmail.mc using your desired
+        socket specification:
+	    INPUT_MAIL_FILTER(`opendmarc', `S=inet:8893@localhost')
+
+    (c) Rebuild your sendmail.cf in the usual way
+
+    For Postfix:
+
+    (a) Choose a socket at which the MTA and the filter will rendezvous.
+        Be careful with UNIX domain sockets as on some distributions and setups
+	the smtpd process is running in a chroot environment.  A UNIX socket 
+	will need to be visible to the chrooted smtpd process.
+
+    (b) Add the following lines like this example to your postfix main.cf using
+        your desired socket specification:
+
+	    smtpd_milters = inet:localhost:8893
+	    non_smtpd_milters = inet:localhost:8893
+	
+    (c) If you have a content filter in master.cf that feeds it back into a
+        different smtpd process, you should alter the second smtpd process in
+	master.cf to contain '-o receive_override_options=no_milters' to
+	prevent messages being signed or verified twice.  For tips on avoiding
+	DKIM signature breakage, see:
+	http://www.postfix.org/MILTER_README.html#workarounds
+
+(8) Restart/reload your MTA.
+
+    For Sendmail:
+	kill -1 `head -1 /var/run/sendmail.pid`
+
+    For Postfix:
+	postfix reload
+
+	...or the following if master.cf was changed:
+
+	/etc/init.d/postfix restart
+
+
+TESTING AND DEBUGGING
+=====================
+
+[to be completed]
+
+
+SUPPORT
+=======
+
+There are two public mailing lists available for news and questions about
+OpenDMARC.  To keep up to date on the latest developments, please
+subscribe to one or both of the following:
+
+	opendmarc-announce@trusteddomain.org (release announcements)
+	opendmarc-users@trusteddomain.org (general discussion)
+
+These can be accessed via http://www.trusteddomain.org/mailman/listinfo.
+
+To report bugs and feature requests, you can access the SourceForge "tracker"
+facilities at http://sourceforge.net/projects/opendmarc.
