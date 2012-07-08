@@ -1,0 +1,222 @@
+##
+## opendmar.conf -- configuration file for OpenDMARC filter
+##
+## Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+##
+
+##  AlwaysDeliver { true | false }
+##  	default "false"
+##
+##  If set, no message will be rejected or temp-failed regardless of the
+##  outcome of the DMARC evaluation of the message.  Instead, an
+##  Authentication-Results header field will be added.
+#
+# AlwaysDeliver	false
+
+##  AuthservID (string)
+##  	defaults to MTA name
+##
+##  Sets the "authserv-id" to use when generating the Authentication-Results
+##  header field after verifying a message.  The default is to use the name
+##  of the MTA processing the message.  If the string "HOSTNAME" is provided,
+##  the name of the host running the filter (as returned by the gethostname(3)
+##  function) will be used.
+#
+# AuthservID name
+
+##  AuthservIDWithJobID { true | false }
+##  	default "false"
+##
+##  If "true", requests that the authserv-id portion of the added
+##  Authentication-Results header fields contain the job ID of the message
+##  being evaluated.
+#
+# AuthservIDWithJobID false
+
+##  AutoRestart { true | false }
+##  	default "false"
+##
+##  Automatically re-start on failures. Use with caution; if the filter fails
+##  instantly after it starts, this can cause a tight fork(2) loop.
+#
+# AutoRestart false
+
+##  AutoRestartCount n
+##  	default 0
+##
+##  Sets the maximum automatic restart count.  After this number of automatic
+##  restarts, the filter will give up and terminate.  A value of 0 implies no
+##  limit.
+#
+# AutoRestartCount 0
+
+##  AutoRestartRate n/t[u]
+##  	default (no limit)
+##
+##  Sets the maximum automatic restart rate.  If the filter begins restarting
+##  faster than the rate defined here, it will give up and terminate.  This
+##  is a string of the form n/t[u] where n is an integer limiting the count
+##  of restarts in the given interval and t[u] defines the time interval
+##  through which the rate is calculated; t is an integer and u defines the
+##  units thus represented ("s" or "S" for seconds, the default; "m" or "M"
+##  for minutes; "h" or "H" for hours; "d" or "D" for days). For example, a
+##  value of "10/1h" limits the restarts to 10 in one hour. There is no
+##  default, meaning restart rate is not limited.
+#
+# AutoRestartRate n/t[u]
+
+##  Background { true | false }
+##  	default "true"
+##
+##  Causes opendmarc to fork and exits immediately, leaving the service
+##  running in the background.
+#
+# Background true
+
+##  BaseDirectory (string)
+##  	default (none)
+##
+##  If set, instructs the filter to change to the specified directory using
+##  chdir(2) before doing anything else.  This means any files referenced
+##  elsewhere in the configuration file can be specified relative to this
+##  directory.  It's also useful for arranging that any crash dumps will be
+##  saved to a specific location.
+#
+# BaseDirectory /var/run/opendmarc
+
+##  ChangeRootDirectory (string)
+##  	default (none)
+##
+##  Requests that the operating system change the effective root directory of
+##  the process to the one specified here prior to beginning execution.
+##  chroot(2) requires superuser access.  A warning will be generated if
+##  UserID is not also set.
+# 
+# ChangeRootDirectory /var/chroot/opendmarc
+
+##  DNSTimeout (integer)
+##  	default 5
+## 
+##  Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
+##  (NOT YET IMPLEMENTED)
+#
+# DNSTimeout 5
+
+##  EnableCoredumps { true | false }
+##  	default "false"
+##
+##  On systems that have such support, make an explicit request to the kernel
+##  to dump cores when the filter crashes for some reason.  Some modern UNIX
+##  systems suppress core dumps during crashes for security reasons if the
+##  user ID has changed during the lifetime of the process.  Currently only
+##  supported on Linux.
+#
+# EnableCoreDumps false
+
+##  HistoryFile path
+##  	default (none)
+##
+##  If set, specifies the location of a text file to which records are written
+##  that can be used to generate DMARC aggregate reports.  Records are groups
+##  of rows containing information about a single received message, and
+##  include all relevant information needed to generate a DMARC aggregate
+##  report.  It is expected that this will not be used in its raw form, but
+##  rather periodically imported into a relational database from which the
+##  aggregate reports can be extracted by a tool such as opendmarc-import(8).
+#
+# HistoryFile /var/run/opendmarc.dat
+
+##  MilterDebug (integer)
+##  	default 0
+##
+##  Sets the debug level to be requested from the milter library.
+#
+# MilterDebug 0
+
+##  PidFile path
+##  	default (none)
+##
+##  Specifies the path to a file that should be created at process start
+##  containing the process ID.
+##
+#
+# PidFile /var/run/opendmarc.pid
+
+##  PublicSuffixList path
+##  	default (none)
+##
+##  Specifies the path to a file that contains top-level domains (TLDs) that
+##  will be used to compute the Organizational Domain for a given domain name,
+##  as described in the DMARC specification.  If not provided, the filter will
+##  not be able to determine the Organizational Domain and only the presented
+##  domain will be evaluated.
+#
+# PublicSuffixList path
+
+##  Socket socketspec
+##  	default (none)
+##
+##  Specifies the socket that should be established by the filter to receive
+##  connections from sendmail(8) in order to provide service.  socketspec is
+##  in one of two forms: local:path, which creates a UNIX domain socket at
+##  the specified path, or inet:port[@host] or inet6:port[@host] which creates
+##  a TCP socket on the specified port for the appropriate protocol family.
+##  If the host is not given as either a hostname or an IP address, the
+##  socket will be listening on all interfaces.  This option is mandatory
+##  either in the configuration file or on the command line.  If an IP
+##  address is used, it must be enclosed in square brackets.
+#
+# Socket inet:8893@localhost
+
+##  SoftwareHeader { true | false }
+##  	default "false"
+##
+##  Causes the filter to add a "DMARC-Filter" header field indicating the
+##  presence of this filter in the path of the message from injection to
+##  delivery.  The product's name, version, and the job ID are included in
+##  the header field's contents.
+#
+# SoftwareHeader false
+
+##  Syslog { true | false }
+##  	default "false"
+##
+##  Log via calls to syslog(3) any interesting activity.
+#
+# Syslog false
+
+##  SyslogFacility facility-name
+##  	default "mail"
+##
+##  Log via calls to syslog(3) using the named facility.  The facility names
+##  are the same as the ones allowed in syslog.conf(5).
+#
+# SyslogFacility mail
+
+##  TemporaryDirectory path
+##  	default /var/tmp
+##
+##  Specifies the directory in which temporary files should be written.
+#
+# TemporaryDirectory /var/tmp
+
+##  UMask mask
+##  	default (none)
+##
+##  Requests a specific permissions mask to be used for file creation.  This
+##  only really applies to creation of the socket when Socket specifies a
+##  UNIX domain socket, and to the HistoryFile and PidFile (if any); temporary
+##  files are normally created by the mkstemp(3) function that enforces a
+##  specific file mode on creation regardless of the process umask.  See
+##  umask(2) for more information.
+#
+# UMask 077
+
+##  UserID user[:group]
+##  	default (none)
+##
+##  Attempts to become the specified userid before starting operations.
+##  The process will be assigned all of the groups and primary group ID of
+##  the named userid unless an alternate group is specified.
+#
+# UserID opendmarc
