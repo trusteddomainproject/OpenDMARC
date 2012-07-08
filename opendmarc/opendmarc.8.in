@@ -4,7 +4,6 @@
 \- DKIM signing and verifying filter for MTAs
 .SH SYNOPSIS
 .B opendmarc
-\-p socketspec
 [\-A]
 [\-c configfile]
 [\-f]
@@ -83,15 +82,18 @@ which creates a UNIX domain socket at the specified
 .I path,
 or
 .I inet:port[@host]
+or
+.I inet6:port[@host]
 which creates a TCP socket on the specified
-.I port.
-If the
+.I port
+within the specified protocol family.  If the
 .I host
 is not given as either a hostname or an IP address, the socket will be
 listening on all interfaces.  If neither socket type is specified,
 .I local
 is assumed, meaning the parameter is interpreted as a path at which
-the socket should be created.  This parameter is mandatory.
+the socket should be created.  If an IP address is used, it must be enclosed
+in square brackets.  This parameter is mandatory.  
 .TP
 .I \-P pidfile
 Specifies a file into which the filter should write its process ID at startup.
