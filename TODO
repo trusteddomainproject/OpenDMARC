@@ -1,5 +1,3 @@
-o Get running in production as part of the shakedown
-
 o Have opendmarc call opendmarc_policy_library_init() and
   opendmarc_policy_library_shutdown()
 
