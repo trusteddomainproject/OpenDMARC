@@ -1352,8 +1352,14 @@ mlfi_eom(SMFICTX *ctx)
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "policy %d\n", policy);
 
 	ruav = opendmarc_policy_fetch_rua(cc->cctx_dmarc, NULL, 0, TRUE);
-	for (c = 0; ruav[c] != NULL; c++)
-		dmarcf_dstring_printf(dfc->mctx_histbuf, "rua %s\n", ruav[c]);
+	if (ruav != NULL)
+	{
+		for (c = 0; ruav[c] != NULL; c++)
+		{
+			dmarcf_dstring_printf(dfc->mctx_histbuf, "rua %s\n",
+			                      ruav[c]);
+		}
+	}
 
 	opendmarc_policy_fetch_pct(cc->cctx_dmarc, &pct);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "pct %d\n", pct);
