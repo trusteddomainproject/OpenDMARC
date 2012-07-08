@@ -1,0 +1,75 @@
+<html>
+<head><title>opendmarc_policy_connect_rset()</title></head>
+<body>
+<!--
+$Id: opendmarc_policy_connect_rset.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_policy_connect_rset()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * opendmarc_policy_connect_rset(
+	<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * pctx
+);
+</pre>
+Partly clears the opaque context for reuse on the same connection, perhaps as a result of an SMTP RSET.
+The IP address and address type are preserved but everything else is freed and zeroed.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_policy_connect_rset()</tt>
+	may be called anytime you want to partly reset an opaque context such as a result of an SMTP RSET.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>pctx</td>
+	<td>A pointer to type <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a>.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * -- on success
+<li>NULL -- Only if the pointer passed into it is NULL.
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>You should not use this function to clear opaque structures for arbitrary re-use, instead use
+<a href="opendmarc_policy_connect_rset.html">opendmarc_policy_connect_clear()</a>.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

@@ -18,6 +18,7 @@ MAINTAINERCLEANFILES 	= Makefile.in aclocal.m4 configure \
 			  $(AUX_DIST)
 
 ACLOCAL		= aclocal -I $(auxdir)
+EXTRA_DIST	= libopendmarc/tests/testfiles/effective_tld_names.dat
 
 DISTCLEANFILES = opendmarc-@VERSION@.tar.gz
 

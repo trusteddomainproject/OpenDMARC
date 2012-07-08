@@ -1,0 +1,95 @@
+<html>
+<head><title>opendmarc_policy_store_dkim()</title></head>
+<body>
+<!--
+$Id: opendmarc_policy_store_dkim.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_policy_store_dkim()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * opendmarc_policy_store_dkim(
+	<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * pctx,
+	u_char *d_equal_domain, int dkim_result, u_char *human_result
+);
+</pre>
+One you have found the outcome of each DKIM check, no matter how many,
+you may call this function to prepare it for a DMARC policy
+decision. You should call it even if you found no DKIM signatures.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_policy_store_dkim()</tt>
+	may be called after each DKIM signature in the message is verified. That is, this function may
+	be call zero, one, or many times.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>pctx</td>
+	<td>A pointer to type <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a>.
+	</td></tr>
+    <tr valign="top"><td>d_equal_domain</td>
+	<td>A pointer to an unsigned string containing the domain found in
+	the <tt>p=</tt> record of the <tt>DKIM</tt> signature.
+	</td></tr>
+    <tr valign="top"><td>dkim_result</td>
+	<td>Integer specifying the result of the <tt>SPF</tt> check. Choose from one of:
+	<tt>DMARC_POLICY_DKIM_OUTCOME_NONE</tt> if there was no <tt>DKIM</tt> signature;
+	<tt>DMARC_POLICY_DKIM_OUTCOME_PASS</tt> if the <tt>DKIM</tt> check passed;
+	<tt>DMARC_POLICY_DKIM_OUTCOME_FAIL</tt> if the <tt>DKIM</tt> check failed; or
+	<tt>DMARC_POLICY_DKIM_OUTCOME_TMPFAIL</tt> if the check returned a temporary failure.
+	</td></tr>
+    <tr valign="top"><td>human_result</td>
+	<td>If not NULL, is a string containing an arbitrary, human readable and friendly <tt>DKIM</tt> result.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>DMARC_PARSE_OKAY</tt> -- On success
+<li><tt>DMARC_PARSE_ERROR_NULL_CTX</tt> -- If pctx was NULL
+<li><tt>DMARC_PARSE_ERROR_EMPTY</tt> -- If domain was NULL or zero length
+<li><tt>DMARC_PARSE_ERROR_NO_DOMAIN</tt> -- If domain did not contain a domain, e.g. "&lt;&gt;"
+<li><tt>DMARC_PARSE_ERROR_NO_ALLOC</tt> -- If memory allocation failed
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>You mae feed this function results from multiple DKIM signatures. This function
+will select the most successful check from among those that align with the header From: domain.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

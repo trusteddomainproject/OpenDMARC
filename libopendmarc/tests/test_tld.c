@@ -21,7 +21,11 @@ main(int argc, char **argv)
 	u_char tldbuf[256];
 	int	pass, fails, count;
 	
-	(void) opendmarc_tld_read_file(TESTFILE, "//", "*.", "!");
+	if (opendmarc_tld_read_file(TESTFILE, "//", "*.", "!") != 0)
+	{
+		printf("\tTLD find test: %s: could not read. Skipping\n", TESTFILE);
+		return 0;
+	}
 	pass = fails = count = 0;
 	for (tldp = tld_test; tldp != NULL && tldp->domain != NULL; ++tldp)
 	{
@@ -39,5 +43,5 @@ main(int argc, char **argv)
 		}
 	}
 	printf("TLD find test: pass=%d, fail=%d\n", pass, fails);
-	return 0;
+	return fails;
 }
