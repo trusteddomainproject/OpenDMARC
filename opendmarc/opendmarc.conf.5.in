@@ -210,10 +210,8 @@ The default is "mail".
 
 .TP
 .I TemporaryDirectory (string)
-Specifies the directory in which temporary canonicalization files should
-be written.  The default is to use the
-.I libdkim
-default location, currently
+Specifies the directory in which temporary files should
+be written.  The default is
 .I /var/tmp.
 
 .TP
