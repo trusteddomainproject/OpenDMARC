@@ -189,15 +189,9 @@ it must be enclosed in square brackets.
 .I SoftwareHeader (Boolean)
 Causes
 .I opendmarc
-to add an "DMARC-Filter" header field indicating the presence of this filter in
+to add a "DMARC-Filter" header field indicating the presence of this filter in
 the path of the message from injection to delivery.  The product's name,
-version, and the job ID are included in the header field's contents.  Note
-that the header field is not added if the
-.I Mode
-setting causes the message to be ignored (e.g., if only signing mode is enabled
-and the configuration causes the message not to be signed, or only verify
-mode is enabled and configuration would otherwise have caused the message to
-be signed, then it will not have this header field added).
+version, and the job ID are included in the header field's contents.
 
 .TP
 .I Syslog (Boolean)
