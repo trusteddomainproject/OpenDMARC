@@ -1,0 +1,68 @@
+<html>
+<head><title>opendmarc_tld_shutdown()</title></head>
+<body>
+<!--
+$Id: opendmarc_tld_shutdown.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_tld_shutdown()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+void opendmarc_tld_shutdown();
+</pre>
+De-allocate resources used to store the <tt>TLD</tt> list internally.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_tld_shutdown()</tt>
+	is called once after the program concludes running multi-threaded.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="0" cellspacing=0>
+    <tr><td>none</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>none</tt> -- Returns nothing
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+This function should probably not be called directly, instead consider using
+<a href="opendmarc_policy_library_shutdown.html">opendmarc_policy_library_shutdown()</a>.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

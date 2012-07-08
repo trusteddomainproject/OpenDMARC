@@ -1,0 +1,83 @@
+<html>
+<head><title>opendmarc_tld_read_file()</title></head>
+<body>
+<!--
+$Id: opendmarc_tld_read_file.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_tld_read_file()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+int opendmarc_tld_read_file(
+	char* path_fname, char *commentstring, char *drop, char *except
+);
+</pre>
+Load in a TLD (Top Level Domain) file for use by the library.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_tld_read_file()</tt>
+	is called once before the program begins to run multi-threaded.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>path_fname</td>
+	<td>The full or relative pathname to the file containing the <tt>TLD</tt> information.
+	</td></tr>
+    <tr valign="top"><td>commentstring</td>
+	<td>If not NULL, a string that is used to define commentary lines in the file. If not NULL, defaults to "//".
+	</td></tr>
+    <tr valign="top"><td>drop</td>
+	<td>If not NULL, a string prefix that is used to define an absolute top level, such as ".com".
+	</td></tr>
+    <tr valign="top"><td>except</td>
+	<td>If not NULL, a string prefix that is used to define an exceptional top level, such as ".reseller.example.com".
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>0</tt> -- On success.
+<li><tt>!=0</tt> -- And sets <tt>errno</tt> on failure.
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+This function should probably not be called directly, instead consider using
+<a href="opendmarc_policy_library_init.html">opendmarc_policy_library_init()</a>.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

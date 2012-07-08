@@ -38,7 +38,7 @@ package, uses this <tt>libopendmarc</tt> library.
 
  <tr>
   <td> <a href="dmarc_policy_t.html"> <tt>DMARC_POLICY_T</tt> </a> </td>
-  <td>The context used per inbound envelope.</td>
+  <td>The context used per in-bound envelope.</td>
  </tr>
 
  <tr>
@@ -74,7 +74,7 @@ package, uses this <tt>libopendmarc</tt> library.
  </tr>
  <tr>
   <td> <a href="opendmarc_policy_connect_init.html"> <tt>opendmarc_policy_connect_init()</tt> </a> </td>
-  <td> Allocate a new context for an inbound envelope. </td>
+  <td> Allocate a new context for an in-bound envelope. </td>
  </tr>
  <tr>
   <td> <a href="opendmarc_policy_connect_clear.html"> <tt>opendmarc_policy_connect_clear()</tt> </a> </td>
@@ -113,11 +113,11 @@ package, uses this <tt>libopendmarc</tt> library.
   <td> DNS lookup a DMARC record and parse it. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_parse_dmarc.html"> <tt>opendmarc_policy_parse_dmarc()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_parse_dmarc.html"> <tt>opendmarc_policy_parse_dmarc()</tt> </a> </td>
   <td> Parse a user supplied DMARC record. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_store_dmarc.html"> <tt>opendmarc_policy_store_dmarc()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_store_dmarc.html"> <tt>opendmarc_policy_store_dmarc()</tt> </a> </td>
   <td> The user process looked up the DMARC record and provides it to the library in one gulp. </td>
  </tr>
 
@@ -125,43 +125,43 @@ package, uses this <tt>libopendmarc</tt> library.
   <td colspan="2"> <b>DMARC Result Functions</b>
  </tr>
  <tr>
-  <td> <x href="opendmarc_get_policy_to_enforce.html"> <tt>opendmarc_get_policy_to_enforce()</tt> </a> </td>
+  <td> <a href="opendmarc_get_policy_to_enforce.html"> <tt>opendmarc_get_policy_to_enforce()</tt> </a> </td>
   <td> Returns the policy for the MTA to enforce. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_pct.html"> <tt>opendmarc_policy_fetch_pct()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_pct.html"> <tt>opendmarc_policy_fetch_pct()</tt> </a> </td>
   <td> Fetch the value of the pct= DMARC setting to determine sampling rate. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_adkim.html"> <tt>opendmarc_policy_fetch_adkim()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_adkim.html"> <tt>opendmarc_policy_fetch_adkim()</tt> </a> </td>
   <td> Fetch the value of the adkim= DMARC setting to determine alignment policy. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_aspf.html"> <tt>opendmarc_policy_fetch_aspf()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_aspf.html"> <tt>opendmarc_policy_fetch_aspf()</tt> </a> </td>
   <td> Fetch the value of the aspf= DMARC setting to determine alignment policy. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_p.html"> <tt>opendmarc_policy_fetch_p()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_p.html"> <tt>opendmarc_policy_fetch_p()</tt> </a> </td>
   <td> Fetch the value of the p= DMARC setting to determine desired policy. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_sp.html"> <tt>opendmarc_policy_fetch_sp()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_sp.html"> <tt>opendmarc_policy_fetch_sp()</tt> </a> </td>
   <td> Fetch the value of the sp= DMARC setting to determine desired subdomain policy. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_rua.html"> <tt>opendmarc_policy_fetch_rua()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_rua.html"> <tt>opendmarc_policy_fetch_rua()</tt> </a> </td>
   <td> Fetch a list of the rua= DMARC URI stating where to send reports. </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_ruf.html"> <tt>opendmarc_policy_fetch_ruf()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_ruf.html"> <tt>opendmarc_policy_fetch_ruf()</tt> </a> </td>
   <td> Fetch a list of the ruf= DMARC URI stating where to send failed messages notifications. </td>
  </tr>
  <tr>
   <td> <a href="opendmarc_policy_fetch_alignment.html"> <tt>opendmarc_policy_fetch_alignment()</tt> </a> </td>
-  <td> Fetch the result of SPF and DKIm alignment checks.
+  <td> Fetch the result of SPF and DKIM alignment checks.
  </tr>
  <tr>
-  <td> <x href="opendmarc_policy_fetch_utilized_domain.html"> <tt>opendmarc_policy_fetch_utilized_domain()</tt> </a> </td>
+  <td> <a href="opendmarc_policy_fetch_utilized_domain.html"> <tt>opendmarc_policy_fetch_utilized_domain()</tt> </a> </td>
   <td> Fetch the domain that was used to find the DMARC record. </td>
  </tr>
 
@@ -169,23 +169,21 @@ package, uses this <tt>libopendmarc</tt> library.
   <td colspan="2"> <b>TLD Functions</b>
  </tr>
  <tr>
-  <td> <x href="opendmarc_tld_read_file.html"> <tt>opendmarc_tld_read_file()</tt> </a> </td>
-  <td> Read and re-read a TLD file for library use.
+  <td> <a href="opendmarc_tld_read_file.html"> <tt>opendmarc_tld_read_file()</tt> </a> </td>
+  <td> Read and re-read a <tt>TLD</tt> file for library use.
   (See also <a href="opendmarc_policy_library_init.html"> <tt>opendmarc_policy_library_init()</tt>)
   </td>
  </tr>
  <tr>
-  <td> <x href="opendmarc_tld_shutdown.html"> <tt>opendmarc_tld_shutdown()</tt> </a> 
-  <td> Deallocate the cached TLD information as part of program shutdown.
-  (See also <a href="opendmarc_policy_library_init.html"> <tt>opendmarc_policy_library_init()</tt>)
+  <td> <a href="opendmarc_tld_shutdown.html"> <tt>opendmarc_tld_shutdown()</tt> </a> 
+  <td> Deallocate the cached <tt>TLD</tt> information as part of program shutdown.
   </td>
  </tr>
 
 </table> <br>
 
 An overview of the general use of this API is available
-<x href="overview.html">here</a>.  An overview of the DNS resolver portion
-of the API is available <x href="dns.html">here</a>.
+<x href="overview.html">here</a>.
 
 <hr size="1">
 <font size="-1">

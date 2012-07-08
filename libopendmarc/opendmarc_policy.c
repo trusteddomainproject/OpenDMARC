@@ -489,10 +489,10 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 **		DMARC_PARSE_ERROR_NULL_CTX	-- pctx == NULL
 **		DMARC_POLICY_ABSENT		-- No DMARC record found
 **		DMARC_FROM_DOMAIN_ABSENT	-- No From: domain
-**		DMARC_POLICY_NONE		-- Accept and report
-**		DMARC_POLICY_REJECT		-- Policy says to reject the message
-**		DMARC_POLICY_QUARANTINE		-- Policy says to quaranteen the message
-**		DMARC_POLICY_PASS		-- Policy says to accept the message
+**		DMARC_POLICY_NONE		-- Accept if other policy allows
+**		DMARC_POLICY_REJECT		-- Policy advises to reject the message
+**		DMARC_POLICY_QUARANTINE		-- Policy advises to quarantine the message
+**		DMARC_POLICY_PASS		-- Policy advises to accept the message
 **	Side Effects:
 **		Checks for domain alignment.
 ***************************************************************************/
@@ -1087,7 +1087,7 @@ opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 **					     Either the From: domain or the organizational domain
 **	Arguments
 **		pctx	-- Address of a policy context
-**		bud	-- Where to scribble result
+**		buf	-- Where to scribble result
 **		buflen	-- Size of buffer
 **	Returns
 **		DMARC_PARSE_OKAY		-- On success
