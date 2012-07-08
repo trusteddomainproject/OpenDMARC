@@ -157,7 +157,9 @@ containing the process ID.
 .I PublicSuffixList (string)
 Specifies the path to a file that contains top-level domains (TLDs) that
 will be used to compute the Organizational Domain for a given domain name,
-as described in the DMARC specification.  If not provided,
+as described in the DMARC specification.  If not provided, the filter will
+not be able to determine the Organizational Domain and only the presented
+domain will be evaluated.
 
 .TP
 .I Socket (string)
