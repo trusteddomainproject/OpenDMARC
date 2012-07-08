@@ -1,0 +1,119 @@
+			INSTALLING OPENDMARC
+
+OVERVIEW
+========
+
+In order to install the opendkim as a milter to an MTA you will need to
+perform the following steps:
+
+* Compile the opendmarc program itself.
+
+* Configure the opendmarc filter.
+
+* Install the opendmarc and configure your MTA to use it.
+
+Note that there is a difference between "OpenDMARC" and "opendmarc".
+"OpenDMARC" is a package containing a library, a filter and some tools to
+be used in testing and using your DMARC installation.  "opendmarc" is the
+filter program contained in the "OpenDMARC" package.
+
+libopendmarc is a library available as an API for programmers everywhere.
+That API is described in a set of HTML files in the OpenDMARC source code
+package.
+
+The opendmarc filter program incorporates the libopendmarc library and works
+with recent versions of sendmail and Postfix or any other MTA that supports
+"milter".  For more information about milter, see <http://www.milter.org>.
+
+Sendmail is available at <http://www.sendmail.org> and Postfix is available
+at <http://www.postfix.org>.
+
+
+OPTIONAL PACKAGES
+=================
+
+OpenDKIM supports a few optional packages that can be included in the build
+to provide additional services.  A few of these become mandatory when
+enabling certain features below.  Specifying only the "--with-xxx" parameter
+to the "configure" command (described below) enables the package and makes a
+guess at where it might be installed on your system.  If the configure script
+doesn't find it, you will need to specify the location with
+"--with-xxx=location".
+
+--with-milter	Sendmail's "milter" include file and library.  Required
+		unless compilation of the filter is disabled (see below).
+		Enabled by default.
+
+--with-sql-backend
+		Names the SQL backend in use on your system.  The default
+		is "mysql".  See OpenDBX documentation for the list of
+		valid values.
+
+FEATURES
+========
+
+There are several compile-time features you may select.  Some of these
+are present but unsupported while others are fully-supported.  Read the
+FEATURES file for a description of the unsupported features.
+
+The supported features are as follows.  The can be turned on at compile
+time by adding "--enable-xxx" to the "configure" command line (described
+below), where "xxx" is the name of the feature.
+
+filter		Compile the opendmarc filter.  Requires libmilter (see
+		"--with-milter" above).  This is on by default; if you
+		don't want the filter, specify "--disable-filter".
+
+filter-tests	Includes filter unit tests when doing "make check".
+		Requires the "miltertest" program, which is available as
+		part of the OpenDKIM package (see http://www.opendkim.org).
+
+
+COMPILING
+=========
+
+The opendmarc filter requires either sendmail v8.13.0 or Postfix v2.3 or later
+for required milter protocol enhancements.
+
+As Postfix currently does not provide the milter library, you need to have
+sendmail sources or development package installed.  See
+http://www.postfix.org/MILTER_README.html
+
+You can view the configuration options with the following command:
+
+	./configure --help
+
+The commands shown below assume a UNIX system with standard build tools
+installed.
+
+Steps to compiling the library and the milter:
+
+(1) Download the source from SourceForge
+    (http://sourceforge.net/projects/opendmarc).
+
+(2) Unpack the tarball:
+	tar -xzvf opendmarc-<version>.tar.gz
+
+    Note: Use <version> as the version number that you downloaded.
+
+(3) Change directories to the release directory (opendmarc-<version>) that
+    was created in step 2.
+	cd opendmarc-<version>
+
+(4) Run the "configure" script to configure the package for your operating
+    system.
+	./configure
+
+(5) Compile the package.
+	make
+
+(6) Install the output of the build.  You probably need to become the
+    superuser to run this step.
+	make install
+
+
+CONFIGURING OPENDMARC
+=====================
+
+The README document (in the opendmarc directory) covers the installation and
+configuration of opendmarc.
