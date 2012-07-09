@@ -142,7 +142,7 @@ file for changes and reload.
 This man page covers version @VERSION@ of
 .I opendmarc.
 .SH COPYRIGHT
-Copyright (c) 2009-2012, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 .SH SEE ALSO
 .I opendmarc.conf(5), sendmail(8)
 .P
