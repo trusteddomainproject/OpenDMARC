@@ -42,6 +42,10 @@ Specifies the SQL user to be used to access the database.  Defaults to
 the value of the environment variable OPENDMARC_USER, or "opendmarc" if
 the environment variable is not set.
 .TP
+.I --domain=name
+Generates a report (if one is due) for the named domain, rather than checking
+all of them.
+.TP
 .I --help
 Prints a help message and terminates.
 .TP
