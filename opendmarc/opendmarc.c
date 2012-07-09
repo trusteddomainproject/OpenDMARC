@@ -1891,6 +1891,7 @@ main(int argc, char **argv)
 	char *end;
 	char argstr[MAXARGV];
 	char err[BUFRSZ + 1];
+	OPENDMARC_LIB_T libopendmarc;
 
 	/* initialize */
 	testmode = FALSE;
@@ -2838,17 +2839,43 @@ main(int argc, char **argv)
 		{
 			syslog(LOG_ERR, "pthread_create(): %s",
 			       strerror(status));
-
-			if (!autorestart && pidfile != NULL)
-				(void) unlink(pidfile);
-
-			return EX_OSERR;
 		}
+
+		if (!autorestart && pidfile != NULL)
+			(void) unlink(pidfile);
+
+		return EX_OSERR;
+	}
+
+	/* initialize libopendmarc */
+	(void) memset(&libopendmarc, '\0', sizeof libopendmarc);
+	if (curconf->conf_pslist != NULL)
+	{
+		libopendmarc.tld_type = OPENDMARC_TLD_TYPE_MOZILLA;
+		strncpy(libopendmarc.tld_source_file, curconf->conf_pslist,
+		        sizeof libopendmarc.tld_source_file - 1);
+	}
+
+	if (opendmarc_policy_library_init(&libopendmarc) != 0)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_ERR,
+			       "opendmarc_policy_library_init() failed");
+		}
+
+		if (!autorestart && pidfile != NULL)
+			(void) unlink(pidfile);
+
+		return EX_OSERR;
 	}
 
 	/* call the milter mainline */
 	errno = 0;
 	status = smfi_main();
+
+	/* shut down libopendmarc */
+	(void) opendmarc_policy_library_shutdown(&libopendmarc);
 
 	if (curconf->conf_dolog)
 	{
