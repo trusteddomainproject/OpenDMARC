@@ -1,4 +1,1 @@
-o Have opendmarc call opendmarc_policy_library_init() and
-  opendmarc_policy_library_shutdown()
-
 o Add support for forensic reports
