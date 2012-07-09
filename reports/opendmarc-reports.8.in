@@ -45,7 +45,7 @@ Prints a help message and terminates.
 .TP
 .I --interval=secs
 Generates reports only for hosts that have not had a report generated in
-at least
+at least the last
 .I secs
 seconds.
 .TP
