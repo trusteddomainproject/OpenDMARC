@@ -1,4 +1,5 @@
 #include "../opendmarc_internal.h"
+#include "../dmarc.h"
 
 typedef struct {
 	char *fname;
@@ -12,12 +13,16 @@ main(int argc, char **argv)
 	TEST_T xml_files[] = {
 		/* 1 */ {"testfiles/nosuchfile.xml", ENOENT},
 		/* 2 */ {"testfiles/126.com!example.com!1337270400!1337356799.20120518126.xml", 0},
-			{NULL, NULL},
+			{NULL, 0},
 	};
-	char **	ary;
+	u_char **	ary;
+	char *	srcdir;
 	char 	ebuf[256];
 	int	pass, fails, count;
 	
+	srcdir = getenv("srcdir");
+	if (srcdir != NULL)
+		(void) chdir(srcdir);
 	pass = fails = count = 0;
 	for (xmlp = xml_files; xmlp != NULL && xmlp->fname != NULL; ++xmlp)
 	{

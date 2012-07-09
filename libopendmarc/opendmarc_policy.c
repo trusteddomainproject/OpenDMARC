@@ -5,7 +5,6 @@
 **  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 #include "opendmarc_internal.h"
-#define OPENDMARC_POLICY_C
 #include "dmarc.h"
 
 /**************************************************************************
