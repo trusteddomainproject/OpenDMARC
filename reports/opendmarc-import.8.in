@@ -11,7 +11,7 @@ reads per-message data recorded by an instance of
 .B opendmarc(8)
 and inserts it into an SQL database, for later use by
 .B opendmarc-reports(8)
-to generate aggregat reports.
+to generate aggregate reports.
 
 Records are read from standard input.
 .SH OPTIONS
