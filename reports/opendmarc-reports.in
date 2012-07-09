@@ -658,7 +658,7 @@ foreach (@$domainset)
 		print $mailout "generated at " . localtime() . "\n";
 		print $mailout "\n";
 		print $mailout "--$boundary\n";
-		print $mailout "Content-Type: application/octet-stream\n";
+		print $mailout "Content-Type: application/zip\n";
 		print $mailout "Content-Disposition: attachment; filename=\"$zipfile\"\n";
 		print $mailout "Content-Transfer-Encoding: base64\n";
 		print $mailout "\n";
