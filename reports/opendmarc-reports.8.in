@@ -49,6 +49,16 @@ at least
 .I secs
 seconds.
 .TP
+.I --mailcmd=string
+Sets
+.I string
+as the command to which generated email is piped.  The default is
+"/usr/sbin/sendmail -t -odq" which learns recipients from the header fields
+in the message.  This is useful when one wishes to force all reports to go
+to a single address, e.g. "/usr/sbin/sendmail -odq test-reports@example.com"
+will cause all reports to go to the email address shown regardless of what
+addresses are in the message header.
+.TP
 .I --verbose
 Increase the amount of verbosity written to standard output.
 .TP

@@ -128,6 +128,7 @@ sub usage
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
+	print STDERR "\t--mailcmd=string   mail command [$def_interval]\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t--version          print version and exit\n";
 }
@@ -140,6 +141,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'dbuser=s' => \$dbuser,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
+                                            'mailcmd=s' => \$sendmail,
                                             'report-email=s' => \$repdom,
                                             'report-org=s' => \$repemail,
                                             'verbose!' => \$verbose,
