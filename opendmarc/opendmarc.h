@@ -32,6 +32,7 @@
 /* defaults, limits, etc. */
 #define	BUFRSZ		1024
 #define	DEFCONFFILE	CONFIG_BASE "/opendmarc.conf"
+#define	DEFREPORTCMD	"/usr/sbin/sendmail -t -odq"
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
 #define	MAXARGV		65536
 #define	MAXHEADER	1024

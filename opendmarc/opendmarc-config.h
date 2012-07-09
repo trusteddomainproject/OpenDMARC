@@ -27,6 +27,7 @@ struct configdef dmarcf_config[] =
 	{ "ChangeRootDirectory",	CONFIG_TYPE_STRING,	FALSE },
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "ForensicReports",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "HistoryFile",		CONFIG_TYPE_STRING,	FALSE },
 	{ "MilterDebug",		CONFIG_TYPE_INTEGER,	FALSE },
 	{ "PidFile",			CONFIG_TYPE_STRING,	FALSE },

@@ -134,6 +134,12 @@ user ID has changed during the lifetime of the process.  Currently only
 supported on Linux.
 
 .TP
+.I ForensicReports (boolean)
+Enables generation of forensic reports when the DMARC test fails and the
+purported sender of the message has requested such reports.  Reports are
+formatted per RFC6591.
+
+.TP
 .I HistoryFile (string)
 If set, specifies the location of a text file to which records are written
 that can be used to generate DMARC aggregate reports.  Records are

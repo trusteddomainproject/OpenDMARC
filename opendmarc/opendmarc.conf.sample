@@ -113,6 +113,15 @@
 #
 # EnableCoreDumps false
 
+##  ForensicReports { true | false }
+##  	default "false"
+##
+##  Enables generation of forensic reports when the DMARC test fails and the
+##  purported sender of the message has requested such reports.  Reports are
+##  formatted per RFC6591.
+# 
+# ForensicReports false
+
 ##  HistoryFile path
 ##  	default (none)
 ##

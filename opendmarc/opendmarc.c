@@ -94,6 +94,7 @@ struct dmarcf_msgctx
 	struct dmarcf_header *	mctx_hqhead;
 	struct dmarcf_header *	mctx_hqtail;
 	struct dmarcf_dstring *	mctx_histbuf;
+	struct dmarcf_dstring *	mctx_afrf;
 	unsigned char		mctx_envfrom[BUFRSZ + 1];
 	unsigned char		mctx_envdomain[BUFRSZ + 1];
 	unsigned char		mctx_fromdomain[BUFRSZ + 1];
@@ -116,6 +117,7 @@ typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 /* DMARCF_CONFIG -- configuration object */
 struct dmarcf_config
 {
+	_Bool			conf_afrf;
 	_Bool			conf_deliver;
 	_Bool			conf_dolog;
 	_Bool			conf_enablecores;
@@ -124,6 +126,7 @@ struct dmarcf_config
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
+	char *			conf_reportcmd;
 	char *			conf_tmpdir;
 	char *			conf_authservid;
 	char *			conf_historyfile;
@@ -191,6 +194,7 @@ struct dmarcf_config *curconf;
 char *progname;
 char *conffile;
 char *sock;
+char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
 
@@ -346,6 +350,55 @@ dmarcf_init_syslog(char *facility)
 }
 
 /*
+**  DMARCF_FINDHEADER -- find a header
+**
+**  Parameters:
+**  	dfc -- filter context
+**  	hname -- name of the header of interest
+**  	instance -- which instance is wanted (0 = first)
+**
+**  Return value:
+**  	Header field handle, or NULL if not found.
+**
+**  Notes:
+**  	Negative values of "instance" search backwards from the end.
+*/
+
+static struct dmarcf_header *
+dmarcf_findheader(DMARCF_MSGCTX dfc, char *hname, int instance)
+{
+	struct dmarcf_header *hdr;
+
+	assert(dfc != NULL);
+	assert(hname != NULL);
+
+	if (instance < 0)
+		hdr = dfc->mctx_hqtail;
+	else
+		hdr = dfc->mctx_hqhead;
+
+	while (hdr != NULL)
+	{
+		if (strcasecmp(hdr->hdr_name, hname) == 0)
+		{
+			if (instance == 0 || instance == -1)
+				return hdr;
+			else if (instance > 0)
+				instance--;
+			else
+				instance++;
+		}
+
+		if (instance < 0)
+			hdr = hdr->hdr_prev;
+		else
+			hdr = hdr->hdr_next;
+	}
+
+	return NULL;
+}
+
+/*
 **  DMARCF_CONFIG_LOAD -- load a configuration handle based on file content
 **
 **  Paramters:
@@ -417,9 +470,17 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_deliver,
 		                  sizeof conf->conf_deliver);
 
+		(void) config_get(data, "ForensicReports",
+		                  &conf->conf_afrf,
+		                  sizeof conf->conf_afrf);
+
 		(void) config_get(data, "TemporaryDirectory",
 		                  &conf->conf_tmpdir,
 		                  sizeof conf->conf_tmpdir);
+
+		(void) config_get(data, "ReportCommand",
+		                  &conf->conf_reportcmd,
+		                  sizeof conf->conf_reportcmd);
 
 		(void) config_get(data, "PublicSuffixList",
 		                  &conf->conf_pslist,
@@ -1076,7 +1137,7 @@ mlfi_eom(SMFICTX *ctx)
 	struct dmarcf_header *from;
 	u_char *user;
 	u_char *domain;
-	u_char **ruav;
+	u_char **ruv;
 	unsigned char header[MAXHEADER + 1];
 	unsigned char addrbuf[BUFRSZ + 1];
 	unsigned char replybuf[BUFRSZ + 1];
@@ -1351,13 +1412,13 @@ mlfi_eom(SMFICTX *ctx)
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "policy %d\n", policy);
 
-	ruav = opendmarc_policy_fetch_rua(cc->cctx_dmarc, NULL, 0, TRUE);
-	if (ruav != NULL)
+	ruv = opendmarc_policy_fetch_rua(cc->cctx_dmarc, NULL, 0, TRUE);
+	if (ruv != NULL)
 	{
-		for (c = 0; ruav[c] != NULL; c++)
+		for (c = 0; ruv[c] != NULL; c++)
 		{
 			dmarcf_dstring_printf(dfc->mctx_histbuf, "rua %s\n",
-			                      ruav[c]);
+			                      ruv[c]);
 		}
 	}
 
@@ -1386,7 +1447,181 @@ mlfi_eom(SMFICTX *ctx)
 	**  Generate a forensic report.
 	*/
 
-	/* XXX -- generate forensic report if requested */
+	ruv = opendmarc_policy_fetch_ruf(cc->cctx_dmarc, NULL, 0, TRUE);
+	if (conf->conf_afrf && ruv != NULL)
+	{
+		_Bool first = TRUE;
+
+		if (dfc->mctx_afrf == NULL)
+		{
+			dfc->mctx_afrf = dmarcf_dstring_new(BUFRSZ, 0);
+
+			if (dfc->mctx_afrf == NULL)
+			{
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "%s: failed to create buffer for forensic report",
+					       dfc->mctx_jobid);
+				}
+
+				return SMFIS_TEMPFAIL;
+			}
+		}
+		else
+		{
+			dmarcf_dstring_blank(dfc->mctx_afrf);
+		}
+
+		dmarcf_dstring_printf(dfc->mctx_afrf,
+		                      "From: %s <%s@%s>\n", DMARCF_PRODUCT,
+		                      myname, hostname);
+
+		for (c = 0; ruv[c] != NULL; c++)
+		{
+			if (strncasecmp(ruv[c], "mailto:", 7) != 0)
+				continue;
+
+			if (first)
+			{
+				dmarcf_dstring_cat(dfc->mctx_afrf, "To: ");
+				first = FALSE;
+			}
+			else
+			{
+				dmarcf_dstring_cat(dfc->mctx_afrf, ", ");
+			}
+
+			dmarcf_dstring_cat(dfc->mctx_afrf, &ruv[c][7]);
+		}
+
+		if (!first)
+		{
+			time_t now;
+			struct dmarcf_header *h;
+			struct tm *tm;
+			FILE *out;
+			char timebuf[BUFRSZ];
+
+			/* finish To: from above */
+			dmarcf_dstring_cat(dfc->mctx_afrf, "\n");
+
+			/* Date: */
+			(void) time(&now);
+			tm = localtime(&now);
+			(void) strftime(timebuf, sizeof timebuf,
+			                "%a, %e %b %Y %H:%M:%S %z (%Z)", tm);
+			dmarcf_dstring_printf(dfc->mctx_afrf, "Date: %s\n",
+			                      timebuf);
+
+			h = dmarcf_findheader(dfc, "subject", 0);
+			if (h == NULL)
+			{
+				dmarcf_dstring_printf(dfc->mctx_afrf,
+				                      "Subject: DMARC failure report for job %s\n",
+				                      dfc->mctx_jobid);
+			}
+			else
+			{
+				dmarcf_dstring_printf(dfc->mctx_afrf,
+				                      "Subject: FW: %s\n",
+				                      h->hdr_value);
+			}
+
+			dmarcf_dstring_cat(dfc->mctx_afrf,
+			                   "MIME-Version: 1.0\n");
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Content-Type: multipart/report;"
+			                      "\n\treport-type=feedbackreport;"
+			                      "\n\tboundary=\"%s:%s\"\n",
+			                      hostname, dfc->mctx_jobid);
+
+			dmarcf_dstring_cat(dfc->mctx_afrf, "\n");
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "--%s:%s\n"
+			                      "Content-Type: text/plain\n",
+			                      hostname, dfc->mctx_jobid);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "This is an authentication "
+			                      "failure report for an email "
+			                      "message received from IP\n"
+			                      "%s on %s.\n\n",
+			                      cc->cctx_ipstr, timebuf);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "--%s:%s\n"
+			                      "Content-Type: message/feedback-report\n\n",
+			                      hostname, dfc->mctx_jobid);
+
+			dmarcf_dstring_cat(dfc->mctx_afrf,
+			                   "Feedback-Type: auth-failure\n"
+			                   "Version: 1\n");
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "User-Agent: %s/%s\n",
+			                      DMARCF_PRODUCTNS, VERSION);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Authentication-Results: %s; dmarc=fail\n",
+			                      authservid);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Original-Envelope-Id: %s\n",
+			                      dfc->mctx_jobid);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Original-Mail-From: %s\n",
+			                      dfc->mctx_envfrom);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Source-IP: %s\n",
+			                      cc->cctx_ipstr);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Reported-Domain: %s\n",
+			                      dfc->mctx_fromdomain);
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "--%s:%s\n"
+			                      "Content-Type: text/rfc822-headers\n\n",
+			                      hostname, dfc->mctx_jobid);
+
+			for (h = dfc->mctx_hqhead; h != NULL; h = h->hdr_next)
+			{
+				dmarcf_dstring_printf(dfc->mctx_afrf,
+				                      "%s: %s\n",
+				                      h->hdr_name,
+				                      h->hdr_value);
+			}
+
+			out = popen(conf->conf_reportcmd, "w");
+			if (out == NULL)
+			{
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_ERR, "%s: popen(): %s",
+					       dfc->mctx_jobid,
+					       strerror(errno));
+				}
+			}
+			else
+			{
+				fwrite(dmarcf_dstring_get(dfc->mctx_afrf),
+				       1, dmarcf_dstring_len(dfc->mctx_afrf),
+				       out);
+
+				status = pclose(out);
+				if (status != 0 && conf->conf_dolog)
+				{
+					syslog(LOG_ERR, "%s: pclose() returned status %d",
+					       dfc->mctx_jobid, status);
+				}
+			}
+		}
+	}
 
 	/*
 	**  Enact policy based on DMARC results.
@@ -1797,6 +2032,8 @@ dmarcf_config_new(void)
 		return NULL;
 
 	memset(new, '\0', sizeof(struct dmarcf_config));
+
+	new->conf_reportcmd = DEFREPORTCMD;
 
 	return new;
 }
@@ -2391,6 +2628,9 @@ main(int argc, char **argv)
 
 		(void) endpwent();
 	}
+	else
+	{
+	}
 
 	if (curconf->conf_enablecores)
 	{
@@ -2869,6 +3109,14 @@ main(int argc, char **argv)
 
 		return EX_OSERR;
 	}
+
+	/* figure out who I am */
+	if (pw == NULL)
+		pw = getpwuid(getuid());
+	if (pw == NULL)
+		myname = "postmaster";
+	else
+		myname = pw->pw_name;
 
 	/* call the milter mainline */
 	errno = 0;
