@@ -206,8 +206,8 @@ int                     opendmarc_reverse_domain(u_char *domain, u_char *buf, si
 void 			opendmarc_tld_shutdown();
 
 /* opendmarc_util.c */
-u_char ** opendmarc_util_clearargv(u_char **ary);
 u_char ** opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt);
+u_char ** opendmarc_util_clearargv(u_char **ary);
 u_char ** opendmarc_util_dupe_argv(u_char **ary);
 u_char *  opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen);
 u_char *  opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen);

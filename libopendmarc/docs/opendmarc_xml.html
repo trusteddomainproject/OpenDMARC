@@ -1,0 +1,85 @@
+<html>
+<head><title>opendmarc_xml()</title></head>
+<body>
+<!--
+$Id: opendmarc_xml.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_xml()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+u_char ** opendmarc_xml(
+	char *b, size_t blen, char *e, size_t elen)
+);
+</pre>
+Parse and XML Report that was stored in a memory buffer. Returns a NULL termiated array of strings as lines of CSV
+data.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_xml()</tt>
+	Any time you have received a <tt>DMARC</tt> report, and have already extracted it from its zip file.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>b</td>
+	<td>The address of the memory buffer containing the XML report.
+	</td></tr>
+    <tr valign="blen"><td>blen</td>
+	<td>The size of the buffer <tt>b</tt> in bytes.
+	</td></tr>
+    <tr valign="top"><td>e</td>
+	<td>A buffer to contain any returned human-readable error message.
+	</td></tr>
+    <tr valign="top"><td>elen</td>
+	<td>The size of the buffer <tt>e</tt> in bytes.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>u_char **</tt> -- On success, a NULL terminated array of CSV data lines.
+<li><tt>NULL</tt> -- Failure, with the reason in the <tt>e</tt> buffer.
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>The return value can be free'd using
+<a href="opendmarc_util_clearargv.html">opendmarc_util_clearargv()</a>.
+<li>The first line of the CSV data contains column names.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

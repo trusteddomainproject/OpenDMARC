@@ -133,6 +133,18 @@ OPENDMARC_STATUS_T opendmarc_policy_fetch_alignment(DMARC_POLICY_T *pctx, int *d
 /*
  * TLD processing
  */
-int opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
+int  		   opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
+void		   opendmarc_tld_shutdown();
+
+/*
+ * XML Parsing
+ */
+u_char **          opendmarc_xml(char *b, size_t blen, char *e, size_t elen);
+u_char **          opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len);
+
+/*
+ * Utility routines
+ */
+u_char ** 	   opendmarc_util_clearargv(u_char **ary);
 
 #endif /* DMARC_H */

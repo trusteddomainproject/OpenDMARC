@@ -1,0 +1,81 @@
+<html>
+<head><title>opendmarc_xml_parse()</title></head>
+<body>
+<!--
+$Id: opendmarc_xml_parse.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_xml_parse()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+u_char ** opendmarc_xml_parse(
+	char *fname, char *err_buf, size_t err_len
+);
+</pre>
+Parse and XML Report by reading it from a file.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_xml_parse()</tt>
+	Any time you have received a <tt>DMARC</tt> report, and have already extracted it from its zip file.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>fname</td>
+	<td>The full or relative path name of the file to read.
+	</td></tr>
+    <tr valign="blen"><td>err_buf</td>
+	<td>The size of a buffer in bytes to recieve error messages.
+	</td></tr>
+    <tr valign="top"><td>err_len</td>
+	<td>The size of the buffer <tt>err_buf</tt> in bytes.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>u_char **</tt> -- On success, a NULL terminated array of CSV data lines.
+<li><tt>NULL</tt> -- Failure, with the reason in the <tt>err_buf</tt> buffer.
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>The return value can be free'd using
+<a href="opendmarc_util_clearargv.html">opendmarc_util_clearargv()</a>.
+<li>The first line of the CSV data contains column names.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>
