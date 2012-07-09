@@ -1398,9 +1398,6 @@ mlfi_eom(SMFICTX *ctx)
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n",
 				                      dfc->mctx_spfresult);
-				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "aspf %d\n",
-				                      dfc->mctx_spfalign);
 				wspf = TRUE;
 			}
 			else if (ar.ares_result[c].result_method ==  ARES_METHOD_DKIM)
