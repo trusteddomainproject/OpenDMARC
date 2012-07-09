@@ -136,7 +136,7 @@ MilterDebug,
 PidFile (\-P),
 Socket (\-p),
 UMask,
-UserID (-u).  The filter does not automatically check the configuration
+UserID (\-u).  The filter does not automatically check the configuration
 file for changes and reload.
 .SH VERSION
 This man page covers version @VERSION@ of
@@ -148,12 +148,14 @@ Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 .P
 Sendmail Operations Guide
 .P
-RFC4408 - Sender Policy Framework
+RFC4408 \- Sender Policy Framework
 .P
-RFC5321 - Simple Mail Transfer Protocol
+RFC5321 \- Simple Mail Transfer Protocol
 .P
-RFC5322 - Internet Messages
+RFC5322 \- Internet Messages
 .P
-RFC5451 - Message Header Field for Indicating Message Authentication Status
+RFC5451 \- Message Header Field for Indicating Message Authentication Status
 .P
-RFC6376 - DomainKeys Identified Mail
+RFC6376 \- DomainKeys Identified Mail
+.P
+RFC6591 \- Authentication Failure Reporting Using the Abuse Reporting Format
