@@ -44,12 +44,6 @@ the environment variable is not set.
 .I --help
 Prints a help message and terminates.
 .TP
-.I --interval=secs
-Generates reports only for hosts that have not had a report generated in
-at least
-.I secs
-seconds.
-.TP
 .I --verbose
 Increase the amount of verbosity written to standard output.
 .TP
