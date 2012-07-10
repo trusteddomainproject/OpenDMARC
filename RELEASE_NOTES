@@ -6,5 +6,9 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.1		2012/07/??
+	REPORTS: Fix generated XML format ("auth_results" is a sibling of
+		"row", not a child of it).  Reported by John Levine.
+
 0.1.0		2012/07/07
 	Initial Beta release.
