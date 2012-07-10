@@ -6,7 +6,7 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
-0.1.1		2012/07/??
+0.1.1		2012/07/10
 	LIBOPENDMARC: Add strlcat() and strlcpy() if not provided in libc.
 		Problem noted by Andreas Schulze.
 	REPORTS: Fix generated XML format ("auth_results" is a sibling of
@@ -15,5 +15,5 @@ release, and a summary of the changes in that release.
 	BUILD: Clean up an errant "configure" line.  Problem noted by
 		Andreas Schulze.
 
-0.1.0		2012/07/07
+0.1.0		2012/07/09
 	Initial Beta release.
