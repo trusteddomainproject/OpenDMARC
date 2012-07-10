@@ -586,14 +586,14 @@ foreach (@$domainset)
 					$gen->dkim($align_dkimstr),
 					$gen->spf($align_spfstr)),
 				$gen->identities(
-					$gen->header_from($fromdomain)),
-				$gen->auth_results(
-					$gen->dkim(
-						$gen->domain($dkimdomain),
-						$gen->result($dkimresultstr)),
-					$gen->spf(
-						$gen->domain($envdomain),
-						$gen->result($spfresultstr)))));
+					$gen->header_from($fromdomain))),
+			$gen->auth_results(
+				$gen->dkim(
+					$gen->domain($dkimdomain),
+					$gen->result($dkimresultstr)),
+				$gen->spf(
+					$gen->domain($envdomain),
+					$gen->result($spfresultstr))));
 	}
 
 	$dbi_s->finish;
