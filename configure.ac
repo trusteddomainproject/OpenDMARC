@@ -39,7 +39,6 @@ AC_CONFIG_SRCDIR([.])
 AC_CONFIG_HEADERS(build-config.h)
 
 AC_CONFIG_MACRO_DIR([m4])
-ACLOCAL_AMFLAGS=-I m4
 
 #
 # Hexadecimal version, for use in generating dmarc.h
@@ -152,6 +151,8 @@ AC_CHECK_SIZEOF(void *)
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 
+AC_CHECK_FUNCS(strlcat)
+AC_CHECK_FUNCS(strlcpy)
 AC_CHECK_FUNCS(basename)
 AC_CHECK_FUNCS(syslog)
 AC_CHECK_FUNCS(cuserid)
@@ -177,6 +178,46 @@ AC_ARG_WITH([wall],
 	AC_HELP_STRING([--with-wall], [(no default)]),
 	CC="gcc -Wall",)
 
+#
+# See if we will need -lresolv
+#
+dnscheck='
+#include "confdefs.h" 
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h> 
+int main() {
+res_mkquery (0, 0, 0, 0, 0, 0, 0, 0, 0);
+dn_expand (0, 0, 0, 0, 0);
+dn_skipname (0, 0);
+dn_comp (0, 0, 0, 0, 0);
+return 0;
+}'
+AC_MSG_CHECKING([whether the resolver works without -lresolv])
+LIBRESOLV=
+AC_LINK_IFELSE([AC_LANG_SOURCE([
+$dnscheck
+])] , [
+	AC_MSG_RESULT(yes)
+] , [
+	AC_MSG_RESULT(no)
+	AC_MSG_CHECKING([whether the resolver works with -lresolv])
+	saved_LIBS="$LIBS"
+	LIBS=-lresolv
+	AC_LINK_IFELSE([AC_LANG_SOURCE([
+$dnscheck
+	])] , [
+		AC_MSG_RESULT(yes)
+		LIBRESOLV=-lresolv
+	] , [
+		AC_MSG_RESULT(no)
+		AC_MSG_ERROR([need workable resolver library])
+	])
+	LIBS="$saved_LIBS"
+])
+AC_SUBST([LIBRESOLV])
+ 
 # 
 # --with-sql-backend -- configures some defaults for DB access
 # 
