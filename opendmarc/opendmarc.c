@@ -11,6 +11,9 @@
 /* system includes */
 #include <sys/param.h>
 #include <sys/types.h>
+#ifdef __linux__
+# include <sys/prctl.h>
+#endif /* __linux__ */
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
