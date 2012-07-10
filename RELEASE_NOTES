@@ -7,8 +7,13 @@ release, and a summary of the changes in that release.
 	Initial release.
 
 0.1.1		2012/07/??
+	LIBOPENDMARC: Add strlcat() and strlcpy() if not provided in libc.
+		Problem noted by Andreas Schulze.
 	REPORTS: Fix generated XML format ("auth_results" is a sibling of
 		"row", not a child of it).  Reported by John Levine.
+	BUILD: Add -lresolv where needed.  Problem noted by Andreas Schulze.
+	BUILD: Clean up an errant "configure" line.  Problem noted by
+		Andreas Schulze.
 
 0.1.0		2012/07/07
 	Initial Beta release.
