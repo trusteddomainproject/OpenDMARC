@@ -18,6 +18,7 @@
 #include <assert.h>
 
 /* opendmarc includes */
+#include "opendmarc_strl.h"
 #include "config.h"
 
 /* limits */

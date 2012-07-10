@@ -3,6 +3,7 @@
 **  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 #include "opendmarc_internal.h"
+#include "opendmarc_strl.h"
 
 static OPENDMARC_HASH_CTX *TLD_hctx    = NULL;
 static OPENDMARC_HASH_CTX *TLDbak_hctx = NULL;

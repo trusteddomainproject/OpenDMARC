@@ -38,6 +38,9 @@
 # define TRUE 1
 #endif /* ! TRUE */
 
+/* libopendmarc includes */
+#include "opendmarc_strl.h"
+
 /* opendmarc includes */
 #include "util.h"
 

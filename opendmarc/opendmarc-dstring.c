@@ -19,6 +19,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+/* libopendmarc includes */
+#include "opendmarc_strl.h"
+
 /* opendmarc includes */
 #include "opendmarc.h"
 #include "opendmarc-dstring.h"

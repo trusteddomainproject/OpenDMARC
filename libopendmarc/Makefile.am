@@ -10,4 +10,5 @@ libopendmarc_la_SOURCES	= dmarc.h \
 			  opendmarc_util.c \
 			  opendmarc_hash.c \
 			  opendmarc_strl.c \
+                          opendmarc_strl.h \
                           opendmarc_internal.h

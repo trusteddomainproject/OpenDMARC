@@ -20,6 +20,9 @@
 # include <sysexits.h>
 #endif /* ARTEST */
 
+/* libopendmarc includes */
+#include "opendmarc_strl.h"
+
 /* opendmarc includes */
 #include "opendmarc-ar.h"
 

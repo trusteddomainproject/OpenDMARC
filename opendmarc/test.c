@@ -23,6 +23,9 @@
 /* libmilter includes */
 #include <libmilter/mfapi.h>
 
+/* libopendmarc includes */
+#include "opendmarc_strl.h"
+
 /* opendmarc includes */
 #include "test.h"
 #include "opendmarc.h"
