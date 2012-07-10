@@ -88,15 +88,15 @@ contrib		A collection of user contributed scripts that may be useful.
 db		Database schema and tools for generating DMARC reports based
 		upon accumulated data.
 
-docs		A collection of RFCs and drafts related to opendkim.
+docs		A collection of RFCs and drafts related to opendmarc.
 
 libopendmarc	A library that implements the proposed DMARC standard.
 
 libopendmarc/docs
 		HTML documentation describing the API provided by libopendmarc.
 
-opendmarc	A milter-based filter application which uses libopenkim (and
-		optionally libar) to provide DKIM service via an MTA using
+opendmarc	A milter-based filter application which uses libopendmarc (and
+		optionally libar) to provide DMARC service via an MTA using
 		the milter protocol.
 
 
@@ -129,7 +129,7 @@ MTA timeouts
 
  By default, the MTA is configured to wait up to ten seconds for a response
  from a filter before giving up.  When querying remote nameservers
- for key and policy data, the DKIM filter may not get a response from the
+ for key and policy data, the DMARC filter may not get a response from the
  resolver within that time frame, and thus this MTA timeout will occur.
  This can cause messages to be rejected, temp-failed or delivered without
  verification, depending on the failure mode selected for the filter.
@@ -144,7 +144,7 @@ MTA timeouts
  "-T" command line option to change the timeout so that it is shorter than
  the MTA timeout.
 
-Other OpenDKIM issues:
+Other OpenDMARC issues:
 
  Report any bugs to the email address opendmarc-users@trusteddomain.org or to
  the SourceForge issue tracker accessible at:
