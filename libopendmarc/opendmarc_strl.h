@@ -11,6 +11,10 @@
 /* OpenDMARC includes */
 #include "build-config.h"
 
+/* prototypes */
+extern size_t dmarc_strlcat __P((char *, const char *, ssize_t));
+extern size_t dmarc_strlcpy __P((char *, const char *, ssize_t));
+
 /* mappings */
 #if HAVE_STRLCAT == 0
 # define strlcat(x,y,z)	dmarc_strlcat((x), (y), (z))
