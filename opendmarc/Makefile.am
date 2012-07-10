@@ -15,6 +15,6 @@ opendmarc_CC = $(PTHREAD_CC)
 opendmarc_CFLAGS = $(PTHREAD_CFLAGS) 
 opendmarc_CPPFLAGS = $(LIBMILTER_INCDIRS) -I$(srcdir)/../libopendmarc
 opendmarc_LDFLAGS = $(LIBMILTER_LIBDIRS) $(PTHREAD_CFLAGS)
-opendmarc_LDADD = ../libopendmarc/libopendmarc.la $(LIBMILTER_LIBS) $(PTHREAD_LIBS)
+opendmarc_LDADD = ../libopendmarc/libopendmarc.la $(LIBMILTER_LIBS) $(PTHREAD_LIBS) $(LIBRESOLV)
 
 man_MANS = opendmarc.conf.5 opendmarc.8
