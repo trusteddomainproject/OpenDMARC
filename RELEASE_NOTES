@@ -6,6 +6,13 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.2		2012/07/??
+	LIBOPENDMARC: Use strlcat()/strlcpy().
+	BUILD: Add -lresolv where needed in more places (libopendmarc unit
+		tests this time).  Problem noted by Andreas Schulze.
+	BUILD: Split filter checks and live library checks into different
+		"--enable" flags.
+
 0.1.1		2012/07/10
 	LIBOPENDMARC: Add strlcat() and strlcpy() if not provided in libc.
 		Problem noted by Andreas Schulze.
