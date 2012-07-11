@@ -11,7 +11,9 @@ release, and a summary of the changes in that release.
 	BUILD: Add -lresolv where needed in more places (libopendmarc unit
 		tests this time).  Problem noted by Andreas Schulze.
 	BUILD: Split filter checks and live library checks into different
-		"--enable" flags.
+		"--enable" flags.  Problem noted by Andreas Schulze.
+	BUILD: Actually do something with "--disable-filter".  Problem
+		noted by Andrew Birchall.
 
 0.1.1		2012/07/10
 	LIBOPENDMARC: Add strlcat() and strlcpy() if not provided in libc.

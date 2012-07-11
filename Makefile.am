@@ -4,7 +4,10 @@ bindir=@LIBDMARC_DIR@/bin
 libdir=@LIBDMARC_DIR@/lib
 includedir=@LIBDMARC_DIR@/include
 
-SUBDIRS		= contrib docs libopendmarc opendmarc reports
+SUBDIRS		= contrib docs libopendmarc reports
+if BUILD_FILTER
+SUBDIRS         += opendmarc
+endif
 
 auxdir		= @ac_aux_dir@
 AUX_DIST	= $(auxdir)/install-sh $(auxdir)/missing \
