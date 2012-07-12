@@ -4,7 +4,7 @@ bindir=@LIBDMARC_DIR@/bin
 libdir=@LIBDMARC_DIR@/lib
 includedir=@LIBDMARC_DIR@/include
 
-SUBDIRS		= contrib docs libopendmarc reports
+SUBDIRS		= contrib db docs libopendmarc reports
 if BUILD_FILTER
 SUBDIRS         += opendmarc
 endif
