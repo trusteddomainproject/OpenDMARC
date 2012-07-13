@@ -121,6 +121,7 @@ typedef struct dmarc_policy_t {
 	int 	 	spf_origin;		/* Input: was domain MAIL From: or HELO for SPF check */
 	int		spf_outcome;		/* Input: What was the outcome of the SPF check */
 	u_char *	spf_human_outcome;	/* Input: What was the outcome of the SPF check in human readable form */
+	int		dkim_final;		/* This is the best record found */
 	u_char * 	dkim_domain;		/* Input: The d= domain */
 	int		dkim_outcome;		/* Input: What was the outcome of the DKIM check */
 	u_char *	dkim_human_outcome;	/* Input: What was the outcome of the DKIM check in human readable form */

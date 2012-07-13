@@ -6,6 +6,7 @@
 **************************************************************************/
 #include "opendmarc_internal.h"
 #include "dmarc.h"
+#include "opendmarc_strl.h"
 
 /**************************************************************************
 ** OPENDMARC_POLICY_LIBRARY_INIT -- Initialize The Library
@@ -354,11 +355,14 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 	char	domain_buf[256];
 	u_char *dp;
 	int	result = DMARC_POLICY_DKIM_OUTCOME_NONE;
+	u_char	rev_from_domain[MAXDNSHOSTNAME];
+	u_char	rev_dkim_domain[MAXDNSHOSTNAME];
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (d_equal_domain == NULL || strlen((char *)d_equal_domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
+
 	switch (dkim_result)
 	{
 		case DMARC_POLICY_DKIM_OUTCOME_NONE:
@@ -370,32 +374,71 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 		default:
 			return DMARC_PARSE_ERROR_BAD_DKIM_MACRO;
 	}
+	if (pctx->dkim_final == TRUE)
+		return DMARC_PARSE_OKAY;
 
 	dp = opendmarc_util_finddomain(d_equal_domain, domain_buf, sizeof domain_buf);
-	if (dp == NULL)
+	if (dp == NULL || strlen(dp) == 0)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
 
-	if (pctx->dkim_outcome != DMARC_POLICY_DKIM_OUTCOME_PASS)
+	/*
+	 * If the d= domain is an exact match to the from_domain
+	 * select this one as the domain of choice.
+	 * If the outcome is pass, the is the final choice.
+	 */
+	if (strcasecmp((char *)dp, pctx->from_domain) == 0)
 	{
 		if (pctx->dkim_domain != NULL)
 		{
 			(void) free(pctx->dkim_domain);
 			pctx->dkim_domain = NULL;
 		}
-	}
-	if (pctx->dkim_domain == NULL)
-	{
-		pctx->dkim_domain = strdup((char *)dp);
-		if (pctx->dkim_domain == NULL)
-			return DMARC_PARSE_ERROR_NO_ALLOC;
-		if (human_result != NULL)
+		if (result == DMARC_POLICY_DKIM_OUTCOME_PASS)
 		{
-			if (pctx->dkim_human_outcome != NULL)
-				(void) free(pctx->dkim_human_outcome);
-			pctx->dkim_human_outcome = strdup((char *)human_result);
+			pctx->dkim_final = TRUE;
+			goto set_final;
 		}
-		pctx->dkim_outcome = result;
+		if (pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
+			return DMARC_PARSE_OKAY;
+		goto set_final;
 	}
+
+	/*
+	 * Reverse the domains to see if the d= us a superset of
+	 * the from domain. If so and if we have not already found
+	 * a best match, make this the temporary best match.
+	 */
+	(void) opendmarc_reverse_domain(pctx->from_domain, rev_from_domain, sizeof rev_from_domain);
+	(void) opendmarc_reverse_domain(dp, rev_dkim_domain, sizeof rev_dkim_domain);
+	if (strncasecmp(rev_dkim_domain, rev_from_domain, strlen(rev_from_domain)) == 0)
+	{
+		if (pctx->dkim_domain != NULL)
+		{
+			(void) free(pctx->dkim_domain);
+			pctx->dkim_domain = NULL;
+		}
+		if (result == DMARC_POLICY_DKIM_OUTCOME_PASS)
+			goto set_final;
+	}
+	/*
+	 * If we found any record so far that passed.
+	 * preserve it.
+	 */
+	if (pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
+		return DMARC_PARSE_OKAY;
+
+set_final:
+	if (pctx->dkim_domain == NULL)
+		pctx->dkim_domain = strdup((char *)dp);
+	if (pctx->dkim_domain == NULL)
+		return DMARC_PARSE_ERROR_NO_ALLOC;
+	if (human_result != NULL)
+	{
+		if (pctx->dkim_human_outcome != NULL)
+			(void) free(pctx->dkim_human_outcome);
+		pctx->dkim_human_outcome = strdup((char *)human_result);
+	}
+	pctx->dkim_outcome = result;
 	return DMARC_PARSE_OKAY;
 }
 
@@ -499,8 +542,8 @@ OPENDMARC_STATUS_T
 opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 {
 	u_char	rev_from_domain[MAXDNSHOSTNAME];
-	u_char	rev_spf_domain[MAXDNSHOSTNAME];
 	u_char	rev_dkim_domain[MAXDNSHOSTNAME];
+	u_char	rev_spf_domain[MAXDNSHOSTNAME];
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
@@ -612,11 +655,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 	pctx->ri  = -1;
 
 	(void) memset((char *)copy, '\0', sizeof copy);
-# if HAVE_STRLCPY
 	(void) strlcpy((char *)copy, (char *)record, sizeof copy);
-# else
-	(void) strncpy((char *)copy, (char *)record, sizeof copy);
-# endif
 	ep = copy + strlen((char *)copy);
 
 
@@ -1140,3 +1179,80 @@ opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *(nsaddr_lis
 	return;
 }
 
+/**************************************************************************
+** OPENDMARC_POLICY_STATUS_TO_STR -- Convert the integer return
+**				     of type OPENDMARC_STATUS_T into 
+**				     a human readable string.
+**	Parameters:
+**		status	-- The status for which to return a string
+**	Returns:
+**		NULL		-- On error
+**		const char *	-- On success
+***************************************************************************/
+const char *
+opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status)
+{
+	char *msg = "Undefine Value";
+
+	switch (status)
+	{
+	    case DMARC_PARSE_OKAY:
+	    	msg = "Success. No Errors";
+		break;
+	    case DMARC_PARSE_ERROR_EMPTY: 
+		msg = "Function called with nothing to pase";
+		break;
+	    case DMARC_PARSE_ERROR_NULL_CTX: 
+		msg  ="Function called with NULL Context";
+		break;
+	    case DMARC_PARSE_ERROR_BAD_VERSION: 
+		msg = "Found DMARC record containd a bad v= value";
+		break;
+	    case DMARC_PARSE_ERROR_BAD_VALUE: 
+		msg = "Found DMARC record containd a bad token value";
+		break;
+	    case DMARC_PARSE_ERROR_NO_REQUIRED_P: 
+		msg = "Found DMARC record lacked a required p= entry";
+		break;
+	    case DMARC_PARSE_ERROR_NO_DOMAIN: 
+		msg = "Function found the domain empty, e.g. \"<>\"";
+		break;
+	    case DMARC_PARSE_ERROR_NO_ALLOC: 
+		msg = "Memory allocation error";
+		break;
+	    case DMARC_PARSE_ERROR_BAD_SPF_MACRO: 
+		msg = "Attempt to store an illegal value";
+		break;
+	    case DMARC_DNS_ERROR_NO_RECORD: 
+		msg = "Looked up domain lacked a DMARC record";
+		break;
+	    case DMARC_DNS_ERROR_NXDOMAIN: 
+		msg = "Looked up domain did not exist";
+		break;
+	    case DMARC_DNS_ERROR_TMPERR: 
+		msg = "DNS lookup of domain tempfailed";
+		break;
+	    case DMARC_TLD_ERROR_UNKNOWN: 
+		msg = "Attempt to load an unknown TLD file type";
+		break;
+	    case DMARC_FROM_DOMAIN_ABSENT: 
+		msg = "No From: domain was supplied";
+		break;
+	    case DMARC_POLICY_ABSENT: 
+		msg = "Policy up to you. No DMARC record found";
+		break;
+	    case DMARC_POLICY_PASS: 
+		msg = "Policy OK so accept message";
+		break;
+	    case DMARC_POLICY_REJECT: 
+		msg = "Policy says to reject message";
+		break;
+	    case DMARC_POLICY_QUARANTINE: 
+		msg = "Policy says to quarantine message";
+		break;
+	    case DMARC_POLICY_NONE: 
+		msg = "Policy says to monitor and report";
+		break;
+	}
+	return msg;
+}
