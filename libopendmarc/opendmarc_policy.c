@@ -6,6 +6,7 @@
 **************************************************************************/
 #include "opendmarc_internal.h"
 #include "dmarc.h"
+#include "opendmarc_strl.h"
 
 /**************************************************************************
 ** OPENDMARC_POLICY_LIBRARY_INIT -- Initialize The Library
@@ -612,11 +613,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 	pctx->ri  = -1;
 
 	(void) memset((char *)copy, '\0', sizeof copy);
-# if HAVE_STRLCPY
 	(void) strlcpy((char *)copy, (char *)record, sizeof copy);
-# else
-	(void) strncpy((char *)copy, (char *)record, sizeof copy);
-# endif
 	ep = copy + strlen((char *)copy);
 
 
@@ -1140,3 +1137,80 @@ opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *(nsaddr_lis
 	return;
 }
 
+/**************************************************************************
+** OPENDMARC_POLICY_STATUS_TO_STR -- Convert the integer return
+**				     of type OPENDMARC_STATUS_T into 
+**				     a human readable string.
+**	Parameters:
+**		status	-- The status for which to return a string
+**	Returns:
+**		NULL		-- On error
+**		const char *	-- On success
+***************************************************************************/
+const char *
+opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status)
+{
+	char *msg = "Undefine Value";
+
+	switch (status)
+	{
+	    case DMARC_PARSE_OKAY:
+	    	msg = "Success. No Errors";
+		break;
+	    case DMARC_PARSE_ERROR_EMPTY: 
+		msg = "Function called with nothing to pase";
+		break;
+	    case DMARC_PARSE_ERROR_NULL_CTX: 
+		msg  ="Function called with NULL Context";
+		break;
+	    case DMARC_PARSE_ERROR_BAD_VERSION: 
+		msg = "Found DMARC record containd a bad v= value";
+		break;
+	    case DMARC_PARSE_ERROR_BAD_VALUE: 
+		msg = "Found DMARC record containd a bad token value";
+		break;
+	    case DMARC_PARSE_ERROR_NO_REQUIRED_P: 
+		msg = "Found DMARC record lacked a required p= entry";
+		break;
+	    case DMARC_PARSE_ERROR_NO_DOMAIN: 
+		msg = "Function found the domain empty, e.g. \"<>\"";
+		break;
+	    case DMARC_PARSE_ERROR_NO_ALLOC: 
+		msg = "Memory allocation error";
+		break;
+	    case DMARC_PARSE_ERROR_BAD_SPF_MACRO: 
+		msg = "Attempt to store an illegal value";
+		break;
+	    case DMARC_DNS_ERROR_NO_RECORD: 
+		msg = "Looked up domain lacked a DMARC record";
+		break;
+	    case DMARC_DNS_ERROR_NXDOMAIN: 
+		msg = "Looked up domain did not exist";
+		break;
+	    case DMARC_DNS_ERROR_TMPERR: 
+		msg = "DNS lookup of domain tempfailed";
+		break;
+	    case DMARC_TLD_ERROR_UNKNOWN: 
+		msg = "Attempt to load an unknown TLD file type";
+		break;
+	    case DMARC_FROM_DOMAIN_ABSENT: 
+		msg = "No From: domain was supplied";
+		break;
+	    case DMARC_POLICY_ABSENT: 
+		msg = "Policy up to you. No DMARC record found";
+		break;
+	    case DMARC_POLICY_PASS: 
+		msg = "Policy OK so accept message";
+		break;
+	    case DMARC_POLICY_REJECT: 
+		msg = "Policy says to reject message";
+		break;
+	    case DMARC_POLICY_QUARANTINE: 
+		msg = "Policy says to quarantine message";
+		break;
+	    case DMARC_POLICY_NONE: 
+		msg = "Policy says to monitor and report";
+		break;
+	}
+	return msg;
+}

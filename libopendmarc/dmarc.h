@@ -56,9 +56,9 @@
 #define DMARC_DNS_ERROR_NXDOMAIN		(10)	/* No such domain exists */
 #define DMARC_DNS_ERROR_TMPERR			(11)	/* Recoveralble DNS error */
 #define DMARC_TLD_ERROR_UNKNOWN			(12)	/* Undefined TLD type    */
-#define DMARC_FROM_DOMAIN_ABSENT		(13)	/* Undefined TLD type    */
+#define DMARC_FROM_DOMAIN_ABSENT		(13)	/* No From: domain was supplied */
 
-#define DMARC_POLICY_ABSENT			(14)	/* Policy OK so accept message */
+#define DMARC_POLICY_ABSENT			(14)	/* Policy up to you. No DMARC record found */
 #define DMARC_POLICY_PASS			(15)	/* Policy OK so accept message */
 #define DMARC_POLICY_REJECT			(16)	/* Policy says to reject message */
 #define DMARC_POLICY_QUARANTINE			(17)	/* Policy says to quarantine message */
@@ -146,5 +146,6 @@ u_char **          opendmarc_xml_parse(char *fname, char *err_buf, size_t err_le
  * Utility routines
  */
 u_char ** 	   opendmarc_util_clearargv(u_char **ary);
+const char *	   opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status);
 
 #endif /* DMARC_H */
