@@ -22,7 +22,7 @@ complete that process before continuing with the next section.
 CONFIGURING OPENDMARC
 =====================
 
-(1) Take a look at the opendmarc.conf.simple as an example configuration file 
+(1) Take a look at the opendmarc.conf.sample as an example configuration file 
     for your domain.  If you wish to run with anything other than default
     settings, copy that file to /etc/mail/opendmarc.conf and make your changes
     there.
