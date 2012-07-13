@@ -355,11 +355,14 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 	char	domain_buf[256];
 	u_char *dp;
 	int	result = DMARC_POLICY_DKIM_OUTCOME_NONE;
+	u_char	rev_from_domain[MAXDNSHOSTNAME];
+	u_char	rev_dkim_domain[MAXDNSHOSTNAME];
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (d_equal_domain == NULL || strlen((char *)d_equal_domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
+
 	switch (dkim_result)
 	{
 		case DMARC_POLICY_DKIM_OUTCOME_NONE:
@@ -371,32 +374,71 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 		default:
 			return DMARC_PARSE_ERROR_BAD_DKIM_MACRO;
 	}
+	if (pctx->dkim_final == TRUE)
+		return DMARC_PARSE_OKAY;
 
 	dp = opendmarc_util_finddomain(d_equal_domain, domain_buf, sizeof domain_buf);
-	if (dp == NULL)
+	if (dp == NULL || strlen(dp) == 0)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
 
-	if (pctx->dkim_outcome != DMARC_POLICY_DKIM_OUTCOME_PASS)
+	/*
+	 * If the d= domain is an exact match to the from_domain
+	 * select this one as the domain of choice.
+	 * If the outcome is pass, the is the final choice.
+	 */
+	if (strcasecmp((char *)dp, pctx->from_domain) == 0)
 	{
 		if (pctx->dkim_domain != NULL)
 		{
 			(void) free(pctx->dkim_domain);
 			pctx->dkim_domain = NULL;
 		}
-	}
-	if (pctx->dkim_domain == NULL)
-	{
-		pctx->dkim_domain = strdup((char *)dp);
-		if (pctx->dkim_domain == NULL)
-			return DMARC_PARSE_ERROR_NO_ALLOC;
-		if (human_result != NULL)
+		if (result == DMARC_POLICY_DKIM_OUTCOME_PASS)
 		{
-			if (pctx->dkim_human_outcome != NULL)
-				(void) free(pctx->dkim_human_outcome);
-			pctx->dkim_human_outcome = strdup((char *)human_result);
+			pctx->dkim_final = TRUE;
+			goto set_final;
 		}
-		pctx->dkim_outcome = result;
+		if (pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
+			return DMARC_PARSE_OKAY;
+		goto set_final;
 	}
+
+	/*
+	 * Reverse the domains to see if the d= us a superset of
+	 * the from domain. If so and if we have not already found
+	 * a best match, make this the temporary best match.
+	 */
+	(void) opendmarc_reverse_domain(pctx->from_domain, rev_from_domain, sizeof rev_from_domain);
+	(void) opendmarc_reverse_domain(dp, rev_dkim_domain, sizeof rev_dkim_domain);
+	if (strncasecmp(rev_dkim_domain, rev_from_domain, strlen(rev_from_domain)) == 0)
+	{
+		if (pctx->dkim_domain != NULL)
+		{
+			(void) free(pctx->dkim_domain);
+			pctx->dkim_domain = NULL;
+		}
+		if (result == DMARC_POLICY_DKIM_OUTCOME_PASS)
+			goto set_final;
+	}
+	/*
+	 * If we found any record so far that passed.
+	 * preserve it.
+	 */
+	if (pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
+		return DMARC_PARSE_OKAY;
+
+set_final:
+	if (pctx->dkim_domain == NULL)
+		pctx->dkim_domain = strdup((char *)dp);
+	if (pctx->dkim_domain == NULL)
+		return DMARC_PARSE_ERROR_NO_ALLOC;
+	if (human_result != NULL)
+	{
+		if (pctx->dkim_human_outcome != NULL)
+			(void) free(pctx->dkim_human_outcome);
+		pctx->dkim_human_outcome = strdup((char *)human_result);
+	}
+	pctx->dkim_outcome = result;
 	return DMARC_PARSE_OKAY;
 }
 
@@ -500,8 +542,8 @@ OPENDMARC_STATUS_T
 opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 {
 	u_char	rev_from_domain[MAXDNSHOSTNAME];
-	u_char	rev_spf_domain[MAXDNSHOSTNAME];
 	u_char	rev_dkim_domain[MAXDNSHOSTNAME];
+	u_char	rev_spf_domain[MAXDNSHOSTNAME];
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;

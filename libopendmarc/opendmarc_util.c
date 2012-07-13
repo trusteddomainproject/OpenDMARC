@@ -216,7 +216,6 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 	 * Quoted commas do not delimit addresses.
 	 * Un-quoted ones do.
 	 */
-	printf("before copy=%s\n", copy);
 	for (cp = copy; *cp != '\0'; ++cp)
 	{
 		if (numquotes == 0 && *cp == ',')
@@ -260,7 +259,6 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 		if (numquotes > 0)
 			*cp = ' ';
 	}
-	printf("after  copy=%s\n", copy);
 	ep = copy + strlen((char *)copy);
 	for (b = ep-1; b > copy; --b)
 	{
@@ -328,6 +326,16 @@ strip_local_part:
 	len = strlen((char *)cp);
 	if (len > buflen)
 		cp[buflen -1] = '\0';
+	len = strlen((char *)cp);
+	if (len > 0)
+	{
+		/*
+		 * If the domain name ends in a dot, drop that dot.
+		 */
+		ep = cp + len -1;
+		if (*ep == '.')
+			*ep = '\0';
+	}
 	(void) strncpy(buf, cp, buflen);
 	return buf;
 }
