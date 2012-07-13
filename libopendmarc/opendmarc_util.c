@@ -198,6 +198,9 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 	u_char  copy[BUFSIZ];
 	u_char *cp	= NULL;
 	int 	inparen	= 0;
+#define OPENDMARC_MAX_QUOTES (256)
+	int	quotes[OPENDMARC_MAX_QUOTES + 1];
+	int	numquotes = 0;
 	size_t  len;
 
 	if (raw == NULL)
@@ -209,12 +212,55 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 		len = BUFSIZ - 1;
 	(void) strncpy(copy, raw, len);
 
-	if (*copy == ',')
-		ep = strchr(copy+1, ',');
-	else
-		ep = strchr(copy, ',');
-	if (ep != NULL && ep != copy)
-		*ep = '\0';
+	/*
+	 * Quoted commas do not delimit addresses.
+	 * Un-quoted ones do.
+	 */
+	printf("before copy=%s\n", copy);
+	for (cp = copy; *cp != '\0'; ++cp)
+	{
+		if (numquotes == 0 && *cp == ',')
+		{
+			*cp = '\0';
+			break;
+		}
+		if (numquotes > 0 && *cp == ')')
+		{
+			if (quotes[numquotes-1]  == ')')
+			{
+				--numquotes;
+				*cp = ' ';
+				continue;
+			}
+		}
+		if (*cp == '"' || *cp == '\'' || *cp == '(')
+		{
+			if (*cp == '(')
+				*cp = ')';
+			if (numquotes == 0)
+			{
+				quotes[numquotes] = *cp;
+				++numquotes;
+				*cp = ' ';
+				continue;
+			}
+			if (*cp == quotes[numquotes -1])
+			{
+				--numquotes;
+				*cp = ' ';
+				continue;
+			}
+			quotes[numquotes] = *cp;
+			if (numquotes >= OPENDMARC_MAX_QUOTES)
+				break;
+			++numquotes;
+			*cp = ' ';
+			continue;
+		}
+		if (numquotes > 0)
+			*cp = ' ';
+	}
+	printf("after  copy=%s\n", copy);
 	ep = copy + strlen((char *)copy);
 	for (b = ep-1; b > copy; --b)
 	{

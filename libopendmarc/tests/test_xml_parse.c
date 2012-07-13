@@ -13,6 +13,7 @@ main(int argc, char **argv)
 	TEST_T xml_files[] = {
 		/* 1 */ {"testfiles/nosuchfile.xml", ENOENT},
 		/* 2 */ {"testfiles/126.com!example.com!1337270400!1337356799.20120518126.xml", 0},
+		/* 3 */ {"testfiles/bad.com!example.com!1337140800!1337227200.xml", 0},
 			{NULL, 0},
 	};
 	u_char **	ary;
@@ -30,7 +31,7 @@ main(int argc, char **argv)
 		ary = opendmarc_xml_parse(xmlp->fname, ebuf, sizeof ebuf);
 		if (ary == NULL && errno != xmlp->outcome)
 		{
-			(void) printf("\t%s\n", xmlp->fname, ebuf);
+			(void) printf("\t%s\n%s", xmlp->fname, ebuf);
 			++fails;
 			continue;
 		}
