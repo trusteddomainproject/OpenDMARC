@@ -1710,7 +1710,7 @@ mlfi_eom(SMFICTX *ctx)
 			}
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "\n--%s:%s\n",
+			                      "\n--%s:%s--\n",
 			                      hostname, dfc->mctx_jobid);
 
 			out = popen(conf->conf_reportcmd, "w");
