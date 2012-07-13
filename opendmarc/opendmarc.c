@@ -1653,7 +1653,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "--%s:%s\n"
-			                      "Content-Type: text/plain\n",
+			                      "Content-Type: text/plain\n\n",
 			                      hostname, dfc->mctx_jobid);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
@@ -1693,7 +1693,7 @@ mlfi_eom(SMFICTX *ctx)
 			                      cc->cctx_ipstr);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "Reported-Domain: %s\n",
+			                      "Reported-Domain: %s\n\n",
 			                      dfc->mctx_fromdomain);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
@@ -1708,6 +1708,10 @@ mlfi_eom(SMFICTX *ctx)
 				                      h->hdr_name,
 				                      h->hdr_value);
 			}
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "\n--%s:%s\n",
+			                      hostname, dfc->mctx_jobid);
 
 			out = popen(conf->conf_reportcmd, "w");
 			if (out == NULL)
