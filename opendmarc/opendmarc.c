@@ -270,7 +270,10 @@ dmarcf_getpriv(SMFICTX *ctx)
 {
 	assert(ctx != NULL);
 
-	return smfi_getpriv(ctx);
+	if (testmode)
+		return dmarcf_test_getpriv((void *) ctx);
+	else
+		return smfi_getpriv(ctx);
 }
 
 /*
@@ -288,7 +291,10 @@ dmarcf_setpriv(SMFICTX *ctx, void *ptr)
 {
 	assert(ctx != NULL);
 
-	return smfi_setpriv(ctx, ptr);
+	if (testmode)
+		return dmarcf_test_setpriv((void *) ctx, ptr);
+	else
+		return smfi_setpriv(ctx, ptr);
 }
 
 /*
@@ -1405,6 +1411,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method ==  ARES_METHOD_DKIM)
 			{
+				domain = NULL;
+
 				for (pc = 0;
 				     pc < ar.ares_result[c].result_props;
 				     pc++)
@@ -1415,18 +1423,11 @@ mlfi_eom(SMFICTX *ctx)
 						{
 							domain = ar.ares_result[c].result_value[pc];
 						}
-						else if (ar.ares_result[c].result_property[pc][0] == 'i')
-						{
-							char *at;
-
-							at = strchr(ar.ares_result[c].result_value[pc], '@');
-							if (at == NULL)
-								domain = NULL;
-							else
-								domain = at + 1;
-						}
 					}
 				}
+
+				if (domain == NULL)
+					continue;
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %d\n", domain,
@@ -1468,7 +1469,50 @@ mlfi_eom(SMFICTX *ctx)
 	**  Interact with libopendmarc.
 	*/
 
-	opendmarc_policy_query_dmarc(cc->cctx_dmarc, dfc->mctx_fromdomain);
+	ostatus = opendmarc_policy_query_dmarc(cc->cctx_dmarc,
+	                                       dfc->mctx_fromdomain);
+	if (ostatus == DMARC_PARSE_ERROR_NULL_CTX ||
+	    ostatus == DMARC_PARSE_ERROR_EMPTY)
+	{
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_ERR,
+			       "%s: opendmarc_policy_query_dmarc() returned status %d",
+			       dfc->mctx_jobid, ostatus);
+		}
+
+		return SMFIS_TEMPFAIL;
+	}
+	else if (ostatus == DMARC_PARSE_ERROR_BAD_VERSION ||
+	         ostatus == DMARC_PARSE_ERROR_BAD_VALUE ||
+	         ostatus == DMARC_PARSE_ERROR_NO_REQUIRED_P ||
+	         ostatus == DMARC_PARSE_ERROR_NO_DOMAIN)
+	{
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_ERR,
+			       "%s: opendmarc_policy_query_dmarc() returned status %d",
+			       dfc->mctx_jobid, ostatus);
+		}
+
+		snprintf(header, sizeof header,
+		         "%s; dmarc=permerror header.d=%s",
+		         authservid, dfc->mctx_fromdomain);
+
+		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+		                     header) == MI_FAILURE)
+		{
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_ERR,
+				       "%s: %s header add failed",
+				       dfc->mctx_jobid,
+				       AUTHRESULTSHDR);
+			}
+		}
+
+		return SMFIS_ACCEPT;
+	}
 
 	memset(pdomain, '\0', sizeof pdomain);
 	opendmarc_policy_fetch_utilized_domain(cc->cctx_dmarc,
@@ -1476,6 +1520,8 @@ mlfi_eom(SMFICTX *ctx)
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "pdomain %s\n", pdomain);
 
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
+	if (ostatus == DMARC_DNS_ERROR_NO_RECORD)
+		policy = DMARC_POLICY_ABSENT;
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "policy %d\n", policy);
 
 	ruv = opendmarc_policy_fetch_rua(cc->cctx_dmarc, NULL, 0, TRUE);
@@ -1766,7 +1812,7 @@ mlfi_eom(SMFICTX *ctx)
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
 		snprintf(header, sizeof header, "%s; dmarc=%s header.d=%s",
-		         conf->conf_authservid, aresult, dfc->mctx_fromdomain);
+		         authservid, aresult, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)

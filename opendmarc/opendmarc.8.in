@@ -1,7 +1,7 @@
-.TH opendmarc 8 "The OpenDKIM Project"
+.TH opendmarc 8 "The Trusted Domain Project"
 .SH NAME
 .B opendmarc
-\- DKIM signing and verifying filter for MTAs
+\- DMARC email policy filter for MTAs
 .SH SYNOPSIS
 .B opendmarc
 [\-A]

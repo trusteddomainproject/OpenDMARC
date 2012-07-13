@@ -17,7 +17,7 @@ AC_PREREQ(2.61)
 #
 m4_define([VERSION_RELEASE], 0)
 m4_define([VERSION_MAJOR_REV], 1)
-m4_define([VERSION_MINOR_REV], 1)
+m4_define([VERSION_MINOR_REV], 3)
 m4_define([VERSION_PATCH], 0)
 
 #
@@ -238,6 +238,13 @@ AC_ARG_ENABLE([filter],
               [enable_filter=yes])
 AM_CONDITIONAL([BUILD_FILTER], [test x"$enable_filter" != x"no"])
 
+AC_ARG_ENABLE([live-tests],
+              AS_HELP_STRING([--enable-live-tests],
+                             [enable live unit tests]),
+              [enable_live_tests=$enableval],
+              [enable_live_tests=no])
+AM_CONDITIONAL([LIVE_TESTS], [test x"$enable_live_tests" = x"yes"])
+
 AC_ARG_ENABLE([filter-tests],
               AS_HELP_STRING([--enable-filter-tests],
                              [enable Lua-based filter unit tests]),
@@ -385,6 +392,7 @@ AC_SUBST([SYSCONFDIR])
 AC_OUTPUT([ Makefile
 	contrib/Makefile
 	contrib/rddmarc/Makefile
+	db/Makefile
 	docs/Makefile
 	libopendmarc/Makefile
 	libopendmarc/tests/Makefile

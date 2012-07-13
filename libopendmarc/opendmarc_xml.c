@@ -5,13 +5,7 @@
 **  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 ************************************************************************/ 
 # include "opendmarc_internal.h"
-
-# if ! HAS_STRLCPY
-#  define strlcpy strncpy
-# endif
-# if ! HAS_STRLCAT
-#  define strlcat strncat
-# endif
+# include "opendmarc_strl.h"
 
 /***********************************************************************
 ** OPENDMARC_XML -- Parse a blob of xml DMARC report data
