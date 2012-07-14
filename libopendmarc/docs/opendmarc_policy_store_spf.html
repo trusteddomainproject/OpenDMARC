@@ -17,8 +17,7 @@ $Id: opendmarc_policy_store_spf.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
 	u_char *domain, int result, int origin, u_char *human_readable
 );
 </pre>
-One you have found the outcome of the SPF check you may call this function to prepare it for a DMARC policy
-decision. You should call it even if you found no SPF record.
+One you have found the outcome of the SPF check you may call this function to prepare it for a DMARC policy decision.
 </td></tr>
 
 <!----------- Description ---------->
@@ -27,8 +26,8 @@ decision. You should call it even if you found no SPF record.
 <tr align="left" valign=top>
 <th width="80">Called When</th>
 <td><tt>opendmarc_policy_store_spf()</tt>
-	may be called as soon as you have made an SPF decision. If you have no way of validating SPF,
-	you may ignore this function.
+	may be called as soon as you have made an SPF decision.
+	If you have no way of validating SPF, you may ignore this function.
 </tr>
 </table>
 
@@ -85,6 +84,8 @@ decision. You should call it even if you found no SPF record.
 <li>You may pass the whole <tt>SMTP MAIL From:</tt> command to this function,
 or the value of the <tt>SMTP MAIL From:</tt> command inside angle braces or just the domain
 you parsed from that address. This function will correctly handle whatever you feed it.
+<li>If you lack access to an SPF outcome, you may safely omit calling this function, because
+the library presumes there will be no SPF outcome unless told otherwise.
 </ul>
 </td>
 </tr>
