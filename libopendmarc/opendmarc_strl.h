@@ -11,6 +11,16 @@
 /* OpenDMARC includes */
 #include "build-config.h"
 
+#ifdef __STDC__
+# ifndef __P
+#  define __P(x)  x
+# endif /* ! __P */
+#else /* __STDC__ */
+# ifndef __P
+#  define __P(x)  ()
+# endif /* ! __P */
+#endif /* __STDC__ */
+
 /* prototypes */
 extern size_t dmarc_strlcat __P((char *, const char *, ssize_t));
 extern size_t dmarc_strlcpy __P((char *, const char *, ssize_t));
