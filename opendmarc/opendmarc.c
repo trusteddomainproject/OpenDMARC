@@ -362,64 +362,6 @@ dmarcf_init_syslog(char *facility)
 }
 
 /*
-**  DMARCF_DKIM_SELECT -- decide which DKIM signature to track
-**
-**  Parameters:
-**  	sdomain -- currently cached domain
-**  	domain -- domain under consideration
-**  	fdomain -- From: domain
-**  	state -- state variable (updated)
-**
-**  Return value:
-**  	TRUE if a copy and state change occurred, FALSE otherwise.
-*/
-
-_Bool
-dmarcf_dkim_select(char *sdomain, size_t sbuf, char *domain, char *fdomain,
-                   int *state)
-{
-	/* already got the best one */
-	if (*state == 0)
-		return FALSE;
-
-	/* now have the best one? */
-	if (strcasecmp(fdomain, domain) == 0)
-	{
-		strncpy(sdomain, domain, sbuf - 1);
-		*state = 0;
-		return TRUE;
-	}
-
-	/* if we don't even have a superdomain, check for one */
-	if (*state == -1 || *state == 2)
-	{
-		char *p;
-
-		for (p = strchr(fdomain, '.');
-		     p != NULL;
-		     p = strchr(p + 1, '.'))
-		{
-			if (strcasecmp(p + 1, domain) == 0)
-			{
-				*state = 1;
-				strncpy(sdomain, p + 1, sbuf - 1);
-				return TRUE;
-			}
-		}
-	}
-
-	/* if we got this far and we're still empty-handed, just copy it */
-	if (sdomain[0] == '\0')
-	{
-		strncpy(sdomain, domain, sbuf - 1);
-		*state = 2;
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/*
 **  DMARCF_FINDHEADER -- find a header
 **
 **  Parameters:
@@ -1354,7 +1296,7 @@ mlfi_eom(SMFICTX *ctx)
 		/* walk through what was found */
 		for (c = 0; c < ar.ares_count; c++)
 		{
-			if (ar.ares_result[c].result_method ==  ARES_METHOD_SPF)
+			if (ar.ares_result[c].result_method == ARES_METHOD_SPF)
 			{
 				int spfmode;
 
@@ -1412,8 +1354,11 @@ mlfi_eom(SMFICTX *ctx)
 				                      dfc->mctx_spfresult);
 				wspf = TRUE;
 			}
-			else if (ar.ares_result[c].result_method ==  ARES_METHOD_DKIM)
+			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
+				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+					continue;
+
 				domain = NULL;
 
 				for (pc = 0;
@@ -1435,33 +1380,24 @@ mlfi_eom(SMFICTX *ctx)
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %d\n", domain,
 				                      ar.ares_result[c].result_result);
-
-				if (dmarcf_dkim_select(sdomain, sizeof sdomain,
-				                       domain,
-				                       dfc->mctx_fromdomain,
-				                       &sdstate))
-					dresult = ar.ares_result[c].result_result;
-			}
-		}
-	}
-
-	if (sdstate != -1 && dresult == ARES_RESULT_PASS)
-	{
-		ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
-		                                      sdomain,
-		                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
-		                                      NULL);
 		                                     
-		if (ostatus != DMARC_PARSE_OKAY)
-		{
-			if (conf->conf_dolog)
-			{
-				syslog(LOG_ERR,
-				       "%s: opendmarc_policy_store_from_dkim() returned status %d",
-				       dfc->mctx_jobid, ostatus);
-			}
+				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
+				                                      domain,
+				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
+				                                      NULL);
 
-			return SMFIS_TEMPFAIL;
+				if (ostatus != DMARC_PARSE_OKAY)
+				{
+					if (conf->conf_dolog)
+					{
+						syslog(LOG_ERR,
+						       "%s: opendmarc_policy_store_from_dkim() returned status %d",
+						       dfc->mctx_jobid, ostatus);
+					}
+
+					return SMFIS_TEMPFAIL;
+				}
+			}
 		}
 	}
 
