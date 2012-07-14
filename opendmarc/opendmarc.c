@@ -314,7 +314,10 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 	assert(ctx != NULL);
 	assert(sym != NULL);
 
-	return smfi_getsymval(ctx, sym);
+	if (testmode)
+		return dmarcf_test_getsymval(ctx, sym);
+	else
+		return smfi_getsymval(ctx, sym);
 }
 
 /*
@@ -3152,6 +3155,37 @@ main(int argc, char **argv)
 
 	pthread_mutex_init(&conf_lock, NULL);
 
+	/* initialize libopendmarc */
+	(void) memset(&libopendmarc, '\0', sizeof libopendmarc);
+	if (curconf->conf_pslist != NULL)
+	{
+		libopendmarc.tld_type = OPENDMARC_TLD_TYPE_MOZILLA;
+		strncpy(libopendmarc.tld_source_file, curconf->conf_pslist,
+		        sizeof libopendmarc.tld_source_file - 1);
+	}
+
+	if (opendmarc_policy_library_init(&libopendmarc) != 0)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_ERR,
+			       "opendmarc_policy_library_init() failed");
+		}
+
+		if (!autorestart && pidfile != NULL)
+			(void) unlink(pidfile);
+
+		return EX_OSERR;
+	}
+
+	/* figure out who I am */
+	if (pw == NULL)
+		pw = getpwuid(getuid());
+	if (pw == NULL)
+		myname = "postmaster";
+	else
+		myname = pw->pw_name;
+
 	/* perform test mode */
 	if (testfile != NULL)
 	{
@@ -3202,37 +3236,6 @@ main(int argc, char **argv)
 
 		return EX_OSERR;
 	}
-
-	/* initialize libopendmarc */
-	(void) memset(&libopendmarc, '\0', sizeof libopendmarc);
-	if (curconf->conf_pslist != NULL)
-	{
-		libopendmarc.tld_type = OPENDMARC_TLD_TYPE_MOZILLA;
-		strncpy(libopendmarc.tld_source_file, curconf->conf_pslist,
-		        sizeof libopendmarc.tld_source_file - 1);
-	}
-
-	if (opendmarc_policy_library_init(&libopendmarc) != 0)
-	{
-		if (curconf->conf_dolog)
-		{
-			syslog(LOG_ERR,
-			       "opendmarc_policy_library_init() failed");
-		}
-
-		if (!autorestart && pidfile != NULL)
-			(void) unlink(pidfile);
-
-		return EX_OSERR;
-	}
-
-	/* figure out who I am */
-	if (pw == NULL)
-		pw = getpwuid(getuid());
-	if (pw == NULL)
-		myname = "postmaster";
-	else
-		myname = pw->pw_name;
 
 	/* call the milter mainline */
 	errno = 0;
