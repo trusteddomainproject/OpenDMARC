@@ -25,8 +25,9 @@ m4_define([VERSION_PATCH], 0)
 #       - bump "current" and reset "revision" with API changes
 #       - bump "revision" with internal source code changes
 #
+
 m4_define([LIBVERSION_CURRENT], 0)
-m4_define([LIBVERSION_REVISION], 1)
+m4_define([LIBVERSION_REVISION], 2)
 m4_define([LIBVERSION_AGE], 0)
 
 #

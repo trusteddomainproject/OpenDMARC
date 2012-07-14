@@ -500,6 +500,8 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	{
 		(void) memset(tld, '\0', sizeof tld);
 		reply = opendmarc_get_tld(domain, tld, sizeof tld);
+		if (reply == 0 && strlen(tld) == 0)
+			return DMARC_DNS_ERROR_NO_RECORD;
 		if (reply == 0 && strlen(tld) > 0 && strcasecmp(domain, tld) != 0)
 		{
 			(void) snprintf(copy, sizeof copy, "_dmarc.%s", tld);

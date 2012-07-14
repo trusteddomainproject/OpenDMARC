@@ -21,7 +21,6 @@ use Getopt::Long;
 use IO::Handle;
 use IO::Compress::Zip qw(zip);
 use POSIX;
-use XML::Generator;
 use MIME::Base64;
 
 require DBD::@SQL_BACKEND@;
@@ -53,6 +52,8 @@ my $repfile;
 my $zipfile;
 
 my $zipin;
+
+my $now;
 
 my $domain;
 my $domainid;
@@ -89,13 +90,14 @@ my $repdest;
 
 my $doupdate = 1;
 
-my $msgcount;
+my $msgid;
 
 my $rowcount;
 
 my $dbi_s;
 my $dbi_h;
 my $dbi_a;
+my $dbi_d;
 
 # DB parameters
 my $def_dbhost    = "localhost";
@@ -132,7 +134,7 @@ sub usage
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
-	print STDERR "\t--mailcmd=string   mail command [$def_interval]\n";
+	print STDERR "\t--mailcmd=string   mail command [$sendmail]\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t--version          print version and exit\n";
@@ -300,7 +302,7 @@ $dbi_s->finish;
 
 if ($verbose)
 {
-	print STDERR "$progname: selected " . scalar(@$domainset) . " domains\n";
+	print STDERR "$progname: selected " . scalar(@$domainset) . " domain(s)\n";
 }
 
 #
@@ -437,29 +439,30 @@ foreach (@$domainset)
 		else		{ $policystr = "unknown"; }
 	}
 
+	$now = time();
+
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 	print $tmpout "<feedback>\n";
 
-	$gen = XML::Generator->new(':pretty');
+	print $tmpout " <report_metadata>\n";
+	print $tmpout "  <org_name> $repdom </org_name>\n";
+	print $tmpout "  <email> $repemail </email>\n";
+	print $tmpout "  <report_id> $domain:$now </report_id>\n";
+	print $tmpout "  <date_range>\n";
+	print $tmpout "   <begin> $lastsent </begin>\n";
+	print $tmpout "   <end> $now </begin>\n";
+	print $tmpout "  </date_range>\n";
+	print $tmpout " </report_metadata>\n";
 
-	print $tmpout $gen->report_metadata(
-			$gen->org_name($repdom),
-			$gen->email($repemail),
-			$gen->report_id($domain . ":" . time()),
-			$gen->date_range(
-				$gen->begin($lastsent),
-				$gen->end(time())));
-	print $tmpout "\n";
+	print $tmpout " <policy_published>\n";
+	print $tmpout "  <domain> $domain </domain>\n";
+	print $tmpout "  <adkim> $adkimstr </adkim>\n";
+	print $tmpout "  <asfp> $aspfstr </aspf>\n";
+	print $tmpout "  <p> $policystr </p>\n";
+	print $tmpout "  <pct> $pct </pct>\n";
+	print $tmpout " </policy_published>\n";
 
-	print $tmpout $gen->policy_published(
-			$gen->domain($domain),
-			$gen->adkim($adkimstr),
-			$gen->aspf($aspfstr),
-			$gen->p($policystr),
-			$gen->pct($pct));
-	print $tmpout "\n";
-
-	$dbi_s = $dbi_h->prepare("SELECT COUNT(messages.id), ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, d3.name, signatures.pass, messages.align_spf, messages.align_dkim FROM messages LEFT JOIN signatures ON signatures.message = messages.id JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id JOIN domains d3 ON signatures.domain = d3.id WHERE messages.from_domain = ? AND messages.date > FROM_UNIXTIME($lastsent) GROUP BY 2, 3, 4, 5, 6, 7, 8, 9");
+	$dbi_s = $dbi_h->prepare("SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, messages.align_spf, messages.align_dkim FROM messages JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id WHERE messages.from_domain = ? AND messages.date > FROM_UNIXTIME($lastsent)");
 	if (!$dbi_s->execute($domainid))
 	{
 		print STDERR "$progname: can't extract report for domain $domain: " . $dbi_h->errstr . "\n";
@@ -472,11 +475,11 @@ foreach (@$domainset)
 
 	while ($dbi_a = $dbi_s->fetchrow_arrayref())
 	{
-		undef $msgcount;
+		undef $msgid;
 
 		if (defined($dbi_a->[0]))
 		{
-			$msgcount = $dbi_a->[0];
+			$msgid = $dbi_a->[0];
 		}
 		if (defined($dbi_a->[1]))
 		{
@@ -500,22 +503,14 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[6]))
 		{
-			$dkimdomain = $dbi_a->[6];
+			$align_spf = $dbi_a->[6];
 		}
 		if (defined($dbi_a->[7]))
 		{
-			$dkimresult = $dbi_a->[7];
-		}
-		if (defined($dbi_a->[8]))
-		{
-			$align_spf = $dbi_a->[8];
-		}
-		if (defined($dbi_a->[9]))
-		{
-			$align_dkim = $dbi_a->[9];
+			$align_dkim = $dbi_a->[7];
 		}
 
-		if (!defined($msgcount))
+		if (!defined($msgid))
 		{
 			next;
 		}
@@ -547,22 +542,6 @@ foreach (@$domainset)
 			else	{ $spfresultstr = "unknown"; }
 		}
 
-		switch ($dkimresult)
-		{
-			case 0	{ $dkimresultstr = "pass"; }
-			case 2	{ $dkimresultstr = "softfail"; }
-			case 3	{ $dkimresultstr = "neutral"; }
-			case 4	{ $dkimresultstr = "temperror"; }
-			case 5	{ $dkimresultstr = "permerror"; }
-			case 6	{ $dkimresultstr = "none"; }
-			case 7	{ $dkimresultstr = "fail"; }
-			case 8	{ $dkimresultstr = "policy"; }
-			case 9	{ $dkimresultstr = "nxdomain"; }
-			case 10	{ $dkimresultstr = "signed"; }
-			case 12	{ $dkimresultstr = "discard"; }
-			else	{ $dkimresultstr = "unknown"; }
-		}
-
 		switch ($align_dkim)
 		{
 			case 4	{ $align_dkimstr = "pass"; }
@@ -577,28 +556,85 @@ foreach (@$domainset)
 			else	{ $align_spfstr = "unknown"; }
 		}
 
-		print $tmpout $gen->record(
-			$gen->row(
-				$gen->source_ip($ipaddr),
-				$gen->count($msgcount),
-				$gen->policy_evaluated(
-					$gen->disposition($dispstr),
-					$gen->dkim($align_dkimstr),
-					$gen->spf($align_spfstr)),
-				$gen->identities(
-					$gen->header_from($fromdomain))),
-			$gen->auth_results(
-				$gen->dkim(
-					$gen->domain($dkimdomain),
-					$gen->result($dkimresultstr)),
-				$gen->spf(
-					$gen->domain($envdomain),
-					$gen->result($spfresultstr))));
+		print $tmpout " <record>\n";
+		print $tmpout "  <row>\n";
+		print $tmpout "   <source_ip> $ipaddr </source_ip>\n";
+		print $tmpout "   <count> 1 </count>\n";
+		print $tmpout "   <policy_evaluated>\n";
+		print $tmpout "    <disposition> $dispstr </disposition>\n";
+		print $tmpout "    <dkim> $align_dkimstr </dkim>\n";
+		print $tmpout "    <spf> $align_spfstr </spf>\n";
+		print $tmpout "   </policy_evaluated>\n";
+		print $tmpout "  </row>\n";
+		print $tmpout "  <identities>\n";
+		print $tmpout "   <header_from> $fromdomain </header_from>\n";
+		print $tmpout "  </identities>\n";
+		print $tmpout "  <auth_results>\n";
+		print $tmpout "   <spf>\n";
+		print $tmpout "    <domain> $envdomain </domain>\n";
+		print $tmpout "    <result> $spfresultstr </result>\n";
+		print $tmpout "   </spf>\n";
+
+		$dbi_d = $dbi_h->prepare("SELECT domains.name, pass FROM signatures JOIN domains ON signatures.domain = domains.id WHERE signatures.message = ?");
+		if (!$dbi_d->execute($msgid))
+		{
+			print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
+			$dbi_s->finish;
+			$dbi_d->finish;
+			$dbi_h->disconnect;
+			exit(1);
+		}
+
+		while ($dbi_a = $dbi_d->fetchrow_arrayref())
+		{
+			undef $dkimdomain;
+
+			if (defined($dbi_a->[0]))
+			{
+				$dkimdomain = $dbi_a->[0];
+			}
+			if (defined($dbi_a->[1]))
+			{
+				$dkimresult = $dbi_a->[1];
+			}
+
+
+			if (!defined($dkimdomain))
+			{
+				next;
+			}
+
+			switch ($dkimresult)
+			{
+				case 0	{ $dkimresultstr = "pass"; }
+				case 2	{ $dkimresultstr = "softfail"; }
+				case 3	{ $dkimresultstr = "neutral"; }
+				case 4	{ $dkimresultstr = "temperror"; }
+				case 5	{ $dkimresultstr = "permerror"; }
+				case 6	{ $dkimresultstr = "none"; }
+				case 7	{ $dkimresultstr = "fail"; }
+				case 8	{ $dkimresultstr = "policy"; }
+				case 9	{ $dkimresultstr = "nxdomain"; }
+				case 10	{ $dkimresultstr = "signed"; }
+				case 12	{ $dkimresultstr = "discard"; }
+				else	{ $dkimresultstr = "unknown"; }
+			}
+
+			print $tmpout "   <dkim>\n";
+			print $tmpout "    <domain> $dkimdomain </domain>\n";
+			print $tmpout "    <result> $dkimresultstr </result>\n";
+			print $tmpout "   </dkim>\n";
+		}
+
+		$dbi_d->finish;
+
+		print $tmpout "  </auth_results>\n";
+		print $tmpout " </record>\n";
 	}
 
 	$dbi_s->finish;
 
-	print $tmpout "\n</feedback>\n";
+	print $tmpout "</feedback>\n";
 
 	close($tmpout);
 

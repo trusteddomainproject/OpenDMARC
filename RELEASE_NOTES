@@ -6,6 +6,30 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.4		2012/07/14
+	Fix up the MIME syntax in AFRF reports.  Patch from Andreas Schulze.
+    	Remove dmarcf_dkim_select(); logic has been moved into libopendmarc.
+	Fix Authentication-Results field syntax.
+	Don't generate an AFRF report on other than "reject" and "quarantine"
+		results.
+	Fix a test mode crash condition, and initialize a few minor things
+		before entering test mode so AFRFs come out cleaner.
+    	Add "ReportCommand" to the valid configuration file item list.
+	Ignore "header.i" when parsing DKIM authentication results.  We only
+		care about "header.d".
+	Check for return status of opendmarc_policy_query_dmarc() and do
+		the right thing with it.
+	BUILD: Include the "db" directory.
+	REPORTING: Drop XML::Generator and do it by hand, since we need to
+		generate the array of DKIM signature data (there can be more
+		than one) as a sub-query.
+	LIBOPENDMARC: If the From: domain didn't have a DMARC policy and
+		there's no Organizational Domain available, return the
+		correct result code.
+
+0.1.3		2012/07/13
+	Fix up MIME in forensic reports.  Patch by Andreas Schulze.
+
 0.1.2		2012/07/11
 	LIBOPENDMARC: Use strlcat()/strlcpy().
 	BUILD: Add -lresolv where needed in more places (libopendmarc unit

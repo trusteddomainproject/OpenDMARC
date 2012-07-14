@@ -314,7 +314,10 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 	assert(ctx != NULL);
 	assert(sym != NULL);
 
-	return smfi_getsymval(ctx, sym);
+	if (testmode)
+		return dmarcf_test_getsymval(ctx, sym);
+	else
+		return smfi_getsymval(ctx, sym);
 }
 
 /*
@@ -356,64 +359,6 @@ dmarcf_init_syslog(char *facility)
 
 	openlog(progname, LOG_PID);
 #endif /* LOG_MAIL */
-}
-
-/*
-**  DMARCF_DKIM_SELECT -- decide which DKIM signature to track
-**
-**  Parameters:
-**  	sdomain -- currently cached domain
-**  	domain -- domain under consideration
-**  	fdomain -- From: domain
-**  	state -- state variable (updated)
-**
-**  Return value:
-**  	TRUE if a copy and state change occurred, FALSE otherwise.
-*/
-
-_Bool
-dmarcf_dkim_select(char *sdomain, size_t sbuf, char *domain, char *fdomain,
-                   int *state)
-{
-	/* already got the best one */
-	if (*state == 0)
-		return FALSE;
-
-	/* now have the best one? */
-	if (strcasecmp(fdomain, domain) == 0)
-	{
-		strncpy(sdomain, domain, sbuf - 1);
-		*state = 0;
-		return TRUE;
-	}
-
-	/* if we don't even have a superdomain, check for one */
-	if (*state == -1 || *state == 2)
-	{
-		char *p;
-
-		for (p = strchr(fdomain, '.');
-		     p != NULL;
-		     p = strchr(p + 1, '.'))
-		{
-			if (strcasecmp(p + 1, domain) == 0)
-			{
-				*state = 1;
-				strncpy(sdomain, p + 1, sbuf - 1);
-				return TRUE;
-			}
-		}
-	}
-
-	/* if we got this far and we're still empty-handed, just copy it */
-	if (sdomain[0] == '\0')
-	{
-		strncpy(sdomain, domain, sbuf - 1);
-		*state = 2;
-		return TRUE;
-	}
-
-	return FALSE;
 }
 
 /*
@@ -1351,7 +1296,7 @@ mlfi_eom(SMFICTX *ctx)
 		/* walk through what was found */
 		for (c = 0; c < ar.ares_count; c++)
 		{
-			if (ar.ares_result[c].result_method ==  ARES_METHOD_SPF)
+			if (ar.ares_result[c].result_method == ARES_METHOD_SPF)
 			{
 				int spfmode;
 
@@ -1409,8 +1354,11 @@ mlfi_eom(SMFICTX *ctx)
 				                      dfc->mctx_spfresult);
 				wspf = TRUE;
 			}
-			else if (ar.ares_result[c].result_method ==  ARES_METHOD_DKIM)
+			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
+				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+					continue;
+
 				domain = NULL;
 
 				for (pc = 0;
@@ -1432,33 +1380,24 @@ mlfi_eom(SMFICTX *ctx)
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %d\n", domain,
 				                      ar.ares_result[c].result_result);
-
-				if (dmarcf_dkim_select(sdomain, sizeof sdomain,
-				                       domain,
-				                       dfc->mctx_fromdomain,
-				                       &sdstate))
-					dresult = ar.ares_result[c].result_result;
-			}
-		}
-	}
-
-	if (sdstate != -1 && dresult == ARES_RESULT_PASS)
-	{
-		ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
-		                                      sdomain,
-		                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
-		                                      NULL);
 		                                     
-		if (ostatus != DMARC_PARSE_OKAY)
-		{
-			if (conf->conf_dolog)
-			{
-				syslog(LOG_ERR,
-				       "%s: opendmarc_policy_store_from_dkim() returned status %d",
-				       dfc->mctx_jobid, ostatus);
-			}
+				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
+				                                      domain,
+				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
+				                                      NULL);
 
-			return SMFIS_TEMPFAIL;
+				if (ostatus != DMARC_PARSE_OKAY)
+				{
+					if (conf->conf_dolog)
+					{
+						syslog(LOG_ERR,
+						       "%s: opendmarc_policy_store_from_dkim() returned status %d",
+						       dfc->mctx_jobid, ostatus);
+					}
+
+					return SMFIS_TEMPFAIL;
+				}
+			}
 		}
 	}
 
@@ -1496,7 +1435,7 @@ mlfi_eom(SMFICTX *ctx)
 		}
 
 		snprintf(header, sizeof header,
-		         "%s; dmarc=permerror header.d=%s",
+		         "%s; dmarc=permerror header.from=%s",
 		         authservid, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
@@ -1560,7 +1499,9 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	ruv = opendmarc_policy_fetch_ruf(cc->cctx_dmarc, NULL, 0, TRUE);
-	if (conf->conf_afrf && ruv != NULL)
+	if ((policy == DMARC_POLICY_REJECT ||
+	     policy == DMARC_POLICY_QUARANTINE) &&
+	    conf->conf_afrf && ruv != NULL)
 	{
 		_Bool first = TRUE;
 
@@ -1653,7 +1594,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "--%s:%s\n"
-			                      "Content-Type: text/plain\n",
+			                      "Content-Type: text/plain\n\n",
 			                      hostname, dfc->mctx_jobid);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
@@ -1677,8 +1618,9 @@ mlfi_eom(SMFICTX *ctx)
 			                      DMARCF_PRODUCTNS, VERSION);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "Authentication-Results: %s; dmarc=fail\n",
-			                      authservid);
+			                      "Authentication-Results: %s; dmarc=fail header.from=%s\n",
+			                      authservid,
+			                      dfc->mctx_fromdomain);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Original-Envelope-Id: %s\n",
@@ -1693,7 +1635,7 @@ mlfi_eom(SMFICTX *ctx)
 			                      cc->cctx_ipstr);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "Reported-Domain: %s\n",
+			                      "Reported-Domain: %s\n\n",
 			                      dfc->mctx_fromdomain);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
@@ -1708,6 +1650,10 @@ mlfi_eom(SMFICTX *ctx)
 				                      h->hdr_name,
 				                      h->hdr_value);
 			}
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "\n--%s:%s--\n",
+			                      hostname, dfc->mctx_jobid);
 
 			out = popen(conf->conf_reportcmd, "w");
 			if (out == NULL)
@@ -1811,7 +1757,7 @@ mlfi_eom(SMFICTX *ctx)
 	/* if the final action isn't TEMPFAIL or REJECT, add an A-R field */
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
-		snprintf(header, sizeof header, "%s; dmarc=%s header.d=%s",
+		snprintf(header, sizeof header, "%s; dmarc=%s header.from=%s",
 		         authservid, aresult, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
@@ -3148,6 +3094,37 @@ main(int argc, char **argv)
 
 	pthread_mutex_init(&conf_lock, NULL);
 
+	/* initialize libopendmarc */
+	(void) memset(&libopendmarc, '\0', sizeof libopendmarc);
+	if (curconf->conf_pslist != NULL)
+	{
+		libopendmarc.tld_type = OPENDMARC_TLD_TYPE_MOZILLA;
+		strncpy(libopendmarc.tld_source_file, curconf->conf_pslist,
+		        sizeof libopendmarc.tld_source_file - 1);
+	}
+
+	if (opendmarc_policy_library_init(&libopendmarc) != 0)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_ERR,
+			       "opendmarc_policy_library_init() failed");
+		}
+
+		if (!autorestart && pidfile != NULL)
+			(void) unlink(pidfile);
+
+		return EX_OSERR;
+	}
+
+	/* figure out who I am */
+	if (pw == NULL)
+		pw = getpwuid(getuid());
+	if (pw == NULL)
+		myname = "postmaster";
+	else
+		myname = pw->pw_name;
+
 	/* perform test mode */
 	if (testfile != NULL)
 	{
@@ -3198,37 +3175,6 @@ main(int argc, char **argv)
 
 		return EX_OSERR;
 	}
-
-	/* initialize libopendmarc */
-	(void) memset(&libopendmarc, '\0', sizeof libopendmarc);
-	if (curconf->conf_pslist != NULL)
-	{
-		libopendmarc.tld_type = OPENDMARC_TLD_TYPE_MOZILLA;
-		strncpy(libopendmarc.tld_source_file, curconf->conf_pslist,
-		        sizeof libopendmarc.tld_source_file - 1);
-	}
-
-	if (opendmarc_policy_library_init(&libopendmarc) != 0)
-	{
-		if (curconf->conf_dolog)
-		{
-			syslog(LOG_ERR,
-			       "opendmarc_policy_library_init() failed");
-		}
-
-		if (!autorestart && pidfile != NULL)
-			(void) unlink(pidfile);
-
-		return EX_OSERR;
-	}
-
-	/* figure out who I am */
-	if (pw == NULL)
-		pw = getpwuid(getuid());
-	if (pw == NULL)
-		myname = "postmaster";
-	else
-		myname = pw->pw_name;
 
 	/* call the milter mainline */
 	errno = 0;
