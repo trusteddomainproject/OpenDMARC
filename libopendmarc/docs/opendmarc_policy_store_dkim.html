@@ -17,7 +17,7 @@ $Id: opendmarc_policy_store_dkim.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
 	u_char *d_equal_domain, int dkim_result, u_char *human_result
 );
 </pre>
-One you have found the outcome of each DKIM check, no matter how many,
+Once you have found the outcome of each DKIM check, no matter how many,
 you may call this function to prepare it for a DMARC policy
 decision. You should call it even if you found no DKIM signatures.
 </td></tr>
@@ -29,7 +29,7 @@ decision. You should call it even if you found no DKIM signatures.
 <th width="80">Called When</th>
 <td><tt>opendmarc_policy_store_dkim()</tt>
 	may be called after each DKIM signature in the message is verified. That is, this function may
-	be call zero, one, or many times.
+	be called zero, one, or many times.
 </tr>
 </table>
 
