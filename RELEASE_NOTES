@@ -6,7 +6,7 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
-0.1.4		2012/07/14
+0.1.3		2012/07/14
 	Fix up the MIME syntax in AFRF reports.  Patch from Andreas Schulze.
     	Remove dmarcf_dkim_select(); logic has been moved into libopendmarc.
 	Fix Authentication-Results field syntax.
@@ -26,9 +26,6 @@ release, and a summary of the changes in that release.
 	LIBOPENDMARC: If the From: domain didn't have a DMARC policy and
 		there's no Organizational Domain available, return the
 		correct result code.
-
-0.1.3		2012/07/13
-	Fix up MIME in forensic reports.  Patch by Andreas Schulze.
 
 0.1.2		2012/07/11
 	LIBOPENDMARC: Use strlcat()/strlcpy().
