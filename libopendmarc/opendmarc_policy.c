@@ -97,6 +97,7 @@ opendmarc_policy_connect_init(u_char *ip_addr, int is_ipv6)
 		return NULL;
 	}
 	(void) memset(pctx, '\0', sizeof(DMARC_POLICY_T));
+	pctx->p   = DMARC_RECORD_P_UNSPECIFIED;
 	pctx->ip_addr = (u_char *)strdup((char *)ip_addr);
 	if (pctx->ip_addr == NULL)
 	{
@@ -153,6 +154,7 @@ opendmarc_policy_connect_clear(DMARC_POLICY_T *pctx)
 	pctx->ruf_cnt  = 0;
 
 	(void) memset(pctx, '\0', sizeof(DMARC_POLICY_T));
+	pctx->p   = DMARC_RECORD_P_UNSPECIFIED;
 	return pctx;
 }
 
@@ -548,7 +550,7 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
 
-	if (pctx->from_domain == NULL)
+	if (pctx->p == DMARC_RECORD_P_UNSPECIFIED)
 		return DMARC_POLICY_ABSENT;
 
 	if (pctx->from_domain == NULL)
@@ -611,7 +613,6 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 			return DMARC_POLICY_REJECT;
 		case DMARC_RECORD_P_QUARANTINE:
 			return DMARC_POLICY_QUARANTINE;
-		case DMARC_RECORD_P_UNSPECIFIED:
 		case DMARC_RECORD_P_NONE:
 		default:
 			break;
@@ -650,7 +651,6 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 	/*
 	 * Set the defaults to detect missing required items.
 	 */
-	pctx->p   = DMARC_RECORD_P_UNSPECIFIED;
 	pctx->pct = -1;
 	pctx->ri  = -1;
 
