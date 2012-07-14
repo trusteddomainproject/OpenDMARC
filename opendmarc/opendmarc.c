@@ -1499,7 +1499,7 @@ mlfi_eom(SMFICTX *ctx)
 		}
 
 		snprintf(header, sizeof header,
-		         "%s; dmarc=permerror header.d=%s",
+		         "%s; dmarc=permerror header.from=%s",
 		         authservid, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
@@ -1563,7 +1563,9 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	ruv = opendmarc_policy_fetch_ruf(cc->cctx_dmarc, NULL, 0, TRUE);
-	if (conf->conf_afrf && ruv != NULL)
+	if ((policy == DMARC_POLICY_REJECT ||
+	     policy == DMARC_POLICY_QUARANTINE) &&
+	    conf->conf_afrf && ruv != NULL)
 	{
 		_Bool first = TRUE;
 
@@ -1680,8 +1682,9 @@ mlfi_eom(SMFICTX *ctx)
 			                      DMARCF_PRODUCTNS, VERSION);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "Authentication-Results: %s; dmarc=fail\n",
-			                      authservid);
+			                      "Authentication-Results: %s; dmarc=fail header.from=%s\n",
+			                      authservid,
+			                      dfc->mctx_fromdomain);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Original-Envelope-Id: %s\n",
@@ -1818,7 +1821,7 @@ mlfi_eom(SMFICTX *ctx)
 	/* if the final action isn't TEMPFAIL or REJECT, add an A-R field */
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
-		snprintf(header, sizeof header, "%s; dmarc=%s header.d=%s",
+		snprintf(header, sizeof header, "%s; dmarc=%s header.from=%s",
 		         authservid, aresult, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
