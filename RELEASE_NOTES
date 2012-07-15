@@ -8,7 +8,10 @@ release, and a summary of the changes in that release.
 
 0.1.4		2012/07/15
 	DB: Delete domains.lastsent, as it is unused.
-	REPORTING: Fix column name error.  Reported by Andreas Schulze.
+	REPORTING: Fix column name error in opendmarc-reports.  Reported
+		by Andreas Schulze.
+	REPORTING: Fix generated aggregate report header.  Patch by
+		Andreas Schulze.
 
 0.1.3		2012/07/14
 	Fix up the MIME syntax in AFRF reports.  Patch from Andreas Schulze.
