@@ -394,9 +394,9 @@ foreach (@$domainset)
 
 	$dbi_s->finish;
 
-	if (!defined($repuri))
+	if (!defined($repuri) || ("" eq $repuri))
 	{
-		print STDERR "$progname: reporting URI for domain $domain not found\n";
+		print STDERR "$progname: no reporting URI for domain $domain; skipping\n";
 		next;
 	}
 
@@ -659,6 +659,10 @@ foreach (@$domainset)
 	# send/post report
 	if ($uri->scheme eq "mailto")
 	{
+		my $now;
+		my $datestr;
+		my $report_id;
+
 		if (!open($zipin, $zipfile))
 		{
 			print STDERR "$progname: can't read zipped report for $domain: $!\n";
@@ -682,9 +686,18 @@ foreach (@$domainset)
 
 		$boundary = "report_section";
 
+		$now = time();
+ 		$report_id = $domain . "-" . $now . "@" . $repdom;
+		$datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",
+		                    localtime);
+
 		print $mailout "From: $repemail\n";
 		print $mailout "To: $repdest\n";
-		print $mailout "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $domain . "-" . time() . "@" . $repdom . "\n";
+		print $mailout "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
+		print $mailout "X-Mailer: " . $progname . " v" . $version ."\n";
+		print $mailout "Date: " . $datestr . "\n";
+		print $mailout "Message-ID: <$report_id>\n";
+		print $mailout "Auto-Submitted: auto-generated\n";
 		print $mailout "MIME-Version: 1.0\n";
 		print $mailout "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
 		print $mailout "\n";
