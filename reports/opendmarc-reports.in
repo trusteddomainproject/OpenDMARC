@@ -286,7 +286,7 @@ if (defined($forcedomain))
 }
 else
 {
-	$dbi_s = $dbi_h->prepare("SELECT name FROM domains WHERE lastreport <= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? SECOND)");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent <= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? SECOND)");
 
 	if (!$dbi_s->execute($interval))
 	{
