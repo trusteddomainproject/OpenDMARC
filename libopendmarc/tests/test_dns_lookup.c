@@ -1,4 +1,5 @@
 #include "../opendmarc_internal.h"
+#include "../dmarc.h"
 
 typedef struct {
 	char *	domain;
@@ -15,6 +16,7 @@ dmarc_dns_test_record(void)
 		{"bcx.org._report._dmarc.bcx.com", TRUE, TRUE, "DMARC _report record found"},
 		{"_dmarc.mail.bcx.com", FALSE, FALSE, "Existing domain, no DMARC"},
 		{"_dmarc.none.bcx.com",	FALSE, FALSE, "No such domain"},
+		{"web.de", FALSE, FALSE, "Existing domain, no DMARC"},
 		{NULL, 0, 0, NULL},
 	};
 	DL *	dp;
@@ -66,15 +68,55 @@ dmarc_dns_test_record(void)
 		}
 
 	}
-	printf("DNS Lookup _dmarc Records: %d pass, %d fail\n", success, failures);
+	printf("Test dmarc_dns_get_record(): %d pass, %d fail\n", success, failures);
 	return failures;
 }
 
+typedef struct {
+	char *	domain;
+	int 	status;
+} DL2; 
+
+int
+dmarc_dns_test_query(void)
+{
+	DL2 domain_list[] = {
+		{"linkedin.com", 0},
+		{"mail.bcx.com", DMARC_DNS_ERROR_NO_RECORD},
+		{"none.bcx.com",	DMARC_DNS_ERROR_NO_RECORD},
+		{"web.de", DMARC_DNS_ERROR_NO_RECORD},
+		{NULL, 0},
+	};
+	DL2 *	dp;
+	int	success, failures;
+	DMARC_POLICY_T *pctx;
+	OPENDMARC_STATUS_T status;
+
+	success = failures = 0;
+	for (dp = domain_list; dp->domain != NULL; ++dp)
+	{
+		pctx = opendmarc_policy_connect_init("0.0.0.0", FALSE);
+		status = opendmarc_policy_query_dmarc(pctx, dp->domain);
+		pctx = opendmarc_policy_connect_shutdown(pctx);
+		if (status != dp->status)
+		{
+			printf("\t%s(%d): %s: %d: FAIL.\n", __FILE__, __LINE__, dp->domain, status);
+			++failures;
+			continue;
+		}
+		//printf("\t%s(%d): %s: %d: PASS.\n", __FILE__, __LINE__, dp->domain, status);
+		++success;
+	}
+	printf("Test opendmarc_policy_query_dmarc(): %d pass, %d fail\n", success, failures);
+	return failures;
+}
 
 int
 main(int argc, char **argv)
 {
 	if (dmarc_dns_test_record() != 0)
+		return 1;
+	if (dmarc_dns_test_query() != 0)
 		return 1;
 	return 0;
 }
