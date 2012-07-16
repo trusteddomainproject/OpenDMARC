@@ -10,6 +10,9 @@ SPF properties:
 - "pass" for parent of From: domain
 - "pass" for some other domain
 
+Organizational Domain computation:
+- various test cases (.com, .org.uk, etc.)
+
 DMARC policies, mixed with each of the above groupings:
 - p=none
 - p=quarantine
