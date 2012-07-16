@@ -19,3 +19,7 @@ test_dmarc_parse_SOURCES = test_dmarc_parse.c
 test_xml_parse_SOURCES   = test_xml_parse.c
 
 TESTS = $(check_PROGRAMS)
+
+EXTRA_DIST	= testfiles/effective_tld_names.dat \
+		  testfiles/126.com!example.com!1337270400!1337356799.20120518126.xml \
+		  testfiles/bad.com!example.com!1337140800!1337227200.xml
