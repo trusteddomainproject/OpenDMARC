@@ -140,6 +140,9 @@ sub usage
 	print STDERR "\t--version          print version and exit\n";
 }
 
+# set locale
+setlocale(LC_ALL, 'C');
+
 # parse command line arguments
 my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'dbname=s' => \$dbname,
