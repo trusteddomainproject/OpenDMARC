@@ -12,6 +12,7 @@ release, and a summary of the changes in that release.
 		by Andreas Schulze.
 	REPORTING: Fix generated aggregate report header.  Patch by
 		Andreas Schulze.
+	CONTRIB: Pull down a new version of rddmarc.  From John Levine.
 
 0.1.3		2012/07/14
 	Fix up the MIME syntax in AFRF reports.  Patch from Andreas Schulze.
