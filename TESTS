@@ -1,0 +1,24 @@
+DKIM properties:
+- messages not signed
+- messages signed by the From: domain
+- messages signed by a parent domain
+- messages signed by some other domain
+
+SPF properties:
+- no "pass"
+- "pass" for From: domain
+- "pass" for parent of From: domain
+- "pass" for some other domain
+
+DMARC policies, mixed with each of the above groupings:
+- p=none
+- p=quarantine
+- p=reject
+- sp=none
+- sp=quarantine
+- sp=reject
+- use "reject" and set "pct" to some value, ensure rejected message count is
+  in that ballpark
+
+REPORTING:
+- ensure correct output for each case above when HistoryFile is set
