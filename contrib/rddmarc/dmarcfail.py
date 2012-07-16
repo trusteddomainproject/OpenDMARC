@@ -1,5 +1,34 @@
 #!/usr/local/bin/python
-# parse a DMARC failure report, add it to the mysql database
+# $Header: /home/johnl/hack/dmarc/RCS/dmarcfail.py,v 1.1 2012/07/12 03:59:29 johnl Exp $
+# parse DMARC failure reports, add it to the mysql database
+# optional arguments are names of files containing ARF messages,
+# otherwise it reads stdin
+
+# Copyright 2012, Taughannock Networks. All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+
+# Redistributions of source code must retain the above copyright
+# notice, this list of conditions and the following disclaimer.
+
+# Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+# WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
 
 import re
 import email
@@ -36,9 +65,6 @@ def dmfail(h,f):
                 if(fx): frombox,fromdom = fx.group(1,2)
 
     # OK, parsed it, now add an entry to the database
-    #print fr['reported-domain'],origdom,origbox,fromdom,frombox,arr,fr['source-ip'],"==="
-    #print m.as_string()
-    #print "==="
     c = db.cursor()
     c.execute("""INSERT INTO failure(serial,org,bouncedomain,bouncebox,fromdomain,
         frombox,arrival,sourceip,headers)
@@ -47,7 +73,7 @@ def dmfail(h,f):
     print "Inserted failure report %s" % c.lastrowid
     c.close()
 
-    
+#################################################################################################
 if __name__ == "__main__":
     import sys
     
@@ -58,6 +84,3 @@ if __name__ == "__main__":
             h = open(f)
             dmfail(h, f)
             h.close()
-            
-
-

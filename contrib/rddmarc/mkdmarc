@@ -1,4 +1,30 @@
--- database of dmarc data
+-- Create database for DMARC data
+
+-- Copyright 2012, Taughannock Networks. All rights reserved.
+
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+
+-- Redistributions of source code must retain the above copyright
+-- notice, this list of conditions and the following disclaimer.
+
+-- Redistributions in binary form must reproduce the above copyright
+-- notice, this list of conditions and the following disclaimer in the
+-- documentation and/or other materials provided with the distribution.
+
+-- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+-- "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+-- LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+-- A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+-- HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+-- BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+-- OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+-- AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+-- LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+-- WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+-- POSSIBILITY OF SUCH DAMAGE.
 
 USE dmarc
 
@@ -13,9 +39,23 @@ CREATE TABLE report (
   UNIQUE KEY domain (domain,reportid)
 );
 
+-- Use these commands to change the old IPv4 only DMARC table to the new one
+/***
+alter table rptrecord modify ip int(10) unsigned;
+alter table rptrecord add column ip6 binary(16) after ip;
+alter table rptrecord add key serial6(serial,ip6);
+***/
+
+-- Use these commands to load in the optional IPv6 formatting functions
+/***
+CREATE FUNCTION inet_6top RETURNS STRING SONAME 'mysql_ip6.so';
+CREATE FUNCTION inet_pto6 RETURNS STRING SONAME 'mysql_ip6.so';
+***/
+
 CREATE TABLE rptrecord (
   serial int(10) unsigned NOT NULL,
-  ip int(10) unsigned NOT NULL,
+  ip int(10) unsigned,
+  ip6 binary(16) unsigned,
   rcount int(10) unsigned NOT NULL,
   disposition enum('none','quarantine','reject'),
   reason varchar(255),
@@ -23,7 +63,8 @@ CREATE TABLE rptrecord (
   dkimresult enum('none','pass','fail','neutral','policy','temperror','permerror'),
   spfdomain varchar(255),
   spfresult enum('none','neutral','pass','fail','softfail','temperror','permerror'),
-  KEY serial (serial,ip)
+  KEY serial (serial,ip),
+  KEY serial (serial,ip6)
 );
 
 CREATE TABLE failure (
