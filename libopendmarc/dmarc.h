@@ -3,6 +3,10 @@
 #ifndef DMARC_H
 #define DMARC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -147,5 +151,9 @@ u_char **          opendmarc_xml_parse(char *fname, char *err_buf, size_t err_le
  */
 u_char ** 	   opendmarc_util_clearargv(u_char **ary);
 const char *	   opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* DMARC_H */
