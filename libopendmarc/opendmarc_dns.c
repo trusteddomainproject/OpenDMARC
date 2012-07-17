@@ -125,6 +125,8 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 #endif /* HAVE_RES_NINIT */
 	if (answer_len < 0)
 	{
+		if (h_errno == NETDB_SUCCESS)
+			h_errno = NO_DATA;
 		*reply_ptr = h_errno;
 		return NULL;
 	}
@@ -192,8 +194,6 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			 */
 			*reply_ptr = NO_DATA;
 			return NULL;
-			//cur_ptr += answer_len;
-			//continue;
 		}
 		/* we may want to use the ttl later */
 		GETLONG(ttl, cur_ptr);
@@ -233,7 +233,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		}
 		if (strstr(got_txtbuf, "v=DMARC") != NULL)
 		{
-			*reply_ptr = 0;
+			*reply_ptr = NETDB_SUCCESS;
 			return got_txtbuf;
 		}
 		cur_ptr += cur_len;
