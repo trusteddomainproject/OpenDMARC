@@ -480,7 +480,8 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	u_char 		copy[256];
 	u_char 		tld[256];
 	u_char *	bp = NULL;
-	int		reply = 0;
+	int		dns_reply = 0;
+	int		tld_reply = 0;
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
@@ -493,36 +494,47 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	}
 
 	(void) memset(copy, '\0', sizeof copy);
-	(void) snprintf(copy, sizeof copy, "_dmarc.%s", domain);
+	(void) strlcpy(copy, "_dmarc.", sizeof copy);
+	(void) strlcat(copy, domain, sizeof copy);
 
-	bp = dmarc_dns_get_record(copy, &reply, buf, sizeof buf);
-	if (bp == NULL || reply != 0)
+	bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
+	if (bp != NULL)
 	{
-		(void) memset(tld, '\0', sizeof tld);
-		reply = opendmarc_get_tld(domain, tld, sizeof tld);
-		if (reply == 0 && strlen(tld) == 0)
-			return DMARC_DNS_ERROR_NO_RECORD;
-		if (reply == 0 && strlen(tld) > 0 && strcasecmp(domain, tld) != 0)
-		{
-			(void) snprintf(copy, sizeof copy, "_dmarc.%s", tld);
-			bp = dmarc_dns_get_record(copy, &reply, buf, sizeof buf);
-			if (bp == NULL || reply != 0)
-			switch (reply)
-			{
-				case HOST_NOT_FOUND:
-					return DMARC_DNS_ERROR_NXDOMAIN;
-				case NO_DATA:
-				case NO_RECOVERY:
-					return DMARC_DNS_ERROR_NO_RECORD;
-				case TRY_AGAIN:
-					return DMARC_DNS_ERROR_TMPERR;
-				default:
-					return reply;
-
-			}
-			pctx->organizational_domain = strdup(tld);
-		}
+		if (dns_reply != HOST_NOT_FOUND)
+			goto got_record;
 	}
+		
+
+	(void) memset(tld, '\0', sizeof tld);
+	tld_reply = opendmarc_get_tld(domain, tld, sizeof tld);
+	if (tld_reply != 0)
+		goto dns_failed;
+	if (strlen(tld) > 0)
+	{
+		pctx->organizational_domain = strdup(tld);
+
+		(void) memset(copy, '\0', sizeof copy);
+		(void) strlcpy(copy, "_dmarc.", sizeof copy);
+		(void) strlcat(copy, tld, sizeof copy);
+		bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
+		if (bp != NULL)
+			goto got_record;
+	}
+dns_failed:
+	switch (dns_reply)
+	{
+		case HOST_NOT_FOUND:
+		case NO_DATA:
+		case NO_RECOVERY:
+			return DMARC_DNS_ERROR_NO_RECORD;
+		case TRY_AGAIN:
+		case NETDB_INTERNAL:
+			return DMARC_DNS_ERROR_TMPERR;
+		default:
+			return DMARC_DNS_ERROR_NO_RECORD;
+
+	}
+got_record:
 	return opendmarc_policy_parse_dmarc(pctx, domain, buf);
 }
 
