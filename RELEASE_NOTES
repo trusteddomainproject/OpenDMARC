@@ -7,10 +7,16 @@ release, and a summary of the changes in that release.
 	Initial release.
 
 0.1.4		2012/07/15
+	LIBOPENDMARC: Fix a bug in dmarc_dns_get_record().  Reported by
+		Andreas Schulze.
+	LIBOPENDMARC: Fix library build for C++ compilers.  Reported by
+		Andrew Birchall.
 	DB: Delete domains.lastsent, as it is unused.
 	REPORTING: Fix column name error in opendmarc-reports.  Reported
 		by Andreas Schulze.
 	REPORTING: Fix generated aggregate report header.  Patch by
+		Andreas Schulze.
+	REPORTING: Call setlocale() in opendmarc-reports.  Requested by
 		Andreas Schulze.
 	CONTRIB: Pull down a new version of rddmarc.  From John Levine.
 
