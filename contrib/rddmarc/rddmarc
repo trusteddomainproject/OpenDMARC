@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- perl -*-
-# $Header: /home/johnl/hack/dmarc/RCS/rddmarc,v 1.3 2012/07/16 22:40:00 johnl Exp $
+# $Header: /home/johnl/hack/dmarc/RCS/rddmarc,v 1.4 2012/07/17 18:41:21 johnl Exp $
 #
 # Script to read DMARC aggregate reports and put summary info
 # into a database
@@ -49,10 +49,12 @@ use vars qw{$opt_d $opt_r $opt_x};
 getopts('drx');
 
 my $dbh = DBI->connect("DBI:mysql:database=dmarc",
-    			    "xxx", "xxx")
+			    "xxx", "xxx")
 	    or die "Cannot connect to database\n";
 
 foreach my $i (@ARGV) {
+    my ($zip, $ent);
+
     print "parsing $i\n";
 
     if($opt_x) {
@@ -61,10 +63,10 @@ foreach my $i (@ARGV) {
 	my $parser = new MIME::Parser;
 	$parser->output_dir("/tmp");
 
-	my $ent = $parser->parse_open($i);
+	$ent = $parser->parse_open($i);
     
 	my $body = $ent->bodyhandle;
-	my $zip = $body;
+	$zip = $body;
 	my $mtype = $ent->mime_type;
 	my $subj = decode_mimewords($ent->get('subject'));
 	print " $subj";
@@ -97,15 +99,17 @@ foreach my $i (@ARGV) {
 	}
 	open(XML,"unzip -p " . $zip->path . " |")
 		or die "cannot unzip $zip->path";
-	$zip->purge;
-	$ent->purge;
     }
     my $xml = "";
     $xml .= $_ while <XML>;
     close XML;
+    $ent->purge if $ent;
+    $zip->purge if $zip;
     
     my $xs = XML::Simple->new();
     
+    print "XML is ======\n$xml\n=====\n" if $opt_d;
+
     my $ref = $xs->XMLin($xml);
     my %xml = %{$ref};
     #print join "\n",keys %xml;
