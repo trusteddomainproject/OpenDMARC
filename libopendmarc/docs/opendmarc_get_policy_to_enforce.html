@@ -61,10 +61,11 @@ Query the library to find the policy to follow.
 <th valign="top" align=left>NOTES</th> 
 <td>
 <ul>
-Call this function only after a <tt>DMARC</tt> record was fetched and parsed with
+<li> Call this function only after a <tt>DMARC</tt> record was fetched and parsed with
 <a href="opendmarc_policy_query_dmarc.html">opendmarc_policy_query_dmarc()</a>
 or supplied to the library with
 <a href="opendmarc_policy_store_dmarc.html">opendmarc_policy_store_dmarc()</a>.
+<li> The "pct" value of the DMARC policy record is not applied by this function.  That is, the applicable policy is always returned, and the caller must apply the semantics requested by a "pct" value other than 100.
 </ul>
 </td>
 </tr>
