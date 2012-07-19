@@ -1618,6 +1618,9 @@ mlfi_eom(SMFICTX *ctx)
 			                      DMARCF_PRODUCTNS, VERSION);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Auth-Failure: dmarc\n");
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Authentication-Results: %s; dmarc=fail header.from=%s\n",
 			                      authservid,
 			                      dfc->mctx_fromdomain);
