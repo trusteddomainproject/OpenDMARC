@@ -6,6 +6,9 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.5		2012/07/19
+	Add "Auth-Failure" field to forensic reports.
+
 0.1.4		2012/07/15
 	LIBOPENDMARC: Fix a bug in dmarc_dns_get_record().  Reported by
 		Andreas Schulze.
