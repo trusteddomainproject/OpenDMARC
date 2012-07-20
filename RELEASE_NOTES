@@ -7,6 +7,9 @@ release, and a summary of the changes in that release.
 	Initial release.
 
 0.1.6		2012/07/20
+	Don't report false passes for SPF.  Problem noted by Tim Draegen.
+	When opendmarc_policy_query_dmarc() fails, log the domain that was
+		being checked.
 	REPORTING: Use report begin/end times based on message timestamps
 		rather than last report time/current time.  Reported by
 		Julian Mehnle.

@@ -1302,6 +1302,9 @@ mlfi_eom(SMFICTX *ctx)
 
 				dfc->mctx_spfresult = ar.ares_result[c].result_result;
 
+				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+					continue;
+
 				strncpy(addrbuf, dfc->mctx_envfrom,
 				        sizeof addrbuf - 1);
 
@@ -1416,8 +1419,8 @@ mlfi_eom(SMFICTX *ctx)
 		if (conf->conf_dolog)
 		{
 			syslog(LOG_ERR,
-			       "%s: opendmarc_policy_query_dmarc() returned status %d",
-			       dfc->mctx_jobid, ostatus);
+			       "%s: opendmarc_policy_query_dmarc(%s) returned status %d",
+			       dfc->mctx_jobid, dfc->mctx_fromdomain, ostatus);
 		}
 
 		return SMFIS_TEMPFAIL;
@@ -1430,8 +1433,8 @@ mlfi_eom(SMFICTX *ctx)
 		if (conf->conf_dolog)
 		{
 			syslog(LOG_ERR,
-			       "%s: opendmarc_policy_query_dmarc() returned status %d",
-			       dfc->mctx_jobid, ostatus);
+			       "%s: opendmarc_policy_query_dmarc(%s) returned status %d",
+			       dfc->mctx_jobid, dfc->mctx_fromdomain, ostatus);
 		}
 
 		snprintf(header, sizeof header,
