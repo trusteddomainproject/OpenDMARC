@@ -628,10 +628,11 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 		case DMARC_RECORD_P_QUARANTINE:
 			return DMARC_POLICY_QUARANTINE;
 		case DMARC_RECORD_P_NONE:
+			return DMARC_POLICY_NONE;
 		default:
-			break;
+			/* XXX -- shouldn't be possible */
+			return DMARC_POLICY_PASS;
 	}
-	return DMARC_POLICY_PASS;
 }
 
 /*******************************************************************************

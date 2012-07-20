@@ -10,6 +10,9 @@ release, and a summary of the changes in that release.
 	Don't report false passes for SPF.  Problem noted by Tim Draegen.
 	When opendmarc_policy_query_dmarc() fails, log the domain that was
 		being checked.
+	LIBOPENDMARC: Return DMARC_POLICY_NONE from
+		opendmarc_get_policy_to_enforce() when "p=none" was found.
+		DMARC_POLICY_PASS is only returned if alignment was discovered.
 	REPORTING: Use report begin/end times based on message timestamps
 		rather than last report time/current time.  Reported by
 		Julian Mehnle.
