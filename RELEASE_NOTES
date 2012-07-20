@@ -6,6 +6,11 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.6		2012/07/20
+	REPORTING: Use report begin/end times based on message timestamps
+		rather than last report time/current time.  Reported by
+		Julian Mehnle.
+
 0.1.5		2012/07/19
 	Add "Auth-Failure" field to forensic reports.
 	LIBOPENDMARC: Fix a bug in "ri" parsing.
