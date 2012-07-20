@@ -200,7 +200,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 				{
 					--sidx;
 					cp = sp;
-					if (sidx < 0)
+					if (sidx < -1)
 						break;
 					continue;
 				}
