@@ -55,6 +55,9 @@ my $zipin;
 
 my $now;
 
+my $repstart;
+my $repend;
+
 my $domain;
 my $domainid;
 my $domainset;
@@ -444,6 +447,32 @@ foreach (@$domainset)
 
 	$now = time();
 
+	$dbi_s = $dbi_h->prepare("SELECT UNIX_TIMESTAMP(MIN(date)), UNIX_TIMESTAMP(MAX(date)) FROM messages WHERE from_domain = ?");
+	if (!$dbi_s->execute($domainid))
+	{
+		print STDERR "$progname: can't extract begin/end times for domain $domain: " . $dbi_h->errstr . "\n";
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+
+	$repstart = 0;
+	$repend = $now;
+
+	while ($dbi_a = $dbi_s->fetchrow_arrayref())
+	{
+		if (defined($dbi_a->[0]))
+		{
+			$repstart = $dbi_a->[0];
+		}
+		if (defined($dbi_a->[1]))
+		{
+			$repend = $dbi_a->[1];
+		}
+	}
+
+	$dbi_s->finish;
+
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 	print $tmpout "<feedback>\n";
 
@@ -452,8 +481,8 @@ foreach (@$domainset)
 	print $tmpout "  <email>$repemail</email>\n";
 	print $tmpout "  <report_id>$domain:$now</report_id>\n";
 	print $tmpout "  <date_range>\n";
-	print $tmpout "   <begin>$lastsent</begin>\n";
-	print $tmpout "   <end>$now</end>\n";
+	print $tmpout "   <begin>$repstart</begin>\n";
+	print $tmpout "   <end>$repend</end>\n";
 	print $tmpout "  </date_range>\n";
 	print $tmpout " </report_metadata>\n";
 
