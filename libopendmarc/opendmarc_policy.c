@@ -800,7 +800,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 		{
 			char *xp;
 
-			for (xp = cp; *xp != '\0'; ++xp)
+			for (xp = vp; *xp != '\0'; ++xp)
 			{
 				if (! isdigit((int)*xp))
 					return DMARC_PARSE_ERROR_BAD_VALUE;
