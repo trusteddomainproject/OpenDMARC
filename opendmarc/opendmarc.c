@@ -850,6 +850,11 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 
 	dmarcf_config_reload();
 
+#if 0
+	if (dmarcf_ignore_host(host, ip))
+		return SMFIS_ACCEPT;
+#endif /* 0 */
+
 	/* copy hostname and IP information to a connection context */
 	cc = dmarcf_getpriv(ctx);
 	if (cc == NULL)
