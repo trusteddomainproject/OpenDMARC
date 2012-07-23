@@ -10,9 +10,9 @@ release, and a summary of the changes in that release.
 	Fix bug #5: Add "IgnoreHosts" setting.
 	Fix bug #9: Honour "pct" setting (or its default).
 	REPORTING: Fix bug #6: Add opendmarc-expire script.
-	LIBOPENDMARC: Bug #10: When DKIM is in alignment, don't short-circuit
-		past SPF alignment tests.  Problem noted by Mike Adkins and
-		Steve Jones.
+	LIBOPENDMARC: Fix bug #10: When DKIM is in alignment, don't
+		short-circuit past SPF alignment tests.  Problem noted by
+		Mike Adkins and Steve Jones.
 
 0.1.6		2012/07/20
 	Don't report false passes for SPF.  Problem noted by Tim Draegen.
