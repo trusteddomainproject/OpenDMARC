@@ -620,7 +620,7 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 	 */
 	if (pctx->spf_alignment == DMARC_POLICY_SPF_ALIGNMENT_PASS ||
 	    pctx->dkim_alignment == DMARC_POLICY_DKIM_ALIGNMENT_PASS)
-		return DKIM_POLICY_PASS;
+		return DMARC_POLICY_PASS;
 
 	switch (pctx->p)
 	{
