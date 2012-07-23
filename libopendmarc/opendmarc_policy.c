@@ -571,22 +571,18 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 		return DMARC_FROM_DOMAIN_ABSENT;
 	(void) opendmarc_reverse_domain(pctx->from_domain, rev_from_domain, sizeof rev_from_domain);
 
-	/*
-	 * If dkim passes and dkim aligns OR spf passes and spf aligns
-	 * Accept the message.
-	 */
 	pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_FAIL;
 	pctx->spf_alignment  = DMARC_POLICY_SPF_ALIGNMENT_FAIL;
+
+	/* check for DKIM alignment */
 	if (pctx->dkim_domain != NULL && pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
 	{
-		
 		(void) opendmarc_reverse_domain(pctx->dkim_domain, rev_dkim_domain, sizeof rev_dkim_domain);
 		if (pctx->adkim == DMARC_RECORD_A_STRICT)
 		{
 			if (strcasecmp((char *)rev_from_domain, (char *)rev_dkim_domain) == 0)
 			{
 				pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_PASS;
-				return DMARC_POLICY_PASS;
 			}
 		}
 		else
@@ -594,21 +590,19 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 			if (strncasecmp((char *)rev_from_domain, (char *)rev_dkim_domain, strlen((char *)rev_dkim_domain)) == 0)
 			{
 				pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_PASS;
-				return DMARC_POLICY_PASS;
 			}
 		}
 	}
 
+	/* check for SPF alignment */
 	if (pctx->spf_domain != NULL && pctx->spf_outcome == DMARC_POLICY_SPF_OUTCOME_PASS)
 	{
-		
 		(void) opendmarc_reverse_domain(pctx->spf_domain, rev_spf_domain, sizeof rev_spf_domain);
 		if (pctx->aspf == DMARC_RECORD_A_STRICT)
 		{
 			if (strcasecmp((char *)rev_from_domain, (char *)rev_spf_domain) == 0)
 			{
 				pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
-				return DMARC_POLICY_PASS;
 			}
 		}
 		else
@@ -616,10 +610,17 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 			if (strncasecmp((char *)rev_from_domain, (char *)rev_spf_domain, strlen((char *)rev_spf_domain)) == 0)
 			{
 				pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
-				return DMARC_POLICY_PASS;
 			}
 		}
 	}
+
+	/*
+	 * If dkim passes and dkim aligns OR spf passes and spf aligns
+	 * Accept the message.
+	 */
+	if (pctx->spf_alignment == DMARC_POLICY_SPF_ALIGNMENT_PASS ||
+	    pctx->dkim_alignment == DMARC_POLICY_DKIM_ALIGNMENT_PASS)
+		return DKIM_POLICY_PASS;
 
 	switch (pctx->p)
 	{

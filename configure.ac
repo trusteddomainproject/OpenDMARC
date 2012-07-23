@@ -17,7 +17,7 @@ AC_PREREQ(2.61)
 #
 m4_define([VERSION_RELEASE], 0)
 m4_define([VERSION_MAJOR_REV], 1)
-m4_define([VERSION_MINOR_REV], 6)
+m4_define([VERSION_MINOR_REV], 7)
 m4_define([VERSION_PATCH], 0)
 
 #
@@ -27,7 +27,7 @@ m4_define([VERSION_PATCH], 0)
 #
 
 m4_define([LIBVERSION_CURRENT], 0)
-m4_define([LIBVERSION_REVISION], 5)
+m4_define([LIBVERSION_REVISION], 6)
 m4_define([LIBVERSION_AGE], 0)
 
 #
@@ -404,6 +404,8 @@ AC_OUTPUT([ Makefile
 		opendmarc/opendmarc.8
 	opendmarc/tests/Makefile
 	reports/Makefile
+		reports/opendmarc-expire
+		reports/opendmarc-expire.8
 		reports/opendmarc-import
 		reports/opendmarc-import.8
 		reports/opendmarc-reports

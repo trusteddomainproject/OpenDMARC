@@ -1,0 +1,59 @@
+.TH opendmarc-expire 8 "The Trusted Domain Project"
+.SH NAME
+.B opendmarc-expire
+\- OpenDMARC history data expiration tool
+.SH SYNOPSIS
+.B opendmarc-expire
+[options]
+.SH DESCRIPTION
+.B opendmarc-expire
+expires old records from the database that is part of the OpenDMARC aggregate
+reporting feature.
+.SH OPTIONS
+.TP
+.I --dbhost=host
+Attempts to connect to the database server on the named
+.I host.
+The default is "localhost".
+.TP
+.I --dbname=name
+Requests a connection to the database called
+.I name.
+The default is "opendmarc".
+.TP
+.I --dbpasswd=password
+Attempts to authenticate to the database server using the specified
+.I password.
+The default is "opendmarc".
+.TP
+.I --dbport=port
+Tries to connect to the database at the specified TCP
+.I port.
+The default is 3306.
+.TP
+.I --dbuser=user
+Attempts to authenticate to the database server as the specified
+.I user.
+The default is "opendmarc".
+.TP
+.I --expire=days
+Indicates the number of days of data to keep.  The default is 180.
+.TP
+.I --help
+Prints a usage message and exits.
+.TP
+.I --verbose
+Requests verbose output.
+.TP
+.I --version
+Prints version number and exits.
+.SH VERSION
+This man page covers the version of
+.I opendmarc-expire
+that shipped with version @VERSION@ of
+.I OpenDMARC.
+.SH COPYRIGHT
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+.SH SEE ALSO
+.I opendmarc(8),
+.I opendmarc-import(8)

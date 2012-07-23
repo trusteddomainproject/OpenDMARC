@@ -6,6 +6,12 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.7		2012/07/2?
+	REPORTING: Fix bug #6: Add opendmarc-expire script.
+	LIBOPENDMARC: Bug #10: When DKIM is in alignment, don't short-circuit
+		past SPF alignment tests.  Problem noted by Mike Adkins and
+		Steve Jones.
+
 0.1.6		2012/07/20
 	Don't report false passes for SPF.  Problem noted by Tim Draegen.
 	When opendmarc_policy_query_dmarc() fails, log the domain that was
@@ -13,9 +19,9 @@ release, and a summary of the changes in that release.
 	LIBOPENDMARC: Return DMARC_POLICY_NONE from
 		opendmarc_get_policy_to_enforce() when "p=none" was found.
 		DMARC_POLICY_PASS is only returned if alignment was discovered.
-	REPORTING: Use report begin/end times based on message timestamps
-		rather than last report time/current time.  Reported by
-		Julian Mehnle.
+	REPORTING: Bug #4: Use report begin/end times based on message
+		timestamps rather than last report's time/current time.
+		Reported by Julian Mehnle.
 
 0.1.5		2012/07/19
 	Add "Auth-Failure" field to forensic reports.
@@ -37,7 +43,8 @@ release, and a summary of the changes in that release.
 
 0.1.3		2012/07/14
 	Fix up the MIME syntax in AFRF reports.  Patch from Andreas Schulze.
-    	Remove dmarcf_dkim_select(); logic has been moved into libopendmarc.
+    	Fix bug #2: Remove dmarcf_dkim_select(); logic has been moved into
+		libopendmarc.
 	Fix Authentication-Results field syntax.
 	Don't generate an AFRF report on other than "reject" and "quarantine"
 		results.
@@ -49,9 +56,9 @@ release, and a summary of the changes in that release.
 	Check for return status of opendmarc_policy_query_dmarc() and do
 		the right thing with it.
 	BUILD: Include the "db" directory.
-	REPORTING: Drop XML::Generator and do it by hand, since we need to
-		generate the array of DKIM signature data (there can be more
-		than one) as a sub-query.
+	REPORTING: Fix bug #3: Drop XML::Generator and do it by hand, since we
+		need to generate the array of DKIM signature data (there can
+		be more than one) as a sub-query.
 	LIBOPENDMARC: If the From: domain didn't have a DMARC policy and
 		there's no Organizational Domain available, return the
 		correct result code.

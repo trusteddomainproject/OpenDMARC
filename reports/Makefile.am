@@ -4,6 +4,6 @@ AUTOMAKE_OPTIONS = foreign
 
 dist_doc_DATA = README 
 
-dist_bin_SCRIPTS = opendmarc-import opendmarc-reports
+dist_bin_SCRIPTS = opendmarc-expire opendmarc-import opendmarc-reports
 
-dist_man_MANS = opendmarc-import.8 opendmarc-reports.8
+dist_man_MANS = opendmarc-expire.8 opendmarc-import.8 opendmarc-reports.8
