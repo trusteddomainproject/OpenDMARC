@@ -7,6 +7,7 @@
 
 /* system includes */
 #include <sys/types.h>
+#include <netinet/in.h>
 #include <stdio.h>
 
 #ifdef __STDC__
@@ -20,6 +21,8 @@
 #endif /* __STDC__ */
 
 /* PROTOTYPES */
+extern size_t dmarcf_inet_ntoa __P((struct in_addr, char *, size_t));
+extern void dmarcf_lowercase __P((u_char *));
 extern void dmarcf_optlist __P((FILE *));
 extern void dmarcf_setmaxfd __P((void));
 extern int dmarcf_socket_cleanup __P((char *));

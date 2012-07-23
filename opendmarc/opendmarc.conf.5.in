@@ -150,6 +150,12 @@ rather periodically imported into a relational database from which the
 aggregate reports can be extracted.
 
 .TP
+.I IgnoreHosts (string)
+Specifies the path to a file that contains a list of hostnames, IP addresses,
+and/or CIDR expressions identifying hosts whose SMTP connections are to be
+ignored by the filter.  If not specified, defaults to "127.0.0.1" only.
+
+.TP
 .I MilterDebug (integer)
 Sets the debug level to be requested from the milter library.  The
 default is 0.

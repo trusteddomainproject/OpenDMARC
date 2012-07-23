@@ -31,6 +31,7 @@
 #include <sysexits.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <signal.h>
 #include <pthread.h>
@@ -136,6 +137,13 @@ struct dmarcf_config
 	char *			conf_pslist;
 };
 
+/* LIST -- basic linked list of strings */
+struct list
+{
+	char *		list_str;
+	struct list *	list_next;
+};
+
 /* LOOKUP -- lookup table */
 struct lookup
 {
@@ -194,6 +202,7 @@ _Bool no_i_whine;
 _Bool testmode;
 int diesig;
 struct dmarcf_config *curconf;
+struct list *ignore;
 char *progname;
 char *conffile;
 char *sock;
@@ -318,6 +327,352 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 		return dmarcf_test_getsymval(ctx, sym);
 	else
 		return smfi_getsymval(ctx, sym);
+}
+
+/*
+**  DMARCF_ADDLIST -- add an entry to a singly-linked list
+**
+**  Parameters:
+**  	str -- string to add
+**  	head -- address of list head pointer (updated)
+**
+**  Return value:
+**  	None.
+*/
+
+void
+dmarcf_addlist(const char *str, struct list **head)
+{
+	struct list *new;
+
+	assert(str != NULL);
+	assert(head != NULL);
+
+	new = malloc(sizeof(struct list));
+	if (new != NULL)
+	{
+		new->list_next = *head;
+		new->list_str = strdup(str);
+		*head = new;
+	}
+}
+
+/*
+**  DMARCF_LOADLIST -- add a file's worth of entries to a singly-linked list
+**
+**  Parameters:
+**  	path -- path to file to read
+**  	head -- address of list head pointer (updated)
+**
+**  Return value:
+**  	FALSE iff there was an error; caller should check errno.
+*/
+
+_Bool
+dmarcf_loadlist(char *path, struct list **head)
+{
+	int spaces;
+	int datalen;
+	struct list *new;
+	char *p;
+	FILE *f;
+	char buf[BUFRSZ + 1];
+
+	assert(path != NULL);
+	assert(head != NULL);
+
+	f = fopen(path, "r");
+	if (f == NULL)
+		return FALSE;
+
+	memset(buf, '\0', sizeof buf);
+
+	while (fgets(buf, sizeof buf - 1, f) != NULL)
+	{
+		spaces = 0;
+		datalen = 0;
+
+		for (p = buf; *p != '\0'; p++)
+		{
+			if (*p == '\n' || *p == '#')
+			{
+				*p = '\0';
+				break;
+			}
+			else if (isspace(*p))
+			{
+				if (datalen > 0)
+				{
+					*p = '\0';
+					break;
+				}
+
+				spaces++;
+			}
+			else
+			{
+				datalen++;
+			}
+		}
+
+		if (datalen == 0)
+			continue;
+
+		if (spaces > 0)
+			memmove(&buf[spaces], buf, datalen + 1);
+
+		new = malloc(sizeof(struct list));
+		if (new != NULL)
+		{
+			new->list_next = *head;
+			new->list_str = strdup(buf);
+			*head = new;
+		}
+	}
+
+	fclose(f);
+
+	return TRUE;
+}
+
+/*
+**  DMARCF_CHECKLIST -- search a linked list for an entry
+**
+**  Parameters:
+**  	str -- string to find
+**  	list -- list to search
+**
+**  Return value:
+**  	TRUE iff "str" was found in "list"
+*/
+
+_Bool
+dmarcf_checklist(const char *str, struct list *list)
+{
+	struct list *cur;
+
+	assert(str != NULL);
+	assert(list != NULL);
+
+	for (cur = list; cur != NULL; cur = cur->list_next)
+	{
+		if (strcasecmp(str, cur->list_str) == 0)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+**  DMARCF_CHECKHOST -- check a list for a hostname
+**
+**  Parameters:
+**  	host -- hostname to find
+**  	list -- list to search
+**
+**  Return value:
+**  	TRUE if there's a match, FALSE otherwise.
+*/
+
+_Bool
+dmarcf_checkhost(const char *host, struct list *list)
+{
+	int status;
+	const char *p;
+	char buf[BUFRSZ + 1];
+
+	assert(host != NULL);
+
+	/* short circuit */
+	if (list == NULL)
+		return FALSE;
+
+	/* iterate over the possibilities */
+	for (p = host;
+	     p != NULL;
+	     p = (p == host ? strchr(host, '.') : strchr(p + 1, '.')))
+	{
+		snprintf(buf, sizeof buf, "!%s", p);
+
+		/* try the negative case */
+		if (dmarcf_checklist(buf, list))
+			return FALSE;
+
+		/* ...and now the positive case */
+		if (dmarcf_checklist(&buf[1], list))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+**  DMARCF_CHECKIP -- check a list an IP address or its matching wildcards
+**
+**  Parameters:
+**  	ip -- IP address to find, as a _SOCK_ADDR
+**  	list -- list to check
+**
+**  Return value:
+**  	TRUE if there's a match, FALSE otherwise.
+*/
+
+_Bool
+dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
+{
+	_Bool exists;
+	char ipbuf[MAXHOSTNAMELEN + 1];
+
+	assert(ip != NULL);
+
+	/* short circuit */
+	if (list == NULL)
+		return FALSE;
+
+#if AF_INET6
+	if (ip->sa_family == AF_INET6)
+	{
+		int status;
+		int bits;
+		size_t dst_len;
+		char *dst;
+		struct sockaddr_in6 sin6;
+		struct in6_addr addr;
+
+		memcpy(&sin6, ip, sizeof sin6);
+
+		memcpy(&addr, &sin6.sin6_addr, sizeof addr);
+
+		memset(ipbuf, '\0', sizeof ipbuf);
+		ipbuf[0] = '!';
+
+		dst = &ipbuf[1];
+		dst_len = sizeof ipbuf - 1;
+
+		inet_ntop(AF_INET6, &addr, dst, dst_len);
+		dmarcf_lowercase((u_char *) dst);
+
+		if (dmarcf_checklist(ipbuf, list))
+			return FALSE;
+
+		if (dmarcf_checklist(&ipbuf[1], list))
+			return TRUE;
+
+		/* iterate over possible bitwise expressions */
+		for (bits = 0; bits <= 128; bits++)
+		{
+			size_t sz;
+
+			/* try this one */
+			memset(ipbuf, '\0', sizeof ipbuf);
+			ipbuf[0] = '!';
+
+			dst = &ipbuf[1];
+			dst_len = sizeof ipbuf - 1;
+
+			inet_ntop(AF_INET6, &addr, dst, dst_len);
+			dmarcf_lowercase((u_char *) dst);
+
+			sz = strlcat(ipbuf, "/", sizeof ipbuf);
+			if (sz >= sizeof ipbuf)
+				return FALSE;
+
+			dst = &ipbuf[sz];
+			dst_len = sizeof ipbuf - sz;
+
+			sz = snprintf(dst, dst_len, "%d", 128 - bits);
+			if (sz >= sizeof ipbuf)
+				return FALSE;
+
+			if (dmarcf_checklist(ipbuf, list))
+				return FALSE;
+
+			if (dmarcf_checklist(&ipbuf[1], list))
+				return TRUE;
+
+			/* flip off a bit */
+			if (bits != 128)
+			{
+				int idx;
+				int bit;
+
+				idx = 15 - (bits / 8);
+				bit = bits % 8;
+				addr.s6_addr[idx] &= ~(1 << bit);
+			}
+		}
+	}
+#endif /* AF_INET6 */
+
+	if (ip->sa_family == AF_INET)
+	{
+		_Bool exists;
+		int c;
+		int status;
+		int bits;
+		struct in_addr addr;
+		struct in_addr mask;
+		struct sockaddr_in sin;
+
+		memcpy(&sin, ip, sizeof sin);
+		memcpy(&addr.s_addr, &sin.sin_addr, sizeof addr.s_addr);
+
+		/* try the IP address directly */
+		exists = FALSE;
+
+		ipbuf[0] = '!';
+		(void) dmarcf_inet_ntoa(addr, &ipbuf[1], sizeof ipbuf - 1);
+
+		if (dmarcf_checklist(ipbuf, list))
+			return FALSE;
+
+		if (dmarcf_checklist(&ipbuf[1], list))
+			return TRUE;
+
+		/* iterate over possible bitwise expressions */
+		for (bits = 32; bits >= 0; bits--)
+		{
+			if (bits == 32)
+			{
+				mask.s_addr = 0xffffffff;
+			}
+			else
+			{
+				mask.s_addr = 0;
+				for (c = 0; c < bits; c++)
+					mask.s_addr |= htonl(1 << (31 - c));
+			}
+
+			addr.s_addr = addr.s_addr & mask.s_addr;
+
+			memset(ipbuf, '\0', sizeof ipbuf);
+			ipbuf[0] = '!';
+			(void) dmarcf_inet_ntoa(addr, &ipbuf[1],
+			                       sizeof ipbuf - 1);
+			c = strlen(ipbuf);
+			ipbuf[c] = '/';
+			c++;
+
+			snprintf(&ipbuf[c], sizeof ipbuf - c, "%d", bits);
+
+			if (dmarcf_checklist(ipbuf, list))
+				return FALSE;
+
+			if (dmarcf_checklist(&ipbuf[1], list))
+				return TRUE;
+
+			(void) dmarcf_inet_ntoa(mask, &ipbuf[c],
+			                        sizeof ipbuf - c);
+		
+			if (dmarcf_checklist(ipbuf, list))
+				return FALSE;
+
+			if (dmarcf_checklist(&ipbuf[1], list))
+				return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 /*
@@ -850,10 +1205,9 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 
 	dmarcf_config_reload();
 
-#if 0
-	if (dmarcf_ignore_host(host, ip))
+	if (dmarcf_checkhost(host, ignore) ||
+	    dmarcf_checkip(ip, ignore))
 		return SMFIS_ACCEPT;
-#endif /* 0 */
 
 	/* copy hostname and IP information to a connection context */
 	cc = dmarcf_getpriv(ctx);
@@ -2190,6 +2544,7 @@ main(int argc, char **argv)
 	char *become = NULL;
 	char *chrootdir = NULL;
 	char *extract = NULL;
+	char *ignorefile = NULL;
 	char *p;
 	char *pidfile = NULL;
 	char *testfile = NULL;
@@ -2205,6 +2560,7 @@ main(int argc, char **argv)
 	sock = NULL;
 	no_i_whine = TRUE;
 	conffile = NULL;
+	ignore = NULL;
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);
@@ -2507,6 +2863,24 @@ main(int argc, char **argv)
 
 		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
 		                  sizeof chrootdir);
+
+		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
+		                  sizeof ignorefile);
+	}
+
+	if (ignorefile != NULL)
+	{
+		if (!dmarcf_loadlist(ignorefile, &ignore))
+		{
+			fprintf(stderr,
+			        "%s: can't load ignore list from %s: %s\n",
+			        progname, ignorefile, strerror(errno));
+			return EX_DATAERR;
+		}
+	}
+	else
+	{
+		dmarcf_addlist("127.0.0.1", &ignore);
 	}
 
 	if (!gotp && !testmode)

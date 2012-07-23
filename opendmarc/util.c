@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef HAVE_PATHS_H
 # include <paths.h>
@@ -208,4 +209,55 @@ dmarcf_socket_cleanup(char *sockspec)
 	/* connection apparently succeeded */
 	close(s);
 	return EADDRINUSE;
+}
+
+/*
+**  DMARCF_LOWERCASE -- lowercase-ize a string
+**
+**  Parameters:
+**  	str -- string to convert
+**
+**  Return value:
+**  	None.
+*/
+
+void
+dmarcf_lowercase(u_char *str)
+{
+	u_char *p;
+
+	assert(str != NULL);
+
+	for (p = str; *p != '\0'; p++)
+	{
+		if (isascii(*p) && isupper(*p))
+			*p = tolower(*p);
+	}
+}
+
+/*
+**  DMARCF_INET_NTOA -- thread-safe inet_ntoa()
+**
+**  Parameters:
+**  	a -- (struct in_addr) to be converted
+**  	buf -- destination buffer
+**  	buflen -- number of bytes at buf
+**
+**  Return value:
+**  	Size of the resultant string.  If the result is greater than buflen,
+**  	then buf does not contain the complete result.
+*/
+
+size_t
+dmarcf_inet_ntoa(struct in_addr a, char *buf, size_t buflen)
+{
+	in_addr_t addr;
+
+	assert(buf != NULL);
+
+	addr = ntohl(a.s_addr);
+
+	return snprintf(buf, buflen, "%d.%d.%d.%d",
+	                (addr >> 24), (addr >> 16) & 0xff,
+	                (addr >> 8) & 0xff, addr & 0xff);
 }
