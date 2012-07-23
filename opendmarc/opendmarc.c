@@ -1712,7 +1712,7 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
 
-		if (!conf->conf_deliver)
+		if (!conf->conf_deliver && random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "rejected by DMARC policy for %s", pdomain);
@@ -1734,7 +1734,7 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
 
-		if (!conf->conf_deliver)
+		if (!conf->conf_deliver && random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "quarantined by DMARC policy for %s",
