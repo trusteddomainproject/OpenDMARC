@@ -7,6 +7,7 @@ release, and a summary of the changes in that release.
 	Initial release.
 
 0.1.7		2012/07/2?
+	Fix bug #9: Honour "pct" setting (or its default).
 	REPORTING: Fix bug #6: Add opendmarc-expire script.
 	LIBOPENDMARC: Bug #10: When DKIM is in alignment, don't short-circuit
 		past SPF alignment tests.  Problem noted by Mike Adkins and
