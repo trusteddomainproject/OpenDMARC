@@ -1,4 +1,6 @@
 Makefile.in
+opendmarc-expire
+opendmarc-expire.8
 opendmarc-import
 opendmarc-import.8
 opendmarc-reports
