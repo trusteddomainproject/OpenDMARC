@@ -1,5 +1,3 @@
 # Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 
-SUBDIRS = init rddmarc
-
-dist_doc_DATA = README
+dist_doc_DATA = opendkim

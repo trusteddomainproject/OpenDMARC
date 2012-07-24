@@ -1,5 +1,5 @@
 # Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 
-SUBDIRS = init rddmarc
+AUTOMAKE_OPTIONS = foreign
 
-dist_doc_DATA = README
+SUBDIRS = generic

@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+# opendmarc    Start and stop OpenDMARC
+
+# chkconfig: - 41 59
+# description: OpenDMARC implements the DMARC milter spec for domain auth
+# processname: opendmarc
+# pidfile: /var/run/opendmarc/opendmarc.pid
+
+### BEGIN INIT INFO
+# Provides: opendmarc
+# Short-Description: Start and stop OpenDMARC
+# Description:	OpenDMARC implements the DMARC milter spec for domain auth
+### END INIT INFO
+
+# OpenDMARC startup script v1.0 for RHEL/CentOS/Fedora
+# by Steve Mays (steve@messagebus.com) - 7-23-2012
+# Based on a script by Steve Jenkins (SteveJenkins.com) - 9-22-2011 for opendkim
+
+. /etc/rc.d/init.d/functions
+
+prefix=/usr/local
+exec_prefix=${prefix}
+
+RETVAL=0
+prog="opendmarc"
+
+DAEMON=${exec_prefix}/sbin/$prog
+CONF_FILE=${prefix}/etc/$prog.conf
+PID_FILE=${prefix}/var/run/$prog/$prog.pid
+
+if [ -f /etc/sysconfig/opendmarc ]; then
+	. /etc/sysconfig/opendmarc
+fi
+
+start() {
+	echo -n $"Starting OpenDMARC Milter: "
+	if [ -f $PID_FILE ]; then
+		PID=`cat $PID_FILE`
+		echo OpenDMARC already running as pid $PID
+	        exit 2;
+	else
+		daemon $DAEMON -c $CONF_FILE -P $PID_FILE
+		RETVAL=$?
+		[ $RETVAL -eq 0 ] && touch /var/lock/subsys/opendmarc
+		echo
+		return $RETVAL
+	fi
+}
+
+stop() {
+	echo -n $"Stopping OpenDMARC Milter: "
+	killproc -p $PID_FILE opendmarc
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/opendmarc
+	return $RETVAL
+}
+
+restart() {
+	stop
+	start
+}
+
+reload() {
+	echo -n $"Reloading OpenDMARC Milter configuration: "
+	killproc -p $PID_FILE opendmarc -SIGUSR1
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  reload)
+	reload
+	;;
+  restart)
+	restart
+	;;
+  status)
+	status -p $PID_FILE opendmarc
+	;;
+  condrestart)
+	[ -f /var/lock/subsys/opendmarc ] && restart || :
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|reload|restart|condrestart}"
+	exit 1
+esac
+
+exit $?
