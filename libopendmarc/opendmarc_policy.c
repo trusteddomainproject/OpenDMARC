@@ -533,6 +533,7 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	u_char *	bp = NULL;
 	int		dns_reply = 0;
 	int		tld_reply = 0;
+	int		loop_count = 6;
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
@@ -548,13 +549,26 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	(void) strlcpy(copy, "_dmarc.", sizeof copy);
 	(void) strlcat(copy, domain, sizeof copy);
 
+query_again:
+	(void) memset(buf, '\0', sizeof buf);
 	bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
 	if (bp != NULL)
 	{
 		if (dns_reply != HOST_NOT_FOUND)
 			goto got_record;
 	}
-		
+	/*
+	 * Was a CNAME was found that the resolver did
+	 * not follow on its own?
+	 */
+	if (bp == NULL && *buf != '\0')
+	{
+		(void) memset(copy, '\0', sizeof copy);
+		(void) strlcpy(copy, buf, sizeof copy);
+		if (--loop_count != 0)
+			goto query_again;
+	}
+
 
 	(void) memset(tld, '\0', sizeof tld);
 	tld_reply = opendmarc_get_tld(domain, tld, sizeof tld);
@@ -567,9 +581,22 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 		(void) memset(copy, '\0', sizeof copy);
 		(void) strlcpy(copy, "_dmarc.", sizeof copy);
 		(void) strlcat(copy, tld, sizeof copy);
+query_again2:
+		(void) memset(buf, '\0', sizeof buf);
 		bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
 		if (bp != NULL)
 			goto got_record;
+		/*
+		 * Was a CNAME was found that the resolver did
+		 * not follow on its own?
+		 */
+		if (bp == NULL && *buf != '\0')
+		{
+			(void) memset(copy, '\0', sizeof copy);
+			(void) strlcpy(copy, buf, sizeof copy);
+			if (--loop_count != 0)
+				goto query_again2;
+		}
 	}
 dns_failed:
 	switch (dns_reply)

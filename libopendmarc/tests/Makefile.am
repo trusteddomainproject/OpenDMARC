@@ -20,7 +20,7 @@ test_dmarc_fetch_SOURCES = test_dmarc_fetch.c
 
 test_xml_parse_SOURCES   = test_xml_parse.c
 
-test_xml_alignment_SOURCES   = test_alignment.c
+test_alignment_SOURCES   = test_alignment.c
 
 TESTS = $(check_PROGRAMS)
 
