@@ -1,4 +1,5 @@
 .deps
+core
 Makefile
 Makefile.in
 *.o
@@ -7,3 +8,5 @@ test_tld
 test_finddomain
 test_dmarc_parse
 test_xml_parse
+test_alignment
+test_dmarc_fetch

@@ -221,6 +221,60 @@ opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx)
 	return pctx;
 }
 
+int
+opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
+{
+	u_char rev_sub[512];
+	u_char rev_tld[512];
+	u_char tld_buf[512];
+	u_char *ep;
+	int	ret;
+
+	if (subdomain == NULL)
+		return EINVAL;
+	if (tld == NULL)
+		return EINVAL;
+
+	if (mode== DMARC_RECORD_A_UNSPECIFIED)
+		mode= DMARC_RECORD_A_RELAXED;
+
+	(void) memset(tld_buf, '\0', sizeof tld_buf);
+	if (mode == DMARC_RECORD_A_STRICT)
+	{
+		(void) strlcpy(tld_buf, tld, sizeof tld_buf);
+	}
+	else
+	{
+		ret = opendmarc_get_tld(tld, tld_buf, sizeof tld_buf);
+		if (ret != 0)
+			(void) strlcpy(tld_buf, tld, sizeof tld_buf);
+	}
+
+	(void) memset(rev_sub, '\0', sizeof rev_sub);
+	(void) opendmarc_reverse_domain(subdomain, rev_sub, sizeof rev_sub);
+	ep = rev_sub + strlen(rev_sub) -1;
+	if (*ep != '.')
+		(void) strlcat((char *)rev_sub, ".", sizeof rev_sub);
+
+	(void) memset(rev_tld, '\0', sizeof rev_tld);
+	(void) opendmarc_reverse_domain(tld_buf,   rev_tld, sizeof rev_tld);
+	ep = rev_tld + strlen(rev_tld) -1;
+	if (*ep != '.')
+		(void) strlcat((char *)rev_tld, ".", sizeof rev_tld);
+
+	if (mode == DMARC_RECORD_A_STRICT)
+	{
+		if (strcasecmp(rev_tld, rev_sub) == 0)
+			return 0;
+	}
+	else
+	{
+		if (strncasecmp(rev_tld, rev_sub, strlen(rev_tld)) == 0)
+			return 0;
+	}
+	return -1;
+}
+
 /**************************************************************************
 ** OPENDMARC_POLICY_STORE_FROM_DOMAIN -- Store domain from the From: header.
 ** 	If the domain is an address parse the domain from it.
@@ -327,6 +381,7 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 	return DMARC_PARSE_OKAY;
 }
 
+
 /**************************************************************************
 ** OPENDMARC_POLICY_STORE_DKIM -- Store dkim results
 **
@@ -357,8 +412,6 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 	char	domain_buf[256];
 	u_char *dp;
 	int	result = DMARC_POLICY_DKIM_OUTCOME_NONE;
-	u_char	rev_from_domain[MAXDNSHOSTNAME];
-	u_char	rev_dkim_domain[MAXDNSHOSTNAME];
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
@@ -406,13 +459,11 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 	}
 
 	/*
-	 * Reverse the domains to see if the d= us a superset of
-	 * the from domain. If so and if we have not already found
+	 * See if the d= us a superset of the from domain.
+	 * If so and if we have not already found
 	 * a best match, make this the temporary best match.
 	 */
-	(void) opendmarc_reverse_domain(pctx->from_domain, rev_from_domain, sizeof rev_from_domain);
-	(void) opendmarc_reverse_domain(dp, rev_dkim_domain, sizeof rev_dkim_domain);
-	if (strncasecmp(rev_dkim_domain, rev_from_domain, strlen(rev_from_domain)) == 0)
+	if (opendmarc_policy_check_alignment(dp, pctx->from_domain, pctx->adkim))
 	{
 		if (pctx->dkim_domain != NULL)
 		{
@@ -557,9 +608,6 @@ got_record:
 OPENDMARC_STATUS_T
 opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 {
-	u_char	rev_from_domain[MAXDNSHOSTNAME];
-	u_char	rev_dkim_domain[MAXDNSHOSTNAME];
-	u_char	rev_spf_domain[MAXDNSHOSTNAME];
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
@@ -569,7 +617,6 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 
 	if (pctx->from_domain == NULL)
 		return DMARC_FROM_DOMAIN_ABSENT;
-	(void) opendmarc_reverse_domain(pctx->from_domain, rev_from_domain, sizeof rev_from_domain);
 
 	pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_FAIL;
 	pctx->spf_alignment  = DMARC_POLICY_SPF_ALIGNMENT_FAIL;
@@ -577,41 +624,15 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 	/* check for DKIM alignment */
 	if (pctx->dkim_domain != NULL && pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
 	{
-		(void) opendmarc_reverse_domain(pctx->dkim_domain, rev_dkim_domain, sizeof rev_dkim_domain);
-		if (pctx->adkim == DMARC_RECORD_A_STRICT)
-		{
-			if (strcasecmp((char *)rev_from_domain, (char *)rev_dkim_domain) == 0)
-			{
-				pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_PASS;
-			}
-		}
-		else
-		{
-			if (strncasecmp((char *)rev_from_domain, (char *)rev_dkim_domain, strlen((char *)rev_dkim_domain)) == 0)
-			{
-				pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_PASS;
-			}
-		}
+		if (opendmarc_policy_check_alignment(pctx->from_domain, pctx->dkim_domain, pctx->adkim) == 0)
+			pctx->dkim_alignment = DMARC_POLICY_DKIM_ALIGNMENT_PASS;
 	}
 
 	/* check for SPF alignment */
 	if (pctx->spf_domain != NULL && pctx->spf_outcome == DMARC_POLICY_SPF_OUTCOME_PASS)
 	{
-		(void) opendmarc_reverse_domain(pctx->spf_domain, rev_spf_domain, sizeof rev_spf_domain);
-		if (pctx->aspf == DMARC_RECORD_A_STRICT)
-		{
-			if (strcasecmp((char *)rev_from_domain, (char *)rev_spf_domain) == 0)
-			{
-				pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
-			}
-		}
-		else
-		{
-			if (strncasecmp((char *)rev_from_domain, (char *)rev_spf_domain, strlen((char *)rev_spf_domain)) == 0)
-			{
-				pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
-			}
-		}
+		if (opendmarc_policy_check_alignment(pctx->from_domain, pctx->spf_domain, pctx->aspf) == 0)
+			pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
 	}
 
 	/*

@@ -7,6 +7,56 @@
 # include "opendmarc_internal.h"
 # include "opendmarc_strl.h"
 
+static char *Taglist[] = {
+	"adkim",
+	"aspf",
+	"auth_results",
+	"begin",
+	"comment",
+	"count",
+	"date_range",
+	"disposition",
+	"dkim",
+	"domain",
+	"email",
+	"end",
+	"extra_contact_info",
+	"feedback",
+	"header_from",
+	"human_result",
+	"identifiers",
+	"identities",
+	"org_name",
+	"p",
+	"pct",
+	"policy_evaluated",
+	"policy_published",
+	"reason",
+	"record",
+	"report_id",
+	"report_metadata",
+	"result",
+	"row",
+	"source_ip",
+	"sp",
+	"spf",
+	"type",
+	NULL,
+};
+
+static int
+tag_lookup(char *tag)
+{
+	char **cpp;
+
+	for (cpp = Taglist; *cpp != NULL; ++cpp)
+	{
+		if (strcasecmp(*cpp, tag) == 0)
+			return TRUE;
+	}
+	return FALSE;
+}
+
 /***********************************************************************
 ** OPENDMARC_XML -- Parse a blob of xml DMARC report data
 **	Arguments:
@@ -27,7 +77,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 {
 	STACK		stack;
 	int		sidx			 = -1;
-	char		*cp, *ep, *sp;
+	char		*cp, *ep, *sp, *tagp;
 	int		i;
 	int		inside = FALSE;
 	char		org_name[MAX_ITEM_NAME_LEN];
@@ -65,20 +115,20 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 		e = e_buf;
 		elen = sizeof e_buf;
 	}
-	(void) memset(stack, 		'\0', sizeof(STACK));
-	(void) memset(source_ip,	'\0', sizeof source_ip);
+	(void) memset(auth_dkim_domain, '\0', sizeof auth_dkim_domain);
+	(void) memset(auth_dkim_human,	'\0', sizeof auth_dkim_human);
+	(void) memset(auth_dkim_result, '\0', sizeof auth_dkim_result);
+	(void) memset(auth_spf_domain,	'\0', sizeof auth_spf_domain);
+	(void) memset(auth_spf_human,	'\0', sizeof auth_spf_human);
+	(void) memset(auth_spf_result,	'\0', sizeof auth_spf_result);
+	(void) memset(count,		'\0', sizeof count);
 	(void) memset(disposition,	'\0', sizeof disposition);
-	(void) memset(policy_eval_dkim, '\0', sizeof policy_eval_dkim);
-	(void) memset(policy_eval_spf,	'\0', sizeof policy_eval_spf);
 	(void) memset(email,		'\0', sizeof email);
 	(void) memset(header_from,	'\0', sizeof header_from);
-	(void) memset(auth_dkim_domain, '\0', sizeof auth_dkim_domain);
-	(void) memset(auth_dkim_result, '\0', sizeof auth_dkim_result);
-	(void) memset(auth_dkim_human,	'\0', sizeof auth_dkim_human);
-	(void) memset(auth_spf_domain,	'\0', sizeof auth_spf_domain);
-	(void) memset(auth_spf_result,	'\0', sizeof auth_spf_result);
-	(void) memset(auth_spf_human,	'\0', sizeof auth_spf_human);
-	(void) memset(count,		'\0', sizeof count);
+	(void) memset(policy_eval_dkim, '\0', sizeof policy_eval_dkim);
+	(void) memset(policy_eval_spf,	'\0', sizeof policy_eval_spf);
+	(void) memset(source_ip,	'\0', sizeof source_ip);
+	(void) memset(stack, 		'\0', sizeof(STACK));
 
 	(void) memset(obuf, '\0', sizeof obuf);
 	(void) strlcpy(obuf, "begin,end,org_name,email,domain,adkim,aspf,p,pct,source_ip,count,disposition,policy_eval_dkim,policy_eval_spf,reason_type,reason_comment,header_from,auth_dkim_domain,auth_dkim_result,auth_dkim_human,auth_spf_domain,auth_spf_result,auth_spf_human", sizeof obuf);
@@ -106,6 +156,14 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 			if (*sp == '?')
 				continue;
 			*sp = '\0';
+			if (*cp == '/')
+				tagp = cp+1;
+			else
+				tagp = cp;
+			if (tag_lookup(tagp) == FALSE)
+			{
+				continue;
+			}
 			if (*cp == '/')
 			{
 				if (sidx == -1)
