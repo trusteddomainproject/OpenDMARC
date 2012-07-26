@@ -392,6 +392,8 @@ AC_SUBST([SYSCONFDIR])
 #
 AC_OUTPUT([ Makefile
 	contrib/Makefile
+	contrib/init/Makefile
+	contrib/init/generic/Makefile
 	contrib/rddmarc/Makefile
 	db/Makefile
 	docs/Makefile
