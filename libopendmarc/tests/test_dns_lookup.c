@@ -17,6 +17,7 @@ dmarc_dns_test_record(void)
 		{"_dmarc.mail.bcx.com", FALSE, FALSE, "Existing domain, no DMARC"},
 		{"_dmarc.none.bcx.com",	FALSE, FALSE, "No such domain"},
 		{"web.de", FALSE, FALSE, "Existing domain, no DMARC"},
+		/* {"_dmarc.sf1.i.bcx.com", TRUE, TRUE, "Got DMARC record via CNAME"}, */
 		{NULL, 0, 0, NULL},
 	};
 	DL *	dp;

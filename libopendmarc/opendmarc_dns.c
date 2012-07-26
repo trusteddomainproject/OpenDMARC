@@ -187,7 +187,31 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		}
 		GETSHORT(type, cur_ptr);
 		GETSHORT(class, cur_ptr);
-		if (type != T_TXT)
+		/* we may want to use the ttl later */
+		GETLONG(ttl, cur_ptr);
+
+		if (type == T_CNAME)
+		{
+			/*
+			 * Copy the cname just incase the resolver
+			 * didn't also follow it an give us the text
+			 * record.
+			 */
+			(void) memset(got_txtbuf, '\0', got_txtlen);
+			answer_len = dn_expand((unsigned char *)&answer_buf,
+					end_ptr, cur_ptr,
+					got_txtbuf, got_txtlen);
+			cur_ptr += answer_len;
+			continue;
+		}
+#ifdef T_RRSIG
+		else if (type == T_RRSIG)
+		{
+			GETSHORT(answerlen, cur_ptr);
+			cur_ptr += answerlen;
+		}
+#endif /* T_RRSIG */
+		else if (type != T_TXT)
 		{
 			/*
 			 * TODO: Fail or should we ignore it?
@@ -195,8 +219,6 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			*reply_ptr = NO_DATA;
 			return NULL;
 		}
-		/* we may want to use the ttl later */
-		GETLONG(ttl, cur_ptr);
 
 		if (cur_ptr + INT16SZ > end_ptr)
 		{

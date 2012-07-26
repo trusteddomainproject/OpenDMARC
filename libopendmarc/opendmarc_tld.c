@@ -15,16 +15,41 @@ static char TLDfile[MAXPATHLEN];
 int
 opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
 {
-	u_char *dp, *ep;
+	u_char *dp, *ep, *cp;
 	u_char  copy[MAXDNSHOSTNAME];
 
 	if (buf == NULL || buflen == 0 || domain == NULL)
 		return EINVAL;
 
+
 	(void) memset((char *)buf, '\0', buflen);
+	/*
+	 * Strip all but one leading dot.
+	 */
+	for (cp = domain; *cp != '\0'; ++cp)
+	{
+		if (*cp !=  '.')
+			break;
+	}
+	if (strlen(cp) == 0)
+		return EINVAL;
+	if (cp > domain)
+		--cp;
 	(void) memset((char *)copy, '\0', sizeof copy);
-	(void) strlcpy((char *)copy, domain, sizeof copy);
+	(void) strlcpy((char *)copy, cp, sizeof copy);
 	ep = copy + strlen((char *)copy);
+
+	/*
+	 * Strip all trailing dots.
+	 */
+	for (cp = ep-1; cp > copy; --cp)
+	{
+		if (*cp == '.')
+			*cp = '\0';
+		else
+			break;
+	}
+	ep = cp+1;
 	do
 	{
 		for (dp = ep; dp > copy; --dp)
@@ -41,7 +66,7 @@ opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
 			*ep = '\0';
 			--ep;
 		}
-	} while (dp != copy);
+	} while (dp > copy && ep > copy);
 	return 0;
 }
 
