@@ -49,6 +49,7 @@
 
 /* libopendmarc */
 #include <dmarc.h>
+#include <opendmarc_strl.h>
 
 /* opendmarc includes */
 #include "opendmarc.h"
