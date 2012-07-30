@@ -25,7 +25,12 @@ main(int argc, char **argv)
 	};
 	int	outcome;
 	int	pass, fails, count;
+	char *	srcdir;
 	
+	srcdir = getenv("srcdir");
+	if (srcdir != NULL)
+		(void) chdir(srcdir);
+
 	if (opendmarc_tld_read_file(TESTFILE, "//", "*.", "!") != 0)
 	{
 		printf("\tTLD find test: %s: could not read. Skipping\n", TESTFILE);
