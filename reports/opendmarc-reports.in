@@ -16,12 +16,13 @@ use Switch;
 use DBI;
 use File::Basename;
 use File::Temp;
-use Net::Domain qw(hostdomain);
+use Net::Domain qw(hostfqdn hostdomain);
 use Getopt::Long;
 use IO::Handle;
 use IO::Compress::Zip qw(zip);
 use POSIX;
 use MIME::Base64;
+use Net::SMTP;
 
 require DBD::@SQL_BACKEND@;
 
@@ -33,8 +34,6 @@ my $version       = "@VERSION@";
 my $verbose       = 0;
 my $helponly      = 0;
 my $showversion   = 0;
-
-my $sendmail      = "/usr/sbin/sendmail -t -odq";
 
 my $interval;
 
@@ -120,6 +119,12 @@ my $dbscheme     = "@SQL_BACKEND@";
 my $repdom       = hostdomain();
 my $repemail     = "postmaster@" . $repdom;
 
+my $smtp_server  = '127.0.0.1';
+my $smtp_port    = 25;
+my $smtp;
+
+my $answer;
+
 ###
 ### NO user-serviceable parts beyond this point
 ###
@@ -137,8 +142,9 @@ sub usage
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
-	print STDERR "\t--mailcmd=string   mail command [$sendmail]\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
+	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
+	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t--version          print version and exit\n";
 }
@@ -155,9 +161,10 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'domain=s' => \$forcedomain,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
-                                            'mailcmd=s' => \$sendmail,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
+                                            'smtp-server=s' => \$smtp_server,
+                                            'smtp-port=i' => \$smtp_port,
                                             'update!' => \$doupdate,
                                             'verbose!' => \$verbose,
                                             'version!' => \$showversion,
@@ -318,6 +325,15 @@ if ($verbose)
 # 	-- generate and send report
 # 	-- update "last sent" timestamp
 #
+
+$smtp = Net::SMTP->new($smtp_server,
+                       'Port' => $smtp_port,
+                       'Helo' => hostfqdn());
+if (!defined($smtp))
+{
+	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
+	exit(1);
+}
 
 foreach (@$domainset)
 {
@@ -701,20 +717,7 @@ foreach (@$domainset)
 			next;
 		}
 		
-		# mail report
-		if (!open($mailout, "|$sendmail"))
-		{
-			print STDERR "$progname: can't send report for $domain: $!\n";
-			close($zipin);
-			next;
-		}
-
 		$repdest = $uri->opaque;
-
-		if ($verbose)
-		{
-			print STDERR "$progname: mailing report for $domain to $repdest\n";
-		}
 
 		$boundary = "report_section";
 
@@ -723,37 +726,55 @@ foreach (@$domainset)
 		$datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",
 		                    localtime);
 
-		print $mailout "From: $repemail\n";
-		print $mailout "To: $repdest\n";
-		print $mailout "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
-		print $mailout "X-Mailer: " . $progname . " v" . $version ."\n";
-		print $mailout "Date: " . $datestr . "\n";
-		print $mailout "Message-ID: <$report_id>\n";
-		print $mailout "Auto-Submitted: auto-generated\n";
-		print $mailout "MIME-Version: 1.0\n";
-		print $mailout "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
-		print $mailout "\n";
-		print $mailout "--$boundary\n";
-		print $mailout "\n";
-		print $mailout "This is a DMARC aggregate report for $domain\n";
-		print $mailout "generated at " . localtime() . "\n";
-		print $mailout "\n";
-		print $mailout "--$boundary\n";
-		print $mailout "Content-Type: application/zip\n";
-		print $mailout "Content-Disposition: attachment; filename=\"$zipfile\"\n";
-		print $mailout "Content-Transfer-Encoding: base64\n";
-		print $mailout "\n";
+		$mailout  = "To: $repdest\n";
+		$mailout .= "From: $repemail\n";
+		$mailout .= "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
+		$mailout .= "X-Mailer: " . $progname . " v" . $version ."\n";
+		$mailout .= "Date: " . $datestr . "\n";
+		$mailout .= "Message-ID: <$report_id>\n";
+		$mailout .= "Auto-Submitted: auto-generated\n";
+		$mailout .= "MIME-Version: 1.0\n";
+		$mailout .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
+		$mailout .= "\n";
+		$mailout .= "This is a MIME-encapsulated message.\n";
+		$mailout .= "\n";
+		$mailout .= "--$boundary\n";
+		$mailout .= "Content-Type: text/plain;\n";
+		$mailout .= "\n";
+		$mailout .= "This is a DMARC aggregate report for $domain\n";
+		$mailout .= "generated at " . localtime() . "\n";
+		$mailout .= "\n";
+		$mailout .= "--$boundary\n";
+		$mailout .= "Content-Type: application/zip\n";
+		$mailout .= "Content-Disposition: attachment; filename=\"$zipfile\"\n";
+		$mailout .= "Content-Transfer-Encoding: base64\n";
+		$mailout .= "\n";
 
 		while (read($zipin, $buf, 60*57))
 		{
-			print $mailout encode_base64($buf);
+			$mailout .= encode_base64($buf);
 		}
 
-		print $mailout "\n";
-		print $mailout "--$boundary--\n";
-		print $mailout "\n";
+		$mailout .= "\n";
+		$mailout .= "--$boundary--\n";
 
-		close($mailout);
+		# TODO: check return value of each smtp call
+		$smtp->mail($repemail);
+		$smtp->to($repdest);
+		$smtp->data();
+		$smtp->datasend($mailout);
+		$smtp->dataend();
+
+		if ($verbose)
+		{
+			# now perl voodoo:
+			$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
+			chomp($answer);
+			print STDERR "$progname: sent report for $domain to $repdest ($answer)\n";
+		}
+
+		$smtp->reset();
+
 		close($zipin);
 	}
 	else
@@ -778,6 +799,8 @@ foreach (@$domainset)
 	unlink($zipfile);
 	unlink($repfile);
 }
+
+$smtp->quit();
 
 #
 # all done!

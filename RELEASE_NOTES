@@ -6,6 +6,10 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.8		2012/07/30
+	REPORTING: Patch #13: Have report generation use SMTP directly.
+		Patch from Andreas Schulze.
+
 0.1.7		2012/07/26
 	Fix bug #5: Add "IgnoreHosts" setting.
 	Fix bug #9: Honour "pct" setting (or its default).
