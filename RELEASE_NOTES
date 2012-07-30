@@ -7,6 +7,7 @@ release, and a summary of the changes in that release.
 	Initial release.
 
 0.1.8		2012/07/30
+	Fix Linux build issue.
 	REPORTING: Patch #13: Have report generation use SMTP directly.
 		Patch from Andreas Schulze.
 
