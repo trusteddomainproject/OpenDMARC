@@ -2879,7 +2879,7 @@ main(int argc, char **argv)
 			return EX_DATAERR;
 		}
 	}
-	else
+	else if (!testmode)
 	{
 		dmarcf_addlist("127.0.0.1", &ignore);
 	}

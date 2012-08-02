@@ -6,6 +6,10 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
+0.1.9		2012/08/??
+	Don't apply a default IgnoreHosts list in test mode.  Problem noted
+		by Marcos Digirati.
+
 0.1.8		2012/07/30
 	Fix Linux build issue.
 	REPORTING: Patch #13: Have report generation use SMTP directly.
