@@ -6,6 +6,8 @@ if FILTER_TESTS
 SUBDIRS=tests
 endif
 
+dist_doc_DATA = opendmarc.conf.sample
+
 sbin_PROGRAMS = opendmarc
 opendmarc_SOURCES = config.c config.h opendmarc.c opendmarc.h \
 	opendmarc-ar.c opendmarc-ar.h opendmarc-config.h \
