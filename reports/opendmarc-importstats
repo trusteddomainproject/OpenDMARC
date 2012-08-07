@@ -1,0 +1,26 @@
+#!/bin/sh
+##
+## Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+##
+## opendmarc-importstats -- import opendmarc output to MySQL
+##
+## This is intended to be used via a crontab.  If import is successful,
+## this code exits quietly so there's no output.  If it fails, it does
+## "ls -l" on the temporary file, so that cron generates mail to whever
+## ran the job.
+
+## setup
+statsdb="/var/tmp/dmarc.dat"
+# OPENDMARC_PASSWORD="password"; export OPENDMARC_PASSWORD
+
+if [ -s $statsdb ]
+then
+	mv $statsdb ${statsdb}.OLD.$$
+
+	if opendmarc-import < ${statsdb}.OLD.$$
+	then
+		rm ${statsdb}.OLD.$$
+	else
+		ls -l ${statsdb}.OLD.$$
+	fi
+fi
