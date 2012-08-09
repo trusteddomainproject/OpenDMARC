@@ -34,6 +34,11 @@ Most, if not all, of the command line options listed below can also be set
 using a configuration file.  See the
 .I \-c
 option for details.
+
+.B opendmarc
+relies on addition of Authentication-Results fields by upsteam filters on
+trusted hosts to collect input to the DMARC algorithm.  It does not itself
+do DKIM or SPF evaluation.
 .SH OPTIONS
 .TP
 .I \-A
