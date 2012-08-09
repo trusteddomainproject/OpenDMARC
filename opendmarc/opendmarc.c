@@ -3366,7 +3366,7 @@ main(int argc, char **argv)
 			return EX_UNAVAILABLE;
 		}
 
-		smfilter.xxfi_flags = SMFIF_CHGHDRS|SMFIF_QUARANTINE;
+		smfilter.xxfi_flags = SMFIF_ADDHDRS|SMFIF_QUARANTINE;
 #ifdef SMFIF_SETSYMLIST
 		smfilter.xxfi_flags |= SMFIF_SETSYMLIST;
 #endif /* SMFIF_SETSYMLIST */
