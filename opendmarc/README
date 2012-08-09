@@ -46,7 +46,12 @@ CONFIGURING OPENDMARC
 
     (b) Add a line like this example to your sendmail.mc using your desired
         socket specification:
+
 	    INPUT_MAIL_FILTER(`opendmarc', `S=inet:8893@localhost')
+
+        Note that this must come after filters that do DKIM and SPF evaluation,
+        as this filter relies on the addition of authentication results data
+        to the header by upstream filters.
 
     (c) Rebuild your sendmail.cf in the usual way
 
@@ -63,6 +68,10 @@ CONFIGURING OPENDMARC
 	    smtpd_milters = inet:localhost:8893
 	    non_smtpd_milters = inet:localhost:8893
 	
+        Note that this must come after filters that do DKIM and SPF evaluation,
+        as this filter relies on the addition of authentication results data
+        to the header by upstream filters.
+
     (c) If you have a content filter in master.cf that feeds it back into a
         different smtpd process, you should alter the second smtpd process in
 	master.cf to contain '-o receive_override_options=no_milters' to
