@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS requests (
 	lastsent TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00',
 
 	PRIMARY KEY(id),
+	KEY(lastsent),
 	UNIQUE KEY(domain)
 );
 
@@ -68,6 +69,7 @@ CREATE TABLE IF NOT EXISTS messages (
 	sigcount TINYINT UNSIGNED NOT NULL,
 
 	PRIMARY KEY(id),
+	KEY(date),
 	UNIQUE KEY(reporter, date, jobid)
 );
 
@@ -79,5 +81,6 @@ CREATE TABLE IF NOT EXISTS signatures (
 	pass TINYINT NOT NULL,
 	error TINYINT NOT NULL,
 
-	PRIMARY KEY(id)
+	PRIMARY KEY(id),
+	KEY(message)
 );
