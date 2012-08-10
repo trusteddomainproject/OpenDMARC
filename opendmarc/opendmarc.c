@@ -1582,7 +1582,7 @@ mlfi_eom(SMFICTX *ctx)
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
 	status = dmarcf_mail_parse(addrbuf, &user, &domain);
-	if (status != 0)
+	if (status != 0 || user == NULL || domain == NULL)
 	{
 		if (conf->conf_dolog)
 		{
