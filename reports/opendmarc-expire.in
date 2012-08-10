@@ -294,7 +294,7 @@ if ($verbose)
 	print STDERR "$progname: expiring request data older than $maxage days\n";
 }
 
-$dbi_s = $dbi_h->prepare("DELETE FROM requests WHERE lastsent <= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? DAY)");
+$dbi_s = $dbi_h->prepare("DELETE FROM requests WHERE lastsent <= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? DAY) AND NOT lastsent = '0000-00-00 00:00:00');
 $rows = $dbi_s->execute($maxage);
 if (!$rows)
 {

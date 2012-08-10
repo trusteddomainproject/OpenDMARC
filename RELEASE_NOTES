@@ -9,8 +9,11 @@ release, and a summary of the changes in that release.
 0.2.0		2012/08/??
 	Don't apply a default IgnoreHosts list in test mode.  Problem noted
 		by Marcos Digirati.
+	Don't expire request records for stuff that's never been generated
+		yet.  Problem noted by Todd Lyons.
 	Register the filter with SMFIF_ADDHDRS not SMFIF_CHGHDRS.  Problem
 		noted by Todd Lyons.
+	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
 	REPORTING: Add opendmarc-importstats.
 
 0.1.8		2012/07/30
