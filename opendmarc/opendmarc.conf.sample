@@ -162,6 +162,24 @@
 #
 # PublicSuffixList path
 
+##  RecordAllMessages { true | false }
+##  	default "false"
+##
+##  If set and "HistoryFile" is in use, all received messages are recorded
+##  to the history file.  If not set (the default), only messages for which
+##  the From: domain published a DMARC record will be recorded in the
+##  history file.
+#
+# RecordAllMessages false
+
+##  ReportCommand string
+##  	default "/usr/sbin/sendmail -t"
+##
+##  Indicates the shell command to which forensic reports should be passed for
+##  delivery when "ForensicReports" is enabled.
+#
+# ReportCommand /usr/sbin/sendmail -t
+
 ##  Socket socketspec
 ##  	default (none)
 ##

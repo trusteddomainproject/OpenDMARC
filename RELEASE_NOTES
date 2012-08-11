@@ -7,6 +7,10 @@ release, and a summary of the changes in that release.
 	Initial release.
 
 0.2.0		2012/08/??
+	Feature request #16: Add "RecordAllMessages" setting to record all
+		messages (the previous default).  The new default is to record
+		only those messages whose From: domains had a published
+		DMARC record.
 	Prevent crashes when parsing horribly malformed From: fields.
 		Problem noted by Todd Lyons.
 	Don't apply a default IgnoreHosts list in test mode.  Problem noted

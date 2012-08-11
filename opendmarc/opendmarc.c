@@ -128,6 +128,7 @@ struct dmarcf_config
 	_Bool			conf_enablecores;
 	_Bool			conf_addswhdr;
 	_Bool			conf_authservidwithjobid;
+	_Bool			conf_recordall;
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
@@ -841,6 +842,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "ForensicReports",
 		                  &conf->conf_afrf,
 		                  sizeof conf->conf_afrf);
+
+		(void) config_get(data, "RecordAllMessages",
+		                  &conf->conf_recordall,
+		                  sizeof conf->conf_recordall);
 
 		(void) config_get(data, "TemporaryDirectory",
 		                  &conf->conf_tmpdir,
@@ -2149,7 +2154,8 @@ mlfi_eom(SMFICTX *ctx)
 	**  Record activity in the history file.
 	*/
 
-	if (conf->conf_historyfile != NULL)
+	if (conf->conf_historyfile != NULL &&
+	    (conf->conf_recordall || ostatus != DMARC_DNS_ERROR_NO_RECORD))
 	{
 		FILE *f;
 

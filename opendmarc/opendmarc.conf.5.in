@@ -174,6 +174,22 @@ not be able to determine the Organizational Domain and only the presented
 domain will be evaluated.
 
 .TP
+.I RecordAllMessages (Boolean)
+If set and
+.I HistoryFile
+is in use, all received messages are recorded to the history file.  If not set
+(the default), only messages for which the From: domain published a DMARC
+record will be recorded in the history file.
+
+.TP
+.I ReportCommand (string)
+Indicates the shell command to which forensic reports should be passed for
+delivery when
+.I ForensicReports
+is enabled.  Defaults to
+.I /usr/sbin/sendmail.
+
+.TP
 .I Socket (string)
 Specifies the socket that should be established by the filter to receive
 connections from

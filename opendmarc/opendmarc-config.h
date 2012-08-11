@@ -33,6 +33,7 @@ struct configdef dmarcf_config[] =
 	{ "MilterDebug",		CONFIG_TYPE_INTEGER,	FALSE },
 	{ "PidFile",			CONFIG_TYPE_STRING,	FALSE },
 	{ "PublicSuffixList",		CONFIG_TYPE_STRING,	FALSE },
+	{ "RecordAllMessages",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ReportCommand",		CONFIG_TYPE_STRING,	FALSE },
 	{ "Socket",			CONFIG_TYPE_STRING,	FALSE },
 	{ "SoftwareHeader",		CONFIG_TYPE_STRING,	FALSE },
