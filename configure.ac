@@ -404,6 +404,7 @@ AC_OUTPUT([ Makefile
 	opendmarc/Makefile
 		opendmarc/opendmarc.conf.5
 		opendmarc/opendmarc.8
+		opendmarc/opendmarc-check.8
 	opendmarc/tests/Makefile
 	reports/Makefile
 		reports/opendmarc-expire

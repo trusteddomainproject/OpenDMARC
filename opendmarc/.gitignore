@@ -1,4 +1,5 @@
 .deps
 *.o
 opendmarc
+opendmarc-check
 *.[1-9]
