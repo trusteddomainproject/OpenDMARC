@@ -1,0 +1,71 @@
+.TH opendmarc-params 8 "The Trusted Domain Project"
+.SH NAME
+.B opendmarc-params
+\- OpenDMARC reporting parameters setup tool
+.SH SYNOPSIS
+.B opendmarc-params
+[options] domain
+.SH DESCRIPTION
+.B opendmarc-params
+records a specific reporting address for aggregate reports about the named
+.I domain
+and flags it as "locked" in the reporting requests database.  This is done
+to allow an administrator to force generation of reports and have them sent
+to a specific address regardless of what data may (or may not) be found in
+the DNS for the named domain.
+.SH OPTIONS
+.TP
+.I --dbhost=host
+Attempts to connect to the database server on the named
+.I host.
+The default is "localhost".
+.TP
+.I --dbname=name
+Requests a connection to the database called
+.I name.
+The default is "opendmarc".
+.TP
+.I --dbpasswd=password
+Attempts to authenticate to the database server using the specified
+.I password.
+The default is "opendmarc".
+.TP
+.I --dbport=port
+Tries to connect to the database at the specified TCP
+.I port.
+The default is 3306.
+.TP
+.I --dbuser=user
+Attempts to authenticate to the database server as the specified
+.I user.
+The default is "opendmarc".
+.TP
+.I --help
+Prints a usage message and exits.
+.TP
+.I --rua=string
+Sets the reporting URI for the named
+.I domain
+to the specified
+.I string.
+.TP
+.I --unlock
+Unlocks the record for the named
+.I domain.
+.TP
+.I --verbose
+Requests verbose output.
+.TP
+.I --version
+Prints version number and exits.
+.SH VERSION
+This man page covers the version of
+.I opendmarc-params
+that shipped with version @VERSION@ of
+.I OpenDMARC.
+.SH COPYRIGHT
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+.SH SEE ALSO
+.I opendmarc(8),
+.I opendmarc-import(8),
+.I opendmarc-reports(8)

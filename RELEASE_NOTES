@@ -27,6 +27,10 @@ release, and a summary of the changes in that release.
 	Register the filter with SMFIF_ADDHDRS not SMFIF_CHGHDRS.  Problem
 		noted by Todd Lyons.
 	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
+	REPORTING: Feature request #17: Add "opendmarc-params" tool, and
+		tie it to opendmarc-import, so that administrators can force
+		reports for specific domains to go to specific destinations
+		regardless of DMARC record contents.
 	REPORTING: Feature request #21: Add "--test" and "--keepfiles" options
 		to opendmarc-reports.  Patch from Todd Lyons.
 	REPORTING: Add opendmarc-importstats.

@@ -1,0 +1,284 @@
+#!/usr/bin/perl
+#
+# Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+#
+# Script to apply manual changes to DMARC reporting parameters.
+
+###
+### Setup
+###
+
+use strict;
+use warnings;
+
+use Switch;
+
+use DBI;
+use File::Basename;
+use Getopt::Long;
+use POSIX;
+
+require DBD::@SQL_BACKEND@;
+
+# general
+my $progname      = basename($0);
+my $version       = "@VERSION@";
+my $verbose       = 0;
+my $helponly      = 0;
+my $showversion   = 0;
+
+# DB parameters
+my $def_dbhost    = "localhost";
+my $def_dbname    = "opendmarc";
+my $def_dbuser    = "opendmarc";
+my $def_dbpasswd  = "opendmarc";
+my $def_dbport    = "3306";
+my $dbhost;
+my $dbname;
+my $dbuser;
+my $dbpasswd;
+my $dbport;
+
+my $dbscheme     = "@SQL_BACKEND@";
+
+my $dbi_a;
+my $dbi_h;
+my $dbi_t;
+
+my $domain;
+my $domainid;
+my $requestid;
+my $rua;
+my $unlock;
+
+sub get_table_id
+{
+	my $name;
+	my $table;
+	my $column;
+	my $out;
+
+	($name, $table, $column) = @_;
+
+	if (!defined($name) || !defined($table))
+	{
+		return undef;
+	}
+
+	if (!defined($column))
+	{
+		$column = "name";
+	}
+
+	$dbi_t = $dbi_h->prepare("SELECT id FROM $table WHERE $column = ?");
+	if (!$dbi_t->execute($name))
+	{
+		print STDERR "$progname: failed to retrieve table ID: " . $dbi_h->errstr . "\n";
+		return undef;
+	}
+
+	undef $out;
+	while ($dbi_a = $dbi_t->fetchrow_arrayref())
+	{
+		if (defined($dbi_a->[0]))
+		{
+			$out = $dbi_a->[0];
+		}
+	}
+
+	$dbi_t->finish;
+
+	if (!defined($out))
+	{
+		$dbi_t = $dbi_h->prepare("INSERT INTO $table ($column) VALUES(?)");
+		if (!$dbi_t->execute($name))
+		{
+			print STDERR "$progname: failed to create table ID: " . $dbi_h->errstr . "\n";
+			return undef;
+		}
+
+		$dbi_t = $dbi_h->prepare("SELECT LAST_INSERT_ID()");
+		if (!$dbi_t->execute())
+		{
+			print STDERR "$progname: failed to retrieve created table ID: " . $dbi_h->errstr . "\n";
+			return undef;
+		}
+
+		while ($dbi_a = $dbi_t->fetchrow_arrayref())
+		{
+			if (defined($dbi_a->[0]))
+			{
+				$out = $dbi_a->[0];
+			}
+		}
+
+		$dbi_t->finish;
+
+		if (!defined($out))
+		{
+			print STDERR "$progname: failed to retrieve created table ID: " . $dbi_h->errstr . "\n";
+			return undef;
+		}
+	}
+
+	return $out;
+}
+
+sub usage
+{
+	print STDERR "$progname: usage: $progname [options] domain\n";
+	print STDERR "\t--dbhost=host      database host [$def_dbhost]\n";
+	print STDERR "\t--dbname=name      database name [$def_dbname]\n";
+	print STDERR "\t--dbpasswd=passwd  database password [$def_dbpasswd]\n";
+	print STDERR "\t--dbport=port      database port [$def_dbport]\n";
+	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
+	print STDERR "\t--rua=string       aggregate report URI(s)\n";
+	print STDERR "\t--help             print help and exit\n";
+	print STDERR "\t--unlock           unlocks named record\n";
+	print STDERR "\t--verbose          verbose output\n";
+	print STDERR "\t--version          print version and exit\n";
+}
+
+# parse command line arguments
+my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
+                                            'dbname=s' => \$dbname,
+                                            'dbpasswd=s' => \$dbpasswd,
+                                            'dbport=s' => \$dbport,
+                                            'dbuser=s' => \$dbuser,
+                                            'help!' => \$helponly,
+                                            'rua=s' => \$rua,
+                                            'unlock!' => \$unlock,
+                                            'verbose!' => \$verbose,
+                                            'version!' => \$showversion,
+                                           );
+
+$domain = $ARGV[0];
+
+if (!$opt_retval || $helponly || !defined($domain))
+{
+	usage();
+
+	if ($helponly)
+	{
+		exit(0);
+	}
+	else
+	{
+		exit(1);
+	}
+}
+
+if ($showversion)
+{
+	print STDOUT "$progname v$version\n";
+	exit(0);
+}
+
+# apply defaults
+if (!defined($dbhost))
+{
+	if (defined($ENV{'OPENDMARC_DBHOST'}))
+	{
+		$dbhost = $ENV{'OPENDMARC_DBHOST'};
+	}
+	else
+	{
+		$dbhost = $def_dbhost;
+	}
+}
+
+if (!defined($dbname))
+{
+	if (defined($ENV{'OPENDMARC_DB'}))
+	{
+		$dbname = $ENV{'OPENDMARC_DB'};
+	}
+	else
+	{
+		$dbname = $def_dbname;
+	}
+}
+
+if (!defined($dbpasswd))
+{
+	if (defined($ENV{'OPENDMARC_PASSWORD'}))
+	{
+		$dbpasswd = $ENV{'OPENDMARC_PASSWORD'};
+	}
+	else
+	{
+		$dbpasswd = $def_dbpasswd;
+	}
+}
+
+if (!defined($dbport))
+{
+	if (defined($ENV{'OPENDMARC_PORT'}))
+	{
+		$dbport = $ENV{'OPENDMARC_PORT'};
+	}
+	else
+	{
+		$dbport = $def_dbport;
+	}
+}
+
+if (!defined($dbuser))
+{
+	if (defined($ENV{'OPENDMARC_USER'}))
+	{
+		$dbuser = $ENV{'OPENDMARC_USER'};
+	}
+	else
+	{
+		$dbuser = $def_dbuser;
+	}
+}
+
+if ($verbose)
+{
+	print STDERR "$progname: started at " . localtime() . "\n";
+}
+
+my $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
+              ";host=" . $dbhost . ";port=" . $dbport;
+
+$dbi_h = DBI->connect($dbi_dsn, $dbuser, $dbpasswd, { PrintError => 0 });
+if (!defined($dbi_h))
+{
+	print STDERR "$progname: unable to connect to database: $DBI::errstr\n";
+	exit(1);
+}
+
+if ($verbose)
+{
+	print STDERR "$progname: connected to database\n";
+}
+
+$domainid = get_table_id($domain, "domains", "name");
+$requestid = get_table_id($domainid, "requests", "domain");
+
+if ($unlock)
+{
+	$dbi_t = $dbi_h->prepare("UPDATE requests SET locked = 0, WHERE id = ?");
+	if (!$dbi_t->execute($requestid))
+	{
+		print STDERR "$progname: failed to update requests table for $domain: " . $dbi_h->errstr . "\n";
+	}
+}
+else
+{
+	$dbi_t = $dbi_h->prepare("UPDATE requests SET locked = 1, repuri = ? WHERE id = ?");
+	if (!$dbi_t->execute($rua, $requestid))
+	{
+		print STDERR "$progname: failed to update requests table for $domain: " . $dbi_h->errstr . "\n";
+	}
+}
+
+#
+# all done!
+#
+
+$dbi_h->disconnect;
+
+exit(0);
