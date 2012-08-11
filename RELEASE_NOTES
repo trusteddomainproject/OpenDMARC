@@ -27,6 +27,8 @@ release, and a summary of the changes in that release.
 	Register the filter with SMFIF_ADDHDRS not SMFIF_CHGHDRS.  Problem
 		noted by Todd Lyons.
 	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
+	REPORTING: Feature request #21: Add "--test" and "--keepfiles" options
+		to opendmarc-reports.  Patch from Todd Lyons.
 	REPORTING: Add opendmarc-importstats.
 
 0.1.8		2012/07/30

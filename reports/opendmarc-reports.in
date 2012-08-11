@@ -91,6 +91,8 @@ my $dkimdomain;
 my $repdest;
 
 my $doupdate = 1;
+my $testmode = 0;
+my $keepfiles = 0;
 
 my $msgid;
 
@@ -139,12 +141,16 @@ sub usage
 	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
 	print STDERR "\t--domain=name      force a report for name domain\n";
 	print STDERR "\t--help             print help and exit\n";
+	print STDERR "\t--keepfiles        keep xml files (in local directory)\n";
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
+	print STDERR "\t -n                synonym for --test\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
+	print STDERR "\t--test             don't send reports\n";
+	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t--version          print version and exit\n";
 }
@@ -161,6 +167,8 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'domain=s' => \$forcedomain,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
+                                            'keepfiles' => \$keepfiles,
+                                            'n|test' => \$testmode,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
                                             'smtp-server=s' => \$smtp_server,
@@ -255,6 +263,10 @@ if (!defined($interval))
 {
 	$interval = $def_interval;
 }
+
+# Test mode requested, don't update last sent and keep xml files
+$doupdate  = ($testmode == 1) ? 0 : $doupdate;
+$keepfiles = ($testmode == 1) ? 1 : $keepfiles;
 
 if ($verbose)
 {
@@ -704,8 +716,19 @@ foreach (@$domainset)
 		next;
 	}
 
+	if ($keepfiles)
+	{
+		print STDERR "$progname: keeping report file \"$repfile\"\n";
+	}
+
+	# Test mode, just report what would have been done
+	if ($testmode)
+	{
+		print STDERR "$progname: would email $domain report for " .
+		             "$rowcount records to " .  $uri->opaque . "\n";
+	}
 	# send/post report
-	if ($uri->scheme eq "mailto")
+	elsif ($uri->scheme eq "mailto")
 	{
 		my $now;
 		my $datestr;
@@ -797,7 +820,8 @@ foreach (@$domainset)
 	}
 
 	unlink($zipfile);
-	unlink($repfile);
+	if (!$keepfiles)
+		unlink($repfile);
 }
 
 $smtp->quit();
