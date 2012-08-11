@@ -11,6 +11,9 @@ release, and a summary of the changes in that release.
 		messages (the previous default).  The new default is to record
 		only those messages whose From: domains had a published
 		DMARC record.
+	Feature request #20: Allow "AuthservID" to be a comma-separated list
+		of authserv-ids to trust as local.  The first one is used
+		in header field generation.
 	Prevent crashes when parsing horribly malformed From: fields.
 		Problem noted by Todd Lyons.
 	Don't apply a default IgnoreHosts list in test mode.  Problem noted

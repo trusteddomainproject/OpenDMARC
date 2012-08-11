@@ -51,11 +51,14 @@ header field will be added.  The default is "false".
 .TP
 .I AuthservID (string)
 Sets the "authserv-id" to use when generating the Authentication-Results:
-header field after verifying a message.  The default is to use the name of
-the MTA processing the message.  If the string "HOSTNAME" is provided, the
-name of the host running the filter (as returned by the
+header field after verifying a message.  It is also used as the set of
+"authserv-id" values to trust as relaying true upstream DKIM and SPF results.
+The default is to use the name of the MTA processing the message.  If the
+string "HOSTNAME" is provided, the name of the host running the filter
+(as returned by the
 .I gethostname(3)
-function) will be used.
+function) will be used.  To provide a set, the string should be a
+comma-separated list.
 
 .TP
 .I AuthservIDWithJobID (Boolean)

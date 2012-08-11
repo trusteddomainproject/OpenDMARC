@@ -137,6 +137,7 @@ struct dmarcf_config
 	char *			conf_authservid;
 	char *			conf_historyfile;
 	char *			conf_pslist;
+	char **			conf_authservids;
 };
 
 /* LIST -- basic linked list of strings */
@@ -435,6 +436,145 @@ dmarcf_loadlist(char *path, struct list **head)
 	fclose(f);
 
 	return TRUE;
+}
+
+/*
+**  DMARCF_EATSPACES -- chomp spaces at the front and end of a string
+**
+**  Parameters:
+**  	str -- string to crush
+**
+**  Return value:
+**  	None.
+*/
+
+void
+dmarcf_eatspaces(char *str)
+{
+	int content = 0;
+	int spaces = 0;
+	int len = 0;
+	char *p;
+
+	assert(str != NULL);
+
+	for (p = str; *p != '\0'; p++)
+	{
+		len++;
+
+		if (isascii(*p) && isspace(*p))
+		{
+			if (content == 0)
+			{
+				spaces++;
+			}
+			else
+			{
+				*p = '\0';
+				break;
+			}
+		}
+		else
+		{
+			content++;
+		}
+	}
+
+	if (len != content)
+		memmove(str, &str[spaces], content + 1);
+}
+
+/*
+**  DMARCF_MKARRAY -- convert a comma-separated string into an array
+**
+**  Parameters:
+**  	str -- input string
+**  	array -- output array
+**
+**  Return value:
+**  	Array length, or -1 on error.
+*/
+
+int
+dmarcf_mkarray(char *str, char ***array)
+{
+	int n = 0;
+	int a = 0;
+	int ns;
+	char *p;
+	char *ctx;
+	char **out;
+
+	for (p = strtok_r(str, ",", &ctx);
+	     p != NULL;
+	     p = strtok_r(NULL, ",", &ctx))
+	{
+		dmarcf_eatspaces(p);
+
+		if (n + 1 >= a)
+		{
+			if (a == 0)
+			{
+				ns = 4;
+
+				out = malloc(sizeof(char *) * ns);
+
+				if (out == NULL)
+					return -1;
+			}
+			else
+			{
+				char **new;
+
+				ns = a * 2;
+
+				new = realloc(out, sizeof(char *) * ns);
+				if (new == NULL)
+				{
+					free(out);
+					return -1;
+				}
+
+				out = new;
+			}
+
+			memset(&out[a], '\0', sizeof(char *) * (ns - a));
+
+			a = ns;
+		}
+
+		out[n++] = p;
+		out[n] = NULL;
+	}
+
+	*array = out;
+
+	return n;
+}
+
+/*
+**  DMARCF_MATCH -- match a string to an array
+**
+**  Parameters:
+**  	str -- input string
+**  	array -- input array
+**
+**  Return value:
+**  	TRUE iff "str" appears in "array".
+*/
+
+_Bool
+dmarcf_match(const char *str, char **array)
+{
+	int c;
+
+	for (c = 0; array[c] != NULL; c++)
+	{
+		if (strcmp(str, array[c]) == 0)
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 /*
@@ -813,6 +953,8 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		{
 			conf->conf_authservid = strdup(myhostname);
 		}
+
+		dmarcf_mkarray(conf->conf_authservid, &conf->conf_authservids);
 
 		(void) config_get(data, "AuthservIDWithJobID",
 		                  &conf->conf_authservidwithjobid,
@@ -1558,7 +1700,7 @@ mlfi_eom(SMFICTX *ctx)
 		hostname = myhostname;
 
 	/* select authserv-id to use when generating result headers */
-	authservid = conf->conf_authservid;
+	authservid = conf->conf_authservids[0];
 	if (authservid == NULL)
 		authservid = hostname;
 
@@ -1640,7 +1782,7 @@ mlfi_eom(SMFICTX *ctx)
 			continue;
 
 		/* skip it if it's not one of ours */
-		if (strcasecmp(ar.ares_host, authservid) != 0)
+		if (!dmarcf_match(ar.ares_host, conf->conf_authservids))
 		{
 			size_t clen;
 			unsigned char *slash;
@@ -2490,6 +2632,9 @@ dmarcf_config_free(struct dmarcf_config *conf)
 
 	if (conf->conf_data != NULL)
 		config_free(conf->conf_data);
+
+	if (conf->conf_authservid != NULL)
+		free(conf->conf_authservid);
 
 	free(conf);
 }
