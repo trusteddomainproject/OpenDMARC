@@ -59,7 +59,7 @@ string "HOSTNAME" is provided, the name of the host running the filter
 .I gethostname(3)
 function) will be used.  To provide a set, the string should be a
 comma-separated list; the first one will be used during header field
-generation.
+generation.  Matching against the list is case-sensitive.
 
 .TP
 .I AuthservIDWithJobID (Boolean)
@@ -158,6 +158,13 @@ aggregate reports can be extracted.
 Specifies the path to a file that contains a list of hostnames, IP addresses,
 and/or CIDR expressions identifying hosts whose SMTP connections are to be
 ignored by the filter.  If not specified, defaults to "127.0.0.1" only.
+
+.TP
+.I IgnoreMailFrom (string)
+Gives a list of domain names whose mail (based on the From: domain) is to
+be ignored by the filter.  The list should be comma-separated.  Matching
+against this list is case-insensitive.  The default is an empty list, meaning
+no mail is ignored.
 
 .TP
 .I MilterDebug (integer)

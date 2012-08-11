@@ -138,6 +138,26 @@
 #
 # HistoryFile /var/run/opendmarc.dat
 
+##  IgnoreHosts path
+##  	default (internal)
+##
+##  Specifies the path to a file that contains a list of hostnames, IP
+##  addresses, and/or CIDR expressions identifying hosts whose SMTP
+##  connections are to be ignored by the filter.  If not specified, defaults
+##  to "127.0.0.1" only.
+#
+# IgnoreHosts /usr/local/etc/opendmarc/ignore.hosts
+
+##  IgnoreMailFrom domain[,...]
+##  	default (none)
+##
+##  Gives a list of domain names whose mail (based on the From: domain) is to
+##  be ignored by the filter.  The list should be comma-separated.  Matching
+##  against this list is case-insensitive.  The default is an empty list,
+##  meaning no mail is ignored.
+#
+# IgnoreMailFrom example.com
+
 ##  MilterDebug (integer)
 ##  	default 0
 ##

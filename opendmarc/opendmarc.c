@@ -137,7 +137,9 @@ struct dmarcf_config
 	char *			conf_authservid;
 	char *			conf_historyfile;
 	char *			conf_pslist;
+	char *			conf_ignorelist;
 	char **			conf_authservids;
+	char **			conf_ignoredomains;
 };
 
 /* LIST -- basic linked list of strings */
@@ -485,6 +487,29 @@ dmarcf_eatspaces(char *str)
 }
 
 /*
+**  DMARCF_FREEARRAY -- destroy an array of strings
+**
+**  Parameters:
+**  	a -- array to destroy
+**
+**  Return vaule:
+** 	None.
+*/
+
+void
+dmarcf_freearray(char **a)
+{
+	int c;
+
+	assert(a != NULL);
+
+	for (c = 0; a[c] != NULL; c++)
+		free(a[c]);
+
+	free(a);
+}
+
+/*
 **  DMARCF_MKARRAY -- convert a comma-separated string into an array
 **
 **  Parameters:
@@ -558,19 +583,21 @@ dmarcf_mkarray(char *str, char ***array)
 **  Parameters:
 **  	str -- input string
 **  	array -- input array
+**  	icase -- ignore case?
 **
 **  Return value:
 **  	TRUE iff "str" appears in "array".
 */
 
 _Bool
-dmarcf_match(const char *str, char **array)
+dmarcf_match(const char *str, char **array, _Bool icase)
 {
 	int c;
 
 	for (c = 0; array[c] != NULL; c++)
 	{
-		if (strcmp(str, array[c]) == 0)
+		if ((!icase && strcmp(str, array[c]) == 0) ||
+		    ( icase && strcasecmp(str, array[c]) == 0))
 			return TRUE;
 	}
 
@@ -955,6 +982,11 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		}
 
 		dmarcf_mkarray(conf->conf_authservid, &conf->conf_authservids);
+
+		str = NULL;
+		(void) config_get(data, "IgnoreMailFrom", &str, sizeof str);
+		if (str != NULL)
+			dmarcf_mkarray(str, &conf->conf_ignoredomains);
 
 		(void) config_get(data, "AuthservIDWithJobID",
 		                  &conf->conf_authservidwithjobid,
@@ -1740,6 +1772,14 @@ mlfi_eom(SMFICTX *ctx)
 		return SMFIS_ACCEPT;
 	}
 
+	if (dmarcf_match(domain, conf->conf_ignoredomains, TRUE))
+	{
+		if (conf->conf_dolog)
+			syslog(LOG_INFO, "%s: ignoring mail from %s", domain);
+
+		return SMFIS_ACCEPT;
+	}
+
 	strncpy(dfc->mctx_fromdomain, domain, sizeof dfc->mctx_fromdomain - 1);
 
 	ostatus = opendmarc_policy_store_from_domain(cc->cctx_dmarc,
@@ -1782,7 +1822,7 @@ mlfi_eom(SMFICTX *ctx)
 			continue;
 
 		/* skip it if it's not one of ours */
-		if (!dmarcf_match(ar.ares_host, conf->conf_authservids))
+		if (!dmarcf_match(ar.ares_host, conf->conf_authservids, FALSE))
 		{
 			size_t clen;
 			unsigned char *slash;
@@ -2632,6 +2672,11 @@ dmarcf_config_free(struct dmarcf_config *conf)
 
 	if (conf->conf_data != NULL)
 		config_free(conf->conf_data);
+
+	if (conf->conf_ignoredomains != NULL)
+		dmarcf_freearray(conf->conf_ignoredomains);
+
+	dmarcf_freearray(conf->conf_authservids);
 
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);

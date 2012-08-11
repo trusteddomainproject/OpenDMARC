@@ -11,9 +11,11 @@ release, and a summary of the changes in that release.
 		messages (the previous default).  The new default is to record
 		only those messages whose From: domains had a published
 		DMARC record.
+	Feature request #19: Add "IgnoreMailFrom" setting, allowing mail from
+		specific domains to be ignored.
 	Feature request #20: Allow "AuthservID" to be a comma-separated list
 		of authserv-ids to trust as local.  The first one is used
-		in header field generation.
+		in header field generation.  Suggested by Andreas Schulze.
 	Fix bug #18: Pass the absence of a "rua" field in a DMARC record
 		to the history file and into the "requests" table.
 	Prevent crashes when parsing horribly malformed From: fields.
