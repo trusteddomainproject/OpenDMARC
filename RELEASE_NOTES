@@ -14,6 +14,8 @@ release, and a summary of the changes in that release.
 	Feature request #20: Allow "AuthservID" to be a comma-separated list
 		of authserv-ids to trust as local.  The first one is used
 		in header field generation.
+	Fix bug #18: Pass the absence of a "rua" field in a DMARC record
+		to the history file and into the "requests" table.
 	Prevent crashes when parsing horribly malformed From: fields.
 		Problem noted by Todd Lyons.
 	Don't apply a default IgnoreHosts list in test mode.  Problem noted
@@ -24,8 +26,6 @@ release, and a summary of the changes in that release.
 		noted by Todd Lyons.
 	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
 	REPORTING: Add opendmarc-importstats.
-	Fix bug #18: Pass the absence of a "rua" field in a DMARC record
-		to the history file and into the "requests" table.
 
 0.1.8		2012/07/30
 	Fix Linux build issue.
