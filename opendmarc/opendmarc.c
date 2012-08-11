@@ -64,6 +64,8 @@
 /* macros */
 #define	CMDLINEOPTS	"Ac:flnp:P:t:u:vV"
 #define	DEFTIMEOUT	5
+#define	MAXSPFRESULT	16
+#define	RECEIVEDSPF	"Received-SPF"
 
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
@@ -332,6 +334,98 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 		return dmarcf_test_getsymval(ctx, sym);
 	else
 		return smfi_getsymval(ctx, sym);
+}
+
+/*
+**  DMARCF_PARSE_RECEIVED_SPF -- try to extract a result from a Received-SPF
+**                               header field
+**
+**  Parameters:
+**  	str -- the value of the Received-SPF field to analyze
+**  	
+**  Return value:
+**  	A DMARC_POLICY_SPF_* constant.
+*/
+
+int
+dmarcf_parse_received_spf(char *str)
+{
+	_Bool copying = FALSE;
+	_Bool escaped = FALSE;
+	int parens = 0;
+	char *p;
+	char *r;
+	char *end;
+	char result[MAXSPFRESULT + 1];
+
+	assert(str != NULL);
+
+	memset(result, '\0', sizeof result);
+	r = result;
+	end = &result[sizeof result - 1];
+
+	for (p = str; *p != '\0'; p++)
+	{
+		if (escaped)
+		{
+			if (copying)
+			{
+				if (r < end)
+					*r++ = *p;
+			}
+
+			escaped = FALSE;
+		}
+		else if (copying)
+		{
+			if (!escaped && *p == '\\')
+			{
+				escaped = TRUE;
+			}
+			else if (*p == '(')
+			{
+				copying = FALSE;
+				parens++;
+			}
+			else if (r < end)
+			{
+				*r++ = *p;
+			}
+		}
+		else if (*p == '(')
+		{
+			parens++;
+		}
+		else if (*p == ')' && parens > 0)
+		{
+			parens--;
+		}
+		else if (parens == 0)
+		{
+			if (isascii(*p) && isspace(*p))
+				continue;
+
+			if (!copying)
+			{
+				if (result[0] != '\0')
+					break;
+
+				copying = TRUE;
+				if (r < end)
+					*r++ = *p;
+			}
+		}
+	}
+
+	if (strcasecmp(result, "pass") == 0)
+		return DMARC_POLICY_SPF_OUTCOME_PASS;
+	else if (strcasecmp(result, "fail") == 0 ||
+	         strcasecmp(result, "softfail") == 0)
+		return DMARC_POLICY_SPF_OUTCOME_FAIL;
+	else if (strcasecmp(result, "temperror") == 0)
+		return DMARC_POLICY_SPF_OUTCOME_TMPFAIL;
+	else
+		return DMARC_POLICY_SPF_OUTCOME_NONE;
 }
 
 /*
@@ -1947,6 +2041,23 @@ mlfi_eom(SMFICTX *ctx)
 
 					return SMFIS_TEMPFAIL;
 				}
+			}
+		}
+	}
+
+	if (!wspf)
+	{
+		for (hdr = dfc->mctx_hqhead;
+		     hdr != NULL && !wspf;
+		     hdr = hdr->hdr_next)
+		{
+			if (strcasecmp(hdr->hdr_name, RECEIVEDSPF) == 0)
+			{
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf %d\n",
+				                      dmarcf_parse_received_spf(hdr->hdr_value));
+
+				wspf = TRUE;
 			}
 		}
 	}

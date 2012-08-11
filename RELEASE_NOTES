@@ -7,6 +7,8 @@ release, and a summary of the changes in that release.
 	Initial release.
 
 0.2.0		2012/08/??
+	Feature request #15: If there's no SPF Authentication-Results field,
+		look for a Received-SPF field to get SPF results.
 	Feature request #16: Add "RecordAllMessages" setting to record all
 		messages (the previous default).  The new default is to record
 		only those messages whose From: domains had a published
