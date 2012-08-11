@@ -1835,6 +1835,10 @@ mlfi_eom(SMFICTX *ctx)
 			                      ruv[c]);
 		}
 	}
+	else
+	{
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "rua -\n");
+	}
 
 	opendmarc_policy_fetch_pct(cc->cctx_dmarc, &pct);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "pct %d\n", pct);

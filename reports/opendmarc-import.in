@@ -259,6 +259,19 @@ sub update_db
 
 		$dbi_s->finish;
 	}
+	else
+	{
+		$dbi_s = $dbi_h->prepare("UPDATE requests SET repuri = NULL WHERE id = ?");
+
+		if (!$dbi_s->execute($rua[0], $request_id))
+		{
+			print STDERR "$progname: failed to update reporting URI for $fdomain: " . $dbi_h->errstr . "\n";
+			$dbi_s->finish;
+			return;
+		}
+
+		$dbi_s->finish;
+	}
 
 	$dbi_s = $dbi_h->prepare("UPDATE requests SET adkim = ?, aspf = ?, policy = ?, spolicy = ?, pct = ? WHERE id = ?");
 

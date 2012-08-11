@@ -17,6 +17,8 @@ release, and a summary of the changes in that release.
 		noted by Todd Lyons.
 	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
 	REPORTING: Add opendmarc-importstats.
+	Fix bug #18: Pass the absence of a "rua" field in a DMARC record
+		to the history file and into the "requests" table.
 
 0.1.8		2012/07/30
 	Fix Linux build issue.
