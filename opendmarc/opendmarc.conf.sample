@@ -22,7 +22,8 @@
 ##  results.  The default is to use the name of the MTA processing the
 ##  message.  If the string "HOSTNAME" is provided, the name of the host
 ##  running the filter (as returned by the gethostname(3) function) will
-##  be used.  To provide a set, the string should be a comma-separated list.
+##  be used.  To provide a set, the string should be a comma-separated list;
+##  the first one will be used during header field generation.
 #
 # AuthservID name[,...]
 

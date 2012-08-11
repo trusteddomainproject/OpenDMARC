@@ -58,7 +58,8 @@ string "HOSTNAME" is provided, the name of the host running the filter
 (as returned by the
 .I gethostname(3)
 function) will be used.  To provide a set, the string should be a
-comma-separated list.
+comma-separated list; the first one will be used during header field
+generation.
 
 .TP
 .I AuthservIDWithJobID (Boolean)
