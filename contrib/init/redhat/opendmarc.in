@@ -5,7 +5,7 @@
 # chkconfig: - 41 59
 # description: OpenDMARC implements the DMARC milter spec for domain auth
 # processname: opendmarc
-# pidfile: /var/run/opendmarc/opendmarc.pid
+# pidfile: @localstatedir@/run/opendmarc/opendmarc.pid
 
 ### BEGIN INIT INFO
 # Provides: opendmarc
@@ -24,15 +24,15 @@
 
 . /etc/rc.d/init.d/functions
 
-prefix=/usr
-exec_prefix=${prefix}
+prefix=@prefix@
+exec_prefix=@exec_prefix@
 
 RETVAL=0
 prog="opendmarc"
 
-DAEMON=${exec_prefix}/sbin/$prog
-CONF_FILE=/etc/$prog.conf
-PID_FILE=/var/run/$prog/$prog.pid
+DAEMON=@sbindir@/$prog
+CONF_FILE=@sysconfdir@/$prog.conf
+PID_FILE=@localstatedir@/run/$prog/$prog.pid
 
 if [ -f /etc/sysconfig/opendmarc ]; then
 	. /etc/sysconfig/opendmarc
