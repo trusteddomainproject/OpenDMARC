@@ -394,6 +394,7 @@ AC_OUTPUT([ Makefile
 	contrib/Makefile
 	contrib/init/Makefile
 	contrib/init/generic/Makefile
+	contrib/init/redhat/Makefile
 	contrib/rddmarc/Makefile
 	db/Makefile
 	docs/Makefile
