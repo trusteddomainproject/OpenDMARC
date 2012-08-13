@@ -1866,7 +1866,8 @@ mlfi_eom(SMFICTX *ctx)
 		return SMFIS_ACCEPT;
 	}
 
-	if (dmarcf_match(domain, conf->conf_ignoredomains, TRUE))
+	if (conf->conf_ignoredomains != NULL &&
+	    dmarcf_match(domain, conf->conf_ignoredomains, TRUE))
 	{
 		if (conf->conf_dolog)
 			syslog(LOG_INFO, "%s: ignoring mail from %s", domain);
