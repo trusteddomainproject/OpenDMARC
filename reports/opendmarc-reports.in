@@ -821,7 +821,9 @@ foreach (@$domainset)
 
 	unlink($zipfile);
 	if (!$keepfiles)
+	{
 		unlink($repfile);
+	}
 }
 
 $smtp->quit();
