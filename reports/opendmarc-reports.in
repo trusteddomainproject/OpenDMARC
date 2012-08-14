@@ -174,7 +174,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'smtp-server=s' => \$smtp_server,
                                             'smtp-port=i' => \$smtp_port,
                                             'update!' => \$doupdate,
-                                            'verbose!' => \$verbose,
+                                            'verbose+' => \$verbose,
                                             'version!' => \$showversion,
                                            );
 
