@@ -566,7 +566,10 @@ while (<STDIN>)
 				}
 
 	  case "rua"		{
-					push(@rua, $value);
+					if ($value ne "-")
+					{
+						push(@rua, $value);
+					}
 				}
 
 	  case "sp"		{
