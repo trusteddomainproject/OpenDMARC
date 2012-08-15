@@ -31,24 +31,46 @@ main(int argc, char **argv)
 	if (srcdir != NULL)
 		(void) chdir(srcdir);
 
-	if (opendmarc_tld_read_file(TESTFILE, "//", "*.", "!") != 0)
-	{
-		printf("\tTLD find test: %s: could not read. Skipping\n", TESTFILE);
-		return 0;
-	}
 	pass = fails = count = 0;
+	/*
+	 * First without a tld file.
+	 */
 	for (alignp = alignm_test; alignp != NULL && alignp->subdomain != NULL; ++alignp)
 	{
 		count += 1;
 		outcome = opendmarc_policy_check_alignment(alignp->subdomain, alignp->tld, alignp->mode);
 		if (outcome == alignp->outcome)
 		{
-			//printf("\tALIGNMENT find test: %d: PASS\n", count);
+			//printf("\tALIGNMENT No TLD file: find test: %d: PASS\n", count);
 			pass += 1;
 		}
 		else
 		{
-			printf("\tALIGNMENT find test: %d: FAIL\n", count);
+			printf("\tALIGNMENT No TLD file: find test: %d: FAIL\n", count);
+			fails += 1;
+		}
+	}
+	/*
+	 * Second with a tld file.
+	 */
+	if (opendmarc_tld_read_file(TESTFILE, "//", "*.", "!") != 0)
+	{
+		printf("\tTLD find test: %s: could not read. Skipping\n", TESTFILE);
+		return 0;
+	}
+	count = 0;
+	for (alignp = alignm_test; alignp != NULL && alignp->subdomain != NULL; ++alignp)
+	{
+		count += 1;
+		outcome = opendmarc_policy_check_alignment(alignp->subdomain, alignp->tld, alignp->mode);
+		if (outcome == alignp->outcome)
+		{
+			//printf("\tALIGNMENT With TLD file: find test: %d: PASS\n", count);
+			pass += 1;
+		}
+		else
+		{
+			printf("\tALIGNMENT No With file: find test: %d: FAIL\n", count);
 			fails += 1;
 		}
 	}

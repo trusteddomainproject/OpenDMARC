@@ -231,6 +231,16 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 	if (ret != 0)
 		return (errno == 0) ? EINVAL : errno;
 	
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+	(void) pthread_mutex_lock(&TLD_hctx_mutex);
+# endif
+	vp = TLD_hctx;
+# if HAVE_PTHREAD_H || HAVE_PTHREAD
+	(void) pthread_mutex_unlock(&TLD_hctx_mutex);
+# endif
+	if (vp == NULL)
+		return EINVAL;
+
 	for (rp = revbuf + strlen(revbuf) -1; rp > revbuf; --rp)
 	{
 		if (rp == revbuf)
