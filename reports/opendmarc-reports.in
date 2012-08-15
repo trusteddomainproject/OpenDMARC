@@ -727,6 +727,12 @@ foreach (@$domainset)
 		print STDERR "$progname: would email $domain report for " .
 		             "$rowcount records to " .  $uri->opaque . "\n";
 	}
+	# ensure a scheme is present
+	elsif (!defined($uri->scheme))
+	{
+		print STDERR "$progname: unknown URI scheme in '$repuri' for domain $domain\n";
+		next;
+	}
 	# send/post report
 	elsif ($uri->scheme eq "mailto")
 	{
@@ -802,7 +808,7 @@ foreach (@$domainset)
 	}
 	else
 	{
-		print STDERR "$progname: unsupported reporting URI scheme $uri->scheme for domain $domain\n";
+		print STDERR "$progname: unsupported reporting URI scheme " . $uri->scheme . " for domain $domain\n";
 		next;
 	}
 
