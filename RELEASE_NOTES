@@ -30,6 +30,9 @@ release, and a summary of the changes in that release.
 		noted by Todd Lyons.
 	CONTRIB: Add contrib/init/redhat and contents.  Provided by Todd Lyons.
 	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
+	LIBOPENDMARC: Fix bug #22: Minimal solution to alignment checks when
+		no public suffix list is provided.  Problem noted by
+		Todd Lyons.
 	REPORTING: Feature request #17: Add "opendmarc-params" tool, and
 		tie it to opendmarc-import, so that administrators can force
 		reports for specific domains to go to specific destinations
