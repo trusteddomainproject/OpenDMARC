@@ -433,6 +433,7 @@ size_t
 dmarcf_dstring_printf(struct dmarcf_dstring *dstr, char *fmt, ...)
 {
 	size_t len;
+	size_t rem;
 	va_list ap;
 	va_list ap2;
 
@@ -441,20 +442,21 @@ dmarcf_dstring_printf(struct dmarcf_dstring *dstr, char *fmt, ...)
 
 	va_start(ap, fmt);
 	va_copy(ap2, ap);
-	len = vsnprintf((char *) dstr->ds_buf + dstr->ds_len, dstr->ds_alloc,
-	                fmt, ap);
+	rem = dstr->ds_alloc - dstr->ds_len;
+	len = vsnprintf((char *) dstr->ds_buf + dstr->ds_len, rem, fmt, ap);
 	va_end(ap);
 
-	if (len > dstr->ds_len)
+	if (len > rem)
 	{
-		if (!dmarcf_dstring_resize(dstr, len + 1))
+		if (!dmarcf_dstring_resize(dstr, dstr->ds_len + len + 1))
 		{
 			va_end(ap2);
 			return (size_t) -1;
 		}
 
-		len = vsnprintf((char *) dstr->ds_buf + dstr->ds_len,
-		                dstr->ds_alloc, fmt, ap2);
+		rem = dstr->ds_alloc - dstr->ds_len;
+		len = vsnprintf((char *) dstr->ds_buf + dstr->ds_len, rem,
+		                fmt, ap2);
 	}
 
 	va_end(ap2);

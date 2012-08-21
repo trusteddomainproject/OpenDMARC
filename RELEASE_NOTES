@@ -28,6 +28,8 @@ release, and a summary of the changes in that release.
 		yet.  Problem noted by Todd Lyons.
 	Register the filter with SMFIF_ADDHDRS not SMFIF_CHGHDRS.  Problem
 		noted by Todd Lyons.
+	Fix bounds checking in dmarcf_dstring_printf().  Problem noted by
+		Marcos Digirati.
 	CONTRIB: Add contrib/init/redhat and contents.  Provided by Todd Lyons.
 	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
 	LIBOPENDMARC: Fix bug #22: Minimal solution to alignment checks when
