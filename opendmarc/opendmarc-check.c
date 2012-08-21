@@ -215,12 +215,12 @@ main(int argc, char **argv)
 		fprintf(stdout, "\tDomain policy: %s\n", p);
 		fprintf(stdout, "\tSubdomain policy: %s\n", sp);
 		fprintf(stdout, "\tAggregate report URIs:\n");
-		for (n = 0; rua[n] != NULL; n++)
+		for (n = 0; rua != NULL && rua[n] != NULL; n++)
 			fprintf(stdout, "\t\t%s\n", rua[n]);
 		if (n == 0)
 			fprintf(stdout, "\t\t(none)\n");
 		fprintf(stdout, "\tForensic report URIs:\n");
-		for (n = 0; ruf[n] != NULL; n++)
+		for (n = 0; ruf != NULL && ruf[n] != NULL; n++)
 			fprintf(stdout, "\t\t%s\n", ruf[n]);
 		if (n == 0)
 			fprintf(stdout, "\t\t(none)\n");
