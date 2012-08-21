@@ -30,6 +30,8 @@ release, and a summary of the changes in that release.
 		noted by Todd Lyons.
 	Fix bounds checking in dmarcf_dstring_printf().  Problem noted by
 		Marcos Digirati.
+	Arrays created in-place from strings don't need to have their elements
+		freed.  Problem noted by Andreas Schulze.
 	BUILD: Install non-user scripts under sbin instead of bin.  Problem
 		noted by Andreas Schulze.
 	CONTRIB: Add contrib/init/redhat and contents.  Provided by Todd Lyons.

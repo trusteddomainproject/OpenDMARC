@@ -597,8 +597,10 @@ dmarcf_freearray(char **a)
 
 	assert(a != NULL);
 
+	/*
 	for (c = 0; a[c] != NULL; c++)
 		free(a[c]);
+	*/
 
 	free(a);
 }
