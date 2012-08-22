@@ -47,6 +47,8 @@ release, and a summary of the changes in that release.
 	REPORTING: Feature request #21: Add "--test" and "--keepfiles" options
 		to opendmarc-reports.  Patch from Todd Lyons.
 	REPORTING: Add opendmarc-importstats.
+	REPORTING: Variable verbose levels in opendmarc-report.  Patch from
+		Todd Lyons.
 	TOOLS: Feature request #14: Add "openmarc-check" command line tool for
 		translating DMARC records found in the DNS.
 

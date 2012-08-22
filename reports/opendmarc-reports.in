@@ -152,6 +152,7 @@ sub usage
 	print STDERR "\t--test             don't send reports\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--verbose          verbose output\n";
+	print STDERR "\t                   (repeat for increased output)\n";
 	print STDERR "\t--version          print version and exit\n";
 }
 
@@ -283,7 +284,7 @@ if (!defined($dbi_h))
 	exit(1);
 }
 
-if ($verbose)
+if ($verbose >= 2)
 {
 	print STDERR "$progname: connected to database\n";
 }
@@ -292,7 +293,7 @@ if ($verbose)
 # Select domains on which to report
 #
 
-if ($verbose)
+if ($verbose >= 2)
 {
 	print STDERR "$progname: selecting target domains\n";
 }
@@ -356,7 +357,7 @@ foreach (@$domainset)
 		next;
 	}
 
-	if ($verbose)
+	if ($verbose >= 2)
 	{
 		print STDERR "$progname: processing $domain\n";
 	}
@@ -428,7 +429,8 @@ foreach (@$domainset)
 
 	$dbi_s->finish;
 
-	if (!defined($repuri) || ("" eq $repuri))
+	if ( (!defined($repuri) || ("" eq $repuri)) &&
+         ($verbose >= 2) )
 	{
 		print STDERR "$progname: no reporting URI for domain $domain; skipping\n";
 		next;
@@ -700,7 +702,7 @@ foreach (@$domainset)
 
 	if ($rowcount == 0)
 	{
-		if ($verbose)
+		if ($verbose >= 2)
 		{
 			print STDERR "$progname: no activity selected for $domain; skipping\n";
 		}
@@ -730,7 +732,11 @@ foreach (@$domainset)
 	# ensure a scheme is present
 	elsif (!defined($uri->scheme))
 	{
-		print STDERR "$progname: unknown URI scheme in '$repuri' for domain $domain\n";
+		if ($verbose >= 2)
+		{
+			print STDERR "$progname: unknown URI scheme in '$repuri' for domain $domain\n";
+		}
+
 		next;
 	}
 	# send/post report
