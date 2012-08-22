@@ -12,7 +12,7 @@ main(int argc, char **argv)
 	TEST_T *xmlp;
 	TEST_T xml_files[] = {
 		/* 1 */ {"testfiles/nosuchfile.xml", ENOENT},
-		/* 2 */ {"testfiles/126.com!example.com!1337270400!1337356799.20120518126.xml", 0},
+		/* 2 */ {"testfiles/good.com!example.com!1337270400!1337356799.xml", 0},
 		/* 3 */ {"testfiles/bad.com!example.com!1337140800!1337227200.xml", 0},
 			{NULL, 0},
 	};
