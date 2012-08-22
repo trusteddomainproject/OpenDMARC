@@ -429,10 +429,13 @@ foreach (@$domainset)
 
 	$dbi_s->finish;
 
-	if ( (!defined($repuri) || ("" eq $repuri)) &&
-         ($verbose >= 2) )
+	if (!defined($repuri) || ("" eq $repuri))
 	{
-		print STDERR "$progname: no reporting URI for domain $domain; skipping\n";
+		if ($verbose >= 2)
+		{
+			print STDERR "$progname: no reporting URI for domain $domain; skipping\n";
+		}
+
 		next;
 	}
 
