@@ -25,5 +25,5 @@ test_alignment_SOURCES   = test_alignment.c
 TESTS = $(check_PROGRAMS)
 
 EXTRA_DIST	= testfiles/effective_tld_names.dat \
-		  testfiles/126.com!example.com!1337270400!1337356799.20120518126.xml \
+		  testfiles/good.com!example.com!1337270400!1337356799.xml \
 		  testfiles/bad.com!example.com!1337140800!1337227200.xml
