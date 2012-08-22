@@ -535,6 +535,35 @@ dmarcf_loadlist(char *path, struct list **head)
 }
 
 /*
+**  DMARCF_FREELIST -- destroy a singly-linked list
+**
+**  Parameters:
+**  	head -- list to free
+**
+**  Return value:
+**  	None.
+*/
+
+void
+dmarcf_freelist(struct list *head)
+{
+	struct list *cur;
+	struct list *next;
+
+	cur = head;
+	while (cur != NULL)
+	{
+		free(cur->list_str);
+
+		next = cur->list_next;
+
+		free(cur);
+
+		cur = next;
+	}
+}
+
+/*
 **  DMARCF_EATSPACES -- chomp spaces at the front and end of a string
 **
 **  Parameters:
@@ -1338,6 +1367,11 @@ dmarcf_cleanup(SMFICTX *ctx)
 	/* release memory, reset state */
 	if (dfc != NULL)
 	{
+		if (dfc->mctx_histbuf != NULL)
+			dmarcf_dstring_free(dfc->mctx_histbuf);
+		if (dfc->mctx_afrf != NULL)
+			dmarcf_dstring_free(dfc->mctx_afrf);
+
 		if (dfc->mctx_hqhead != NULL)
 		{
 			struct dmarcf_header *hdr;
@@ -3882,6 +3916,11 @@ main(int argc, char **argv)
 
 	/* shut down libopendmarc */
 	(void) opendmarc_policy_library_shutdown(&libopendmarc);
+
+	/* release memory */
+	dmarcf_config_free(curconf);
+	if (ignore != NULL)
+		dmarcf_freelist(ignore);
 
 	if (curconf->conf_dolog)
 	{

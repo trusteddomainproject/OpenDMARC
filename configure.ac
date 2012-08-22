@@ -397,6 +397,8 @@ AC_OUTPUT([ Makefile
 	contrib/init/redhat/Makefile
 		contrib/init/redhat/opendmarc
 	contrib/rddmarc/Makefile
+	contrib/spec/Makefile
+		contrib/spec/opendmarc.spec
 	db/Makefile
 	docs/Makefile
 	libopendmarc/Makefile

@@ -35,6 +35,7 @@ release, and a summary of the changes in that release.
 	BUILD: Install non-user scripts under sbin instead of bin.  Problem
 		noted by Andreas Schulze.
 	CONTRIB: Add contrib/init/redhat and contents.  Provided by Todd Lyons.
+	CONTRIB: Add contrib/spec and contents.  Provided by Todd Lyons.
 	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
 	LIBOPENDMARC: Fix bug #22: Minimal solution to alignment checks when
 		no public suffix list is provided.  Problem noted by
