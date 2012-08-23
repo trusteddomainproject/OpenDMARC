@@ -55,7 +55,7 @@ CREATE FUNCTION inet_pto6 RETURNS STRING SONAME 'mysql_ip6.so';
 CREATE TABLE rptrecord (
   serial int(10) unsigned NOT NULL,
   ip int(10) unsigned,
-  ip6 binary(16) unsigned,
+  ip6 binary(16),
   rcount int(10) unsigned NOT NULL,
   disposition enum('none','quarantine','reject'),
   reason varchar(255),
@@ -64,8 +64,8 @@ CREATE TABLE rptrecord (
   spfdomain varchar(255),
   spfresult enum('none','neutral','pass','fail','softfail','temperror','permerror'),
   KEY serial (serial,ip),
-  KEY serial (serial,ip6)
-);
+  KEY serial6 (serial,ip6)
+) ENGINE=MyISAM;
 
 CREATE TABLE failure (
   serial int(10) unsigned NOT NULL AUTO_INCREMENT,
