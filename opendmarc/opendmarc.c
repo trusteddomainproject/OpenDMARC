@@ -3917,17 +3917,17 @@ main(int argc, char **argv)
 	/* shut down libopendmarc */
 	(void) opendmarc_policy_library_shutdown(&libopendmarc);
 
-	/* release memory */
-	dmarcf_config_free(curconf);
-	if (ignore != NULL)
-		dmarcf_freelist(ignore);
-
 	if (curconf->conf_dolog)
 	{
 		syslog(LOG_INFO,
 		       "%s v%s terminating with status %d, errno = %d",
 		       DMARCF_PRODUCT, VERSION, status, errno);
 	}
+
+	/* release memory */
+	dmarcf_config_free(curconf);
+	if (ignore != NULL)
+		dmarcf_freelist(ignore);
 
 	/* tell the reloader thread to die */
 	die = TRUE;
