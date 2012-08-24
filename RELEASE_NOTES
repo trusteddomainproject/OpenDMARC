@@ -23,13 +23,13 @@ release, and a summary of the changes in that release.
 	Prevent crashes when parsing horribly malformed From: fields.
 		Problem noted by Todd Lyons.
 	Don't apply a default IgnoreHosts list in test mode.  Problem noted
-		by Marcos Digirati.
+		by Marcos Vieira.
 	Don't expire request records for stuff that's never been generated
 		yet.  Problem noted by Todd Lyons.
 	Register the filter with SMFIF_ADDHDRS not SMFIF_CHGHDRS.  Problem
 		noted by Todd Lyons.
 	Fix bounds checking in dmarcf_dstring_printf().  Problem noted by
-		Marcos Digirati.
+		Marcos Vieira.
 	Arrays created in-place from strings don't need to have their elements
 		freed.  Problem noted by Andreas Schulze.
 	BUILD: Install non-user scripts under sbin instead of bin.  Problem
