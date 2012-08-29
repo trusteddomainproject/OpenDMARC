@@ -1257,7 +1257,7 @@ opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status)
 	    	msg = "Success. No Errors";
 		break;
 	    case DMARC_PARSE_ERROR_EMPTY: 
-		msg = "Function called with nothing to pase";
+		msg = "Function called with nothing to parse";
 		break;
 	    case DMARC_PARSE_ERROR_NULL_CTX: 
 		msg  ="Function called with NULL Context";
