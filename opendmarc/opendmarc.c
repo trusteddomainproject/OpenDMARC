@@ -2023,7 +2023,7 @@ mlfi_eom(SMFICTX *ctx)
 					if (conf->conf_dolog)
 					{
 						syslog(LOG_ERR,
-						       "%s: opendmarc_policy_store_from_spf() returned status %d",
+						       "%s: opendmarc_policy_store_spf() returned status %d",
 						       dfc->mctx_jobid, ostatus);
 					}
 
