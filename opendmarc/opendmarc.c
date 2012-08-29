@@ -1988,7 +1988,8 @@ mlfi_eom(SMFICTX *ctx)
 
 				status = dmarcf_mail_parse(addrbuf, &user,
 				                           &domain);
-				if (status != 0)
+				if (status != 0 || domain == NULL
+				    domain[0] == '\0')
 				{
 					if (conf->conf_dolog)
 					{
@@ -1997,7 +1998,7 @@ mlfi_eom(SMFICTX *ctx)
 						       dfc->mctx_jobid);
 					}
 
-					return SMFIS_ACCEPT;
+					continue;
 				}
 
 				spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
