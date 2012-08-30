@@ -1988,7 +1988,7 @@ mlfi_eom(SMFICTX *ctx)
 
 				status = dmarcf_mail_parse(addrbuf, &user,
 				                           &domain);
-				if (status != 0 || domain == NULL
+				if (status != 0 || domain == NULL ||
 				    domain[0] == '\0')
 				{
 					if (conf->conf_dolog)
