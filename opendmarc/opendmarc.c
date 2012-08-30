@@ -2846,8 +2846,20 @@ dmarcf_config_free(struct dmarcf_config *conf)
 int
 usage(void)
 {
-	fprintf(stderr, "%s: usage: %s [-c conffile] [-V]\n",
+	fprintf(stderr, "%s: usage: %s [options]\n"
+	                "\t-A         \tenable auto-restart\n"
+	                "\t-c file    \tconfiguration file\n"
+	                "\t-f         \trun in the foreground\n"
+	                "\t-l         \tlog to syslog\n"
+	                "\t-n         \ttest configuration and exit\n"
+	                "\t-p sockspec\tspecify milter socket\n"
+	                "\t-P file    \twrite process ID to specified file\n"
+	                "\t-t file    \tevaluate a single message\n"
+	                "\t-u user    \ttry to become the named user\n"
+	                "\t-v         \tincrease verbose output\n"
+	                "\t-V         \tprint version and exit\n",
 	        progname, progname);
+
 	return EX_USAGE;
 }
 
