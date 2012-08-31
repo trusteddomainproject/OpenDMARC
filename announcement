@@ -1,9 +1,9 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v0.2.0 released
+Subject: OpenDMARC v0.2.1 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v0.2.0, now available for download from SourceForge.
+OpenDMARC v0.2.1, now available for download from SourceForge.
 
 This is a beta release.  It is not appropriate for full production
 environments.  It is still undergoing shakedown in various test and
@@ -13,54 +13,18 @@ find or suggestions you may have via the opendmarc-users mailing list.
 
 The full RELEASE_NOTES for this version:
 
-1.0.0		2012/07/??
+1.0.0		2012/10/??
 	Initial release.
 
-0.2.0		2012/08/24
-	Feature request #15: If there's no SPF Authentication-Results field,
-		look for a Received-SPF field to get SPF results.
-	Feature request #16: Add "RecordAllMessages" setting to record all
-		messages (the previous default).  The new default is to record
-		only those messages whose From: domains had a published
-		DMARC record.
-	Feature request #19: Add "IgnoreMailFrom" setting, allowing mail from
-		specific domains to be ignored.
-	Feature request #20: Allow "AuthservID" to be a comma-separated list
-		of authserv-ids to trust as local.  The first one is used
-		in header field generation.  Suggested by Andreas Schulze.
-	Fix bug #18: Pass the absence of a "rua" field in a DMARC record
-		to the history file and into the "requests" table.
-	Prevent crashes when parsing horribly malformed From: fields.
-		Problem noted by Todd Lyons.
-	Don't apply a default IgnoreHosts list in test mode.  Problem noted
-		by Marcos Digirati.
-	Don't expire request records for stuff that's never been generated
-		yet.  Problem noted by Todd Lyons.
-	Register the filter with SMFIF_ADDHDRS not SMFIF_CHGHDRS.  Problem
-		noted by Todd Lyons.
-	Fix bounds checking in dmarcf_dstring_printf().  Problem noted by
-		Marcos Digirati.
-	Arrays created in-place from strings don't need to have their elements
-		freed.  Problem noted by Andreas Schulze.
-	BUILD: Install non-user scripts under sbin instead of bin.  Problem
-		noted by Andreas Schulze.
-	CONTRIB: Add contrib/init/redhat and contents.  Provided by Todd Lyons.
-	CONTRIB: Add contrib/spec and contents.  Provided by Todd Lyons.
-	DB: Add some indexes to optimize operations.  Suggested by Todd Lyons.
-	LIBOPENDMARC: Fix bug #22: Minimal solution to alignment checks when
-		no public suffix list is provided.  Problem noted by
-		Todd Lyons.
-	REPORTING: Feature request #17: Add "opendmarc-params" tool, and
-		tie it to opendmarc-import, so that administrators can force
-		reports for specific domains to go to specific destinations
-		regardless of DMARC record contents.
-	REPORTING: Feature request #21: Add "--test" and "--keepfiles" options
-		to opendmarc-reports.  Patch from Todd Lyons.
-	REPORTING: Add opendmarc-importstats.
-	REPORTING: Variable verbose levels in opendmarc-report.  Patch from
-		Todd Lyons.
-	TOOLS: Feature request #14: Add "openmarc-check" command line tool for
-		translating DMARC records found in the DNS.
+0.2.1		2012/08/31
+	Don't crash during shutdown by accessing freed memory.  Problem
+		reported by Todd Lyons.
+	Update the command line usage message, which was terribly outdated.
+	Fix handling of an SPF pass when the envelope doesn't contain a
+		usable domain name.
+	Fix a crash problem having to do with default authserv-ids.
+	Fix an off-by-one string length comparison error when checking for
+		relevant authentication results.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
