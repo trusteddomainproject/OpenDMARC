@@ -3847,6 +3847,9 @@
 &lt;/xs:schema&gt;
 	</artwork></figure> </t>
 
+	<t> Note that minOccurs and maxOccurs both default to 1 according
+	    to the XML definition. </t>
+
 	<t> Descriptions of the PolicyOverrideTypes:
 
 	    <list style="hanging">
