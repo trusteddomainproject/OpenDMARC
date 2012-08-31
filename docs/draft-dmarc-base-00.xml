@@ -1471,7 +1471,7 @@
 
        <t>Email streams carrying DMARC feedback data MUST conform to
           the DMARC mechanism.  That is, the message comprising the report
-          should be DKIM-signed and originate from a source for which an SPF
+          MUST be DKIM-signed and originate from a source for which an SPF
           test would pass.  This practice minimizes the risk of report
           consumers processing fraudulent reports. </t>
 
