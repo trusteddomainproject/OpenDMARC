@@ -1931,7 +1931,8 @@
       intrusion attempts than those found in the "rua" tag.  Moreover,
       attacking the DNS of the subject domain to cause forensic data to
       be routed fraudulently to an attacker's systems may be an attractive
-      prospect.  Deployment of DNSSEC is advisable if this is a concern. </t>
+      prospect.  Deployment of <xref target="DNSSEC"/> is advisable if this
+      is a concern. </t>
 
    <t>The verification mechanism presented in <xref target="fb_verify"/>
       is currently not mandatory ("MUST") but strongly recommended ("SHOULD").
@@ -2110,6 +2111,24 @@
        "strict" Identifier Alignment option if appropriate. </t>
   </section>
   
+  <section anchor="sec_id_align" title="Identifier Alignment Considerations">
+   <t> The DMARC mechanism and its underlying technologies (SPF, DKIM)
+       depend on the security of the DNS.  To reduce the risk of subversion
+       of the DMARC mechanism due to DNS-based exploits, serious consideration
+       should be given to the deployment of DNSSEC in parallel to the
+       deployment of DMARC. </t>
+
+   <t> DNSSEC-enabled environments should consider the implication of receiving
+       insecure or bogus DNS replies in the DMARC context.  Operators should
+       understand whether their DMARC implementations will behave as expected
+       when DNSSEC-secured queries temporarily fail due to attempted
+       exploit.  For example, if lookup of a specific domain's DMARC record is
+       typically secured using DNSSEC, attention should to paid to cases and
+       behaviors when secured lookups fail.  The operator may consider
+       configuring their DNSSEC-aware resolver to propagate a "temporary
+       error" condition to the DMARC mechanism to defer acceptance of email
+       until DNSSEC resolution can be restored. </t>
+  </section>
  </section> <!-- Security Considerations -->
 </middle>
 
@@ -2597,6 +2616,52 @@
 			<date month="July" year="2009"/>
 		</front>
 		<seriesInfo name="RFC" value="5585"/>
+	</reference>
+
+	<reference anchor="DNSSEC">
+		<front>
+			<title> DNS Security Introduction and
+				Requirements </title>
+
+			<author initials="R." surname="Arends"
+			        fullname="R. Arends">
+				<organization>
+					Telematica Instituut
+				</organization>
+			</author>
+
+			<author initials="R." surname="Austein"
+			        fullname="R. Austein">
+				<organization>
+					ISC
+				</organization>
+			</author>
+
+			<author initials="M." surname="Larson"
+			        fullname="M. Larson">
+				<organization>
+					VeriSign
+				</organization>
+			</author>
+
+			<author initials="D." surname="Massey"
+			        fullname="D. Massey">
+				<organization>
+					Colorado State University
+				</organization>
+			</author>
+
+			<author initials="S." surname="Rose"
+			        fullname="S. Rose">
+				<organization>
+					NIST
+				</organization>
+			</author>
+
+			<date month="March" year="2005" />
+		</front>
+
+		<seriesInfo name="RFC" value="4033" />
 	</reference>
 
 	<reference anchor="DSN">
