@@ -953,7 +953,8 @@
       published a "reject" policy.  Mail Receivers SHOULD make a
       best effort not to increase the likelihood of phishing if
       it chooses not to reject, against policy.  At a minimum, addition
-      of the Authentication-Results header field (see <xref target="AUTHRES"/>)
+      of the Authentication-Results header field (see
+      <xref target="AUTH-RESULTS"/>)
       is RECOMMENDED when delivery of failing mail is done.  When this
       is done, the DNS domain name thus recorded MUST be encoded as
       an A-label, as described in Section 2.3 of <xref target="IDNA"/>. </t>
@@ -1136,7 +1137,7 @@
        field of the Abuse Reporting Format (<xref target="ARF"/>).  Various
        aggregation techniques are possible, including:
 
-       <list style="symbols>
+       <list style="symbols">
 	<t> only send a report to the first recipient of multi-recipient
 	    messages; </t>
 
@@ -2118,7 +2119,7 @@
        "strict" Identifier Alignment option if appropriate. </t>
   </section>
   
-  <section anchor="sec_id_align" title="Identifier Alignment Considerations">
+  <section anchor="sec_dnssec" title="DNS Security">
    <t> The DMARC mechanism and its underlying technologies (SPF, DKIM)
        depend on the security of the DNS.  To reduce the risk of subversion
        of the DMARC mechanism due to DNS-based exploits, serious consideration
