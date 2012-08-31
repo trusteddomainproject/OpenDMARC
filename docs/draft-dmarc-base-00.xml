@@ -932,7 +932,9 @@
    <t> A size limitation in a dmarc-uri, if provided, is interpreted as a count
        of units followed by an OPTIONAL unit size ("k" for kilobytes, "m"
        for megabytes, "g" for gigabytes, "t" for terabytes).  Without a unit,
-       the number is presumed to be a basic byte count. </t>
+       the number is presumed to be a basic byte count.  Note that
+       the units are considered to be powers of two; a kilobyte is 2^10,
+       a megabyte is 2^20, etc. </t>
   </section> <!-- Formal Definition -->
  </section> <!-- DMARC Policy Record -->
 
