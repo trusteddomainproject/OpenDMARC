@@ -3546,7 +3546,9 @@
     <t> At the exit of DMARC-specific processing, the Mail Receiver captures
         (through logging or direct insertion into a data store) the result of
         DMARC processing.  Captured information is used to build feedback for
-        Domain Owner consumption. </t>
+        Domain Owner consumption.  This is not necessary if the Domain
+        Owner has not requested aggregate reports, i.e., no "rua" tag was
+        found in the policy record. </t>
    </section>
 
    <section title="Real-time Feedback Processing" anchor="ex_afrf">
