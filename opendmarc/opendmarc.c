@@ -11,6 +11,7 @@
 /* system includes */
 #include <sys/param.h>
 #include <sys/types.h>
+#include <sys/file.h>
 #ifdef __linux__
 # include <sys/prctl.h>
 #endif /* __linux__ */
@@ -2511,6 +2512,14 @@ mlfi_eom(SMFICTX *ctx)
 			return SMFIS_TEMPFAIL;
 		}
 
+		if (flock(fileno(f), LOCK_EX) != 0)
+		{
+			syslog(LOG_WARNING, "%s: %s: flock(LOCK_EX): %s",
+			       dfc->mctx_jobid,
+			       conf->conf_historyfile,
+			       strerror(errno));
+		}
+
 		/* write out the buffer */
 		clearerr(f);
 		fwrite(dmarcf_dstring_get(dfc->mctx_histbuf), 1,
@@ -2518,6 +2527,14 @@ mlfi_eom(SMFICTX *ctx)
 		if (ferror(f) && conf->conf_dolog)
 		{
 			syslog(LOG_ERR, "%s: %s: fwrite(): %s",
+			       dfc->mctx_jobid,
+			       conf->conf_historyfile,
+			       strerror(errno));
+		}
+
+		if (flock(fileno(f), LOCK_UN) != 0)
+		{
+			syslog(LOG_WARNING, "%s: %s: flock(LOCK_UN): %s",
 			       dfc->mctx_jobid,
 			       conf->conf_historyfile,
 			       strerror(errno));

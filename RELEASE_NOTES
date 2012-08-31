@@ -6,6 +6,11 @@ release, and a summary of the changes in that release.
 1.0.0		2012/10/??
 	Initial release.
 
+0.2.2		2012/09/??
+	Fix bug #25: Use locks to co-ordinate between the filter writing
+		to the history file and opendmarc-import consuming it.
+		Problem noted by Marcos Vieira.
+
 0.2.1		2012/08/31
 	Don't crash during shutdown by accessing freed memory.  Problem
 		reported by Todd Lyons.

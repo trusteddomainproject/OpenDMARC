@@ -15,6 +15,7 @@ use Switch;
 
 use DBI;
 use File::Basename;
+use Fcntl qw(:flock);
 use Getopt::Long;
 use POSIX;
 
@@ -445,6 +446,11 @@ if ($verbose)
 #
 
 $lineno = 0;
+if (!flock(STDIN, LOCK_SH))
+{
+	print STDERR "$progname: warning: unable to establish read lock\n";
+}
+
 while (<STDIN>)
 {
 	$lineno++;
