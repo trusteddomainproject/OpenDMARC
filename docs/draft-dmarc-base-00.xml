@@ -1103,6 +1103,35 @@
 	</list> </t>
   </section> <!-- Aggregate Reports -->
 
+  <section title="Forensic Reports" anchor="forensic">
+   <t> When a Domain Owner requests forensic reports on failures, and the
+       Mail Receiver is willing to provide such reports, the Mail Receiver
+       generates and sends a message using the format described in
+       <xref target="AFRF"/>. </t>
+
+   <t> An obvious consideration is the denial of service attack that can be
+       perpetrated by an attacker who sends numerous messages purporting to
+       be from the intended victim Domain Owner but which fail both SPF and
+       DKIM; this would cause participating Mail Receivers to send forensic
+       reports to the Domain Owner or its delegate in potentially huge
+       volumes.  Accordingly, participating Mail Receivers are encouraged to
+       aggregate these reports as much as is practical, using the Incidents
+       field of the Abuse Reporting Format (<xref target="ARF"/>).  Various
+       aggregation techniques are possible, including:
+
+       <list style="symbols>
+	<t> only send a report to the first recipient of multi-recipient
+	    messages; </t>
+
+	<t> store reports for a period of time before sending them,
+	    allowing detection, collection, and reporting of like
+	    incidents; </t>
+
+	<t> apply rate limiting, such as a maximum number of reports per
+	    minute that will be generated (and the remainder discarded). </t>
+       </list> </t>
+  </section> <!-- Forensic Reports -->
+
   <section title="Failure Reports" anchor="fb_failure">
    <t> Message-specific authentication-failure-related forensic reporting can
        be used to identify problems with Domain-Owner-controlled
