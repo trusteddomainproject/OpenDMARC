@@ -1485,9 +1485,10 @@
 
        <t>Email streams carrying DMARC feedback data MUST conform to
           the DMARC mechanism.  That is, the message comprising the report
-          MUST be DKIM-signed and originate from a source for which an SPF
-          test would pass.  This practice minimizes the risk of report
-          consumers processing fraudulent reports. </t>
+          MUST be DKIM-signed by an aligned domain name or originate from a
+	  source for which an SPF test would result in an aligned "pass".
+	  This practice minimizes the risk of report consumers processing
+	  fraudulent reports. </t>
 
        <t>The RFC5322.Subject field for individual report submissions SHOULD
           conform to the following ABNF:
