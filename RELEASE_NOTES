@@ -6,12 +6,15 @@ release, and a summary of the changes in that release.
 1.0.0		2012/07/??
 	Initial release.
 
-0.2.1		2012/08/??
+0.2.1		2012/08/31
 	Don't crash during shutdown by accessing freed memory.  Problem
 		reported by Todd Lyons.
 	Update the command line usage message, which was terribly outdated.
 	Fix handling of an SPF pass when the envelope doesn't contain a
 		usable domain name.
+	Fix a crash problem having to do with default authserv-ids.
+	Fix an off-by-one string length comparison error when checking for
+		relevant authentication results.
 
 0.2.0		2012/08/24
 	Feature request #15: If there's no SPF Authentication-Results field,
