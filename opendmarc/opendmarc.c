@@ -1176,6 +1176,13 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  sizeof conf->conf_historyfile);
 	}
 
+	if (conf->conf_authservids == NULL)
+	{
+		conf->conf_authservid = strdup(myhostname);
+
+		dmarcf_mkarray(conf->conf_authservid, &conf->conf_authservids);
+	}
+
 	if (basedir[0] != '\0')
 	{
 		if (chdir(basedir) != 0)
@@ -1965,7 +1972,7 @@ mlfi_eom(SMFICTX *ctx)
 			if (slash == NULL)
 				continue;
 
-			clen = slash - &ar.ares_host[0] - 1;
+			clen = slash - &ar.ares_host[0];
 
 			if (strncasecmp(ar.ares_host, authservid, clen) != 0 ||				    strcmp(slash + 1, dfc->mctx_jobid) != 0)
 				continue;
