@@ -964,12 +964,19 @@
       is exposed, abusers can gain insight into the effectiveness and delivery
       rates of spam campaigns.</t>
 
-  <t> DMARC-compliant Mail Receivers MUST disregard any mail directive
+  <t> DMARC-compliant Mail Receivers SHOULD disregard any mail directive
       discovered as part of an authentication mechanism (e.g., ADSP, SPF)
-      where a DMARC policy is also discovered. {R7} Mail Receivers SHOULD also
-      implement reporting instructions of DMARC in place of any extensions to
-      SPF or DKIM that might enable such reporting. {R10} </t>
+      where a DMARC policy is also discovered that specifies a policy
+      other than "none". {R7}  To enable Domain Owners to receive DMARC
+      feedback without impacting existing mail processing, discovered
+      policies of "p=none" SHOULD NOT modify existing mail disposition
+      processing.  Note that some Mail Receivers may reject email based
+      upon SPF policy mechanisms before email enters DMARC-specific
+      processing. </t>
 
+  <t> Mail Receivers SHOULD also implement reporting instructions of
+      DMARC in place of any extensions to SPF or DKIM that might enable
+      such reporting. {R10} </t>
  </section> <!-- Policy Enforcement -->
 
  <section title="DMARC Feedback" anchor="feedback">
