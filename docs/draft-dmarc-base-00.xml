@@ -951,7 +951,11 @@
       the DMARC mechanism check even if the Domain Owner has
       published a "reject" policy.  Mail Receivers SHOULD make a
       best effort not to increase the likelihood of phishing if
-      it chooses not to reject, against policy.</t>
+      it chooses not to reject, against policy.  At a minimum, addition
+      of the Authentication-Results header field (see <xref target="AUTHRES"/>)
+      is RECOMMENDED when delivery of failing mail is done.  When this
+      is done, the DNS domain name thus recorded MUST be encoded as
+      an A-label, as described in Section 2.3 of <xref target="IDNA"/>. </t>
 
   <t> Mail Receivers are not obligated to report reject or quarantine policy
       actions in aggregate feedback reports that are not due to DMARC policy,
@@ -2210,6 +2214,19 @@
 		</front>
 
 		<seriesInfo name="RFC" value="4343"/>
+	</reference>
+
+	<reference anchor="IDNA">
+		<front>
+			<title> Internationalized Domain Names for
+				Applications (IDNA): Definitions
+				and Document Framework </title>
+			<author initials="J." surname="Klensin"
+			        fullname="J. Klensin">
+			</author>
+			<date month="August" year="2000" />
+		</front>
+		<seriesInfo name="RFC" value="5890" />
 	</reference>
 
 	<reference anchor="KEYWORDS">
