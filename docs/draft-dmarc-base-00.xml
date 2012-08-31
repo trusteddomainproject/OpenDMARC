@@ -1510,6 +1510,10 @@
        <t>The header portion of the POST or PUT request SHOULD contain a
           Subject field as described in
           <xref target="email_transport_fb_mech"/>.</t>
+
+       <t>HTTP permits the use of Content-Transfer-Encoding to upload gzip
+          content using the POST or PUT instruction after translating the
+          content to 7-bit ASCII. </t>
       </section> <!-- HTTP Transport -->
 
       <section title="Other Methods" anchor="other_transport_fb_mech">
