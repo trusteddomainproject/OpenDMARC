@@ -465,15 +465,8 @@
        allow evaluation agents to associate email with domain-level
        identifiers.  Domain-level identifiers that are established using
        authentication technologies are referred to as "Authenticated
-       Identifiers".  The following Authenticated Identifiers are considered
-       in this document:
-
-       <list style="symbols">
-        <t> <xref target="DKIM"/> provides a domain-level identifier in
-            the content of the "d=" tag of a validated signature. </t>
-        <t> <xref target="SPF"/> can authenticate the domain found
-            in an <xref target="SMTP"/> MAIL command. </t>
-       </list> </t>
+       Identifiers".  See <xref target="auth_mechs"/> for details about the
+       supported mechanisms. </t>
 
       <t hangText="Cousin Domain:"> A DNS domain that, when rendered by a
        Mail User Agent (MUA), looks similar to, or can lead users to believe
@@ -537,6 +530,18 @@
            one.  No list is guaranteed to be accurate or current. </t>
      </list>
   </t>
+
+  <section title="Authentication Mechanisms" anchor="auth_mechs">
+   <t> The following Authenticated Identifiers are supported in the current
+       version of DMARC:
+
+       <list style="symbols">
+        <t> <xref target="DKIM"/>, which provides a domain-level identifier in
+            the content of the "d=" tag of a validated signature. </t>
+        <t> <xref target="SPF"/>, which can authenticate the domain found
+            in an <xref target="SMTP"/> MAIL command. </t>
+       </list> </t>
+  </section> <!-- Authentication Mechanisms -->
 
   <section title="Summary" anchor="summary">
    <t>DMARC's filtering component is based on whether or not SPF or DKIM
