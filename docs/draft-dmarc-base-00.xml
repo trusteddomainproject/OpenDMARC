@@ -710,13 +710,14 @@
    <section anchor="dmarc_uris" title="DMARC URIs">
     <t> <xref target="URI"/> defines a generic syntax for identifying
         a resource.  The DMARC mechanism uses this as the format by which
-        a Domain Owner specifies the destination for either of the two
+        a Domain Owner specifies the destination for the two
         report types that are supported. </t>
 
     <t> The place such URIs are specified (see <xref target="dmarc_format"/>)
-        allows a list of these to be provided, to be tried in order until
-        one of them successfully receives the report.  The list of URIs is
-	separated by commas (ASCII 0x2C). </t>
+        allows a list of these to be provided.  A report is to be sent to
+        each listed URI.  Mail Receivers MAY impose a limit on the number of
+        URIs that receive reports, but MUST support at least two.
+        The list of URIs is separated by commas (ASCII 0x2C). </t>
 
     <t> Each URI can have associated with it a maximum report size that may
         be sent to it.  This is accomplished by appending an exclamation
