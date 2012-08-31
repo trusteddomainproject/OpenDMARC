@@ -1519,7 +1519,7 @@
       <section title="HTTP" anchor="http_transport_fb_mech">
        <t>Where an "http" or "https" method is requested in a Domain Owner's
           URI list, the Mail Receiver MAY encode the data using the
-          "application/gzip" media type or MAY send the
+          "application/gzip" media type (<xref target="GZIP"/>) or MAY send the
           <xref target="xml_schema"/> data uncompressed or unencoded. </t>
 
        <t>The header portion of the POST or PUT request SHOULD contain a
@@ -2252,6 +2252,21 @@
 		</front>
 
 		<seriesInfo name="RFC" value="4343"/>
+	</reference>
+
+	<reference anchor="GZIP">
+		<front>
+			<title> The 'application/zlib' and
+				'application/gzip' Media Types </title>
+			<author initials="J." surname="Levine"
+				fullname="J. Levine">
+				<organization>
+					Taughannock Networks
+				</organization>
+			</author>
+			<date month="August" year="2012" />
+		</front>
+		<seriesInfo name="RFC" value="6713" />
 	</reference>
 
 	<reference anchor="IDNA">
