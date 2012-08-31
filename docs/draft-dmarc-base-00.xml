@@ -901,7 +901,7 @@
 
   dmarc-sep = *WSP %3b *WSP
 
-  dmarc-version = %x76 *WSP "=" %x44.4d.41.52.43
+  dmarc-version = %x76 *WSP "=" %x44.4d.41.52.43.31
 
   dmarc-request = %x70 *WSP "=" *WSP ( "none" / 
                                        "quarantine" / "reject" )
