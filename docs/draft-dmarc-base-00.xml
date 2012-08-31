@@ -695,8 +695,6 @@
       reasons:
 
       <list style="hanging">
-       <t hangText="Wildcarding:"> DNS natively supports wildcarding,
-           enabling child domains to inherit parent domain policy easily. </t>
        <t hangText="Overrides:"> DMARC records published at child domains
            explicitly override extant parent policy. </t>
        <t hangText="Efficiency:"> DNS caching is a common practice,
