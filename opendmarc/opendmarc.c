@@ -1963,7 +1963,6 @@ mlfi_eom(SMFICTX *ctx)
 		/* skip it if it's not one of ours */
 		if (!dmarcf_match(ar.ares_host, conf->conf_authservids, FALSE))
 		{
-			size_t clen;
 			unsigned char *slash;
 
 			if (!conf->conf_authservidwithjobid)
@@ -1973,9 +1972,10 @@ mlfi_eom(SMFICTX *ctx)
 			if (slash == NULL)
 				continue;
 
-			clen = slash - &ar.ares_host[0];
-
-			if (strncasecmp(ar.ares_host, authservid, clen) != 0 ||				    strcmp(slash + 1, dfc->mctx_jobid) != 0)
+			*slash = '\0';
+			if (!dmarcf_match(ar.ares_host,
+			                  conf->conf_authservids, FALSE) ||
+			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
 				continue;
 		}
 
