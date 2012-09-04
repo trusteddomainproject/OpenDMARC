@@ -2471,8 +2471,12 @@ mlfi_eom(SMFICTX *ctx)
 	/* if the final action isn't TEMPFAIL or REJECT, add an A-R field */
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
-		snprintf(header, sizeof header, "%s; dmarc=%s header.from=%s",
-		         authservid, aresult, dfc->mctx_fromdomain);
+		snprintf(header, sizeof header,
+		         "%s%s%s; dmarc=%s header.from=%s",
+		         authservid,
+		         conf->conf_authservidwithjobid ? "/" : "",
+		         conf->conf_authservidwithjobid ? "/" : dfc->mctx_jobid,
+		         aresult, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
