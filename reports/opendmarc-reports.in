@@ -480,8 +480,8 @@ foreach (@$domainset)
 
 	$now = time();
 
-	$dbi_s = $dbi_h->prepare("SELECT UNIX_TIMESTAMP(MIN(date)), UNIX_TIMESTAMP(MAX(date)) FROM messages WHERE from_domain = ?");
-	if (!$dbi_s->execute($domainid))
+	$dbi_s = $dbi_h->prepare("SELECT UNIX_TIMESTAMP(MIN(date)), UNIX_TIMESTAMP(MAX(date)) FROM messages WHERE from_domain = ? AND date > UNIX_TIMESTAMP(?)");
+	if (!$dbi_s->execute($domainid, $lastsent))
 	{
 		print STDERR "$progname: can't extract begin/end times for domain $domain: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
