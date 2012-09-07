@@ -572,8 +572,10 @@
    <t>Email authentication technologies authenticate various (and disparate)
       aspects of an individual message.  For example, <xref target="DKIM"/>
       authenticates the domain that affixed a signature to the message, while
-      <xref target="SPF"/> authenticates the domain that appears in the
-      RFC5321.MailFrom portion of <xref target="SMTP"/>.  The DMARC mechanism
+      <xref target="SPF"/> authenticates either the domain that appears in the
+      RFC5321.MailFrom portion of <xref target="SMTP"/> or the
+      RFC5321.EHLO/HELO domain if the RFC5321.MailFrom is null (in the case of
+      Delivery Status Notifications).  The DMARC mechanism
       introduces the concept of Identifier Alignment to address the possible
       discrepancy of Authenticated Identifiers supplied by underlying
       authentication technologies.</t>
@@ -624,9 +626,8 @@
     <t>DMARC provides the option of applying SPF in a strict mode or a
        relaxed mode {R2}. </t>
 
-    <t>In relaxed mode, the <xref target="SPF"/>-authenticated
-       RFC5321.MailFrom (commonly called the "envelope sender") domain and
-       RFC5322.From domain must have the same Organizational Domain.
+    <t>In relaxed mode, the <xref target="SPF"/>-authenticated domain
+       and RFC5322.From domain must have the same Organizational Domain.
        In strict mode, only an exact DNS domain match is considered to produce
        identifier alignment.</t>
 
@@ -1373,8 +1374,8 @@
 
        <t> Perform SPF validation checks.  The results of this step are passed
            to the remainder of the algorithm and MUST include the domain name
-           from the RFC5321.MailFrom if SPF evaluation returned a "pass"
-           result.</t>
+           used to complete the SPF check if evaluation returned a "pass"
+           result. </t>
 
        <t> Conduct identifier alignment checks.  With authentication checks
            and policy discovery performed, the Mail Receiver checks if
