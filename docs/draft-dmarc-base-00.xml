@@ -3161,7 +3161,7 @@
 
         <figure><artwork>
   % dig +short TXT _dmarc.example.com.
-  "v=DMARC1\; p=none\; rua=mailto:dmarc-feedback@example.com"
+  "v=DMARC1; p=none; rua=mailto:dmarc-feedback@example.com"
         </artwork></figure></t>
 
     <t> To publish such a record, the DNS administrator for the Domain Owner
@@ -3206,7 +3206,7 @@
 
 	    <figure><artwork>
   % dig +short TXT _dmarc.example.com.
-  "v=DMARC1\; p=none\; rua=mailto:dmarc-feedback@example.com\;
+  "v=DMARC1; p=none; rua=mailto:dmarc-feedback@example.com;
    ruf=mailto:auth-reports@example.com"
 	    </artwork></figure> </t>
 
@@ -3248,7 +3248,7 @@
 
 	<figure><artwork>
   % dig +short TXT _dmarc.example.com.
-  "v=DMARC1\; p=none\; rua=mailto:dmarc-feedback@example.com\;
+  "v=DMARC1; p=none; rua=mailto:dmarc-feedback@example.com;
    ruf=mailto:auth-reports@thirdparty.example.net"
 	</artwork></figure> </t>
 
@@ -3343,8 +3343,8 @@
 
         <figure><artwork>
   % dig +short TXT _dmarc.test.example.com
-  "v=DMARC1\; p=quarantine\; rua=mailto:dmarc-feedback@example.com,
-   mailto:tld-test@thirdparty.example.net\; pct=25"
+  "v=DMARC1; p=quarantine; rua=mailto:dmarc-feedback@example.com,
+   mailto:tld-test@thirdparty.example.net; pct=25"
 		</artwork></figure></t>
 
     <t> To publish such a record, the DNS administrator for the Domain Owner
@@ -3410,7 +3410,7 @@
 
         <figure><artwork>
   % dig +short TXT _dmarc.example.com
-  "v=DMARC1\; p=reject\; adkim=s\; aspf=r\;
+  "v=DMARC1; p=reject; adkim=s; aspf=r;
    rua=mailto:dmarc-feedback@example.com"
         </artwork></figure> </t>
 
@@ -3475,7 +3475,7 @@
 
             <figure><artwork>
   % dig +short TXT _dmarc.example.com
-  "v=DMARC1\; p=quarantine\; sp=reject\; ri=14400\;
+  "v=DMARC1; p=quarantine; sp=reject; ri=14400;
    rua=mailto:dmarc-feedback@example.com,
    mailto:customer-data@thirdparty.example.net"
             </artwork></figure></t>
