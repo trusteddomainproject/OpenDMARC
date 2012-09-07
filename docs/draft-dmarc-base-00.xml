@@ -1171,6 +1171,32 @@
 	<t> apply rate limiting, such as a maximum number of reports per
 	    minute that will be generated (and the remainder discarded). </t>
        </list> </t>
+
+   <section title="Reporting Format Update" anchor="afrf_update">
+    <t> <xref target="AFRF"/> is updated to include the following changes:
+
+        <list style="numbers">
+         <t> Section 3.2 is updated to indicate that a DMARC forensic
+             report includes the following ARF header fields, with the
+             indicated normative requirement levels:
+
+             <list style="symbols">
+              <t> Delivery-Result (OPTIONAL) </t>
+              <t> DKIM-Domain, DKIM-Identity, DKIM-Selector (REQUIRED if
+                  the message was signed by DKIM) </t>
+              <t> DKIM-Canonicalized-Header, DKIM-Canonicalized-Body (OPTIONAL
+                  if the message was signed by DKIM) </t>
+              <t> SPF-DNS (REQUIRED) </t>
+             </list> </t>
+
+         <t> Section 3.3 is updated to add Authentication Failure Type
+             "dmarc", which is to be used when a forensic report is
+             generated because a message failed the DMARC check.
+             Note that a forensic report generator MAY also produce an
+             AFRF message for any or all of the underlying authentication
+             methods. </t>
+        </list> </t>
+   </section>
   </section> <!-- Forensic Reports -->
 
   <section title="Failure Reports" anchor="fb_failure">
@@ -2196,15 +2222,12 @@
 
 			<author initials="H." surname="Fontana"
 			        fullname="H. Fontana">
-				<organization>
-					eCert Inc.
-				</organization>
 			</author>
 
-			<date month="September" year="2011"/>
+			<date month="April" year="2012"/>
 		</front>
 
-		<seriesInfo name="Internet-Draft" value="draft-ietf-marf-authfailure-report"/>
+		<seriesInfo name="RFC" value="6591"/>
 	</reference>
 
 	<reference anchor="DKIM">
