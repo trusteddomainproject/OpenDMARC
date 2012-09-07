@@ -1124,6 +1124,24 @@
 		    even if their delivery is ultimately blocked by other
 		    filtering agents {R20} </t>
 	</list> </t>
+
+   <t> Note that Domain Owners or their agents may change the published
+       DMARC policy for a domain or subdomain at any time.  From a Mail
+       Receiver's perspective this will occur during a reporting period and
+       may be noticed during that period, at the end of that period when
+       reports are generated, or during a subsequent reporting period, all
+       depending on the Mail Receiver's implementation.  Under these conditions
+       it is possible that a Mail Receiver could generate a single aggregate
+       report for such a reporting period which includes message dispositions
+       based on the old policy, or a mix of the two policies, even though the
+       report only contains a single "policy_published" element. </t>
+
+   <t> Such policy changes are expected to be infrequent for any given domain,
+       whereas more stringent policy monitoring requirements on the Mail
+       Receiver would produce a very large burden at Internet scale.
+       Therefore it is the responsibility of Report Consumers and Domain
+       Owners to be aware of this situation and allow for such mixed reports
+       during the propagation of the new policy to Mail Receivers. </t>
   </section> <!-- Aggregate Reports -->
 
   <section title="Forensic Reports" anchor="forensic">
