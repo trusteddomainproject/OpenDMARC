@@ -902,32 +902,32 @@
 
   dmarc-sep = *WSP %3b *WSP
 
-  dmarc-version = %x76 *WSP "=" %x44.4d.41.52.43.31
+  dmarc-version = "v" *WSP "=DMARC1"
 
-  dmarc-request = %x70 *WSP "=" *WSP ( "none" / 
+  dmarc-request = "p" *WSP "=" *WSP ( "none" / 
                                        "quarantine" / "reject" )
 
-  dmarc-srequest = %x73.70 *WSP "=" *WSP ( "none" / 
-                                           "quarantine" / "reject" )
+  dmarc-srequest = "sp" *WSP "=" *WSP ( "none" / 
+                                        "quarantine" / "reject" )
 
-  dmarc-auri = %x72.75.61 *WSP "=" *WSP
-                dmarc-uri *(*WSP "," *WSP dmarc-uri)
+  dmarc-auri = "rua" *WSP "=" *WSP
+               dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
-  dmarc-ainterval = %x72.69 *WSP "=" *WSP
+  dmarc-ainterval = "ri" *WSP "=" *WSP
 
-  dmarc-furi = %x72.75.66 *WSP "=" *WSP
-                dmarc-uri *(*WSP "," *WSP dmarc-uri)
+  dmarc-furi = "ruf" *WSP "=" *WSP
+               dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
-  dmarc-rfmt = %x72.66 *WSP "=" *WSP
+  dmarc-rfmt = "rf" *WSP "=" *WSP
                ( "afrf" / "iodef" )
 
-  dmarc-percent = %x70.63.74 *WSP "=" *WSP
+  dmarc-percent = "pct" *WSP "=" *WSP
                   1*3DIGIT
 
-  dmarc-adkim = %x61.64.6b.69.6d  *WSP "=" *WSP
+  dmarc-adkim = "adkim"  *WSP "=" *WSP
                 ( "r" / "s" )
 
-  dmarc-aspf = %x61.73.70.66  *WSP "=" *WSP
+  dmarc-aspf = "aspf" *WSP "=" *WSP
                ( "r" / "s" )
         </artwork></figure>
 
@@ -937,6 +937,8 @@
        the number is presumed to be a basic byte count.  Note that
        the units are considered to be powers of two; a kilobyte is 2^10,
        a megabyte is 2^20, etc. </t>
+
+   <t> Tag and value matching is case-insensitive. </t>
   </section> <!-- Formal Definition -->
  </section> <!-- DMARC Policy Record -->
 
