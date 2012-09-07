@@ -843,7 +843,7 @@
 
         <t hangText="ruf:"> Addresses to which message-specific forensic
            information is to be reported (comma-separated plain-text list of
-           DMARC URIs; OPTIONAL).  {R11} If present, the Domain Owner is
+           DMARC URIs; OPTIONAL). {R11} If present, the Domain Owner is
 	   requesting Mail Receivers to send detailed forensic reports about
 	   messages that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
            evaluation.  The format of the message to be generated MUST follow
@@ -1152,6 +1152,9 @@
        Mail Receiver is willing to provide such reports, the Mail Receiver
        generates and sends a message using the format described in
        <xref target="AFRF"/>. </t>
+
+   <t> Where multiple URIs are selected to receive forensic reports the
+       report generator MUST make an attempt to deliver to each of them. </t>
 
    <t> An obvious consideration is the denial of service attack that can be
        perpetrated by an attacker who sends numerous messages purporting to
@@ -1471,7 +1474,8 @@
        provided reporting URIs in the order given.  Any reporting URI that
        included a size limitation exceeded by the generated report
        (after compression and after any encoding required by the particular
-       transport mechanism) MUST NOT be used. </t>
+       transport mechanism) MUST NOT be used.  An attempt MUST be made to
+       deliver an aggregate report to every remaining URI. </t>
 
     <t>If transport is not possible because the services advertised by the
        published URIs are not able to accept reports (e.g., the URI refers
