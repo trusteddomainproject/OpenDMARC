@@ -1052,6 +1052,11 @@
 		    destination.  However, to prevent loops or indirect abuse,
 		    the overriding URI MUST use the same destination host from
 		    the first step. </t>
+
+		<t> If a "pct" tag is discovered, replace the corresponding
+		    value (or its default) for the purposes of selecting
+		    messages for which to generate reports to the new
+		    destinations. </t>
 	</list> </t>
 
    <t> For example, if a DMARC policy query for "blue.example.com" contained
