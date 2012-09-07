@@ -767,6 +767,34 @@
            strict mode is in use.  See <xref target="spf_id_align"/> for
            details. </t>
 
+        <t hangText="fo:"> Forensic reporting options (plain-text; OPTIONAL,
+           default "0"))
+           Provides requested options for generation of forensic reports.
+           Report generators MAY choose to adhere to the requested options.
+           This tag's content MUST be ignored if a "ruf" tag (below) is not
+           also specified.  The value of this tag is a colon-separated list
+           of characters that indicate forensic reporting options as follows:
+
+	   <list style="hanging">
+            <t hangText="0:"> Generate a DMARC forensic report if all
+             underlying authentication mechanisms failed to produce an aligned
+             "pass" result. </t>
+
+            <t hangText="1:"> Generate a DMARC forensic report if any
+             underlying authentication mechanism failed to produce an aligned
+             "pass" result. </t>
+
+            <t hangText="d:"> Generate a DKIM forensic report if the
+             message had a signature that failed evaluation, regardless of
+             its alignment.  DKIM-specific reporting is described in
+             <xref target="AFRF-DKIM"/>. </t>
+
+            <t hangText="s:"> Generate an SPF forensic report if the
+             message failed SPF evaluation, regardless of
+             its alignment.  SPF-specific reporting is described in
+             <xref target="AFRF-SPF"/>. </t>
+           </list></t>
+
          <t hangText="p:"> Requested Mail Receiver policy (plain-text;
           REQUIRED).  Indicates the policy to be enacted by the Receiver at
           the request of the Domain Owner.  Policy applies to the domain
@@ -813,7 +841,8 @@
            Receiver observing a different value SHOULD ignore it, or MAY
            ignore the entire DMARC record.  Initial default values are
            "afrf" (defined in <xref target="AFRF"/>) and
-           "iodef" (defined in <xref target="IODEF"/>). </t>
+           "iodef" (defined in <xref target="IODEF"/>).  See
+           <xref target="forensic"/> for details. </t>
 
         <t hangText="ri:"> Interval requested between aggregate reports
            (plain-text, 32-bit unsigned integer; OPTIONAL; default 86400).
@@ -846,9 +875,9 @@
            information is to be reported (comma-separated plain-text list of
            DMARC URIs; OPTIONAL). {R11} If present, the Domain Owner is
 	   requesting Mail Receivers to send detailed forensic reports about
-	   messages that fail <xref target="SPF"/> and/or <xref target="DKIM"/>
-           evaluation.  The format of the message to be generated MUST follow
-           that specified in the "rf" tag.  <xref target="fb_verify"/>
+	   messages that fail the DMARC evaluation in specific ways (see the
+           "fo" tag above).  The format of the message to be generated MUST
+           follow that specified in the "rf" tag.  <xref target="fb_verify"/>
 	   discusses considerations that apply when the domain name of a URI
 	   differs from that of the domain advertising the policy. 
 	   A Mail Receiver MUST implement support for a "mailto:" URI, i.e.
@@ -1146,13 +1175,26 @@
        Therefore it is the responsibility of Report Consumers and Domain
        Owners to be aware of this situation and allow for such mixed reports
        during the propagation of the new policy to Mail Receivers. </t>
+
+   <t> Aggregate reports are maximally useful when they all cover a common
+       time period, correlation of these reports from multiple generators
+       when they cover incongruous time periods is difficult or impossible.
+       Since the reporting mechanisms are explicitly a best-effort
+       service, no normative requirement is established to do so.  However,
+       when possible, report generators are encouraged to ensure daily reports
+       cover a period of 24 hours starting at 00:00 UTC, hourly reports
+       cover a period of 60 minutes that starts on the hour, etc. </t>
   </section> <!-- Aggregate Reports -->
 
   <section title="Forensic Reports" anchor="forensic">
    <t> When a Domain Owner requests forensic reports on failures, and the
        Mail Receiver is willing to provide such reports, the Mail Receiver
        generates and sends a message using the format described in
-       <xref target="AFRF"/>. </t>
+       <xref target="AFRF"/>.  This document updates the AFRF format as
+       described in <xref target="afrf_update"/>. </t>
+
+   <t> The destination(s) and nature of the reports are defined by the
+       "fo" and "ruf" tags as defined in <xref target="dmarc_format"/>. </t>
 
    <t> Where multiple URIs are selected to receive forensic reports the
        report generator MUST make an attempt to deliver to each of them. </t>
@@ -1188,6 +1230,7 @@
              indicated normative requirement levels:
 
              <list style="symbols">
+              <t> Identity-Alignment (REQUIRED; defined below) </t>
               <t> Delivery-Result (OPTIONAL) </t>
               <t> DKIM-Domain, DKIM-Identity, DKIM-Selector (REQUIRED if
                   the message was signed by DKIM) </t>
@@ -1196,10 +1239,25 @@
               <t> SPF-DNS (REQUIRED) </t>
              </list> </t>
 
+         <t> Section 3.2 is updated to define the "Identity-Alignment" field
+             as containing a comma-separated list of authentication
+             mechanism names that produced an aligned identity, or the keyword
+             "none" if none did.  ABNF:
+
+             <figure><artwork>
+  id-align = "Identity-Alignment:" [CFWS]
+             ( "none" / dmarc-method
+                        *( [CFWS] "," [CFWS] dmarc-method ) )
+             [CFWS]
+
+  dmarc-method = ( "dkim" / "spf" )
+             </artwork></figure></t>
+
          <t> Section 3.3 is updated to add Authentication Failure Type
              "dmarc", which is to be used when a forensic report is
-             generated because a message failed the DMARC check.
-             Note that a forensic report generator MAY also produce an
+             generated because some or all of the authentication mechanisms
+             failed to produce aligned identifiers.  Note that a forensic
+             report generator MAY also independently produce an
              AFRF message for any or all of the underlying authentication
              methods. </t>
         </list> </t>
@@ -2238,6 +2296,41 @@
 		</front>
 
 		<seriesInfo name="RFC" value="6591"/>
+	</reference>
+
+	<reference anchor="AFRF-DKIM">
+		<front>
+			<title abbrev="AFRF-DKIM">
+				Extensions to DomainKeys Identified Mail (DKIM)
+				for Failure Reporting
+			</title>
+
+			<author initials="M." surname="Kucherawy"
+			        fullname="M. Kucherawy">
+			</author>
+
+			<date month="June" year="2012"/>
+		</front>
+
+		<seriesInfo name="RFC" value="6651"/>
+	</reference>
+
+	<reference anchor="AFRF-SPF">
+		<front>
+			<title abbrev="AFRF-SPF">
+				Sender Policy Framework (SPF) Authentication
+				Failure Reporting Using the Abuse Reporting
+				Format
+			</title>
+
+			<author initials="S." surname="Kitterman"
+			        fullname="S. Kitterman">
+			</author>
+
+			<date month="June" year="2012"/>
+		</front>
+
+		<seriesInfo name="RFC" value="6652"/>
 	</reference>
 
 	<reference anchor="DKIM">
