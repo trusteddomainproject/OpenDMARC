@@ -204,7 +204,8 @@
 
    <t>The DMARC mechanism specifically does not introduce third-party policy
       publishers or feedback consumers.  Third parties are not prevented,
-      however, from using these mechanisms in private and/or public contexts.</t>
+      however, from using these mechanisms in private and/or public
+      contexts.</t>
   </section> <!-- Scalability -->
 
   <section title="Anti-Phishing">
@@ -1026,7 +1027,7 @@
 		<t> Prepend the string "_report._dmarc". </t>
 
 		<t> Prepend the domain name from which the policy was
-		    retrieved. </t>
+		    retrieved, after conversion to an A-label if needed. </t>
 
 		<t> Query the DNS for a TXT record at the constructed name.
 		    If the result of this request is a temporary DNS
@@ -1345,7 +1346,9 @@
 
   <section title="Extract Author Domain" anchor="receiver_domain">
    <t>The domain in the RFC5322.From field is extracted as the domain
-      to be evaluated by DMARC. </t>
+      to be evaluated by DMARC.  If the domain is encoded with UTF-8,
+      the domain name must be converted to an A-label for further
+      processing. </t>
 
    <t>A message bearing multiple RFC5322.From identifiers is ambiguous
       under DMARC.  This includes messages with multiple RFC5322.From fields
@@ -1365,7 +1368,7 @@
      
    <t>The steps are as follows:
       <list style="numbers">
-       <t> Extract the RFC5322.From domain from the message. </t>
+       <t> Extract the RFC5322.From domain from the message (as above). </t>
 
        <t> Query the DNS for a DMARC policy record.  Continue if one is
            found, or abort DMARC evaluation otherwise.  See
