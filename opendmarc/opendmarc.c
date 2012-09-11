@@ -2328,8 +2328,8 @@ mlfi_eom(SMFICTX *ctx)
 			                      "User-Agent: %s/%s\n",
 			                      DMARCF_PRODUCTNS, VERSION);
 
-			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "Auth-Failure: dmarc\n");
+			dmarcf_dstring_cat(dfc->mctx_afrf,
+			                   "Auth-Failure: dmarc\n");
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Authentication-Results: %s; dmarc=fail header.from=%s\n",
