@@ -439,14 +439,6 @@ foreach (@$domainset)
 		next;
 	}
 
-	# decode the URI
-	$uri = URI->new($repuri);
-	if (!defined($uri))
-	{
-		print STDERR "$progname: can't parse reporting URI for domain $domain\n";
-		next;
-	}
-
 	# construct the temporary file
 	$repfile = $repdom . "!" . $domain . "!" . $lastsent . "!" . time() . ".xml";
 	$zipfile = $repdom . "!" . $domain . "!" . $lastsent . "!" . time() . ".zip";
@@ -726,99 +718,112 @@ foreach (@$domainset)
 		print STDERR "$progname: keeping report file \"$repfile\"\n";
 	}
 
-	# Test mode, just report what would have been done
-	if ($testmode)
-	{
-		print STDERR "$progname: would email $domain report for " .
-		             "$rowcount records to " .  $uri->opaque . "\n";
-	}
-	# ensure a scheme is present
-	elsif (!defined($uri->scheme))
-	{
-		if ($verbose >= 2)
-		{
-			print STDERR "$progname: unknown URI scheme in '$repuri' for domain $domain\n";
-		}
+	# decode the URI
+	@repuris = split(',', $repuri);
 
-		next;
-	}
-	# send/post report
-	elsif ($uri->scheme eq "mailto")
+	for $repuri (@repuris)
 	{
-		my $now;
-		my $datestr;
-		my $report_id;
-
-		if (!open($zipin, $zipfile))
+		$uri = URI->new($repuri);
+		if (!defined($uri))
 		{
-			print STDERR "$progname: can't read zipped report for $domain: $!\n";
+			print STDERR "$progname: can't parse reporting URI for domain $domain\n";
 			next;
 		}
+
+		# Test mode, just report what would have been done
+		if ($testmode)
+		{
+			print STDERR "$progname: would email $domain report for " .
+			             "$rowcount records to " .  $uri->opaque . "\n";
+		}
+		# ensure a scheme is present
+		elsif (!defined($uri->scheme))
+		{
+			if ($verbose >= 2)
+			{
+				print STDERR "$progname: unknown URI scheme in '$repuri' for domain $domain\n";
+			}
+
+			next;
+		}
+		# send/post report
+		elsif ($uri->scheme eq "mailto")
+		{
+			my $now;
+			my $datestr;
+			my $report_id;
+
+			if (!open($zipin, $zipfile))
+			{
+				print STDERR "$progname: can't read zipped report for $domain: $!\n";
+				next;
+			}
 		
-		$repdest = $uri->opaque;
+			$repdest = $uri->opaque;
 
-		$boundary = "report_section";
+			$boundary = "report_section";
 
-		$now = time();
- 		$report_id = $domain . "-" . $now . "@" . $repdom;
-		$datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",
-		                    localtime);
+			$now = time();
+ 			$report_id = $domain . "-" . $now . "@" . $repdom;
+			$datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",
+			                    localtime);
 
-		$mailout  = "To: $repdest\n";
-		$mailout .= "From: $repemail\n";
-		$mailout .= "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
-		$mailout .= "X-Mailer: " . $progname . " v" . $version ."\n";
-		$mailout .= "Date: " . $datestr . "\n";
-		$mailout .= "Message-ID: <$report_id>\n";
-		$mailout .= "Auto-Submitted: auto-generated\n";
-		$mailout .= "MIME-Version: 1.0\n";
-		$mailout .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
-		$mailout .= "\n";
-		$mailout .= "This is a MIME-encapsulated message.\n";
-		$mailout .= "\n";
-		$mailout .= "--$boundary\n";
-		$mailout .= "Content-Type: text/plain;\n";
-		$mailout .= "\n";
-		$mailout .= "This is a DMARC aggregate report for $domain\n";
-		$mailout .= "generated at " . localtime() . "\n";
-		$mailout .= "\n";
-		$mailout .= "--$boundary\n";
-		$mailout .= "Content-Type: application/zip\n";
-		$mailout .= "Content-Disposition: attachment; filename=\"$zipfile\"\n";
-		$mailout .= "Content-Transfer-Encoding: base64\n";
-		$mailout .= "\n";
+			$mailout  = "To: $repdest\n";
+			$mailout .= "From: $repemail\n";
+			$mailout .= "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
+			$mailout .= "X-Mailer: " . $progname . " v" . $version ."\n";
+			$mailout .= "Date: " . $datestr . "\n";
+			$mailout .= "Message-ID: <$report_id>\n";
+			$mailout .= "Auto-Submitted: auto-generated\n";
+			$mailout .= "MIME-Version: 1.0\n";
+			$mailout .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
+			$mailout .= "\n";
+			$mailout .= "This is a MIME-encapsulated message.\n";
+			$mailout .= "\n";
+			$mailout .= "--$boundary\n";
+			$mailout .= "Content-Type: text/plain;\n";
+			$mailout .= "\n";
+			$mailout .= "This is a DMARC aggregate report for $domain\n";
+			$mailout .= "generated at " . localtime() . "\n";
+			$mailout .= "\n";
+			$mailout .= "--$boundary\n";
+			$mailout .= "Content-Type: application/zip\n";
+			$mailout .= "Content-Disposition: attachment; filename=\"$zipfile\"\n";
+			$mailout .= "Content-Transfer-Encoding: base64\n";
+			$mailout .= "\n";
 
-		while (read($zipin, $buf, 60*57))
-		{
-			$mailout .= encode_base64($buf);
+			while (read($zipin, $buf, 60*57))
+			{
+				$mailout .= encode_base64($buf);
+			}
+
+			$mailout .= "\n";
+			$mailout .= "--$boundary--\n";
+
+			# TODO: check return value of each smtp call
+			$smtp->mail($repemail);
+			$smtp->to($repdest);
+			$smtp->data();
+			$smtp->datasend($mailout);
+			$smtp->dataend();
+
+			if ($verbose)
+			{
+				# now perl voodoo:
+				$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
+				chomp($answer);
+				print STDERR "$progname: sent report for $domain to $repdest ($answer)\n";
+			}
+
+			$smtp->reset();
+
+			close($zipin);
 		}
-
-		$mailout .= "\n";
-		$mailout .= "--$boundary--\n";
-
-		# TODO: check return value of each smtp call
-		$smtp->mail($repemail);
-		$smtp->to($repdest);
-		$smtp->data();
-		$smtp->datasend($mailout);
-		$smtp->dataend();
-
-		if ($verbose)
+		else
 		{
-			# now perl voodoo:
-			$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
-			chomp($answer);
-			print STDERR "$progname: sent report for $domain to $repdest ($answer)\n";
+			print STDERR "$progname: unsupported reporting URI scheme " . $uri->scheme . " for domain $domain\n";
+			next;
 		}
-
-		$smtp->reset();
-
-		close($zipin);
-	}
-	else
-	{
-		print STDERR "$progname: unsupported reporting URI scheme " . $uri->scheme . " for domain $domain\n";
-		next;
 	}
 
 	# update "last sent" timestamp

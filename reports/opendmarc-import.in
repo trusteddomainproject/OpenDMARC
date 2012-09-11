@@ -73,6 +73,7 @@ my $pdomain;
 my $policy;
 my $received;
 my $reporter;
+my $repuri;
 my $sigcount = 0;
 my $sp;
 my $spf;
@@ -278,9 +279,10 @@ sub update_db
 	{
 		if (scalar @rua > 0)
 		{
+			$repuri = join(",", @rua);
 			$dbi_s = $dbi_h->prepare("UPDATE requests SET repuri = ? WHERE id = ?");
 
-			if (!$dbi_s->execute($rua[0], $request_id))
+			if (!$dbi_s->execute($repuri, $request_id))
 			{
 				print STDERR "$progname: failed to update reporting URI for $fdomain: " . $dbi_h->errstr . "\n";
 				$dbi_s->finish;
