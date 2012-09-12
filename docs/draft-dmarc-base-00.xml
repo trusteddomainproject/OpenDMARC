@@ -1333,6 +1333,15 @@
       choice of mechanism for such rejection and the implications of those
       choices are discussed in <xref target="mail_receiver_actions"/> and
       <xref target="sec_rejection"/>. </t>
+
+  <t> Handling of DNS errors when querying for the DMARC policy
+      record is left to the discretion of the Mail Receiver.  For example,
+      to ensure minimal disruption of mail flow, transient errors could
+      result in delivery of the message ("fail open"), or they could result
+      in the message being temporarily rejected (i.e., an SMTP 4yx reply)
+      which invites the sending MTA to try again after the condition has
+      possibly cleared, allowing a definite DMARC conclusion to be reached
+      ("fail closed"). </t>
  </section> <!-- Policy Discovery -->
 
  <section title="Domain Owner Actions"
@@ -1462,6 +1471,10 @@
           be used, as it may be the case that the Domain Owner wishes a
           Message Receiver not to consider the results of that underlying
           authentication protocol at all. </t>
+
+      <t> Handling of messages for which SPF and/or DKIM evaluation encounters
+          a DNS error is left to the discretion of the Mail Receiver.  Further
+          discussion is available in <xref target="policy_discovery"/>. </t>
      </section>
 
      <section title="Message Sampling" anchor="sampling">
