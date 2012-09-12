@@ -67,6 +67,7 @@ my $policystr;
 my $pct;
 
 my $repuri;
+my @repuris;
 my $lastsent;
 
 my $aspf;
