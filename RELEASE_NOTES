@@ -6,10 +6,17 @@ release, and a summary of the changes in that release.
 1.0.0		2012/10/??
 	Initial release.
 
-0.2.2		2012/09/??
+0.2.2		2012/09/14
 	Fix bug #25: Use locks to co-ordinate between the filter writing
 		to the history file and opendmarc-import consuming it.
 		Problem noted by Marcos Vieira.
+	Don't use dmarcf_dstring_printf() where dmarcf_dstring_cat() suffices.
+	Add Authentication-Results fields honouring AuthservIDWithJobID.
+		Problem noted by Andreas Schulze.
+	Improve logic that identifies usable Authentication-Results fields.
+		Problem noted by Andreas Schulze.
+	REPORTING: Handle multiple "rua" values in both reporting scripts.
+		Problem noted by Andreas Schulze.
 	REPORTING: Get the date range right on reports.  Problem noted by
 		Todd Lyons and Andreas Schulze.
 
