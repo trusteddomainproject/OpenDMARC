@@ -1,9 +1,9 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v0.2.1 released
+Subject: OpenDMARC v0.2.2 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v0.2.1, now available for download from SourceForge.
+OpenDMARC v0.2.2, now available for download from SourceForge.
 
 This is a beta release.  It is not appropriate for full production
 environments.  It is still undergoing shakedown in various test and
@@ -13,18 +13,22 @@ find or suggestions you may have via the opendmarc-users mailing list.
 
 The full RELEASE_NOTES for this version:
 
-1.0.0		2012/10/??
+1.0.0		20.2.20/??
 	Initial release.
 
-0.2.1		2012/08/31
-	Don't crash during shutdown by accessing freed memory.  Problem
-		reported by Todd Lyons.
-	Update the command line usage message, which was terribly outdated.
-	Fix handling of an SPF pass when the envelope doesn't contain a
-		usable domain name.
-	Fix a crash problem having to do with default authserv-ids.
-	Fix an off-by-one string length comparison error when checking for
-		relevant authentication results.
+0.2.2		2012/09/14
+	Fix bug #25: Use locks to co-ordinate between the filter writing
+		to the history file and opendmarc-import consuming it.
+		Problem noted by Marcos Vieira.
+	Don't use dmarcf_dstring_printf() where dmarcf_dstring_cat() suffices.
+	Add Authentication-Results fields honouring AuthservIDWithJobID.
+		Problem noted by Andreas Schulze.
+	Improve logic that identifies usable Authentication-Results fields.
+		Problem noted by Andreas Schulze.
+	REPORTING: Handle multiple "rua" values in both reporting scripts.
+		Problem noted by Andreas Schulze.
+	REPORTING: Get the date range right on reports.  Problem noted by
+		Todd Lyons and Andreas Schulze.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
