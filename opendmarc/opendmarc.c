@@ -2475,7 +2475,7 @@ mlfi_eom(SMFICTX *ctx)
 		         "%s%s%s; dmarc=%s header.from=%s",
 		         authservid,
 		         conf->conf_authservidwithjobid ? "/" : "",
-		         conf->conf_authservidwithjobid ? "/" : dfc->mctx_jobid,
+		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",,
 		         aresult, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
