@@ -2547,6 +2547,26 @@ mlfi_eom(SMFICTX *ctx)
 		fclose(f);
 	}
 
+	if (conf->conf_addswhdr)
+	{
+		snprintf(header, sizeof header, "%s v%s %s %s",
+		         DMARCF_PRODUCT, VERSION, hostname,
+		         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
+		                                 : (u_char *) JOBIDUNKNOWN);
+
+		if (dmarcf_insheader(ctx, 1, SWHEADERNAME,
+		                     header) == MI_FAILURE)
+		{
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_ERR,
+				       "%s: %s header add failed",
+				       dfc->mctx_jobid,
+				       SWHEADERNAME);
+			}
+		}
+	}
+
 	dmarcf_cleanup(ctx);
 
 	return ret;
