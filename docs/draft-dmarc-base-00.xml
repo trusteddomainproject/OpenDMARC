@@ -2125,8 +2125,21 @@
        assist a legitimate client to determine the source of some local issue
        that caused the rejection. </t>
 
+   <t> In the latter case, when doing an SMTP rejection, providing a clear
+       hint can be useful in resolving issues.  A receiver might indicate in
+       plain text the reason for the rejection by using the word "DMARC"
+       somewhere in the reply text.  Many systems are able to scan the
+       SMTP reply text to determine the nature of the rejection, thus
+       providing a machine-detectable reason for rejection allows automated
+       sorting of rejection causes so they can be properly addressed.  For
+       example:
+
+       <figure><artwork>
+    550 5.7.1 Email rejected per DMARC policy for example.com
+       </artwork></figure></t>
+      
    <t> If a Mail Receiver elects to defer delivery due to inability to
-       retrieve or apply DMARC policy, this SHOULD be done with a 450 SMTP
+       retrieve or apply DMARC policy, this is best done with a 450 SMTP
        reply code. </t>
   </section>
 
