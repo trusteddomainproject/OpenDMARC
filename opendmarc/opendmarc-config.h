@@ -25,6 +25,7 @@ struct configdef dmarcf_config[] =
 	{ "Background",			CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "BaseDirectory",		CONFIG_TYPE_STRING,	FALSE },
 	{ "ChangeRootDirectory",	CONFIG_TYPE_STRING,	FALSE },
+	{ "CopyFailuresTo",		CONFIG_TYPE_STRING,	FALSE },
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ForensicReports",		CONFIG_TYPE_BOOLEAN,	FALSE },

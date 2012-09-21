@@ -135,6 +135,7 @@ struct dmarcf_config
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
+	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_tmpdir;
 	char *			conf_authservid;
@@ -217,6 +218,28 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+
+/*
+**  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**  	addr -- address to add
+**
+**  Return value:
+**  	An sfsistat.
+*/
+
+sfsistat
+dmarcf_addrcpt(SMFICTX *ctx, char *addr)
+{
+	assert(ctx != NULL);
+
+	if (testmode)
+		return dmarcf_test_addrcpt(ctx, addr);
+	else
+		return smfi_addrcpt(ctx, addr);
+}
 
 /*
 **  DMARCF_SETREPLY -- wrapper for smfi_setreply()
@@ -1124,6 +1147,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		if (str != NULL)
 			strncpy(basedir, str, sizeof basedir - 1);
 
+		(void) config_get(data, "CopyFailuresTo",
+		                  &conf->conf_copyfailsto,
+		                  sizeof conf->conf_copyfailsto);
+
 		if (conf->conf_dnstimeout == DEFTIMEOUT)
 		{
 			(void) config_get(data, "DNSTimeout",
@@ -1462,6 +1489,9 @@ mlfi_negotiate(SMFICTX *ctx,
 	conf = curconf;
 
 	pthread_mutex_unlock(&conf_lock);
+
+	if (conf->conf_copyfailsto != NULL)
+		reqactions |= SMFIF_ADDRCPT;
 
 	/* verify the actions we need are available */
 	if ((f0 & reqactions) != reqactions)
@@ -2438,6 +2468,16 @@ mlfi_eom(SMFICTX *ctx)
 			result = DMARC_RESULT_REJECT;
 		}
 
+		if (conf->conf_copyfailsto != NULL)
+		{
+			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
+				       dfc->mctx_jobid);
+			}
+		}
+
 		break;
 
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
@@ -2460,6 +2500,16 @@ mlfi_eom(SMFICTX *ctx)
 			result = DMARC_RESULT_QUARANTINE;
 		}
 
+		if (conf->conf_copyfailsto != NULL)
+		{
+			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
+				       dfc->mctx_jobid);
+			}
+		}
+
 		break;
 
 	  default:
@@ -2479,7 +2529,7 @@ mlfi_eom(SMFICTX *ctx)
 		         "%s%s%s; dmarc=%s header.from=%s",
 		         authservid,
 		         conf->conf_authservidwithjobid ? "/" : "",
-		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",,
+		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",
 		         aresult, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
@@ -2556,7 +2606,7 @@ mlfi_eom(SMFICTX *ctx)
 		snprintf(header, sizeof header, "%s v%s %s %s",
 		         DMARCF_PRODUCT, VERSION, hostname,
 		         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
-		                                 : (u_char *) JOBIDUNKNOWN);
+		                                 : JOBIDUNKNOWN);
 
 		if (dmarcf_insheader(ctx, 1, SWHEADERNAME,
 		                     header) == MI_FAILURE)

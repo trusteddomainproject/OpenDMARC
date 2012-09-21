@@ -4,6 +4,9 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.0.0		2012/10/??
+	Feature request #28: Add "CopyFailuresTo" which adds the specified
+		recipient to the message when DMARC failures occur.
+		Requested by Andreas Schulze.
 	Feature request #30: Improve logging by indicating what the return
 		path was when a parse failure occurred, and what the final
 		DMARC result was.  Requested by Andreas Schulze.

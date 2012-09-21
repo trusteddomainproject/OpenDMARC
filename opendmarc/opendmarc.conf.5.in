@@ -119,10 +119,15 @@ a specific location.
 .I ChangeRootDirectory (string)
 Requests that the operating system change the effective root directory
 of the process to the one specified here prior to beginning execution.
-.BR chroot (2)
+.B chroot (2)
 requires superuser access. A warning will be generated if
 .I UserID
 is not also set.
+
+.TP
+.I CopyFailuresTo (string)
+Adds the specified recipient to the message's envelope if it fails the DMARC
+evaluation.
 
 .TP
 .I DNSTimeout (integer)
