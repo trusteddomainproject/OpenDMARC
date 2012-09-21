@@ -2002,8 +2002,9 @@ mlfi_eom(SMFICTX *ctx)
 					if (conf->conf_dolog)
 					{
 						syslog(LOG_ERR,
-						       "%s: can't parse return path address",
-						       dfc->mctx_jobid);
+						       "%s: can't parse return path address <%s>",
+						       dfc->mctx_jobid,
+						       dfc->mctx_envfrom);
 					}
 
 					continue;
@@ -2467,6 +2468,9 @@ mlfi_eom(SMFICTX *ctx)
 		result = DMARC_RESULT_TEMPFAIL;
 		break;
 	}
+
+	if (conf->conf_dolog)
+		syslog(LOG_INFO, "%s: %s", dfc->mctx_jobid, aresult);
 
 	/* if the final action isn't TEMPFAIL or REJECT, add an A-R field */
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
