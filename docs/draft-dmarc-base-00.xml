@@ -902,10 +902,17 @@
 	   the list. </t>
       </list> </t>
 
-    <t> Note that addition of a new tag into the registered list of tags
-        does not itself require a new version of DMARC to be generated
-        (with a corresponding change to the "v" tag's value), but a change
-        to any existing tags does require a new version of DMARC. </t>
+    <t> A DMARC policy record MUST comply with the formal specification found
+        in <xref target="dmarc_abnf"/> in that the "v" and "p" tags MUST be
+        present and MUST appear in that order.  Unknown tags MUST be ignored.
+        Syntax errors in the remainder of the record SHOULD be discarded
+        in favour of default values (if any) or ignored outright. </t>
+
+    <t> Note that given the rules of the previous paragraph, addition of a
+        new tag into the registered list of tags does not itself require a
+        new version of DMARC to be generated (with a corresponding change to
+        the "v" tag's value), but a change to any existing tags does require
+        a new version of DMARC. </t>
    </section> <!-- General Record Format -->
 
    <section anchor="dmarc_abnf" title="Formal Definition">
@@ -930,9 +937,9 @@
                  ; components other than dmarc-version and
                  ; dmarc-request may appear in any order
 
-  dmarc-sep = *WSP %3b *WSP
-
   dmarc-version = "v" *WSP "=DMARC1"
+
+  dmarc-sep = *WSP %3b *WSP
 
   dmarc-request = "p" *WSP "=" *WSP ( "none" / 
                                        "quarantine" / "reject" )
