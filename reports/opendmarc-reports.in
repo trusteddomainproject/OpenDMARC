@@ -61,6 +61,7 @@ my $domain;
 my $domainid;
 my $domainset;
 my $forcedomain;
+my @skipdomains;
 
 my $policy;
 my $policystr;
@@ -140,9 +141,10 @@ sub usage
 	print STDERR "\t--dbpasswd=passwd  database password [$def_dbpasswd]\n";
 	print STDERR "\t--dbport=port      database port [$def_dbport]\n";
 	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
-	print STDERR "\t--domain=name      force a report for name domain\n";
+	print STDERR "\t--domain=name      force a report for named domain\n";
 	print STDERR "\t--help             print help and exit\n";
 	print STDERR "\t--keepfiles        keep xml files (in local directory)\n";
+	print STDERR "\t--nodomain=name    omit a report for named domain\n";
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
@@ -171,6 +173,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'interval=i' => \$interval,
                                             'keepfiles' => \$keepfiles,
                                             'n|test' => \$testmode,
+                                            'nodomain=s@' => \$skipdomains,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
                                             'smtp-server=s' => \$smtp_server,
@@ -354,6 +357,11 @@ foreach (@$domainset)
 	$domain = $_->[0];
 
 	if (!defined($domain))
+	{
+		next;
+	}
+
+	if (defined(@skipdomains) && grep($domain, @skipdomains) != 0)
 	{
 		next;
 	}

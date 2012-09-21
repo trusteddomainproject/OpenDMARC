@@ -55,6 +55,10 @@ at least the last
 .I secs
 seconds.
 .TP
+.I --nodomain=name
+Skips generating a report for the named domain.  Can be specified multiple
+times to skip multiple reporting domains.
+.TP
 .I --noupdate
 Suppresses marking the time of the transmission of the report in the database.
 Normally this would be done to prevent reports from being sent too close

@@ -10,6 +10,8 @@ release, and a summary of the changes in that release.
 	Feature request #30: Improve logging by indicating what the return
 		path was when a parse failure occurred, and what the final
 		DMARC result was.  Requested by Andreas Schulze.
+	REPORTING: Feature request #27: Add "--nodomain" to opendmarc-reports
+		to skip report generation for specific domains.
 
 0.2.2		2012/09/14
 	Fix bug #25: Use locks to co-ordinate between the filter writing
