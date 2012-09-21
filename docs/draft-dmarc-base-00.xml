@@ -2096,9 +2096,9 @@
 
        <list style="symbols">
         <t> Full rejection, wherein the SMTP server issues a 5xy reply code
-            (550 SHOULD be used) as an indication to the SMTP client that
-	    the transaction failed; the SMTP client is then responsible for
-	    generating notification that delivery failed (see Section 4.2.5 of
+            as an indication to the SMTP client that the transaction failed;
+	    the SMTP client is then responsible for generating notification
+	    that delivery failed (see Section 4.2.5 of
             <xref target="SMTP"/>). </t>
 
         <t> A "silent discard", wherein the SMTP server returns a 2xy reply
@@ -2135,7 +2135,7 @@
        </artwork></figure></t>
       
    <t> If a Mail Receiver elects to defer delivery due to inability to
-       retrieve or apply DMARC policy, this is best done with a 450 SMTP
+       retrieve or apply DMARC policy, this is best done with a 4xy SMTP
        reply code. </t>
   </section>
 
@@ -3719,9 +3719,9 @@
 
     <t> The Mail Receiver is now ready to reply to the DATA command.  If the
         DMARC check yields that the message is to be rejected, then the Mail
-        Receiver replies with a 550 code to inform the sender of failure.  If
+        Receiver replies with a 5xy code to inform the sender of failure.  If
         the DMARC check cannot be resolved due to transient network errors,
-        then the Mail Receiver replies with a 450 code to inform the sender
+        then the Mail Receiver replies with a 4xy code to inform the sender
         as to the need to reattempt delivery later.  If the DMARC check
         yields a passing message, then the Mail Receiver continues on with
         email processing, perhaps using the result of the DMARC check as an
