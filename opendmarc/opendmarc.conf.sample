@@ -97,6 +97,14 @@
 # 
 # ChangeRootDirectory /var/chroot/opendmarc
 
+##  CopyFailuresTo (string)
+##  	default (none)
+##
+##  Requests addition of the specified email address to the envelope of
+##  any message that fails the DMARC evaluation.
+#
+# CopyFailuresTo postmaster@localhost
+
 ##  DNSTimeout (integer)
 ##  	default 5
 ## 
