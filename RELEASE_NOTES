@@ -3,7 +3,10 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.0.0		2012/10/??
+1.0.0		2012/10/21
+	Feature request #26: Don't overload "AuthservID"; instead, the list
+		of trusted authserv-ids is now specified by a
+		new "TrustedAuthservIDs" setting.  Requested by Andreas Schulze.
 	Feature request #28: Add "CopyFailuresTo" which adds the specified
 		recipient to the message when DMARC failures occur.
 		Requested by Andreas Schulze.

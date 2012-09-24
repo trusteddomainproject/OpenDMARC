@@ -142,7 +142,7 @@ struct dmarcf_config
 	char *			conf_historyfile;
 	char *			conf_pslist;
 	char *			conf_ignorelist;
-	char **			conf_authservids;
+	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
 };
 
@@ -1130,7 +1130,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			conf->conf_authservid = strdup(myhostname);
 		}
 
-		dmarcf_mkarray(conf->conf_authservid, &conf->conf_authservids);
+		str = NULL;
+		(void) config_get(data, "TrustedAuthservIDs", &str, sizeof str);
+		if (str != NULL)
+			dmarcf_mkarray(str, &conf->conf_trustedauthservids);
 
 		str = NULL;
 		(void) config_get(data, "IgnoreMailFrom", &str, sizeof str);
@@ -1204,11 +1207,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  sizeof conf->conf_historyfile);
 	}
 
-	if (conf->conf_authservids == NULL)
+	if (conf->conf_trustedauthservids == NULL)
 	{
-		conf->conf_authservid = strdup(myhostname);
-
-		dmarcf_mkarray(conf->conf_authservid, &conf->conf_authservids);
+		dmarcf_mkarray(conf->conf_authservid,
+		               &conf->conf_trustedauthservids);
 	}
 
 	if (basedir[0] != '\0')
@@ -1900,7 +1902,7 @@ mlfi_eom(SMFICTX *ctx)
 		hostname = myhostname;
 
 	/* select authserv-id to use when generating result headers */
-	authservid = conf->conf_authservids[0];
+	authservid = conf->conf_authservid;
 	if (authservid == NULL)
 		authservid = hostname;
 
@@ -1991,7 +1993,8 @@ mlfi_eom(SMFICTX *ctx)
 			continue;
 
 		/* skip it if it's not one of ours */
-		if (!dmarcf_match(ar.ares_host, conf->conf_authservids, FALSE))
+		if (!dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
+		                  FALSE))
 		{
 			unsigned char *slash;
 
@@ -2004,7 +2007,8 @@ mlfi_eom(SMFICTX *ctx)
 
 			*slash = '\0';
 			if (!dmarcf_match(ar.ares_host,
-			                  conf->conf_authservids, FALSE) ||
+			                  conf->conf_trustedauthservids,
+			                  FALSE) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
 				continue;
 		}
@@ -2927,7 +2931,7 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_ignoredomains != NULL)
 		dmarcf_freearray(conf->conf_ignoredomains);
 
-	dmarcf_freearray(conf->conf_authservids);
+	dmarcf_freearray(conf->conf_trustedauthservids);
 
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);

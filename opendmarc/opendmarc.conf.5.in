@@ -51,15 +51,11 @@ header field will be added.  The default is "false".
 .TP
 .I AuthservID (string)
 Sets the "authserv-id" to use when generating the Authentication-Results:
-header field after verifying a message.  It is also used as the set of
-"authserv-id" values to trust as relaying true upstream DKIM and SPF results.
-The default is to use the name of the MTA processing the message.  If the
-string "HOSTNAME" is provided, the name of the host running the filter
-(as returned by the
+header field after verifying a message.  The default is to use the name of
+the MTA processing the message.  If the string "HOSTNAME" is provided, the
+name of the host running the filter (as returned by the
 .I gethostname(3)
-function) will be used.  To provide a set, the string should be a
-comma-separated list; the first one will be used during header field
-generation.  Matching against the list is case-sensitive.
+function) will be used.
 
 .TP
 .I AuthservIDWithJobID (Boolean)
@@ -257,6 +253,16 @@ The default is "mail".
 Specifies the directory in which temporary files should
 be written.  The default is
 .I /var/tmp.
+
+.TP
+.I TrustedAuthservIDs (string)
+Provides a list of authserv-ids that are to be used to identify
+Authentication-Results header fields whose contents are to be assumed as valid
+input for the DMARC assessment.  To provide a list, separate values by commas.
+If the string "HOSTNAME" is provided, the name of the host running the filter
+(as returned by the
+.I gethostname(3)
+function) will be used.  Matching against this list is case-insensitive.
 
 .TP
 .I UMask (integer)

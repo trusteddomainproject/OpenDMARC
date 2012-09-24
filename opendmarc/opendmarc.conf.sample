@@ -17,15 +17,11 @@
 ##  	defaults to MTA name
 ##
 ##  Sets the "authserv-id" to use when generating the Authentication-Results:
-##  header field after verifying a message.  It is also used as the set of
-##  "authserv-id" values to trust as relaying true upstream DKIM and SPF
-##  results.  The default is to use the name of the MTA processing the
-##  message.  If the string "HOSTNAME" is provided, the name of the host
-##  running the filter (as returned by the gethostname(3) function) will
-##  be used.  To provide a set, the string should be a comma-separated list;
-##  the first one will be used during header field generation.
+##  header field after verifying a message.  If the string "HOSTNAME" is
+##  provided, the name of the host running the filter (as returned by the
+##  gethostname(3) function) will be used.  
 #
-# AuthservID name[,...]
+# AuthservID name
 
 ##  AuthservIDWithJobID { true | false }
 ##  	default "false"
@@ -257,6 +253,18 @@
 ##  Specifies the directory in which temporary files should be written.
 #
 # TemporaryDirectory /var/tmp
+
+##  TrustedAuthservIDs string
+##  	default HOSTNAME
+##
+##  Specifies one or more "authserv-id" values to trust as relaying true
+##  upstream DKIM and SPF results.  The default is to use the name of
+##  the MTA processing the message.  To specify a list, separate each entry
+##  with a comma.  The key word "HOSTNAME" will be replaced by the name of
+##  the host running the filter as reported by the gethostname(3) function.
+#
+# TrustedAuthservIDs HOSTNAME
+
 
 ##  UMask mask
 ##  	default (none)
