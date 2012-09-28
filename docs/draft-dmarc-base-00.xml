@@ -3891,7 +3891,11 @@
 
  <section title="DMARC XML Schema" anchor="xml_schema">
   <t> The following is the proposed initial schema for producing XML
-      formatted aggregate reports as described in this memo:
+      formatted aggregate reports as described in this memo. </t>
+
+  <t> NOTE: Per the definition of XML, unless otherwise specified in the
+      schema below, the minOccurs and maxOccurs values for each element
+      is set to 1. </t>
 
 	<figure><artwork>
 &lt;?xml version="1.0"?&gt;
@@ -4149,9 +4153,6 @@
 &lt;/xs:element&gt;
 &lt;/xs:schema&gt;
 	</artwork></figure> </t>
-
-	<t> Note that minOccurs and maxOccurs both default to 1 according
-	    to the XML definition. </t>
 
 	<t> Descriptions of the PolicyOverrideTypes:
 
