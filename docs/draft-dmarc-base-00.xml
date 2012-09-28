@@ -353,9 +353,6 @@
            to which their policies should be applied, with the rest unaffected,
            in order to experiment and to understand and minimize deployment
            risk. </t>
-       <t> Receivers should endeavour to reject or quarantine email if the
-           RFC5322.From purports to be from a domain that appears to be either
-           non-existent or incapable of receiving mail. </t>
        <t> Reporting configuration in DMARC should override any such options
            specified by DKIM or SPF or extensions to them. </t>
        <t> The sender must be able to to specify independent reporting
