@@ -114,7 +114,9 @@
   <t> For years, various receivers have tried to protect senders who are
       known to authenticate their outbound email from phishing by using
       <xref target="DKIM"/> and/or <xref target="SPF"/> results to
-      detect and block unauthorized email.  At the same time, senders
+      detect and block unauthorized email.  (A detailed discussion of the
+      threats these systems attempt to address can be found in
+      <xref target="DKIM-THREATS"/>.)  At the same time, senders
       have leveraged SPF-authorized and DKIM-signed messages to achieve
       domain-level email authentication.  However, a broadly accepted
       mechanism to assert domain-specific message-disposition policies,
@@ -2818,6 +2820,24 @@
 			<date month="July" year="2009"/>
 		</front>
 		<seriesInfo name="RFC" value="5585"/>
+	</reference>
+
+	<reference anchor="DKIM-THREATS">
+		<front>
+			<title>
+				Analysis of Threats Motivating DomainKeys
+				Identified Mail (DKIM)
+			</title>
+
+			<author initials="J." surname="Fenton"
+			        fullname="J. Fenton">
+				<organization/>
+			</author>
+
+			<date year="2006" month="September"/>
+		</front>
+
+		<seriesInfo name="RFC" value="4686"/>
 	</reference>
 
 	<reference anchor="DNSSEC">
