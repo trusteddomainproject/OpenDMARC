@@ -1425,11 +1425,17 @@
    <t>A message bearing multiple RFC5322.From identifiers is ambiguous
       under DMARC.  This includes messages with multiple RFC5322.From fields
       (which is also forbidden under <xref target="MAIL"/>) and a message
-      with a single RFC5322.From field containing multiple entities.  Such
-      messages SHOULD be rejected.  If they are not, they MUST be ignored with
-      respect to all DMARC processing, as reliable alignment of verified
-      identifiers with what the end user will actually see cannot be
-      positively determined. </t>
+      with a single RFC5322.From field containing multiple entities.  There
+      can also be From: fields that contain no meaningful values, such
+      as RFC5322's "group" syntax.  Such messages SHOULD be rejected.  If
+      they are not, the Mail Receiver can either ignore the message entirely
+      with respect to DMARC processing, or evaluate DMARC against all
+      identifiers.  In this latter case, it is important to consider the
+      set of identifiers that will ultimately be shown to end users, since
+      ensuring the legitimate use of those identifiers is at the heart of
+      DMARC's goal.  This requires an understanding of the end user
+      environment, the specification of which is outside of the scope of
+      this document. </t>
   </section> <!-- Extract Author Domain -->
 
   <section title="Determine Handling Policy" anchor="receiver_policy">
