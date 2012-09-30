@@ -3892,7 +3892,7 @@
 
   <t> NOTE: Per the definition of XML, unless otherwise specified in the
       schema below, the minOccurs and maxOccurs values for each element
-      is set to 1. </t>
+      is set to 1.
 
 	<figure><artwork>
 &lt;?xml version="1.0"?&gt;
