@@ -1207,6 +1207,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  sizeof conf->conf_historyfile);
 	}
 
+	if (conf->conf_authservid == NULL)
+		conf->conf_authservid = strdup(myhostname);
+
 	if (conf->conf_trustedauthservids == NULL)
 	{
 		dmarcf_mkarray(conf->conf_authservid,
