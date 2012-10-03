@@ -949,7 +949,7 @@
   dmarc-auri = "rua" *WSP "=" *WSP
                dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
-  dmarc-ainterval = "ri" *WSP "=" *WSP
+  dmarc-ainterval = "ri" *WSP "=" *WSP 1*DIGIT
 
   dmarc-furi = "ruf" *WSP "=" *WSP
                dmarc-uri *(*WSP "," *WSP dmarc-uri)
