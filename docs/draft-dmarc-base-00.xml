@@ -933,6 +933,7 @@
                  [dmarc-sep dmarc-ainterval]
                  [dmarc-sep dmarc-rfmt]
                  [dmarc-sep dmarc-percent]
+                 [dmarc-sep]
                  ; components other than dmarc-version and
                  ; dmarc-request may appear in any order
 
