@@ -143,15 +143,15 @@ sub usage
 	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
 	print STDERR "\t--domain=name      force a report for named domain\n";
 	print STDERR "\t--help             print help and exit\n";
+	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
 	print STDERR "\t--keepfiles        keep xml files (in local directory)\n";
+	print STDERR "\t -n                synonym for --test\n";
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
+	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
-	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
-	print STDERR "\t -n                synonym for --test\n";
-	print STDERR "\t--noupdate         don't record report transmission\n";
-	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
+	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
 	print STDERR "\t--test             don't send reports\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--verbose          verbose output\n";
@@ -173,7 +173,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'interval=i' => \$interval,
                                             'keepfiles' => \$keepfiles,
                                             'n|test' => \$testmode,
-                                            'nodomain=s@' => \$skipdomains,
+                                            'nodomain=s' => \@skipdomains,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
                                             'smtp-server=s' => \$smtp_server,
@@ -361,7 +361,7 @@ foreach (@$domainset)
 		next;
 	}
 
-	if (defined(@skipdomains) && grep($domain, @skipdomains) != 0)
+	if (@skipdomains && grep($domain, @skipdomains) != 0)
 	{
 		next;
 	}
