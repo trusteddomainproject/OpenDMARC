@@ -13,6 +13,9 @@ release, and a summary of the changes in that release.
 	Feature request #30: Improve logging by indicating what the return
 		path was when a parse failure occurred, and what the final
 		DMARC result was.  Requested by Andreas Schulze.
+	Evaluate based on the envelope sender reported by
+		Authentication-Results and not on what was in the actual
+		envelope.
 	REPORTING: Feature request #27: Add "--nodomain" to opendmarc-reports
 		to skip report generation for specific domains.
 
