@@ -2028,8 +2028,35 @@ mlfi_eom(SMFICTX *ctx)
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
 
-				strncpy(addrbuf, dfc->mctx_envfrom,
-				        sizeof addrbuf - 1);
+				spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
+
+				memset(addrbuf, '\0', sizeof addrbuf);
+
+				for (pc = 0;
+				     pc < ar.ares_result[c].result_props;
+				     pc++)
+				{
+					if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_SMTP)
+					{
+						if (strcasecmp(ar.ares_result[c].result_property[pc],
+					                       "mailfrom") == 0)
+						{
+							strncpy(addrbuf,
+							        ar.ares_result[c].result_value[pc],
+							        sizeof addrbuf - 1);
+							spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
+						}
+						else if (strcasecmp(ar.ares_result[c].result_property[pc],
+					                           "helo") == 0 &&
+						         addrbuf[0] == '\0')
+						{
+							strncpy(addrbuf,
+							        ar.ares_result[c].result_value[pc],
+							        sizeof addrbuf - 1);
+							spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
+						}
+					}
+				}
 
 				status = dmarcf_mail_parse(addrbuf, &user,
 				                           &domain);
@@ -2045,18 +2072,6 @@ mlfi_eom(SMFICTX *ctx)
 					}
 
 					continue;
-				}
-
-				spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
-
-				for (pc = 0;
-				     pc < ar.ares_result[c].result_props;
-				     pc++)
-				{
-					if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_SMTP &&
-					    strcasecmp(ar.ares_result[c].result_property[pc],
-					               "mailfrom") == 0)
-						spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 				}
 
 				ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc,
