@@ -1071,18 +1071,19 @@
 		    Receiver MAY elect to temporarily fail the delivery
 		    so the verification test can be repeated later. </t>
 
-		<t> If the result includes no TXT resource records or
-		    multiple TXT resource records, a positive determination
-		    of the external reporting relationship cannot be made;
-		    stop. </t>
+		<t> For each record returned, parse the result as a series of
+		    "tag=value" pairs, i.e., the same overall format as the
+		    policy record (see <xref target="dmarc_abnf"/>).  In
+		    particular, the "v=DMARC1" tag is mandatory and MUST
+		    appear first in the list.  Discard any that do not pass
+		    this test. </t>
 
-		<t> Parse the result, if any, as a series of "tag=value"
-		    pairs, i.e., the same overall format as the policy
-		    record.  In particular, the "v=DMARC1" tag is
-		    mandatory and MUST appear first in the list.  If at least
-		    that tag is present and the
-		    record overall is syntactically valid per
-		    <xref target="dmarc_abnf"/>, then the external reporting
+		<t> If the result includes no TXT resource records that pass
+		    basic parsing, a positive determination of the external
+		    reporting relationship cannot be made; stop. </t>
+
+		<t> If at one TXT resource record remains in the set after
+		    parsing, then the external reporting
 		    arrangement was authorized by the destination ADMD. </t>
 
 		<t> If a "rua" or "ruf" tag is thus discovered, replace the
