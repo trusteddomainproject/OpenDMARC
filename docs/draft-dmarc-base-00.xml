@@ -795,10 +795,12 @@
            </list></t>
 
          <t hangText="p:"> Requested Mail Receiver policy (plain-text;
-          REQUIRED).  Indicates the policy to be enacted by the Receiver at
-          the request of the Domain Owner.  Policy applies to the domain
-          queried and to sub-domains unless sub-domain policy is explicitly
-          described using the "sp" tag.  Possible values are as follows:
+          REQUIRED for policy records).  Indicates the policy to be enacted
+	  by the Receiver at the request of the Domain Owner.  Policy applies
+	  to the domain queried and to sub-domains unless sub-domain policy
+	  is explicitly described using the "sp" tag.  This tag is mandatory
+	  for policy records only, but not for third-party reporting records
+	  (see <xref target="fb_verify"/>).  Possible values are as follows:
 
          <list style="hanging">
           <t hangText="none:"> {R5} The Domain Owner requests no specific
@@ -924,7 +926,7 @@
             ; and exclamation points (ASCII 0x21) MUST be encoded
 
   dmarc-record = dmarc-version dmarc-sep
-                 dmarc-request
+                 [dmarc-request]
                  [dmarc-sep dmarc-srequest]
                  [dmarc-sep dmarc-auri]
                  [dmarc-sep dmarc-furi]
