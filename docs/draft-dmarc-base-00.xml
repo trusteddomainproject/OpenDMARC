@@ -766,29 +766,29 @@
            strict mode is in use.  See <xref target="spf_id_align"/> for
            details. </t>
 
-        <t hangText="fo:"> Forensic reporting options (plain-text; OPTIONAL,
+        <t hangText="fo:"> Failure reporting options (plain-text; OPTIONAL,
            default "0"))
-           Provides requested options for generation of forensic reports.
+           Provides requested options for generation of failure reports.
            Report generators MAY choose to adhere to the requested options.
            This tag's content MUST be ignored if a "ruf" tag (below) is not
            also specified.  The value of this tag is a colon-separated list
-           of characters that indicate forensic reporting options as follows:
+           of characters that indicate failure reporting options as follows:
 
 	   <list style="hanging">
-            <t hangText="0:"> Generate a DMARC forensic report if all
+            <t hangText="0:"> Generate a DMARC failure report if all
              underlying authentication mechanisms failed to produce an aligned
              "pass" result. </t>
 
-            <t hangText="1:"> Generate a DMARC forensic report if any
+            <t hangText="1:"> Generate a DMARC failure report if any
              underlying authentication mechanism failed to produce an aligned
              "pass" result. </t>
 
-            <t hangText="d:"> Generate a DKIM forensic report if the
+            <t hangText="d:"> Generate a DKIM failure report if the
              message had a signature that failed evaluation, regardless of
              its alignment.  DKIM-specific reporting is described in
              <xref target="AFRF-DKIM"/>. </t>
 
-            <t hangText="s:"> Generate an SPF forensic report if the
+            <t hangText="s:"> Generate an SPF failure report if the
              message failed SPF evaluation, regardless of
              its alignment.  SPF-specific reporting is described in
              <xref target="AFRF-SPF"/>. </t>
@@ -832,7 +832,7 @@
            strong authentication-based mechanisms.</t>
 
         <t hangText="rf:"> Format to be used for message-specific
-           forensic information reports (comma-separated plain-text list of
+           failure reports (comma-separated plain-text list of
 	   values; OPTIONAL; default "afrf").  The value of this tag is a list
            of one or more report formats as requested by the Domain Owner to
            be used when a message fails both <xref target="SPF"/> and
@@ -872,10 +872,10 @@
            Mail Receivers MUST be ignored.  The aggregate feedback report
 	   format is described in <xref target="fb_aggregate"/>. </t>
 
-        <t hangText="ruf:"> Addresses to which message-specific forensic
+        <t hangText="ruf:"> Addresses to which message-specific failure
            information is to be reported (comma-separated plain-text list of
            DMARC URIs; OPTIONAL). {R11} If present, the Domain Owner is
-	   requesting Mail Receivers to send detailed forensic reports about
+	   requesting Mail Receivers to send detailed failure reports about
 	   messages that fail the DMARC evaluation in specific ways (see the
            "fo" tag above).  The format of the message to be generated MUST
            follow that specified in the "rf" tag.  <xref target="fb_verify"/>
@@ -883,7 +883,7 @@
 	   differs from that of the domain advertising the policy. 
 	   A Mail Receiver MUST implement support for a "mailto:" URI, i.e.
 	   the ability to send a DMARC report via electronic mail.  If not
-	   provided, Mail Receivers MUST NOT generate forensic reports.
+	   provided, Mail Receivers MUST NOT generate failure reports.
 	   See <xref target="sec_external"/> for additional
 	   considerations.  </t>
 
@@ -1191,23 +1191,23 @@
        cover a period of 60 minutes that starts on the hour, etc. </t>
   </section> <!-- Aggregate Reports -->
 
-  <section title="Forensic Reports" anchor="forensic">
-   <t> When a Domain Owner requests forensic reports on failures, and the
-       Mail Receiver is willing to provide such reports, the Mail Receiver
-       generates and sends a message using the format described in
-       <xref target="AFRF"/>.  This document updates the AFRF format as
-       described in <xref target="afrf_update"/>. </t>
+  <section title="Failure Reports" anchor="forensic">
+   <t> When a Domain Owner requests failure reports for the purpose of
+       forensic analysis, and the Mail Receiver is willing to provide such
+       reports, the Mail Receiver generates and sends a message using the
+       format described in <xref target="AFRF"/>.  This document updates the
+       AFRF format as described in <xref target="afrf_update"/>. </t>
 
    <t> The destination(s) and nature of the reports are defined by the
        "fo" and "ruf" tags as defined in <xref target="dmarc_format"/>. </t>
 
-   <t> Where multiple URIs are selected to receive forensic reports the
+   <t> Where multiple URIs are selected to receive failure reports the
        report generator MUST make an attempt to deliver to each of them. </t>
 
    <t> An obvious consideration is the denial of service attack that can be
        perpetrated by an attacker who sends numerous messages purporting to
        be from the intended victim Domain Owner but which fail both SPF and
-       DKIM; this would cause participating Mail Receivers to send forensic
+       DKIM; this would cause participating Mail Receivers to send failure
        reports to the Domain Owner or its delegate in potentially huge
        volumes.  Accordingly, participating Mail Receivers are encouraged to
        aggregate these reports as much as is practical, using the Incidents
@@ -1230,7 +1230,7 @@
     <t> <xref target="AFRF"/> is updated to include the following changes:
 
         <list style="numbers">
-         <t> Section 3.2 is updated to indicate that a DMARC forensic
+         <t> Section 3.2 is updated to indicate that a DMARC failure
              report includes the following ARF header fields, with the
              indicated normative requirement levels:
 
@@ -1260,15 +1260,15 @@
              </artwork></figure></t>
 
          <t> Section 3.3 is updated to add Authentication Failure Type
-             "dmarc", which is to be used when a forensic report is
+             "dmarc", which is to be used when a failure report is
              generated because some or all of the authentication mechanisms
-             failed to produce aligned identifiers.  Note that a forensic
+             failed to produce aligned identifiers.  Note that a failure
              report generator MAY also independently produce an
              AFRF message for any or all of the underlying authentication
              methods. </t>
         </list> </t>
    </section>
-  </section> <!-- Forensic Reports -->
+  </section> <!-- Failure Reports -->
 
   <section title="Failure Reports" anchor="fb_failure">
    <t> Message-specific authentication-failure-related forensic reporting can
@@ -1873,7 +1873,7 @@
  +----------+-------------+---------+------------------------------+
  |    p     | [THIS MEMO] | current | Requested handling policy    |
  +----------+-------------+---------+------------------------------+
- |    rf    | [THIS MEMO] | current | Forensic reporting format(s) |
+ |    rf    | [THIS MEMO] | current | Failure reporting format(s)  |
  +----------+-------------+---------+------------------------------+
  |    ri    | [THIS MEMO] | current | Aggregate Reporting interval |
  +----------+-------------+---------+------------------------------+
@@ -1881,7 +1881,7 @@
  |          |             |         | aggregate data               |
  +----------+-------------+---------+------------------------------+
  |   ruf    | [THIS MEMO] | current | Reporting URI(s) for         |
- |          |             |         | forensic data                |
+ |          |             |         | failure data                 |
  +----------+-------------+---------+------------------------------+
  |    sp    | [THIS MEMO] | current | Requested handling policy    |
  |          |             |         | for subdomains               |
@@ -1892,7 +1892,7 @@
   </section>
 
   <section title="DMARC Report Format Registry" anchor="iana_dmarc_formats">
-   <t>Names of DMARC forensic reporting formats must be registered with 
+   <t>Names of DMARC failure reporting formats must be registered with 
       IANA.  New entries are assigned only for values that have been
       documented in a published RFC that has had IETF Review, per
       <xref target="IANA-CONSIDERATIONS"/>.  Each registration must include
@@ -2077,10 +2077,10 @@
 
    <t>Note that the addresses shown in the "ruf" tag receive more
       information that might be considered private data, since it is
-      possible for actual email content to appear in the forensic reports.
+      possible for actual email content to appear in the failure reports.
       The URIs identified there are thus more attractive targets for
       intrusion attempts than those found in the "rua" tag.  Moreover,
-      attacking the DNS of the subject domain to cause forensic data to
+      attacking the DNS of the subject domain to cause failure data to
       be routed fraudulently to an attacker's systems may be an attractive
       prospect.  Deployment of <xref target="DNSSEC"/> is advisable if this
       is a concern. </t>
@@ -3382,7 +3382,7 @@
 	    reporting to discover some messaging systems that had not yet
 	    implemented DKIM correctly, but they are still seeing periodic
 	    authentication failures. In order to diagnose these intermittent
-	    problems they wish to request per-message forensic reports when
+	    problems they wish to request per-message failure reports when
 	    authentication failures occur. </t>
 
 	<t> Not all Receivers will honor such a request, but the Domain Owner
@@ -3395,7 +3395,7 @@
 	    policy record from <xref target="ex_owner"/>):
 
 		<list style="symbols">
-			<t> Per-message forensic reports should be sent via
+			<t> Per-message failure reports should be sent via
 			    email to the address "auth-reports@example.com"
 			    ("ruf=mailto:auth-reports@example.com") </t>
 		</list> </t>
@@ -3424,20 +3424,20 @@
 	    </artwork></figure> </t>
    </section>
 
-   <section title="Per-Message Forensic Reports Directed to Third Party"
+   <section title="Per-Message Failure Reports Directed to Third Party"
             anchor="ex_owner_2_1">
     <t> The Domain Owner from the previous example is maintaining the same
         policy, but now wishes to have a third party receive and process the
-        per-message forensic reports. Again, not all Receivers will honor this
+        per-message failure reports. Again, not all Receivers will honor this
         request, but those that do may implement additional checks to validate 
-        that the third party wishes to receive the forensic reports for this
+        that the third party wishes to receive the failure reports for this
         domain. </t>
 
     <t> The Domain Owner needs to alter its policy record from
         <xref target="ex_owner_2"/> as follows:
 
 	<list style="symbols">
-		<t> Per message forensic reports should be send via email
+		<t> Per message failure reports should be send via email
 		    to the address "auth-reports@thirdparty.example.net"
 		    ("ruf=mailto:auth-reports@thirdparty.example.net") </t>
 	</list> </t>
@@ -3493,7 +3493,7 @@
 
 	<figure><artwork>
   ; zone file for thirdparty.example.net
-  ; Accept DMARC forensic reports on behalf of example.com
+  ; Accept DMARC failure reports on behalf of example.com
 
   example.com._report._dmarc   IN   TXT    "v=DMARC1"
 	</artwork></figure></t>
