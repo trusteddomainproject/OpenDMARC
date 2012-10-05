@@ -1279,7 +1279,7 @@
 
    <t> The format for these reports is defined in either
        <xref target="AFRF"/> or <xref target="IODEF"/> depending on the
-       value found in the "rf" tag of the DMARC record (or its default). </t>
+       value found in the "ruf" tag of the DMARC record (or its default). </t>
 
    <t> These reports SHOULD include the "call-to-action" URI(s) from inside
        messages that failed to authenticate. {R21} </t>
