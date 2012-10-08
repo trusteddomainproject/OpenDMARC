@@ -50,15 +50,19 @@ Can be assigned one of two possible values:
 The full or relative path to the TLD file to parse and use.
 </blockquote>
 
-<tt>int nscount</tt>
+<p>NOTE:<br>If and only if your resolver library lacks the <tt>res_setservers()<tt> interface, the following hooks
+are avaliable as a substitute.
+
+<p><tt>int nscount</tt>
 <blockquote>
 If you want the dmarc records looked up by other than the name servers listed in
-<tt>/etc/resolv.conf</tt>. This is the count of the number of entries in <tt>nsaddr_list</tt>.
+<tt>/etc/resolv.conf</tt> and your resolver library lacks the <tt>res_setservers()<tt> interface. This is the count of the number of entries in <tt>nsaddr_list</tt>.
 </blockquote>
 
 <tt>struct&nbsp;sockaddr_in&nbsp;nsaddr_list[MAXNS]</tt>
 <blockquote>
-This is an array of IP addresses of name servers to use
+If your resolver library lacks the <tt>res_setservers()<tt> interface,
+this is an array of IP addresses of name servers to use
 converted to the type <tt>struct sockaddr_in</tt>.
 </blockquote>
 

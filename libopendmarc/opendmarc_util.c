@@ -218,6 +218,13 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 	 */
 	for (cp = copy; *cp != '\0'; ++cp)
 	{
+		/*
+		 * <> has a higher precedence than quotes.
+		 * Prevents "From: Davide D'Marco <user@blah.com>" from breaking.
+		 */
+		if (*cp == '<')
+			break;
+
 		if (numquotes == 0 && *cp == ',')
 		{
 			*cp = '\0';
