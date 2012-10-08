@@ -55,8 +55,9 @@ Clear and completely free the the opaque context. Once freed it can never be reu
 <td>
 <ul>
 <li>For each context you get with 
-<a href="opendmarc_policy_connect_shutdown.html">opendmarc_policy_connect_init()</a>.
+<a href="opendmarc_policy_connect_shutdown.html">opendmarc_policy_connect_init()</a>,
 you should have exactly one corresponding call to this shutdown function.
+<li>Passing NULL is allowed and has no effect.
 </ul>
 </td>
 </tr>
