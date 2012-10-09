@@ -126,7 +126,7 @@ typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 struct dmarcf_config
 {
 	_Bool			conf_afrf;
-	_Bool			conf_deliver;
+	_Bool			conf_rejectfail;
 	_Bool			conf_dolog;
 	_Bool			conf_enablecores;
 	_Bool			conf_addswhdr;
@@ -1165,9 +1165,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_enablecores,
 		                  sizeof conf->conf_enablecores);
 
-		(void) config_get(data, "AlwaysDeliver",
-		                  &conf->conf_deliver,
-		                  sizeof conf->conf_deliver);
+		(void) config_get(data, "RejectFailures",
+		                  &conf->conf_rejectfail,
+		                  sizeof conf->conf_rejectfail);
 
 		(void) config_get(data, "ForensicReports",
 		                  &conf->conf_afrf,
@@ -2473,7 +2473,7 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
 
-		if (!conf->conf_deliver && random() % 100 < pct)
+		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "rejected by DMARC policy for %s", pdomain);
@@ -2505,7 +2505,7 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
 
-		if (!conf->conf_deliver && random() % 100 < pct)
+		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "quarantined by DMARC policy for %s",
