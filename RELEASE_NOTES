@@ -19,6 +19,8 @@ release, and a summary of the changes in that release.
 		envelope.
 	REPORTING: Feature request #27: Add "--nodomain" to opendmarc-reports
 		to skip report generation for specific domains.
+	LIBOPENDMARC: Fix bug #31: Improve From: field parsing.  Problem
+		reported by Todd Lyons.
 
 0.2.2		2012/09/14
 	Fix bug #25: Use locks to co-ordinate between the filter writing
