@@ -692,7 +692,7 @@
       "_dmarc.example.com".  The DNS-located DMARC preference data will
       hereafter be called the "DMARC record". </t>
 
-  <t> DMARC records are stored in the DNS for three key engineering
+  <t> DMARC records are stored in the DNS for two key engineering
       reasons:
 
       <list style="hanging">
