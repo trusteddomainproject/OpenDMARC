@@ -2949,7 +2949,8 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_ignoredomains != NULL)
 		dmarcf_freearray(conf->conf_ignoredomains);
 
-	dmarcf_freearray(conf->conf_trustedauthservids);
+	if (conf->conf_trustedauthservids != NULL)
+		dmarcf_freearray(conf->conf_trustedauthservids);
 
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
