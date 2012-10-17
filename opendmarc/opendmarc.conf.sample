@@ -4,15 +4,6 @@
 ## Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 ##
 
-##  AlwaysDeliver { true | false }
-##  	default "false"
-##
-##  If set, no message will be rejected or temp-failed regardless of the
-##  outcome of the DMARC evaluation of the message.  Instead, an
-##  Authentication-Results header field will be added.
-#
-# AlwaysDeliver	false
-
 ##  AuthservID (string)
 ##  	defaults to MTA name
 ##
@@ -198,6 +189,17 @@
 ##  history file.
 #
 # RecordAllMessages false
+
+##  RejectFailures { true | false }
+##  	default "false"
+##
+##  If set, messages will be rejected if they fail the DMARC evaluation, or
+##  temp-failed if evaluation could not be completed.  By default, no message
+##  will be rejected or temp-failed regardless of the outcome of the DMARC
+##  evaluation of the message.  Instead, an Authentication-Results header
+##  field will be added.
+#
+# RejectFailures false
 
 ##  ReportCommand string
 ##  	default "/usr/sbin/sendmail -t"

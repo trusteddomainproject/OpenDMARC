@@ -43,12 +43,6 @@ default to 0, and string and dataset values default to being undefined.
 
 .SH PARAMETERS
 .TP
-.I AlwaysDeliver (Boolean)
-If set, no message will be rejected or temp-failed regardless of the outcome
-of the DMARC evaluation of the message.  Instead, an Authentication-Results
-header field will be added.  The default is "false".
-
-.TP
 .I AuthservID (string)
 Sets the "authserv-id" to use when generating the Authentication-Results:
 header field after verifying a message.  The default is to use the name of
@@ -192,6 +186,14 @@ If set and
 is in use, all received messages are recorded to the history file.  If not set
 (the default), only messages for which the From: domain published a DMARC
 record will be recorded in the history file.
+
+.TP
+.I RejectFailures (Boolean)
+If set, messages will be rejected if they fail the DMARC evaluation, or
+temp-failed if evaluation could not be completed.  By default, no message will
+be rejected or temp-failed regardless of the outcome of the DMARC evaluation of
+the message.  Instead, an Authentication-Results header field will be added.
+The default is "false".
 
 .TP
 .I ReportCommand (string)

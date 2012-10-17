@@ -4,6 +4,7 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.0.0		2012/10/21
+	Rename "AlwaysDeliver" to "RejectFailures" and flip the logic.
 	Feature request #26: Don't overload "AuthservID"; instead, the list
 		of trusted authserv-ids is now specified by a
 		new "TrustedAuthservIDs" setting.  Requested by Andreas Schulze.
@@ -18,6 +19,8 @@ release, and a summary of the changes in that release.
 		envelope.
 	REPORTING: Feature request #27: Add "--nodomain" to opendmarc-reports
 		to skip report generation for specific domains.
+	LIBOPENDMARC: Fix bug #31: Improve From: field parsing.  Problem
+		reported by Todd Lyons.
 
 0.2.2		2012/09/14
 	Fix bug #25: Use locks to co-ordinate between the filter writing

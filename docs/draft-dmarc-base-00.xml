@@ -692,7 +692,7 @@
       "_dmarc.example.com".  The DNS-located DMARC preference data will
       hereafter be called the "DMARC record". </t>
 
-  <t> DMARC records are stored in the DNS for three key engineering
+  <t> DMARC records are stored in the DNS for two key engineering
       reasons:
 
       <list style="hanging">
@@ -3852,7 +3852,7 @@
   Content-Transfer-Encoding: base64
   Content-Disposition: attachment;
       filename="mail.receiver.example!example.com!
-                1013662812!1013749130.gzip"
+                1013662812!1013749130.gz"
     
   &lt;gzipped content of report&gt;
     

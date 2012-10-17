@@ -361,7 +361,7 @@ foreach (@$domainset)
 		next;
 	}
 
-	if (@skipdomains && grep($domain, @skipdomains) != 0)
+	if (@skipdomains && grep({$_ eq $domain} @skipdomains) != 0)
 	{
 		next;
 	}
