@@ -3,7 +3,11 @@ LDADD = ../libopendmarc.la $(LIBRESOLV)
 AM_CPPFLAGS = -I..
 
 check_PROGRAMS		 = test_tld test_finddomain \
-				test_dmarc_parse test_dmarc_fetch test_xml_parse test_alignment
+			   test_dmarc_parse \
+			   test_dmarc_fetch \
+			   test_xml_parse \
+			   test_parse_to_buf \
+			   test_alignment
 if LIVE_TESTS
 check_PROGRAMS           += test_dns_lookup
 endif
@@ -15,6 +19,8 @@ test_tld_SOURCES         = test_tld.c
 test_finddomain_SOURCES  = test_finddomain.c
 
 test_dmarc_parse_SOURCES = test_dmarc_parse.c
+
+test_parse_to_buf_SOURCES = test_parse_to_buf.c
 
 test_dmarc_fetch_SOURCES = test_dmarc_fetch.c
 

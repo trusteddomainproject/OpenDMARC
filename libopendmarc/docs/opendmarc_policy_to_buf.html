@@ -1,0 +1,104 @@
+<html>
+<head><title>opendmarc_policy_to_buf()</title></head>
+<body>
+<!--
+$Id: opendmarc_policy_to_buf.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_policy_to_buf()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+<tt>int</tt>opendmarc_policy_to_buf(
+	<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> *pctx,
+	char *buf, size_t buflen
+);
+</pre>
+Fills out buf with the contents of <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> *pctx.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_policy_to_buf()</tt>
+	may be called anytime <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> *pctx has data to examine.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>pctx</td>
+	<td>The address of a structure of type <a href="dmarc_policy_t.html">
+        <tt>DMARC_POLICY_T</tt></a> as returned from <a href="opendmarc_policy_connect_init.html">opendmarc_policy_connect_init()</a>. 
+	</td></tr>
+    <tr valign="top"><td>buf</td>
+	<td>A buffer big enough.
+	</td></tr>
+    <tr valign="top"><td>buflen</td>
+	<td>The size in bytes of the buffer.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>0</tt> -- Success.
+<li><tt>EINVAL</tt> -- If you passed in a <tt>pctx</tt>, <tt>buf</tt> that was NULL, or a <tt>buflen</tt> of zero.
+<li><tt>E2BIG</tt> -- The <tt>buf</tt> was too small.
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+A successfully filled out <tt>buf</tt> will contain mutilple LF delimited lines of text like the following:
+<blockquote>
+IP_ADDR=1.2.3.4
+<br>IP_TYPE=IPv4
+<br>SPF_DOMAIN=
+<br>SPF_ORIGIN=
+<br>SPF_OUTCOME=NONE
+<br>SPF_HUMAN_OUTCOME=
+<br>DKIM_FINAL=FALSE
+<br>DKIM_DOMAIN=
+<br>DKIM_OUTOME=NONE
+<br>DKIM_HUMAN_OUTCOME=
+<br>DKIM_ALIGNMENT=FAIL
+<br>SPF_ALIGNMENT=FAIL
+<br>H_ERRNO=
+<br>ADKIM=RELAXED
+<br>ASPF=RELAXED
+<br>P=NONE
+<br>SP=UNSPECIFIED
+<br>PCT=100
+<br>RF=AFRF,IODEF
+<br>RI=86400
+<br>RUA=mailto:dmarc-a@abuse.net
+<br>RUF=mailto:dmarc-f@abuse.net
+</blockquote>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

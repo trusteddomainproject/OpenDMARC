@@ -10,3 +10,4 @@ test_dmarc_parse
 test_xml_parse
 test_alignment
 test_dmarc_fetch
+test_parse_to_buf

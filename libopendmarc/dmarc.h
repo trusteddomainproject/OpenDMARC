@@ -152,6 +152,7 @@ u_char **          opendmarc_xml_parse(char *fname, char *err_buf, size_t err_le
 u_char ** 	   opendmarc_util_clearargv(u_char **ary);
 const char *	   opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status);
 int                opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode);
+int 		   opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen);
 
 #ifdef __cplusplus
 }

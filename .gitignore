@@ -19,3 +19,4 @@ opendmarc-[0-9].[0-9].[0-9]
 *.gz.asc
 *.orig
 *.rej
+HOURS

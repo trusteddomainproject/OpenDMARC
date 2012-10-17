@@ -1313,3 +1313,297 @@ opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status)
 	}
 	return msg;
 }
+
+/*******************************************************************************
+** OPENDMARC_POLICY_TO_BUF -- Dump the DMARC_POLICY_T to a user supplied buffer
+**	Arguments:
+**		pctx		A pointer to a filled in DMARC_POLICY_T sttucture
+**		buf		A char * buffer
+**		buflen		The size of the char * buffer
+**	Returns:
+**		0 		On success
+**		>0 		On failure, and fills errno with the error
+**	Side Effects:
+**		Blindly overwrites buffer.
+*******************************************************************************/
+int
+opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
+{
+	char	nbuf[32];
+	int	i;
+
+	if (pctx == NULL || buf == NULL || buflen == 0)
+		return errno = EINVAL;
+
+	(void) memset(buf, '\0', buflen);
+
+	if (strlcat(buf, "IP_ADDR=", buflen) >= buflen) return E2BIG;
+	if (pctx->ip_addr != NULL)
+		if (strlcat(buf, pctx->ip_addr, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "IP_TYPE=", buflen) >= buflen) return E2BIG;
+	if (pctx->ip_addr != NULL)
+	{
+		if (pctx->ip_type == DMARC_POLICY_IP_TYPE_IPV4)
+		{
+			if (strlcat(buf, "IPv4", buflen) >= buflen) return E2BIG;
+		}
+		else if (pctx->ip_type == DMARC_POLICY_IP_TYPE_IPV6)
+		{
+			if (strlcat(buf, "IPv6", buflen) >= buflen) return E2BIG;
+		}
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "SPF_DOMAIN=", buflen) >= buflen) return E2BIG;
+	if (pctx->spf_domain != NULL)
+		if (strlcat(buf, pctx->spf_domain, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "SPF_ORIGIN=", buflen) >= buflen) return E2BIG;
+	if (pctx->spf_origin != 0)
+	{
+		if (pctx->spf_origin == DMARC_POLICY_SPF_ORIGIN_MAILFROM)
+		{
+			if (strlcat(buf, "MAILFROM", buflen) >= buflen) return E2BIG;
+		}
+		else if (pctx->spf_origin == DMARC_POLICY_SPF_ORIGIN_HELO)
+		{
+			if (strlcat(buf, "HELO", buflen) >= buflen) return E2BIG;
+		}
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "SPF_OUTCOME=", buflen) >= buflen) return E2BIG;
+	switch (pctx->spf_outcome)
+	{
+		default:
+		case DMARC_POLICY_DKIM_OUTCOME_NONE:
+			if (strlcat(buf, "NONE", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_POLICY_DKIM_OUTCOME_PASS:
+			if (strlcat(buf, "PASS", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_POLICY_DKIM_OUTCOME_FAIL:
+			if (strlcat(buf, "FAIL", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_POLICY_DKIM_OUTCOME_TMPFAIL:
+			if (strlcat(buf, "TMPFAIL", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "SPF_HUMAN_OUTCOME=", buflen) >= buflen) return E2BIG;
+	if (pctx->spf_human_outcome != NULL)
+		if (strlcat(buf, pctx->spf_human_outcome, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "DKIM_FINAL=", buflen) >= buflen) return E2BIG;
+	switch (pctx->dkim_final)
+	{
+		case TRUE:
+			if (strlcat(buf, "TRUE", buflen) >= buflen) return E2BIG;
+			break;
+		default:
+		case FALSE:
+			if (strlcat(buf, "FALSE", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "DKIM_DOMAIN=", buflen) >= buflen) return E2BIG;
+	if (pctx->dkim_domain != NULL)
+		if (strlcat(buf, pctx->dkim_domain, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "DKIM_OUTOME=", buflen) >= buflen) return E2BIG;
+	switch (pctx->dkim_outcome)
+	{
+		default:
+		case DMARC_POLICY_DKIM_OUTCOME_NONE:
+			if (strlcat(buf, "NONE", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_POLICY_DKIM_OUTCOME_PASS:
+			if (strlcat(buf, "PASS", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_POLICY_DKIM_OUTCOME_FAIL:
+			if (strlcat(buf, "FAIL", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_POLICY_DKIM_OUTCOME_TMPFAIL:
+			if (strlcat(buf, "TMPFAIL", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "DKIM_HUMAN_OUTCOME=", buflen) >= buflen) return E2BIG;
+	if (pctx->dkim_human_outcome != NULL)
+		if (strlcat(buf, pctx->dkim_human_outcome, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "DKIM_ALIGNMENT=", buflen) >= buflen) return E2BIG;
+	switch (pctx->dkim_alignment)
+	{
+		case DMARC_POLICY_DKIM_ALIGNMENT_PASS:
+			if (strlcat(buf, "PASS", buflen) >= buflen) return E2BIG;
+			break;
+		default:
+		case DMARC_POLICY_DKIM_ALIGNMENT_FAIL:
+			if (strlcat(buf, "FAIL", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "SPF_ALIGNMENT=", buflen) >= buflen) return E2BIG;
+	switch (pctx->spf_alignment)
+	{
+		case DMARC_POLICY_SPF_ALIGNMENT_PASS:
+			if (strlcat(buf, "PASS", buflen) >= buflen) return E2BIG;
+			break;
+		default:
+		case DMARC_POLICY_SPF_ALIGNMENT_FAIL:
+			if (strlcat(buf, "FAIL", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "H_ERRNO=", buflen) >= buflen) return E2BIG;
+	switch (pctx->h_error)
+	{
+		case HOST_NOT_FOUND:
+			if (strlcat(buf, "HOST_NOT_FOUND", buflen) >= buflen) return E2BIG;
+			break;
+		case TRY_AGAIN:
+			if (strlcat(buf, "TRY_AGAIN", buflen) >= buflen) return E2BIG;
+			break;
+		case NO_RECOVERY:
+			if (strlcat(buf, "NO_RECOVERY", buflen) >= buflen) return E2BIG;
+			break;
+		case NO_DATA:
+			if (strlcat(buf, "NO_DATA", buflen) >= buflen) return E2BIG;
+			break;
+		case NETDB_INTERNAL:
+			if (strlcat(buf, "NETDB_INTERNAL", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "ADKIM=", buflen) >= buflen) return E2BIG;
+	switch (pctx->adkim)
+	{
+		case DMARC_RECORD_A_UNSPECIFIED:
+			if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_A_STRICT:
+			if (strlcat(buf, "STRICT", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_A_RELAXED:
+			if (strlcat(buf, "RELAXED", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "ASPF=", buflen) >= buflen) return E2BIG;
+	switch (pctx->aspf)
+	{
+		case DMARC_RECORD_A_UNSPECIFIED:
+			if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_A_STRICT:
+			if (strlcat(buf, "STRICT", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_A_RELAXED:
+			if (strlcat(buf, "RELAXED", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "P=", buflen) >= buflen) return E2BIG;
+	switch (pctx->p)
+	{
+		case DMARC_RECORD_A_UNSPECIFIED:
+			if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_P_NONE:
+			if (strlcat(buf, "NONE", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_P_QUARANTINE:
+			if (strlcat(buf, "QUARANTINE", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_P_REJECT:
+			if (strlcat(buf, "REJECT", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "SP=", buflen) >= buflen) return E2BIG;
+	switch (pctx->sp)
+	{
+		case DMARC_RECORD_A_UNSPECIFIED:
+			if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_P_NONE:
+			if (strlcat(buf, "NONE", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_P_QUARANTINE:
+			if (strlcat(buf, "QUARANTINE", buflen) >= buflen) return E2BIG;
+			break;
+		case DMARC_RECORD_P_REJECT:
+			if (strlcat(buf, "REJECT", buflen) >= buflen) return E2BIG;
+			break;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "PCT=", buflen) >= buflen) return E2BIG;
+	(void) snprintf(nbuf, sizeof nbuf, "%d", pctx->pct);
+	if (strlcat(buf, nbuf, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "RF=", buflen) >= buflen) return E2BIG;
+	if (pctx->rf == 0)
+	{
+		if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
+	}
+	if ((pctx->rf|DMARC_RECORD_RF_AFRF) != 0)
+	{
+		if (strlcat(buf, "AFRF", buflen) >= buflen) return E2BIG;
+	}
+	if ((pctx->rf|DMARC_RECORD_RF_IODEF) != 0 && (pctx->rf|DMARC_RECORD_RF_AFRF) != 0)
+	{
+		if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
+	}
+	if ((pctx->rf|DMARC_RECORD_RF_IODEF) != 0)
+	{
+		if (strlcat(buf, "IODEF", buflen) >= buflen) return E2BIG;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "RI=", buflen) >= buflen) return E2BIG;
+	(void) snprintf(nbuf, sizeof nbuf, "%d", pctx->ri);
+	if (strlcat(buf, nbuf, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "RUA=", buflen) >= buflen) return E2BIG;
+	for (i = 0; i < pctx->rua_cnt; ++i)
+	{
+		if (i > 0)
+		{
+			if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
+		}
+		if (strlcat(buf, (pctx->rua_list)[i], buflen) >= buflen) return E2BIG;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "RUF=", buflen) >= buflen) return E2BIG;
+	for (i = 0; i < pctx->ruf_cnt; ++i)
+	{
+		if (i > 0)
+		{
+			if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
+		}
+		if (strlcat(buf, (pctx->ruf_list)[i], buflen) >= buflen) return E2BIG;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	return 0;
+}
