@@ -1181,14 +1181,16 @@
        Owners to be aware of this situation and allow for such mixed reports
        during the propagation of the new policy to Mail Receivers. </t>
 
-   <t> Aggregate reports are maximally useful when they all cover a common
-       time period, correlation of these reports from multiple generators
-       when they cover incongruous time periods is difficult or impossible.
-       Since the reporting mechanisms are explicitly a best-effort
-       service, no normative requirement is established to do so.  However,
-       when possible, report generators are encouraged to ensure daily reports
-       cover a period of 24 hours starting at 00:00 UTC, hourly reports
-       cover a period of 60 minutes that starts on the hour, etc. </t>
+   <t> Aggregate reports are most useful when they all cover a common time
+       period.  By contrast, correlation of these reports from multiple
+       generators when they cover incongruous time periods is difficult or
+       impossible.  Report generators SHOULD, wherever possible, adhere to
+       hour boundaries for the reporting period they are using.  For example,
+       starting a per-day report at 00:00; starting per-hour reports at 00:00,
+       01:00, 02:00; et cetera.  Report Generators using a 24-hour report
+       period are strongly encouraged to begin that period at 00:00 UTC,
+       regardless of local timezone or time of report production, in order to
+       facilitate correlation. </t>
   </section> <!-- Aggregate Reports -->
 
   <section title="Failure Reports" anchor="forensic">
