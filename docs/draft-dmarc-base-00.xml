@@ -1626,9 +1626,8 @@
            ignore the rest. </t>
 
        <t>Email streams carrying DMARC feedback data MUST conform to
-          the DMARC mechanism.  That is, the message comprising the report
-          MUST be DKIM-signed by an aligned domain name or originate from a
-	  source for which an SPF test would result in an aligned "pass".
+          the DMARC mechanism, thereby resulting in an aligned "pass"
+	  (see <xref target="id_alignment_element"/>).
 	  This practice minimizes the risk of report consumers processing
 	  fraudulent reports. </t>
 
