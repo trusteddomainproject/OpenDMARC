@@ -646,14 +646,7 @@ dmarcf_eatspaces(char *str)
 void
 dmarcf_freearray(char **a)
 {
-	int c;
-
 	assert(a != NULL);
-
-	/*
-	for (c = 0; a[c] != NULL; c++)
-		free(a[c]);
-	*/
 
 	free(a);
 }
@@ -795,7 +788,6 @@ dmarcf_checklist(const char *str, struct list *list)
 _Bool
 dmarcf_checkhost(const char *host, struct list *list)
 {
-	int status;
 	const char *p;
 	char buf[BUFRSZ + 1];
 
@@ -838,7 +830,6 @@ dmarcf_checkhost(const char *host, struct list *list)
 _Bool
 dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 {
-	_Bool exists;
 	char ipbuf[MAXHOSTNAMELEN + 1];
 
 	assert(ip != NULL);
@@ -850,7 +841,6 @@ dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 #if AF_INET6
 	if (ip->sa_family == AF_INET6)
 	{
-		int status;
 		int bits;
 		size_t dst_len;
 		char *dst;
@@ -926,7 +916,6 @@ dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 	{
 		_Bool exists;
 		int c;
-		int status;
 		int bits;
 		struct in_addr addr;
 		struct in_addr mask;
@@ -1849,8 +1838,6 @@ mlfi_eom(SMFICTX *ctx)
 	int align_dkim;
 	int align_spf;
 	int result;
-	int sdstate = -1;
-	int dresult;
 	sfsistat ret = SMFIS_CONTINUE;
 	OPENDMARC_STATUS_T ostatus;
 	char *aresult = NULL;
@@ -1868,7 +1855,6 @@ mlfi_eom(SMFICTX *ctx)
 	unsigned char addrbuf[BUFRSZ + 1];
 	unsigned char replybuf[BUFRSZ + 1];
 	unsigned char pdomain[MAXHOSTNAMELEN + 1];
-	unsigned char sdomain[MAXHOSTNAMELEN + 1];
 	struct authres ar;
 
 	assert(ctx != NULL);
@@ -1949,7 +1935,10 @@ mlfi_eom(SMFICTX *ctx)
 	    dmarcf_match(domain, conf->conf_ignoredomains, TRUE))
 	{
 		if (conf->conf_dolog)
-			syslog(LOG_INFO, "%s: ignoring mail from %s", domain);
+		{
+			syslog(LOG_INFO, "%s: ignoring mail from %s",
+			       dfc->mctx_jobid, domain);
+		}
 
 		return SMFIS_ACCEPT;
 	}

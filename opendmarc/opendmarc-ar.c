@@ -270,42 +270,6 @@ ares_tokenize(u_char *input, u_char *outbuf, size_t outbuflen,
 }
 
 /*
-**  ARES_TRIMSPACES -- trim trailing whitespace
-**
-**  Parameters:
-**  	str -- string to modify
-**
-**  Return value:
-**  	None.
-*/
-
-static void
-ares_trimspaces(u_char *str)
-{
-	u_char *p;
-	u_char *last;
-
-	assert(str != NULL);
-
-	last = NULL;
-
-	for (p = str; *p != '\0'; p++)
-	{
-		if (isascii(*p) && isspace(*p) && last == NULL)
-		{
-			last = p;
-			continue;
-		}
-
-		if (!isascii(*p) || !isspace(*p))
-			last = NULL;
-	}
-
-	if (last != NULL)
-		*last = '\0';
-}
-
-/*
 **  ARES_CONVERT -- convert a string to its code
 **
 **  Parameters:
