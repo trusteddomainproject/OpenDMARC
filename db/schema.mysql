@@ -3,6 +3,9 @@
 -- Copyright (c) 2012, The Trusted Domain Project.
 -- 	All rights reserved.
 
+CREATE DATABASE IF NOT EXISTS opendmarc;
+USE opendmarc;
+
 -- A table for mapping domain names and their DMARC policies to IDs
 CREATE TABLE IF NOT EXISTS domains (
 	id INT NOT NULL AUTO_INCREMENT,
@@ -85,3 +88,6 @@ CREATE TABLE IF NOT EXISTS signatures (
 	PRIMARY KEY(id),
 	KEY(message)
 );
+
+-- CREATE USER 'opendmarc'@'localhost' IDENTIFIED BY 'changeme';
+-- GRANT ALL ON opendmarc.* to 'opendmarc'@'localhost';
