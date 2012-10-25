@@ -1,34 +1,34 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v0.2.2 released
+Subject: OpenDMARC v1.0.0 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v0.2.2, now available for download from SourceForge.
+OpenDMARC v1.0.0, now available for download from SourceForge.
 
-This is a beta release.  It is not appropriate for full production
-environments.  It is still undergoing shakedown in various test and
-small-scale production environments.  You are welcome to download it and
-try it in your environment.  *PLEASE* provide feedback about any bugs you
-find or suggestions you may have via the opendmarc-users mailing list.
+This is the first production-level release of OpenDMARC.  Sites operating
+the pre-release versions are encouraged to upgrade.
 
-The full RELEASE_NOTES for this version:
+The full RELEASE_NOTES for this version, showing changes from the final
+pre-release version:
 
-1.0.0		20.2.20/??
-	Initial release.
-
-0.2.2		2012/09/14
-	Fix bug #25: Use locks to co-ordinate between the filter writing
-		to the history file and opendmarc-import consuming it.
-		Problem noted by Marcos Vieira.
-	Don't use dmarcf_dstring_printf() where dmarcf_dstring_cat() suffices.
-	Add Authentication-Results fields honouring AuthservIDWithJobID.
-		Problem noted by Andreas Schulze.
-	Improve logic that identifies usable Authentication-Results fields.
-		Problem noted by Andreas Schulze.
-	REPORTING: Handle multiple "rua" values in both reporting scripts.
-		Problem noted by Andreas Schulze.
-	REPORTING: Get the date range right on reports.  Problem noted by
-		Todd Lyons and Andreas Schulze.
+1.0.0		2012/10/25
+	Rename "AlwaysDeliver" to "RejectFailures" and flip the logic.
+	Feature request #26: Don't overload "AuthservID"; instead, the list
+		of trusted authserv-ids is now specified by a
+		new "TrustedAuthservIDs" setting.  Requested by Andreas Schulze.
+	Feature request #28: Add "CopyFailuresTo" which adds the specified
+		recipient to the message when DMARC failures occur.
+		Requested by Andreas Schulze.
+	Feature request #30: Improve logging by indicating what the return
+		path was when a parse failure occurred, and what the final
+		DMARC result was.  Requested by Andreas Schulze.
+	Evaluate based on the envelope sender reported by
+		Authentication-Results and not on what was in the actual
+		envelope.
+	REPORTING: Feature request #27: Add "--nodomain" to opendmarc-reports
+		to skip report generation for specific domains.
+	LIBOPENDMARC: Fix bug #31: Improve From: field parsing.  Problem
+		reported by Todd Lyons.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
