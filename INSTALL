@@ -32,7 +32,7 @@ at <http://www.postfix.org>.
 OPTIONAL PACKAGES
 =================
 
-OpenDKIM supports a few optional packages that can be included in the build
+OpenDMARC supports a few optional packages that can be included in the build
 to provide additional services.  A few of these become mandatory when
 enabling certain features below.  Specifying only the "--with-xxx" parameter
 to the "configure" command (described below) enables the package and makes a
