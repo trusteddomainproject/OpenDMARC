@@ -3,6 +3,9 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.0.1		2012/??/??
+	Fall back to lockf() if flock() support isn't available.
+
 1.0.0		2012/10/25
 	Rename "AlwaysDeliver" to "RejectFailures" and flip the logic.
 	Feature request #26: Don't overload "AuthservID"; instead, the list
