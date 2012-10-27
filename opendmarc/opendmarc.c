@@ -2581,9 +2581,17 @@ mlfi_eom(SMFICTX *ctx)
 			return SMFIS_TEMPFAIL;
 		}
 
+#ifdef LOCK_EX
 		if (flock(fileno(f), LOCK_EX) != 0)
 		{
 			syslog(LOG_WARNING, "%s: %s: flock(LOCK_EX): %s",
+#else
+# ifdef F_LOCK
+		if (lockf(fileno(f), F_LOCK, 0)  != 0)
+		{
+			syslog(LOG_WARNING, "%s: %s: lockf(F_LOCK): %s",
+# endif
+#endif /* LOCK_EX */
 			       dfc->mctx_jobid,
 			       conf->conf_historyfile,
 			       strerror(errno));
@@ -2601,9 +2609,17 @@ mlfi_eom(SMFICTX *ctx)
 			       strerror(errno));
 		}
 
+#ifdef LOCK_EX
 		if (flock(fileno(f), LOCK_UN) != 0)
 		{
 			syslog(LOG_WARNING, "%s: %s: flock(LOCK_UN): %s",
+#else
+# ifdef F_LOCK
+		if (lockf(fileno(f), F_ULOCK, 0)  != 0)
+		{
+			syslog(LOG_WARNING, "%s: %s: lockf(F_ULOCK): %s",
+# endif
+#endif /* LOCK_EX */
 			       dfc->mctx_jobid,
 			       conf->conf_historyfile,
 			       strerror(errno));
