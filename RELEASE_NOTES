@@ -5,6 +5,7 @@ release, and a summary of the changes in that release.
 
 1.0.1		2012/??/??
 	Fall back to lockf() if flock() support isn't available.
+	Fix faulty SPF error logging.  Problem noted by Benny Pedersen. 
 
 1.0.0		2012/10/25
 	Rename "AlwaysDeliver" to "RejectFailures" and flip the logic.

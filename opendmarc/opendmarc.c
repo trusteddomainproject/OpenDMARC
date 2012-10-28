@@ -1844,6 +1844,7 @@ mlfi_eom(SMFICTX *ctx)
 	char *aresult = NULL;
 	char *hostname = NULL;
 	char *authservid = NULL;
+	char *spfaddr;
 	DMARCF_CONNCTX cc;
 	DMARCF_MSGCTX dfc;
 	struct dmarcf_config *conf;
@@ -2031,8 +2032,9 @@ mlfi_eom(SMFICTX *ctx)
 						if (strcasecmp(ar.ares_result[c].result_property[pc],
 					                       "mailfrom") == 0)
 						{
+							spfaddr = ar.ares_result[c].result_value[pc];
 							strncpy(addrbuf,
-							        ar.ares_result[c].result_value[pc],
+							        spfaddr,
 							        sizeof addrbuf - 1);
 							spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 						}
@@ -2040,8 +2042,9 @@ mlfi_eom(SMFICTX *ctx)
 					                           "helo") == 0 &&
 						         addrbuf[0] == '\0')
 						{
+							spfaddr = ar.ares_result[c].result_value[pc];
 							strncpy(addrbuf,
-							        ar.ares_result[c].result_value[pc],
+							        spfaddr,
 							        sizeof addrbuf - 1);
 							spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
 						}
@@ -2056,9 +2059,9 @@ mlfi_eom(SMFICTX *ctx)
 					if (conf->conf_dolog)
 					{
 						syslog(LOG_ERR,
-						       "%s: can't parse return path address <%s>",
+						       "%s: can't parse validated SPF address <%s>",
 						       dfc->mctx_jobid,
-						       dfc->mctx_envfrom);
+						       spfaddr);
 					}
 
 					continue;
