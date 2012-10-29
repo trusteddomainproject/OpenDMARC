@@ -22,6 +22,8 @@ MAINTAINERCLEANFILES 	= Makefile.in aclocal.m4 configure \
 
 ACLOCAL		= aclocal -I $(auxdir)
 
+dist_doc_DATA = LICENSE
+
 DISTCLEANFILES = opendmarc-@VERSION@.tar.gz
 
 DISTCHECK_CONFIGURE_FLAGS=--enable-filter-tests
