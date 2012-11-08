@@ -593,6 +593,11 @@
       be compared in a case-insensitive manner, per
       <xref target="DNS-CASE"/>.  </t>
 
+   <t>It is important to note that identity alignment cannot occur with a
+      message that is not valid per <xref target="MAIL"/>, particularly
+      one with a malformed or absent RFC5322.From field.  Handling of such
+      cases is left to the discretion of the Mail Receiver. </t>
+     
    <section title="DKIM-authenticated Identifiers" anchor="dkim_id_align">
     <t>DMARC provides the option of applying DKIM in a strict mode or a
        relaxed mode {R2}. </t>
@@ -1951,6 +1956,12 @@
          <t> The DMARC mechanism confers no additional privilege to the
              message without successful authentication of this identifier. </t>
        </list></t>
+
+   <t> The absence of a single, properly-formed RFC5322.From field renders
+       the message invalid.  This document prescribes no specific action in
+       that case, other than to suggest that the message ought to be disposed
+       of by the Mail Receiver's infrastructure in a safe manner that
+       recognizes and possibly even highlights the malformation. </t>
   </section>
 
   <section anchor="sec_display" title="Display Name Attacks">
