@@ -4099,7 +4099,8 @@
     &lt;xs:element name="domain" type="xs:string"
                 minOccurs="1"/&gt;
     &lt;!-- The s= parameter in the signature --&gt;
-    &lt;xs:element name="selector" type="xs:string"&gt;
+    &lt;xs:element name="selector" type="xs:string"
+                minOccurs="0"/&gt;
     &lt;!-- The DKIM verification result --&gt;
     &lt;xs:element name="result" type="DKIMResultType"
                 minOccurs="1"/&gt;
