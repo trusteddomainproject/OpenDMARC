@@ -557,7 +557,7 @@
 
    <t>A DMARC-enabled Mail Receiver might also generate per-message reports
       that contain information related to individual messages which fail SPF
-      and/or DKIM.  Per-message reports are useful for forensic use in
+      and/or DKIM.  Per-message failure reports are useful for forensic use in
       debugging deployments (if messages can be determined to be legitimate
       albeit failing authentication) or in analyzing attacks. The capability
       for such services is enabled by DMARC but defined in other referenced
@@ -1295,7 +1295,7 @@
   </section> <!-- Failure Reports -->
 
   <section title="Failure Reports" anchor="fb_failure">
-   <t> Message-specific authentication-failure-related forensic reporting can
+   <t> Message-specific authentication-failure-related reporting can
        be used to identify problems with Domain-Owner-controlled
        infrastructure and to investigate the sources and causes of failing
        messages.  They might also be used to aid investigations into the
