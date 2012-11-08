@@ -831,10 +831,11 @@
            mail stream to which the DMARC mechanism is to be applied.  However,
            this MUST NOT be applied to the DMARC-generated reports, all of
            which must be sent and received unhindered.  The purpose of the
-           "pct" tag is to allow Domain Owners to slowly roll out enforcement
-           of the DMARC mechanism.  The prospect of "all or nothing" is
-           recognized as preventing many organizations from experimenting with
-           strong authentication-based mechanisms.</t>
+           "pct" tag is to allow Domain Owners to enact a slow rollout
+	   enforcement of the DMARC mechanism.  The prospect of "all or
+	   nothing" is recognized as preventing many organizations from
+	   experimenting with strong authentication-based mechanisms.  See
+	   <xref target="fallback"/> for details. </t>
 
         <t hangText="rf:"> Format to be used for message-specific
            failure reports (comma-separated plain-text list of
@@ -997,7 +998,7 @@
 
   <t> Mail Receivers MAY choose to accept email that fails
       the DMARC mechanism check even if the Domain Owner has
-      published a "reject" policy.  Mail Receivers SHOULD make a
+      published a "reject" policy.  Mail Receivers need to make a
       best effort not to increase the likelihood of phishing if
       it chooses not to reject, against policy.  At a minimum, addition
       of the Authentication-Results header field (see
@@ -1025,6 +1026,22 @@
   <t> Mail Receivers SHOULD also implement reporting instructions of
       DMARC in place of any extensions to SPF or DKIM that might enable
       such reporting. {R10} </t>
+
+  <section anchor="fallback" title="Policy Fallback Mechanism">
+   <t> If the "pct" tag is present in a policy record, application of policy
+       is done on a selective basis.  The stated percentage of messages that
+       fail the DMARC test MUST be subjected to whatever policy is
+       selected by the "p" or "sp" tag (if present).  Those that are not thus
+       selected MUST instead be subjected to the next policy lower in terms of
+       severity.  In decreasing order of severity, the policies are
+       "reject", "quarantine", and "none". </t>
+
+   <t> For example, in the presence of "pct=50" in the DMARC policy record
+       for "example.com", half of the mesages with "example.com" in the
+       RFC5322.From field which fail the DMARC test would be subjected to
+       "reject" action, and the remainder subjected to "quarantine"
+       action. </t>
+  </section> <!-- Policy Fallback Mechanism -->
  </section> <!-- Policy Enforcement -->
 
  <section title="DMARC Feedback" anchor="feedback">
