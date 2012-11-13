@@ -3149,7 +3149,7 @@
   </section>
  
   <section title="Issues With ADSP In Operation" anchor="issues_with_adsp">
-   <t>DMARC has been chacarterized as a "super-ADSP" of sorts. </t>
+   <t>DMARC has been characterized as a "super-ADSP" of sorts. </t>
 
    <t>Contributors to DMARC have compiled a list of issues
       associated with ADSP, gained from operational experience, that
