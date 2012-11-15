@@ -1191,10 +1191,19 @@
        may be noticed during that period, at the end of that period when
        reports are generated, or during a subsequent reporting period, all
        depending on the Mail Receiver's implementation.  Under these conditions
-       it is possible that a Mail Receiver could generate a single aggregate
-       report for such a reporting period which includes message dispositions
-       based on the old policy, or a mix of the two policies, even though the
-       report only contains a single "policy_published" element. </t>
+       it is possible that a Mail Receiver could do any of the following:
+       <list style="symbols">
+	<t> generate a single aggregate report for such a reporting period
+            that includes message dispositions based on the old policy, or
+            a mix of the two policies, even though the report only contains a
+            single "policy_published" element; </t>
+
+        <t> generate multiple reports for the same period, one for each
+            published policy occurring during the reporting period; </t>
+
+        <t> generate a reports whose end time occurs when the updated policy
+            was detected, regardless of any requested report interval. </t>
+       </list> </t>
 
    <t> Such policy changes are expected to be infrequent for any given domain,
        whereas more stringent policy monitoring requirements on the Mail
