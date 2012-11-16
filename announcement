@@ -1,34 +1,22 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v1.0.0 released
+Subject: OpenDMARC v1.0.1 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v1.0.0, now available for download from SourceForge.
+OpenDMARC v1.0.1, now available for download from SourceForge.
 
-This is the first production-level release of OpenDMARC.  Sites operating
-the pre-release versions are encouraged to upgrade.
+This is a minor bug fix release for the filter, tools, and some contributed
+items.  There are no changes to the library in this version.
 
-The full RELEASE_NOTES for this version, showing changes from the final
-pre-release version:
+The full RELEASE_NOTES for this version, showing changes since the last
+release:
 
-1.0.0		2012/10/25
-	Rename "AlwaysDeliver" to "RejectFailures" and flip the logic.
-	Feature request #26: Don't overload "AuthservID"; instead, the list
-		of trusted authserv-ids is now specified by a
-		new "TrustedAuthservIDs" setting.  Requested by Andreas Schulze.
-	Feature request #28: Add "CopyFailuresTo" which adds the specified
-		recipient to the message when DMARC failures occur.
-		Requested by Andreas Schulze.
-	Feature request #30: Improve logging by indicating what the return
-		path was when a parse failure occurred, and what the final
-		DMARC result was.  Requested by Andreas Schulze.
-	Evaluate based on the envelope sender reported by
-		Authentication-Results and not on what was in the actual
-		envelope.
-	REPORTING: Feature request #27: Add "--nodomain" to opendmarc-reports
-		to skip report generation for specific domains.
-	LIBOPENDMARC: Fix bug #31: Improve From: field parsing.  Problem
-		reported by Todd Lyons.
+1.0.1		2012/11/16
+	Fall back to lockf() if flock() support isn't available.
+	Fix faulty SPF error logging.  Problem noted by Benny Pedersen. 
+	REPORTING: Improve temporary file cleanup in opendmarc-reports.
+	CONTRIB: Fixes to configuration file generation in the spec file.
+		Problem noted by Steve Mays.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
