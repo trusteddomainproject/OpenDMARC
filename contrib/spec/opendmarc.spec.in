@@ -63,9 +63,9 @@ mkdir -p %{buildroot}%{_sysconfdir}
 mkdir -p %{buildroot}%{_initrddir}
 install -m 0755 contrib/init/redhat/%{name} %{buildroot}%{_initrddir}/%{name}
 install -m 0755 opendmarc/%{name}.conf.sample %{buildroot}%{_sysconfdir}/%{name}.conf
-perl -pi -e 's|^# (HistoryFile /var/run)/(opendmarc.dat)|$1/opendmarc/$2/;
+perl -pi -e 's|^# (HistoryFile /var/run)/(opendmarc.dat)|$1/opendmarc/$2|;
              s|^# (Socket )|$1|;
-             s|^# (UserId )|$1|;
+             s|^# (UserID )|$1|;
             ' %{buildroot}%{_sysconfdir}/%{name}.conf
 
 install -p -d %{buildroot}%{_sysconfdir}/tmpfiles.d
