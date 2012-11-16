@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.0.1		2012/??/??
+1.0.1		2012/11/16
 	Fall back to lockf() if flock() support isn't available.
 	Fix faulty SPF error logging.  Problem noted by Benny Pedersen. 
 	REPORTING: Improve temporary file cleanup in opendmarc-reports.
