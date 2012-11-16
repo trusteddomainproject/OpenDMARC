@@ -7,6 +7,8 @@ release, and a summary of the changes in that release.
 	Fall back to lockf() if flock() support isn't available.
 	Fix faulty SPF error logging.  Problem noted by Benny Pedersen. 
 	REPORTING: Improve temporary file cleanup in opendmarc-reports.
+	CONTRIB: Fixes to configuration file generation in the spec file.
+		Problem noted by Steve Mays.
 
 1.0.0		2012/10/25
 	Rename "AlwaysDeliver" to "RejectFailures" and flip the logic.
