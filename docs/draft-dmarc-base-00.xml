@@ -4184,6 +4184,8 @@
 &lt;xs:element name="feedback"&gt;
   &lt;xs:complexType&gt;
     &lt;xs:sequence&gt;
+      &lt;xs:element name="version"
+                 type="xs:decimal"/&gt;
       &lt;xs:element name="report_metadata"
                  type="ReportMetadataType"/&gt;
       &lt;xs:element name="policy_published"
@@ -4227,6 +4229,9 @@
 			the message to a locally-maintained list of known
 			and trusted forwarders. </t>
 	    </list> </t>
+
+	<t> The "version" for reports generated per this specification MUST be
+	    the value 1.0. </t>
  </section>
 
  <section title="Public Discussion" anchor="public">
