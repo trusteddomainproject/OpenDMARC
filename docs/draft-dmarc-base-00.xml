@@ -1106,8 +1106,8 @@
 		    basic parsing, a positive determination of the external
 		    reporting relationship cannot be made; stop. </t>
 
-		<t> If at one TXT resource record remains in the set after
-		    parsing, then the external reporting
+		<t> If at least one TXT resource record remains in the set
+		    after parsing, then the external reporting
 		    arrangement was authorized by the destination ADMD. </t>
 
 		<t> If a "rua" or "ruf" tag is thus discovered, replace the
