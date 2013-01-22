@@ -387,7 +387,7 @@
            <xref target="URI"/> to identify phishing sites and diagnostics
            on DKIM and SPF failures will be recommended. </t>
        <t> Static conformance requirements shall be documented to enable
-           testing programs to help ensure consitency of results.  (This
+           testing programs to help ensure consistency of results.  (This
            will be done in a separate Best Current Practices document.) </t>
        <t> Aggregate reports should communicate DMARC message disposition
            regardless of any subsequent action that affects message
