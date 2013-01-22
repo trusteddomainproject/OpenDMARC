@@ -647,7 +647,7 @@
    <section title="Alignment and Extension Technologies" anchor="ext_id_align">
     <t> If DMARC is extended to include the use of other authentication
         mechanisms, the extensions will need to allow for domain identifier
-        extraction so that alignment against the RFC5322.From domain can be
+        extraction so that alignment with the RFC5322.From domain can be
         verified.</t>
    </section> <!-- Alignment and Extension Technologies -->
   </section> <!-- Identifier Alignment -->
