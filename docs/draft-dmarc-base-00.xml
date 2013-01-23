@@ -1626,7 +1626,7 @@
              end-timestamp [ "!" unique-id ] "." extension
 
   unique-id = token
-           ; "token" is imported form [MIME]
+           ; "token" is imported from [MIME]
 
   receiver = domain
            ; imported from [MAIL]
