@@ -3089,7 +3089,7 @@
        mechanisms on several occasions and invariably concluded that there
        was not a strong enough use case to include them.  The specific target
        audience for DMARC does not appear to have concerns about the
-       failure modes of one or the other being a barried to DMARC's
+       failure modes of one or the other being a barrier to DMARC's
        adoption. </t>
 
    <t> In the scenario described above, the Domain Owner has a few options:
@@ -3503,7 +3503,7 @@
 	</artwork></figure></t>
 
     <t> Because the address used in the "ruf" tag is outside the Organizational
-        Domain in whichthat this record is published, conforming Receivers will
+        Domain in which this record is published, conforming Receivers will
 	implement additional checks as described in <xref target="fb_verify"/>
 	of this document.  In order to pass these additional checks, the third
 	party will need to publish an additional DNS record as follows:
