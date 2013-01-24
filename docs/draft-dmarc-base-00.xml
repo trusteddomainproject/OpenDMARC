@@ -3907,7 +3907,7 @@
    <t> A DMARC record can contain an "https" reporting address, such as:
 
 	<figure><artwork>
-  https:feedback.example.com/dmarc-feedback-submissions
+  https://feedback.example.com/dmarc-feedback-submissions
 	</artwork></figure></t>
 
    <t> A sample aggregate report from the Mail Receiver at
