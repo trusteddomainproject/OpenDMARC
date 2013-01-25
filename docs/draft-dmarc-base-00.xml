@@ -3060,7 +3060,7 @@
        signatures needs to be incorporated.  In many instances, this alone
        is a showstopper.  There have been consistent promises that PKI
        usability and deployment will improve, but these have yet to
-       materialize.  DMARC can revisit this chouice after those barriers
+       materialize.  DMARC can revisit this choice after those barriers
        are addressed. </t>
 
    <t> S/MIME has extensive deployment in specific market segments
