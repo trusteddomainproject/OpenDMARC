@@ -30,7 +30,7 @@
 #endif /* !TRUE */
 
 /* defaults, limits, etc. */
-#define	BUFRSZ		1024
+#define	BUFRSZ		2048
 #define	DEFCONFFILE	CONFIG_BASE "/opendmarc.conf"
 #define	DEFREPORTCMD	"/usr/sbin/sendmail -t -odq"
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
