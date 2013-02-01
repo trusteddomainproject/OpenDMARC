@@ -120,6 +120,16 @@
 # 
 # ForensicReports false
 
+##  ForensicReportsOnNone { true | false }
+##  	default "false"
+##
+##  Supplements the "ForensicReports" setting by generating reports for
+##  domains that advertise "none" policies.  By default, reports are only
+##  generated (when enabled) for sending domains advertising a "quarantine"
+##  or "reject" policy.
+# 
+# ForensicReportsOnNone false
+
 ##  HistoryFile path
 ##  	default (none)
 ##

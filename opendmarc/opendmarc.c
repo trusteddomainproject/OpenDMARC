@@ -127,6 +127,7 @@ typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 struct dmarcf_config
 {
 	_Bool			conf_afrf;
+	_Bool			conf_afrfnone;
 	_Bool			conf_rejectfail;
 	_Bool			conf_dolog;
 	_Bool			conf_enablecores;
@@ -1162,6 +1163,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "ForensicReports",
 		                  &conf->conf_afrf,
 		                  sizeof conf->conf_afrf);
+
+		(void) config_get(data, "ForensicReportsOnNone",
+		                  &conf->conf_afrfnone,
+		                  sizeof conf->conf_afrfnone);
 
 		(void) config_get(data, "RecordAllMessages",
 		                  &conf->conf_recordall,
@@ -2257,7 +2262,8 @@ mlfi_eom(SMFICTX *ctx)
 
 	ruv = opendmarc_policy_fetch_ruf(cc->cctx_dmarc, NULL, 0, TRUE);
 	if ((policy == DMARC_POLICY_REJECT ||
-	     policy == DMARC_POLICY_QUARANTINE) &&
+	     policy == DMARC_POLICY_QUARANTINE ||
+	     (conf->conf_afrfnone && policy == DMARC_POLICY_NONE)) &&
 	    conf->conf_afrf && ruv != NULL)
 	{
 		_Bool first = TRUE;

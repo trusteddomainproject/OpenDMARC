@@ -139,6 +139,11 @@ purported sender of the message has requested such reports.  Reports are
 formatted per RFC6591.
 
 .TP
+.I ForensicReportsOnNone (boolean)
+Supplementary to the previous setting, enables generation of forensic reports
+for sending domains that publish a "none" policy.
+
+.TP
 .I HistoryFile (string)
 If set, specifies the location of a text file to which records are written
 that can be used to generate DMARC aggregate reports.  Records are

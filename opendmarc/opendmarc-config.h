@@ -28,6 +28,7 @@ struct configdef dmarcf_config[] =
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ForensicReports",		CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "ForensicReportsOnNone",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "HistoryFile",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreHosts",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreMailFrom",		CONFIG_TYPE_STRING,	FALSE },

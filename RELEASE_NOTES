@@ -3,6 +3,10 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.1.0		2013/02/18
+	Feature request #35: Add "ForensicReportsOnNone".  Requested by
+		Scott Kitterman.
+
 1.0.1		2012/11/16
 	Fall back to lockf() if flock() support isn't available.
 	Fix faulty SPF error logging.  Problem noted by Benny Pedersen. 
