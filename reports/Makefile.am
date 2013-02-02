@@ -1,8 +1,8 @@
-# Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+# Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
 
 AUTOMAKE_OPTIONS = foreign
 
-dist_doc_DATA = README 
+dist_doc_DATA = README mkdb.mysql
 
 dist_sbin_SCRIPTS = opendmarc-expire opendmarc-import opendmarc-importstats \
 	opendmarc-params opendmarc-reports
