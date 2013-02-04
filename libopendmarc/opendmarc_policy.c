@@ -526,7 +526,7 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	u_char *	bp = NULL;
 	int		dns_reply = 0;
 	int		tld_reply = 0;
-	int		loop_count = 6;
+	int		loop_count = DNS_MAX_RETRIES;
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
@@ -538,7 +538,6 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 			return DMARC_PARSE_ERROR_EMPTY;
 	}
 
-	(void) memset(copy, '\0', sizeof copy);
 	(void) strlcpy(copy, "_dmarc.", sizeof copy);
 	(void) strlcat(copy, domain, sizeof copy);
 
@@ -556,12 +555,10 @@ query_again:
 	 */
 	if (bp == NULL && *buf != '\0')
 	{
-		(void) memset(copy, '\0', sizeof copy);
 		(void) strlcpy(copy, buf, sizeof copy);
 		if (--loop_count != 0)
 			goto query_again;
 	}
-
 
 	(void) memset(tld, '\0', sizeof tld);
 	tld_reply = opendmarc_get_tld(domain, tld, sizeof tld);
@@ -571,7 +568,7 @@ query_again:
 	{
 		pctx->organizational_domain = strdup(tld);
 
-		(void) memset(copy, '\0', sizeof copy);
+		loop_count = DNS_MAX_RETRIES;
 		(void) strlcpy(copy, "_dmarc.", sizeof copy);
 		(void) strlcat(copy, tld, sizeof copy);
 query_again2:
@@ -585,7 +582,6 @@ query_again2:
 		 */
 		if (bp == NULL && *buf != '\0')
 		{
-			(void) memset(copy, '\0', sizeof copy);
 			(void) strlcpy(copy, buf, sizeof copy);
 			if (--loop_count != 0)
 				goto query_again2;

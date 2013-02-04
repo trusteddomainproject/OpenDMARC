@@ -144,7 +144,8 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	/* skip question part of response -- we know what we asked */
 	for (qdcnt = ntohs(header.qdcount); qdcnt > 0; qdcnt--)
 	{
-		(void) dn_expand((unsigned char *) &answer_buf, end_ptr, cur_ptr, namebuf, sizeof namebuf);
+		(void) dn_expand((unsigned char *) &answer_buf, end_ptr,
+		                 cur_ptr, namebuf, sizeof namebuf);
 		if ((answer_len = dn_skipname(cur_ptr, end_ptr)) < 0)
 		{
 			*reply_ptr = NO_DATA;
@@ -172,7 +173,9 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	}
 	while (--acnt >= 0 && cur_ptr < end_ptr)
 	{
-		if ((answer_len = dn_expand((unsigned char *) &answer_buf, end_ptr, cur_ptr, namebuf, sizeof namebuf)) < 0)
+		if ((answer_len = dn_expand((unsigned char *) &answer_buf,
+		                            end_ptr, cur_ptr, namebuf,
+		                            sizeof namebuf)) < 0)
 		{
 			*reply_ptr = NO_DATA;
 			return NULL;
@@ -197,11 +200,20 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			 * didn't also follow it an give us the text
 			 * record.
 			 */
-			(void) memset(got_txtbuf, '\0', got_txtlen);
-			answer_len = dn_expand((unsigned char *)&answer_buf,
-					end_ptr, cur_ptr,
-					got_txtbuf, got_txtlen);
-			cur_ptr += answer_len;
+
+			if (got_txtbuf[0] == '\0')
+			{
+				(void) memset(got_txtbuf, '\0', got_txtlen);
+				answer_len = dn_expand((unsigned char *)&answer_buf,
+						end_ptr, cur_ptr,
+						got_txtbuf, got_txtlen);
+				cur_ptr += answer_len;
+			}
+			else
+			{
+				cur_ptr += dn_skipname(end_ptr, cur_ptr);
+			}
+
 			continue;
 		}
 #ifdef T_RRSIG
@@ -258,6 +270,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			*reply_ptr = NETDB_SUCCESS;
 			return got_txtbuf;
 		}
+		*got_txtbuf = '\0';
 		cur_ptr += cur_len;
 		cur_ptr += answer_len;
 		continue;

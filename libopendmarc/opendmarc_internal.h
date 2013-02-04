@@ -106,6 +106,12 @@
 */
 #define MAXDNSHOSTNAME 256
 
+/*
+** Maximum number of DNS retries when resolving CNAMES, etc.
+*/
+
+#define	DNS_MAX_RETRIES 6
+
 /*****************************************************************************
 ** DMARC_POLICY_T -- The opaque context for the library.
 ** 	Memory needs to be allocated and freed.

@@ -6,6 +6,9 @@ release, and a summary of the changes in that release.
 1.1.0		2013/02/18
 	Feature request #35: Add "ForensicReportsOnNone".  Requested by
 		Scott Kitterman.
+	LIBOPENDMARC: Fix bug #38: Avoid huge retry loops when parsing
+		non-DMARC TXT records, such as wildcards.  Problem noted
+		by Andreas Schulze.
 	REPORTING: Feature request #39: Add a MySQL script for setting up the
 		reporting tables.  Suggested by Scott Kitterman.
 
