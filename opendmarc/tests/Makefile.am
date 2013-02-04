@@ -1,6 +1,10 @@
 # $Id: Makefile.am,v 1.30 2010/09/13 05:32:21 cm-msk Exp $
 
-check_SCRIPTS = t-verify-nodata t-verify-nodata-reject
+check_SCRIPTS = 
+
+if LIVE_TESTS
+check_SCRIPTS += t-verify-nodata t-verify-nodata-reject
+end
 
 TESTS = $(check_SCRIPTS)
 
