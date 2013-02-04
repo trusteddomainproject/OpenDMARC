@@ -4,7 +4,7 @@ check_SCRIPTS =
 
 if LIVE_TESTS
 check_SCRIPTS += t-verify-nodata t-verify-nodata-reject
-end
+endif
 
 TESTS = $(check_SCRIPTS)
 
