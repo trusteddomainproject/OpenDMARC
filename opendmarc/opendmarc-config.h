@@ -42,6 +42,7 @@ struct configdef dmarcf_config[] =
 	{ "SoftwareHeader",		CONFIG_TYPE_STRING,	FALSE },
 	{ "Syslog",			CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "SyslogFacility",		CONFIG_TYPE_STRING,	FALSE },
+	{ "TestDNSData",		CONFIG_TYPE_STRING,	FALSE },
 	{ "TrustedAuthservIDs",		CONFIG_TYPE_STRING,	FALSE },
 	{ "UMask",			CONFIG_TYPE_INTEGER,	FALSE },
 	{ "Userid",			CONFIG_TYPE_STRING,	FALSE },

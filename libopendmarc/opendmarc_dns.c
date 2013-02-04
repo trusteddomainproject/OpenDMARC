@@ -4,11 +4,81 @@
 **	DMARC_DNS_TEST_RECORD -- hook to test
 **  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 ************************************************************************/ 
+#ifndef BIND_8_COMPAT
+# define BIND_8_COMPAT
+#endif /* ! BIND_8_COMPAT */
+
 #include "opendmarc_internal.h"
 
 #ifndef MAXPACKET
 # define MAXPACKET        (8192)
 #endif
+
+struct fake_dns_data
+{
+	const char *		fdns_name;
+	const char *		fdns_answer;
+	struct fake_dns_data *	fdns_next;
+};
+
+static struct fake_dns_data * fake_dns = NULL;
+static struct fake_dns_data * fake_dns_tail = NULL;
+
+/*************************************************************************
+** OPENDMARC_DNS_FAKE_RECORD -- store a fake DNS reply
+**
+** Arguments:
+**	name			-- name of fake record to add
+**	answer			-- answer to fake record
+**
+** Return Values:
+**	None.
+**
+** Side Effects:
+**	Calls to dmarc_dns_get_record() will check this list for an answer
+**  	rather than using live DNS.  This is intended to be used by test
+**  	harnesses that have no DNS access.
+*************************************************************************/
+void
+opendmarc_dns_fake_record(const char *name, const char *answer)
+{
+	struct fake_dns_data *new;
+
+	if (name == NULL)
+		return;
+
+	new = malloc(sizeof *new);
+	if (new != NULL)
+	{
+		new->fdns_name = strdup(name);
+		if (new->fdns_name == NULL)
+		{
+			free(new);
+			return;
+		}
+
+		new->fdns_answer = strdup(answer);
+		if (new->fdns_answer == NULL)
+		{
+			free((void *) new->fdns_name);
+			free(new);
+			return;
+		}
+
+		new->fdns_next = NULL;
+
+		if (fake_dns == NULL)
+		{
+			fake_dns = new;
+			fake_dns_tail = new;
+		}
+		else
+		{
+			fake_dns_tail->fdns_next = new;
+			fake_dns_tail = new;
+		}
+	}
+}
 
 /*************************************************************************
 ** DMARC_DNS_GET_RECORD -- looks up and returns the txt record
@@ -84,12 +154,34 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	}
 
 	/*
+	 * Pull the answer from the fake DNS table if there is one.
+	 */
+	if (fake_dns != NULL)
+	{
+		struct fake_dns_data *cur;
+
+		for (cur = fake_dns; cur != NULL; cur = cur->fdns_next)
+		{
+			if (strcasecmp(cur->fdns_name, domain) == 0)
+			{
+				strncpy(got_txtbuf, cur->fdns_answer,
+				        got_txtlen - 1);
+				*reply_ptr = NETDB_SUCCESS;
+				return got_txtbuf;
+			}
+		}
+
+		*reply_ptr = NO_DATA;
+		return NULL;
+	}
+
+	/*
 	 * Copy the domain so we can scribble on it. The orginal
 	 * may point to a static string.
 	 * We should use strlcopy(), but not all systems have it.
 	 */
 	(void) memset(hbuf, '\0', sizeof hbuf);
-	(void) memcpy(hbuf, domain, sizeof hbuf);
+	(void) strncpy(hbuf, domain, sizeof hbuf - 1);
 	bp = hbuf;
 
 	/*

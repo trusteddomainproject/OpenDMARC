@@ -483,6 +483,72 @@ dmarcf_addlist(const char *str, struct list **head)
 }
 
 /*
+**  DMARCF_LOAD_DNSDATA -- load fake DNS data into the library
+**
+**  Parameters:
+**  	path -- path to file to read
+**
+**  Return value:
+**  	FALSE iff load wasn't possible; caller should check errno
+*/
+
+_Bool
+dmarcf_load_dnsdata(char *path)
+{
+	_Bool gapfound;
+	const char *key;
+	const char *value;
+	char *p;
+	FILE *f;
+	char buf[BUFRSZ];
+
+	assert(path != NULL);
+
+	f = fopen(path, "r");
+	if (f == NULL)
+		return FALSE;
+
+	memset(buf, '\0', sizeof buf);
+
+	while (fgets(buf, sizeof buf - 1, f) != NULL)
+	{
+		key = NULL;
+		value = NULL;
+		gapfound = FALSE;
+
+		for (p = buf; *p != '\0'; p++)
+		{
+			if (*p == '\n' || *p == '#')
+			{
+				*p = '\0';
+				break;
+			}
+			else if (!isspace(*p))
+			{
+				if (key != NULL)
+					key = p;
+				else if (gapfound && value == NULL)
+					value = p;
+			}
+			else
+			{
+				if (!gapfound)
+				{
+					*p = '\0';
+					gapfound = TRUE;
+				}
+			}
+		}
+
+		opendmarc_dns_fake_record(key, value);
+	}
+
+	fclose(f);
+
+	return TRUE;
+}
+
+/*
 **  DMARCF_LOADLIST -- add a file's worth of entries to a singly-linked list
 **
 **  Parameters:
@@ -1200,6 +1266,19 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "HistoryFile",
 		                  &conf->conf_historyfile,
 		                  sizeof conf->conf_historyfile);
+
+		str = NULL;
+		(void) config_get(data, "TestDNSData", &str, sizeof str);
+		if (str != NULL)
+		{
+			if (!dmarcf_load_dnsdata(str))
+			{
+				snprintf(err, errlen,
+				         "%s: can't load fake DNS data: %s",
+				         str, strerror(errno));
+				return -1;
+			}
+		}
 	}
 
 	if (conf->conf_authservid == NULL)
