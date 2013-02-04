@@ -56,7 +56,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 #endif /* HAVE_RES_NINIT */     
 
 	/*
-	 * Short  circuit the return "reply" if no variable provided.
+	 * Short circuit the return "reply" if no variable provided.
 	 */
 	if (reply == NULL)
 		reply_ptr = &fake_reply;
