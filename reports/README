@@ -4,10 +4,24 @@ OPENDMARC REPORTS
 This directory contains tools necessary to generate DMARC reports at regular
 intervals.  It includes the following:
 
+	mkdb.mysql		sequence of MySQL commands that will create
+				tables needed to provide DMARC reporting
+				service via the scripts below
+
+	opendmarc-expire	perl script to expire old DMARC records from
+				the database; meant to be run from cron
+
+	opendmarc-expire.8	man page for the above
+
 	opendmarc-import	perl script to import opendmarc history files
 				into the database; meant to be run from cron
 
 	opendmarc-import.8	man page for the above
+
+	opendmarc-params	perl script to adjust domain-specific opendmarc
+				data in the database
+
+	opendmarc-params.8	man page for the above
 
 	opendmarc-reports	perl script to generate DMARC reports
 				whenever it is run; meant to be run from cron
@@ -18,6 +32,9 @@ The adjacent "db" directory contains an SQL schema to be used with this
 package.  The opendmarc filter populates the tables in that schema as messages
 are received and DMARC policies evaluated.  The scripts in here use the
 accumulated information to generate reports, and age out old data.
+
+To use mkdb.mysql, enter the MySQL command line tool, connect to the database
+in which you want to create the required tables, and type "source mkdb.mysql".
 
 --
 Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
