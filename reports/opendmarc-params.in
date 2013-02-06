@@ -260,7 +260,7 @@ $requestid = get_table_id($domainid, "requests", "domain");
 
 if ($unlock)
 {
-	$dbi_t = $dbi_h->prepare("UPDATE requests SET locked = 0, WHERE id = ?");
+	$dbi_t = $dbi_h->prepare("UPDATE requests SET locked = 0 WHERE id = ?");
 	if (!$dbi_t->execute($requestid))
 	{
 		print STDERR "$progname: failed to update requests table for $domain: " . $dbi_h->errstr . "\n";
