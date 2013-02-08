@@ -1,0 +1,85 @@
+<html>
+<head><title>opendmarc_policy_fetch_rf()</title></head>
+<body>
+<!--
+$Id: opendmarc_policy_fetch_rf.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_policy_fetch_rf()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+<a href="opendmarc_status_t.html"><tt>OPENDMARC_STATUS_T</tt></a> opendmarc_policy_fetch_rf(
+	<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> *pctx,
+	int *rf
+);
+</pre>
+Query the library to find the <tt>rf=</tt> value from the <tt>DMARC</tt> record.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_policy_fetch_rf()</tt>
+	is called after the DMARC record has been fetched and parsed.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>pctx</td>
+	<td>The address of a structure of type <a href="dmarc_policy_t.html">
+        <tt>DMARC_POLICY_T</tt></a> as returned from <a href="opendmarc_policy_connect_init.html">opendmarc_policy_connect_init()</a>. 
+	</td></tr>
+    <tr valign="top"><td>rf</td>
+	<td>The address of an integer to receive the value following the <tt>rf=</tt>, a value (a bitmap) of:
+	<br><tt>DMARC_RECORD_RF_UNSPECIFIED</tt> if the <tt>rf=</tt> was absent or if no ruf= was specified.
+	<br><tt>DMARC_RECORD_RF_AFRF</tt> if <tt>rf=afrf</tt>.
+	<br><tt>DMARC_RECORD_RF_IODEF</tt> if <tt>rf=iodef</tt>.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>DMARC_PARSE_OKAY</tt> -- On success.
+<li><tt>DMARC_PARSE_ERROR_EMPTY</tt> -- The <tt>pctp</tt> pointer was NULL.
+<li><tt>DMARC_PARSE_ERROR_NULL_CTX</tt> -- If you passed in a <tt>rf</tt> pointer value that was NULL.
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+Call this function only after a <tt>DMARC</tt> record was fetched and parsed with
+<a href="opendmarc_policy_query_dmarc.html">opendmarc_policy_query_dmarc()</a>
+or supplied to the library with
+<a href="opendmarc_policy_store_dmarc.html">opendmarc_policy_store_dmarc()</a>.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>
