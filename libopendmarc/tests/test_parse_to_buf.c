@@ -5,7 +5,7 @@
 int
 main(int argc, char **argv)
 {
-	char * record = "v=DMARC1; p=none; rf=afrf; rua=mailto:dmarc-a@abuse.net; ruf=mailto:dmarc-f@abuse.net";
+	char * record = "v=DMARC1; p=none; rf=afrf; fo=1:s rua=mailto:dmarc-a@abuse.net; ruf=mailto:dmarc-f@abuse.net";
 	int	pass, fails, count;
 	DMARC_POLICY_T *pctx;
 	OPENDMARC_STATUS_T status;

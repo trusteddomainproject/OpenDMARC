@@ -38,7 +38,7 @@ Query the library to find the <tt>fo=</tt> value from the <tt>DMARC</tt> record.
 	<td>The address of a structure of type <a href="dmarc_policy_t.html">
         <tt>DMARC_POLICY_T</tt></a> as returned from <a href="opendmarc_policy_connect_init.html">opendmarc_policy_connect_init()</a>. 
 	</td></tr>
-    <tr valign="top"><td>fi</td>
+    <tr valign="top"><td>fo</td>
 	<td>The address of an integer to receive the value following the <tt>fo=</tt>, a value (a bitmap) of:
 	<br><tt>DMARC_RECORD_FO_UNSPECIFIED</tt> if the <tt>fo=</tt> was absent or if no ruf= was specified.
 	<br><tt>DMARC_RECORD_FO_0</tt> if <tt>fo=0</tt>.
@@ -56,7 +56,7 @@ Query the library to find the <tt>fo=</tt> value from the <tt>DMARC</tt> record.
 <ul>
 <li><tt>DMARC_PARSE_OKAY</tt> -- On success.
 <li><tt>DMARC_PARSE_ERROR_EMPTY</tt> -- The <tt>pctp</tt> pointer was NULL.
-<li><tt>DMARC_PARSE_ERROR_NULL_CTX</tt> -- If you passed in a <tt>fo</tt> value that was NULL.
+<li><tt>DMARC_PARSE_ERROR_NULL_CTX</tt> -- If you passed in a <tt>fo</tt> pointer value that was NULL.
 </ul>
 </td>
 </tr>

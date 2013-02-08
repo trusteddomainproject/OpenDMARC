@@ -45,6 +45,11 @@ extern "C" {
 #define DMARC_RECORD_RF_UNSPECIFIED	(0x0)		/* rf, a bitmap */
 #define DMARC_RECORD_RF_AFRF		(0x1)		/* rf, a bitmap */
 #define DMARC_RECORD_RF_IODEF		(0x2)		/* rf, a bitmap */
+#define DMARC_RECORD_FO_UNSPECIFIED	(0x0)		/* fo, a bitmap */
+#define DMARC_RECORD_FO_0		(0x1)		/* fo, a bitmap */
+#define DMARC_RECORD_FO_1		(0x2)		/* fo, a bitmap */
+#define DMARC_RECORD_FO_D		(0x4)		/* fo, a bitmap */
+#define DMARC_RECORD_FO_S		(0x8)		/* fo, a bitmap */
 
 #define DMARC_PARSE_OKAY			(0)	/* Okay to continue */
 #define DMARC_PARSE_ERROR_EMPTY			(1)	/* Nothing to parse */

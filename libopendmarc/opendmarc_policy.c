@@ -152,6 +152,7 @@ opendmarc_policy_connect_clear(DMARC_POLICY_T *pctx)
 	pctx->rua_cnt  = 0;
 	pctx->ruf_list = opendmarc_util_clearargv(pctx->ruf_list);
 	pctx->ruf_cnt  = 0;
+	pctx->fo       = 0;
 
 	(void) memset(pctx, '\0', sizeof(DMARC_POLICY_T));
 	pctx->p   = DMARC_RECORD_P_UNSPECIFIED;
@@ -944,6 +945,50 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					break;
 			}
 		}
+		else if (strcasecmp((char *)cp, "fo") == 0)
+		{
+			char *xp, *yp;
+
+			/*
+			 * A possibly colon delimited list of on character settings.
+			 */
+			for (xp = vp; *xp != '\0'; )
+			{
+				u_char xbuf[256];
+
+				yp = strchr(xp, ':');
+				if (yp != NULL)
+					*yp = '\0';
+
+				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
+				if (xp != NULL || strlen((char *)xp) > 0)
+				{
+					switch ((int)*xp)
+					{
+						case '0':
+							pctx->fo |= DMARC_RECORD_FO_0;
+							break;
+						case '1':
+							pctx->fo |= DMARC_RECORD_FO_1;
+							break;
+						case 'd':
+						case 'D':
+							pctx->fo |= DMARC_RECORD_FO_D;
+							break;
+						case 's':
+						case 'S':
+							pctx->fo |= DMARC_RECORD_FO_S;
+							break;
+						default:
+							return DMARC_PARSE_ERROR_BAD_VALUE;
+					}
+				}
+				if (yp != NULL)
+					xp = yp+1;
+				else
+					break;
+			}
+		}
 
 		cp = sp;
 	}
@@ -965,6 +1010,8 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 		pctx->rf = DMARC_RECORD_RF_AFRF;
 	if (pctx->ri == -1)
 		pctx->ri = 86400;
+	if (pctx->fo == DMARC_RECORD_FO_UNSPECIFIED)
+		pctx->fo = DMARC_RECORD_FO_0;
 
 	if (pctx->from_domain == NULL)
 		pctx->from_domain = strdup(domain);
@@ -1171,6 +1218,34 @@ opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 	if (constant != 0)
 		return pctx->ruf_list;
 	return opendmarc_util_dupe_argv(pctx->ruf_list);
+}
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_fo(DMARC_POLICY_T *pctx, int *fo)
+{
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	if (fo == NULL)
+		return DMARC_PARSE_ERROR_EMPTY;
+	if (pctx->ruf_list == NULL)
+		*fo = DMARC_RECORD_FO_UNSPECIFIED;
+	else
+		*fo = pctx->fo;
+	return DMARC_PARSE_OKAY;
+}
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_rf(DMARC_POLICY_T *pctx, int *rf)
+{
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	if (rf == NULL)
+		return DMARC_PARSE_ERROR_EMPTY;
+	if (pctx->ruf_list == NULL)
+		*rf = DMARC_RECORD_RF_UNSPECIFIED;
+	else
+		*rf = pctx->rf;
+	return DMARC_PARSE_OKAY;
 }
 
 /**************************************************************************************************
@@ -1598,6 +1673,29 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 			if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
 		}
 		if (strlcat(buf, (pctx->ruf_list)[i], buflen) >= buflen) return E2BIG;
+	}
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "FO=", buflen) >= buflen) return E2BIG;
+	if (pctx->ruf_list == NULL || pctx->fo == DMARC_RECORD_FO_UNSPECIFIED)
+	{
+		if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
+	}
+	if ((pctx->fo|DMARC_RECORD_FO_0) != 0)
+	{
+		if (strlcat(buf, "0:", buflen) >= buflen) return E2BIG;
+	}
+	if ((pctx->fo|DMARC_RECORD_FO_1) != 0)
+	{
+		if (strlcat(buf, "1:", buflen) >= buflen) return E2BIG;
+	}
+	if ((pctx->fo|DMARC_RECORD_FO_D) != 0)
+	{
+		if (strlcat(buf, "d:", buflen) >= buflen) return E2BIG;
+	}
+	if ((pctx->fo|DMARC_RECORD_FO_S) != 0)
+	{
+		if (strlcat(buf, "s:", buflen) >= buflen) return E2BIG;
 	}
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
