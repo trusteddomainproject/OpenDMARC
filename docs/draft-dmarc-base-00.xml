@@ -12,8 +12,6 @@
 <?rfc compact="yes" ?>
 <?rfc subcompact="no" ?>
 
-<?rfc private="DMARC.org" ?>
-
 <rfc category="info" docName="draft-dmarc-base-00-03"
      ipr="noModificationTrust200902">
 
