@@ -37,4 +37,4 @@ To use mkdb.mysql, enter the MySQL command line tool, connect to the database
 in which you want to create the required tables, and type "source mkdb.mysql".
 
 --
-Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
