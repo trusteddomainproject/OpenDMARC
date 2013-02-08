@@ -12,7 +12,7 @@
 <?rfc compact="yes" ?>
 <?rfc subcompact="no" ?>
 
-<rfc category="info" docName="draft-dmarc-base-00-03"
+<rfc category="info" docName="draft-dmarc-base-00"
      ipr="noModificationTrust200902">
 
 <front>
