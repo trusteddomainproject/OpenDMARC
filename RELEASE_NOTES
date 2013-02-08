@@ -11,6 +11,8 @@ release, and a summary of the changes in that release.
 	LIBOPENDMARC: Fix bug #38: Avoid huge retry loops when parsing
 		non-DMARC TXT records, such as wildcards.  Problem noted
 		by Andreas Schulze.
+	LIBOPENDMARC: Add opendmarc_policy_fetch_fo() and
+		opendmarc_policy_fetch_rf().
 	REPORTING: Feature request #39: Add a MySQL script for setting up the
 		reporting tables.  Suggested by Scott Kitterman.
 
