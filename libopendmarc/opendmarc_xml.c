@@ -529,6 +529,7 @@ opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len)
 	int		ret;
 	u_char **	ary = NULL;
 	int		xerror;
+	size_t		rb;
 
 	if (fname == NULL)
 	{
@@ -578,8 +579,17 @@ opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len)
 		return NULL;
 	}
 
-	(void) fread(bufp, 1, statb.st_size, fp);
-	if (ferror(fp))
+	rb = fread(bufp, 1, statb.st_size, fp);
+	if (rb != statb.st_size)
+	{
+		xerror = errno;
+		(void) snprintf(err_buf, err_len, "%s: truncated read", fname);
+		(void) free(bufp);
+		(void) fclose(fp);
+		errno = xerror;
+		return NULL;
+	}
+	else if (ferror(fp))
 	{
 		xerror = errno;
 		(void) snprintf(err_buf, err_len, "%s: %s", fname, strerror(errno));
