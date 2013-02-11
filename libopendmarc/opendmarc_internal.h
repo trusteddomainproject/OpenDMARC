@@ -161,7 +161,9 @@ typedef struct dmarc_policy_t {
 	u_char **	ruf_list;
 	int		fo;
 } DMARC_POLICY_T;
-#define OPENDMARC_POLICY_C 1
+#ifndef OPENDMARC_POLICY_C
+# define OPENDMARC_POLICY_C 1
+#endif /* ! OPENDMARC_POLICY_C */
 
 
 /* dmarc_dns.c */
