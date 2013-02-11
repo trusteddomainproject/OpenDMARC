@@ -29,7 +29,13 @@ main(int argc, char **argv)
 	
 	srcdir = getenv("srcdir");
 	if (srcdir != NULL)
-		(void) chdir(srcdir);
+	{
+		if (chdir(srcdir) != 0)
+		{
+			perror(srcdir);
+			return 1;
+		}
+	}
 
 	pass = fails = count = 0;
 	/*

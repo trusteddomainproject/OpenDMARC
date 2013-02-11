@@ -1,5 +1,7 @@
 #include "../opendmarc_internal.h"
-#define OPENDMARC_POLICY_C
+#ifndef OPENDMARC_POLICY_C
+# define OPENDMARC_POLICY_C
+#endif /* ! OPENDMARC_POLICY_C */
 #include "../dmarc.h"
 
 #define TESTFILE "testfiles/effective_tld_names.dat"
