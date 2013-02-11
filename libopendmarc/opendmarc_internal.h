@@ -222,6 +222,6 @@ u_char *  opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen);
 u_char *  opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen);
 
 /* opendmarc_policy.c */
-void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *(nsaddr_list[]));
+void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in **nsaddr_list);
 
 #endif /* OPENDMARC_INTERNAL_H */
