@@ -1190,7 +1190,7 @@
         <t> generate multiple reports for the same period, one for each
             published policy occurring during the reporting period; </t>
 
-        <t> generate a reports whose end time occurs when the updated policy
+        <t> generate a report whose end time occurs when the updated policy
             was detected, regardless of any requested report interval. </t>
        </list> </t>
 
