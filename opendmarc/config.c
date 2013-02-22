@@ -350,7 +350,7 @@ config_load_level(char *file, struct configdef *def,
 	if (in != stdin)
 		fclose(in);
 
-	if (myline == 0)
+	if (myline == 0 || cur == NULL)
 	{
 		cur = (struct config *) malloc(sizeof *cur);
 		if (cur != NULL)
@@ -359,7 +359,7 @@ config_load_level(char *file, struct configdef *def,
 			cur->cfg_type = CONFIG_TYPE_STRING;
 			cur->cfg_int = 0;
 			cur->cfg_name = "";
-			cur->cfg_string = "";
+			cur->cfg_string = NULL;
 			cur->cfg_next = NULL;
 
 			return cur;
@@ -446,7 +446,8 @@ config_free(struct config *head)
 	while (cur != NULL)
 	{
 		next = cur->cfg_next;
-		if (cur->cfg_type == CONFIG_TYPE_STRING)
+		if (cur->cfg_type == CONFIG_TYPE_STRING &&
+		    cur->cfg_string != NULL)
 			free(cur->cfg_string);
 		free(cur);
 		cur = next;
