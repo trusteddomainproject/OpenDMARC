@@ -22,7 +22,7 @@ MAINTAINERCLEANFILES 	= Makefile.in aclocal.m4 configure \
 
 ACLOCAL		= aclocal -I $(auxdir)
 
-dist_doc_DATA = LICENSE
+dist_doc_DATA = LICENSE LICENSE.Sendmail
 
 DISTCLEANFILES = opendmarc-@VERSION@.tar.gz
 

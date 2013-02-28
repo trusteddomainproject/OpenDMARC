@@ -14,13 +14,19 @@ modification, are permitted provided that the following conditions are met:
 
 Portions of this project are also covered by the Sendmail Open Source
 License, available in this distribution in the file "LICENSE.Sendmail".
-See the copyright notice(s) in each file to determine whether it is
-covered by both licenses.
+See the copyright notice(s) in each file to determine whether it is covered
+by either or both of the licenses.  For example:
 
-THIS SOFTWARE IS PROVIDED BY THE OPENDKIM PROJECT ''AS IS'' AND ANY
+	Copyright (c) <year> Sendmail, Inc. and its suppliers.
+	  All rights reserved.
+
+	Copyright (c) <year>, The Trusted Domain Project.
+	  All rights reserved.
+
+THIS SOFTWARE IS PROVIDED BY THE TRUSTED DOMAIN PROJECT ''AS IS'' AND ANY
 EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE OPENDKIM PROJECT BE LIABLE FOR ANY
+DISCLAIMED. IN NO EVENT SHALL THE TRUSTED DOMAIN PROJECT BE LIABLE FOR ANY
 DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
