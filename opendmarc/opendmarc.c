@@ -2620,7 +2620,10 @@ mlfi_eom(SMFICTX *ctx)
 	}
 
 	if (conf->conf_dolog)
-		syslog(LOG_INFO, "%s: %s", dfc->mctx_jobid, aresult);
+	{
+		syslog(LOG_INFO, "%s: %s %s", dfc->mctx_jobid,
+		       dfc->mctx_fromdomain, aresult);
+	}
 
 	/* if the final action isn't TEMPFAIL or REJECT, add an A-R field */
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)

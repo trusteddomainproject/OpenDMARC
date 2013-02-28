@@ -3,11 +3,13 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.1.0		2013/02/18
+1.1.0		2013/03/08
 	Feature request #34: Add support for local DNS overrides to enable
 		testing without Internet access.  Requested by Scott Kitterman.
 	Feature request #35: Add "ForensicReportsOnNone".  Requested by
 		Scott Kitterman.
+	Feature request #41: Log the domain name with the result.  Requested
+		by Scott Kitterman.
 	Don't fail to start on empty or null configuration files.  Problem
 		noted by Steve Jenkins.
 	LIBOPENDMARC: Fix bug #38: Avoid huge retry loops when parsing
