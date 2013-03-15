@@ -269,7 +269,9 @@ input for the DMARC assessment.  To provide a list, separate values by commas.
 If the string "HOSTNAME" is provided, the name of the host running the filter
 (as returned by the
 .I gethostname(3)
-function) will be used.  Matching against this list is case-insensitive.
+function) will be used.  Matching against this list is case-insensitive.  The
+default is to use the value of
+.I AuthservID.
 
 .TP
 .I UMask (integer)
