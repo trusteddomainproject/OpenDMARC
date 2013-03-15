@@ -1633,7 +1633,7 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 	dmarcf_config_reload();
 
 	if (dmarcf_checkhost(host, ignore) ||
-	    dmarcf_checkip(ip, ignore))
+	    (ip != NULL && dmarcf_checkip(ip, ignore)))
 		return SMFIS_ACCEPT;
 
 	/* copy hostname and IP information to a connection context */

@@ -1,0 +1,10 @@
+#!/bin/sh
+# 
+# unspecified protocol family test
+
+if [ x"$srcdir" = x"" ]
+then
+	srcdir=`pwd`
+fi
+
+miltertest $MILTERTESTFLAGS -s $srcdir/t-verify-unspec.lua

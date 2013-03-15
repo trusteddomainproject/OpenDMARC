@@ -3,6 +3,10 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.1.1		2013/03/??
+	Don't crash when postfix reports no IP address.  Problem reported
+		by Andrei Ioachim.
+
 1.1.0		2013/03/08
 	Feature request #34: Add support for local DNS overrides to enable
 		testing without Internet access.  Requested by Scott Kitterman.
