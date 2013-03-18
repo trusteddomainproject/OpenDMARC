@@ -1,34 +1,21 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v1.1.0 released
+Subject: OpenDMARC v1.1.1 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v1.1.0, now available for download from SourceForge.
+OpenDMARC v1.1.1, now available for download from SourceForge.
 
-This release fixes a couple of important bugs and resolves some recent
-feature requests.  It also adds a few calls to the API that expose
-proposed new parts of the protocol.  Upgrade is recommended.
+This is a bug fix release that patches a crash problem that may occur when
+used with postfix.  Upgrade is necessary only if you have encountered this
+problem.
 
 The full RELEASE_NOTES for this version, showing changes since the last
 release:
 
-1.1.0		2013/03/08
-	Feature request #34: Add support for local DNS overrides to enable
-		testing without Internet access.  Requested by Scott Kitterman.
-	Feature request #35: Add "ForensicReportsOnNone".  Requested by
-		Scott Kitterman.
-	Feature request #41: Log the domain name with the result.  Requested
-		by Scott Kitterman.
-	Don't fail to start on empty or null configuration files.  Problem
-		noted by Steve Jenkins.
-	LIBOPENDMARC: Fix bug #38: Avoid huge retry loops when parsing
-		non-DMARC TXT records, such as wildcards.  Problem noted
-		by Andreas Schulze.
-	LIBOPENDMARC: Add opendmarc_policy_fetch_fo(),
-		opendmarc_policy_fetch_rf(), and
-		opendmarc_policy_to_buf().
-	REPORTING: Feature request #39: Add a MySQL script for setting up the
-		reporting tables.  Suggested by Scott Kitterman.
+1.1.1		2013/03/18
+	Don't crash when postfix reports no IP address.  Problem reported
+		by Andrei Ioachim.
+	Add "TemporaryDirectory" to the list of valid config file items.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
