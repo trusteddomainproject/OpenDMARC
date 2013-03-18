@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.1.1		2013/03/??
+1.1.1		2013/03/18
 	Don't crash when postfix reports no IP address.  Problem reported
 		by Andrei Ioachim.
 	Add "TemporaryDirectory" to the list of valid config file items.
