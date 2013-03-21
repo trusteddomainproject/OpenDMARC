@@ -63,7 +63,7 @@ extern "C" {
 #define DMARC_PARSE_ERROR_BAD_DKIM_MACRO	DMARC_PARSE_ERROR_BAD_SPF_MACRO
 #define DMARC_DNS_ERROR_NO_RECORD		(9)	/* No DMARC record was found */
 #define DMARC_DNS_ERROR_NXDOMAIN		(10)	/* No such domain exists */
-#define DMARC_DNS_ERROR_TMPERR			(11)	/* Recoveralble DNS error */
+#define DMARC_DNS_ERROR_TMPERR			(11)	/* Recoverable DNS error */
 #define DMARC_TLD_ERROR_UNKNOWN			(12)	/* Undefined TLD type    */
 #define DMARC_FROM_DOMAIN_ABSENT		(13)	/* No From: domain was supplied */
 
