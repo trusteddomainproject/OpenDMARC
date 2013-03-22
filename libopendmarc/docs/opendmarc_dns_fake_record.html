@@ -1,0 +1,65 @@
+<html>
+<head><title>opendmarc_dns_fake_record()</title></head>
+<body>
+<h1>opendmarc_dns_fake_record()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+<tt>void</tt>opendmarc_dns_fake_record(
+	char *name,
+	char *answer
+);
+</pre>
+Updates a list of hard-coded DNS replies.  Intended for by unit tests.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_dns_fake_record()</tt>
+	may be called at any time. </td>
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>name</td>
+	<td>The name of a DNS TXT record whose response should be hard-coded.
+	</td></tr>
+    <tr valign="top"><td>answer</td>
+	<td>The content that should be returned in place of live content
+	    for the named record.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li>None.
+</ul>
+</td>
+</tr>
+
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2013, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

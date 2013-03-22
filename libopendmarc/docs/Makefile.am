@@ -1,8 +1,36 @@
-dist_doc_DATA = dmarc_policy_t.html \
-	index.html \
+dist_doc_DATA = index.html \
+	dmarc_policy_t.html \
+	opendmarc_dns_fake_record.html \
+	opendmarc_get_policy_to_enforce.html \
 	opendmarc_lib_t.html \
+	opendmarc_policy_connect_clear.html \
+	opendmarc_policy_connect_init.html \
+	opendmarc_policy_connect_rset.html \
+	opendmarc_policy_connect_shutdown.html \
+	opendmarc_policy_fetch_adkim.html \
 	opendmarc_policy_fetch_alignment.html \
+	opendmarc_policy_fetch_aspf.html \
+	opendmarc_policy_fetch_fo.html \
+	opendmarc_policy_fetch_p.html \
+	opendmarc_policy_fetch_pct.html \
+	opendmarc_policy_fetch_rf.html \
+	opendmarc_policy_fetch_rua.html \
+	opendmarc_policy_fetch_ruf.html \
+	opendmarc_policy_fetch_sp.html \
+	opendmarc_policy_fetch_utilized_domain.html \
 	opendmarc_policy_library_init.html \
 	opendmarc_policy_library_shutdown.html \
+	opendmarc_policy_parse_dmarc.html \
 	opendmarc_policy_query_dmarc.html \
-	opendmarc_status_t.html
+	opendmarc_policy_status_to_str.html \
+	opendmarc_policy_store_dkim.html \
+	opendmarc_policy_store_dmarc.html \
+	opendmarc_policy_store_from_domain.html \
+	opendmarc_policy_store_spf.html \
+	opendmarc_policy_to_buf.html \
+	opendmarc_status_t.html \
+	opendmarc_tld_read_file.html \
+	opendmarc_tld_shutdown.html \
+	opendmarc_util_clearargv.html \
+	opendmarc_xml.html \
+	opendmarc_xml_parse.html
