@@ -4232,7 +4232,7 @@
  <section title="Acknowledgements" anchor="acks">
   <t> DMARC and the version of this document submitted to the IETF were
       the result of lengthy efforts by an informal industry consortium:
-      <xref target="http://dmarc.org">DMARC.org</xref>. Participating
+      <eref target="http://dmarc.org">DMARC.org</eref>. Participating
       companies included: Agari, American Greetings, AOL, Bank of America,
       Cloudmark, Comcast, Facebook, Fidelity Investments, Google, JPMorgan
       Chase & Company, LinkedIn, Microsoft, Netease, Paypal, ReturnPath,
