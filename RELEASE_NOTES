@@ -6,6 +6,7 @@ release, and a summary of the changes in that release.
 1.1.2		2013/03/??
 	Do Authentication-Results keyword parsing in a case-insensitive
 		manner.  Problem noted by Chris Meidinger.
+	Fix a data load problem with TestDNSData.
 
 1.1.1		2013/03/18
 	Don't crash when postfix reports no IP address.  Problem reported
