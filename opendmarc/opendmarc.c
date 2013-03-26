@@ -525,7 +525,7 @@ dmarcf_load_dnsdata(char *path)
 			}
 			else if (!isspace(*p))
 			{
-				if (key != NULL)
+				if (key == NULL)
 					key = p;
 				else if (gapfound && value == NULL)
 					value = p;
