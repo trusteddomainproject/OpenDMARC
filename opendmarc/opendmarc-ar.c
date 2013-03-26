@@ -69,7 +69,7 @@ struct lookup aresults[] =
 	{ "unknown",		ARES_RESULT_UNKNOWN },
 	{ "discard",		ARES_RESULT_DISCARD },
 	{ "softfail",		ARES_RESULT_SOFTFAIL },
-	{ NULL,			ARES_RESULT_UNKNOWN }
+	{ NULL,			ARES_RESULT_UNDEFINED }
 };
 
 struct lookup ptypes[] =
@@ -291,7 +291,7 @@ ares_convert(struct lookup *table, char *str)
 	for (c = 0; ; c++)
 	{
 		if (table[c].str == NULL ||
-		    strcmp(table[c].str, str) == 0)
+		    strcasecmp(table[c].str, str) == 0)
 			return table[c].code;
 	}
 
