@@ -2103,6 +2103,7 @@ mlfi_eom(SMFICTX *ctx)
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
 
+				spfaddr = NULL;
 				spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
 
 				memset(addrbuf, '\0', sizeof addrbuf);
@@ -2133,6 +2134,18 @@ mlfi_eom(SMFICTX *ctx)
 							spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
 						}
 					}
+				}
+
+				if (spfaddr == NULL)
+				{
+					if (conf->conf_dolog)
+					{
+						syslog(LOG_ERR,
+						       "%s: can't extract SPF address from Authentication-Results",
+						       dfc->mctx_jobid);
+					}
+
+					continue;
 				}
 
 				status = dmarcf_mail_parse(addrbuf, &user,

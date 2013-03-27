@@ -6,6 +6,9 @@ release, and a summary of the changes in that release.
 1.1.2		2013/03/??
 	Do Authentication-Results keyword parsing in a case-insensitive
 		manner.  Problem noted by Chris Meidinger.
+	If the Authentication-Results for SPF didn't include one of the two
+		expected properties, don't crash.  Problem noted by
+		Chris Meidinger.
 	Fix a data load problem with TestDNSData.
 
 1.1.1		2013/03/18
