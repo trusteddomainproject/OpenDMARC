@@ -1,21 +1,24 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v1.1.1 released
+Subject: OpenDMARC v1.1.2 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v1.1.1, now available for download from SourceForge.
+OpenDMARC v1.1.2, now available for download from SourceForge.
 
 This is a bug fix release that patches a crash problem that may occur when
-used with postfix.  Upgrade is necessary only if you have encountered this
-problem.
+certain malformed Authentication-Results fields are received.  It also
+improves parsing of that field in general.  Upgrade is recommended.
 
 The full RELEASE_NOTES for this version, showing changes since the last
 release:
 
-1.1.1		2013/03/18
-	Don't crash when postfix reports no IP address.  Problem reported
-		by Andrei Ioachim.
-	Add "TemporaryDirectory" to the list of valid config file items.
+1.1.2		2013/03/27
+	Do Authentication-Results keyword parsing in a case-insensitive
+		manner.  Problem noted by Chris Meidinger.
+	If the Authentication-Results for SPF didn't include one of the two
+		expected properties, don't crash.  Problem noted by
+		Chris Meidinger.
+	Fix a data load problem with TestDNSData.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
