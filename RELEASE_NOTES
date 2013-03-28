@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.1.2		2013/03/??
+1.1.2		2013/03/27
 	Do Authentication-Results keyword parsing in a case-insensitive
 		manner.  Problem noted by Chris Meidinger.
 	If the Authentication-Results for SPF didn't include one of the two
