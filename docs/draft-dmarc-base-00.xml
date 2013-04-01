@@ -889,7 +889,9 @@
         <figure><artwork>
   dmarc-uri = URI [ "!" 1*DIGIT [ "k" / "m" / "g" / "t" ] ]
             ; "URI" is imported from [URI]; commas (ASCII 0x2c)
-            ; and exclamation points (ASCII 0x21) MUST be encoded
+            ; and exclamation points (ASCII 0x21) MUST be encoded;
+            ; the numeric portion MUST fit within an unsigned
+            ; 64-bit integer
 
   dmarc-record = dmarc-version dmarc-sep
                  [dmarc-request]
