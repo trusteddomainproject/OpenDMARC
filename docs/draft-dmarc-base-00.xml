@@ -998,10 +998,10 @@
        severity.  In decreasing order of severity, the policies are
        "reject", "quarantine", and "none". </t>
 
-   <t> For example, in the presence of "pct=50" in the DMARC policy record
-       for "example.com", half of the mesages with "example.com" in the
-       RFC5322.From field which fail the DMARC test would be subjected to
-       "reject" action, and the remainder subjected to "quarantine"
+   <t> For example, in the presence of "pct=50" and "p=reject" in the DMARC
+       policy record for "example.com", half of the mesages with "example.com"
+       in the RFC5322.From field which fail the DMARC test would be subjected
+       to "reject" action, and the remainder subjected to "quarantine"
        action. </t>
   </section> <!-- Policy Fallback Mechanism -->
  </section> <!-- Policy Enforcement -->
@@ -4216,6 +4216,9 @@
       Steve Jones, Franck Martin, Brett McDowell, and Paul Midgen.  The
       contributors would also like to recognize the invaluable input and
       guidance that was provided by J.D. Falk.</t>
+
+  <t> Additional contributions within the IETF context were made by
+      J. Gomez, (other names) </t>
  </section>
   </back>
 </rfc>
