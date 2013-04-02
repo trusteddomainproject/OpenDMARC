@@ -98,7 +98,6 @@ struct dmarcf_header
 struct dmarcf_msgctx
 {
 	int			mctx_spfresult;
-	int			mctx_spfalign;
 	char *			mctx_jobid;
 	struct dmarcf_header *	mctx_hqhead;
 	struct dmarcf_header *	mctx_hqtail;
@@ -1774,6 +1773,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 	cc->cctx_msg = dfc;
 
 	dfc->mctx_jobid = JOBIDUNKNOWN;
+	dfc->mctx_spfresult = -1;
 
 	dfc->mctx_histbuf = dmarcf_dstring_new(BUFRSZ, 0);
 	if (dfc->mctx_histbuf == NULL)
@@ -1783,8 +1783,6 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		return SMFIS_TEMPFAIL;
 	}
-
-	dfc->mctx_spfalign = -1;
 
 	if (cc->cctx_dmarc != NULL)
 		(void) opendmarc_policy_connect_rset(cc->cctx_dmarc);
