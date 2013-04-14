@@ -3,6 +3,16 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.1.3		2013/04/13
+	Fix reporting of nonexistent SPF results.  Problem noted by
+		Andrei Ioachim.
+	Fix extraction of data from Received-SPF.  Problem noted by
+		Todd Lyons.
+	LIBOPENDMARC: Fix bug #47: Make sure that
+		opendmarc_policy_fetch_utilized_domain() returns the
+		organizational domain if that's the domain whose policy
+		was selected.  Reported by John Mears.
+
 1.1.2		2013/03/27
 	Do Authentication-Results keyword parsing in a case-insensitive
 		manner.  Problem noted by Chris Meidinger.

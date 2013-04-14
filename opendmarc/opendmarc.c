@@ -98,7 +98,6 @@ struct dmarcf_header
 struct dmarcf_msgctx
 {
 	int			mctx_spfresult;
-	int			mctx_spfalign;
 	char *			mctx_jobid;
 	struct dmarcf_header *	mctx_hqhead;
 	struct dmarcf_header *	mctx_hqtail;
@@ -412,6 +411,10 @@ dmarcf_parse_received_spf(char *str)
 			{
 				copying = FALSE;
 				parens++;
+			}
+ 			else if (isascii(*p) && isspace(*p))
+			{
+				copying = FALSE;
 			}
 			else if (r < end)
 			{
@@ -1774,6 +1777,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 	cc->cctx_msg = dfc;
 
 	dfc->mctx_jobid = JOBIDUNKNOWN;
+	dfc->mctx_spfresult = -1;
 
 	dfc->mctx_histbuf = dmarcf_dstring_new(BUFRSZ, 0);
 	if (dfc->mctx_histbuf == NULL)
@@ -1783,8 +1787,6 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		return SMFIS_TEMPFAIL;
 	}
-
-	dfc->mctx_spfalign = -1;
 
 	if (cc->cctx_dmarc != NULL)
 		(void) opendmarc_policy_connect_rset(cc->cctx_dmarc);
@@ -2242,10 +2244,25 @@ mlfi_eom(SMFICTX *ctx)
 		{
 			if (strcasecmp(hdr->hdr_name, RECEIVEDSPF) == 0)
 			{
-				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "spf %d\n",
-				                      dmarcf_parse_received_spf(hdr->hdr_value));
+				int spfres;
+				int spfmode;
 
+				if (dfc->mctx_fromdomain[0] == '\0')
+					spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
+				else
+					spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
+
+				spfres = dmarcf_parse_received_spf(hdr->hdr_value);
+
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf %d\n", spfres);
+
+				/* use the MAIL FROM domain */
+				ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc,
+				                                     dfc->mctx_envdomain,
+				                                     spfres,
+				                                     spfmode,
+				                                     NULL);
 				wspf = TRUE;
 			}
 		}
