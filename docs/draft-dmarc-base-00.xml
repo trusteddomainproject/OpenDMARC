@@ -1048,7 +1048,7 @@
 
 		<t> Prepend the string "_report._dmarc". </t>
 
-		<t> Prepend the domain name from which the policy was
+		<t> Append the domain name from which the policy was
 		    retrieved, after conversion to an A-label if needed. </t>
 
 		<t> Query the DNS for a TXT record at the constructed name.
