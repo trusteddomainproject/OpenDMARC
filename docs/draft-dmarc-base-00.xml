@@ -907,7 +907,7 @@
                  ; components other than dmarc-version and
                  ; dmarc-request may appear in any order
 
-  dmarc-version = "v" *WSP "=DMARC1"
+  dmarc-version = "v" *WSP "=" *WSP "DMARC1"
 
   dmarc-sep = *WSP %3b *WSP
 
