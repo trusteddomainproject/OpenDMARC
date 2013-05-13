@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # -*- perl -*-
-# $Header: /home/johnl/hack/dmarc/RCS/rddmarc,v 1.4 2012/07/17 18:41:21 johnl Exp $
+# $Header: /home/johnl/hack/dmarc/RCS/rddmarc,v 1.5 2013/05/12 17:08:20 johnl Exp johnl $
 #
 # Script to read DMARC aggregate reports and put summary info
 # into a database
@@ -10,7 +10,7 @@
 # -x read XML files rather than mail messages
 # -r replace existing report rather than failing
 
-# Copyright 2012, Taughannock Networks. All rights reserved.
+# Copyright 2012-2013, Taughannock Networks. All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@ use MIME::Words qw(:all);
 use XML::Simple;
 use DBI;
 use Socket qw{:addrinfo inet_ntop inet_pton AF_INET6 AF_INET};
+use PerlIO::gzip;
 
 use vars qw{$opt_d $opt_r $opt_x};
 
@@ -53,7 +54,7 @@ my $dbh = DBI->connect("DBI:mysql:database=dmarc",
 	    or die "Cannot connect to database\n";
 
 foreach my $i (@ARGV) {
-    my ($zip, $ent);
+    my ($zip, $ent, $isgzip);
 
     print "parsing $i\n";
 
@@ -77,7 +78,11 @@ foreach my $i (@ARGV) {
 	    my $npart = $ent->parts;
 	    for my $n (0..($npart-1)) {
 		my $part = $ent->parts($n);
-		if(lc $part->mime_type eq "application/zip"
+		if(lc $part->mime_type eq "application/gzip") {
+		    $zip = $part->bodyhandle;
+		    $isgzip = 1;
+		    last;
+		} elsif(lc $part->mime_type eq "application/zip"
 		   or lc $part->mime_type eq "application/x-zip-compressed"
 		   or lc $part->mime_type eq "application/octet-stream") {
 		    $zip = $part->bodyhandle;
@@ -97,8 +102,13 @@ foreach my $i (@ARGV) {
 	    print "body is nowhere\n";
 	    next;
 	}
-	open(XML,"unzip -p " . $zip->path . " |")
+	if($isgzip) {
+	    open(XML, "<:gzip", $zip->path)
+		or die "cannot ungzip $zip->path";
+	} else {
+	    open(XML,"unzip -p " . $zip->path . " |")
 		or die "cannot unzip $zip->path";
+	}
     }
     my $xml = "";
     $xml .= $_ while <XML>;
