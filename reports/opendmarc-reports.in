@@ -632,9 +632,9 @@ foreach (@$domainset)
 		print $tmpout "    <spf>$align_spfstr</spf>\n";
 		print $tmpout "   </policy_evaluated>\n";
 		print $tmpout "  </row>\n";
-		print $tmpout "  <identities>\n";
+		print $tmpout "  <identifiers>\n";
 		print $tmpout "   <header_from>$fromdomain</header_from>\n";
-		print $tmpout "  </identities>\n";
+		print $tmpout "  </identifiers>\n";
 		print $tmpout "  <auth_results>\n";
 		print $tmpout "   <spf>\n";
 		print $tmpout "    <domain>$envdomain</domain>\n";
