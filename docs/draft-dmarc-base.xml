@@ -797,12 +797,12 @@
                     follows: </t>
 
                 <figure>
-                    <artwork type="abnf">
+                    <artwork>
   dmarc-uri       = URI [ "!" 1*DIGIT [ "k" / "m" / "g" / "t" ] ]
-                    ; "URI" is imported from [URI]; commas (ASCII 0x2c)
-                    ; and exclamation points (ASCII 0x21) MUST be encoded;
-                    ; the numeric portion MUST fit within an unsigned
-                    ; 64-bit integer
+                    ; "URI" is imported from [URI]; commas (ASCII
+                    ; 0x2c) and exclamation points (ASCII 0x21)
+                    ; MUST be encoded; the numeric portion MUST fit
+                    ; within an unsigned 64-bit integer
 
   dmarc-record    = dmarc-version dmarc-sep
                     [dmarc-request]
@@ -1423,7 +1423,7 @@
                     <t>The aggregate data MUST be an XML file subjected to GZIP compression. The
                         aggregate data MUST be present using the media type "application/gzip", and
                         the filename SHOULD be constructed using the following ABNF: <figure>
-                            <artwork type="abnf">
+                            <artwork>
   filename        = receiver "!" policy-domain "!" begin-timestamp 
                     "!"end-timestamp [ "!" unique-id ] "." extension
 
