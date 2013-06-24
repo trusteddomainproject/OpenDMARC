@@ -2374,35 +2374,6 @@ Report-ID: <2002.02.15.1>]]></artwork>
                 <seriesInfo name="RFC" value="5965" />
             </reference>
 
-            <reference anchor="ARF-AS">
-                <front>
-                    <title> Creation and Use of Email Feedback Reports: An Applicability Statement
-                        for the Abuse Reporting Format (ARF) </title>
-
-                    <author fullname="J.D. Falk" initials="J.D." surname="Falk">
-                        <organization> Return Path </organization>
-                    </author>
-
-                    <author fullname="M. Kucherawy" initials="M." role="editor" surname="Kucherawy">
-                        <organization> Cloudmark </organization>
-                    </author>
-
-                    <date month="March" year="2012" />
-                </front>
-                <seriesInfo name="Internet-Draft" value="draft-ietf-marf-as" />
-            </reference>
-
-            <reference anchor="ARF-BCP">
-                <front>
-                    <title> Message Header Field for Indicating Message Authentication Status </title>
-                    <author fullname="J.D. Falk" initials="J.D." surname="Falk">
-                        <organization> Messaging Anti-Abuse WG </organization>
-                    </author>
-                    <date month="November" year="2011" />
-                </front>
-                <seriesInfo name="RFC" value="6449" />
-            </reference>
-
             <reference anchor="AUTH-RESULTS">
                 <front>
                     <title> Message Header Field for Indicating Message Authentication Status </title>
