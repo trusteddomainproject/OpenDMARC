@@ -1424,29 +1424,29 @@
                         aggregate data MUST be present using the media type "application/gzip", and
                         the filename SHOULD be constructed using the following ABNF: <figure>
                             <artwork>
-  filename        = receiver "!" policy-domain "!" begin-timestamp 
-                    "!"end-timestamp [ "!" unique-id ] "." extension
+  filename = receiver "!" policy-domain "!" begin-timestamp 
+             "!" end-timestamp [ "!" unique-id ] "." extension
 
-  unique-id       = token
-                    ; "token" is imported from [MIME]
+  unique-id = token
+            ; "token" is imported from [MIME]
 
-  receiver        = domain
-                    ; imported from [MAIL]
+  receiver = domain
+           ; imported from [MAIL]
 
   policy-domain   = domain
 
   begin-timestamp = 1*DIGIT
-                    ; seconds since 00:00:00 UTC January 1, 1970
-                    ; indicating start of the time range contained
-                    ; in the report
+                  ; seconds since 00:00:00 UTC January 1, 1970
+                  ; indicating start of the time range contained
+                  ; in the report
 
-  end-timestamp   = 1*DIGIT
-                    ; seconds since 00:00:00 UTC January 1, 1970
-                    ; indicating end of the time range contained
-                    ; in the report
+  end-timestamp = 1*DIGIT
+                ; seconds since 00:00:00 UTC January 1, 1970
+                ; indicating end of the time range contained
+                ; in the report
 
-  extension       = "xml" / "gzip"</artwork>
-                        </figure>
+  extension = "xml" / "gzip"</artwork>
+            </figure>
                     </t>
 
                     <t> For the GZIP file itself, the extension MUST be "gz"; for the XML report,
@@ -1459,8 +1459,7 @@
                     <t>For example, this is a possible filename for the gzip file of a report to the
                         Domain Owner &quot;example.com&quot; from the Mail Receiver
                         &quot;mail.receiver.example&quot;. <figure>
-                            <artwork><![CDATA[filename="mail.receiver.example!example.com!
-              1013662812!1013749130.gz"]]></artwork>
+                            <artwork><![CDATA[mail.receiver.example!example.com!1013662812!1013749130.gz]]></artwork>
                         </figure>
                     </t>
 
@@ -1492,12 +1491,14 @@
                         Report-ID: portion of the field is to enable the Domain Owner to identify
                         and ignore duplicate reports that might be sent by a Mail Receiver. </t>
 
-                    <t> For instance, this is a possible subject line for a report to the Domain
+                    <t> For instance, this is a possible Subject field for a report to the Domain
                         Owner &quot;example.com&quot; from the Mail Receiver
-                        &quot;mail.receiver.example&quot;. <figure>
-                            <artwork><![CDATA[Subject: Report Domain: example.com
-Submitter: mail.receiver.example
-Report-ID: <2002.02.15.1>]]></artwork>
+                        &quot;mail.receiver.example&quot;.  It is line-wrapped as allowed by
+		        <xref target="MAIL"/>. <figure>
+                            <artwork>
+<![CDATA[Subject: Report Domain: example.com
+    Submitter: mail.receiver.example
+    Report-ID: <2002.02.15.1>]]></artwork>
                         </figure></t>
 
                     <t>This transport mechanism potentially encounters a problem when feedback data
