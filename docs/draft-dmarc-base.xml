@@ -1459,7 +1459,8 @@
                     <t>For example, this is a possible filename for the gzip file of a report to the
                         Domain Owner &quot;example.com&quot; from the Mail Receiver
                         &quot;mail.receiver.example&quot;. <figure>
-                            <artwork><![CDATA[mail.receiver.example!example.com!1013662812!1013749130.gz]]></artwork>
+                            <artwork>
+  <![CDATA[mail.receiver.example!example.com!1013662812!1013749130.gz]]></artwork>
                         </figure>
                     </t>
 
