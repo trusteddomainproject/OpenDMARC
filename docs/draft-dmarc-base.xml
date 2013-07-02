@@ -585,7 +585,7 @@
                 the "DMARC record". </t>
 
             <t> DMARC's use of the Domain Name Service is driven
-                        by DMARC's use of domain name's and the nature of the query it performs. The
+                        by DMARC's use of domain names and the nature of the query it performs. The
                         query requirement matches perfectly with the DNS, for obtaining simple
                         parametric information. It uses an established method of storing the
                         information, associated with the target domain name, namely an isolated TXT
