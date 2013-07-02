@@ -887,7 +887,8 @@
 		will disregard the SPF policy since enacting an SPF-determined rejection
 		prevents evaluation of DKIM; DKIM might otherwise pass, satisfying the DMARC
 		evaluation.  There is a trade-off to doing so, namely acceptance and processing
-		of the entire message body.  DMARC-compliant Mail Receivers typically disregard any mail directive discovered as
+		of the entire message body in exchange for the enhanced protection DMARC
+		provides.  DMARC-compliant Mail Receivers typically disregard any mail directive discovered as
                 part of an authentication mechanism (e.g., ADSP, SPF) where a DMARC record is also
                 discovered that specifies a policy other than "none".  However, this is not
 		mandatory.  Domain Owners that wish to ensure DMARC operators apply DMARC
