@@ -1212,7 +1212,7 @@
                 Mail Receivers SHOULD NOT apply the DMARC mechanism to the message. </t>
 
             <t> If the RFC5322.From domain does not exist in the DNS, Mail Receivers SHOULD direct
-                the receiving SMTP server to reject the message . The choice of mechanism for such
+                the receiving SMTP server to reject the message. The choice of mechanism for such
                 rejection and the implications of those choices are discussed in <xref
                     target="mail_receiver_actions" /> and <xref target="sec_rejection" />. </t>
 
@@ -1395,7 +1395,7 @@
                     presence of the &quot;rua&quot; tag specifies where to send feedback. </t>
 
                 <t>For more on the considerations given to DMARC discovery, see <xref
-                        target="fb_verify" />{{{Verifying External Destinations}}}.</t>
+                        target="fb_verify"/>. </t>
             </section>
             <!-- Discovery -->
 
