@@ -584,8 +584,7 @@
                 "_dmarc.example.com". The DNS-located DMARC preference data will hereafter be called
                 the "DMARC record". </t>
 
-            <t> [EDZ: Insert new justification for using DNS here] <list style="hanging">
-                    <t hangText="Rationale {DHC}:"> DMARC's use of the Domain Name Service is driven
+            <t> DMARC's use of the Domain Name Service is driven
                         by DMARC's use of domain name's and the nature of the query it performs. The
                         query requirement matches perfectly with the DNS, for obtaining simple
                         parametric information. It uses an established method of storing the
@@ -594,8 +593,6 @@
                         service has the considerable benefit of re-using an extremely
                         well-established operations, administration and management infrastructure,
                         rather than creating a new one. </t>
-                </list>
-            </t>
 
             <t> Per <xref target="DNS" />, a TXT record can comprise several "character-string"
                 objects. Where this is the case, the module performing DMARC evaluation MUST
