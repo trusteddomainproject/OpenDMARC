@@ -306,8 +306,6 @@
                             from which it claims to be sent.</t>
                     </list>
                 </t>
-                    </list>
-                </t>
             </section>
         </section>
 
@@ -440,22 +438,22 @@
             <section anchor="ascii_art" title="Flow Diagram">
               <t> <figure> <artwork>
  +--------+
- | Author |<. . . . . . . . . . . . . . . . . . . . . . . . . . .
+ | Author |&lt;. . . . . . . . . . . . . . . . . . . . . . . . . . .
  +--------+                           .               .         .
      |                                .               .         .
      V                                V               V         .
  +------------+     +--------+       +----------+ +----------+  .
- | Submission |<***>|  DKIM  |       |   DKIM   | |    SPF   |  .
+ | Submission |&lt;***&gt;|  DKIM  |       |   DKIM   | |    SPF   |  .
  |  Service   |     | Signer |       | Verifier | | Verifier |  .
  +------------+     +--------+       +----------+ +----------+  .
      |                                    ^            ^        .
      |                                    *            *        .
      V                                    V            *        .
   +------+        (~~~~~~~~~~~~)       +------+        *        .
-  | sMTA |------->( other MTAs )------>| rMTA |<********        .
+  | sMTA |-------&gt;( other MTAs )------&gt;| rMTA |&lt;********        .
   +------+        (~~~~~~~~~~~~)       +------+                 .
                                           |  ^    +----------+  .
-                                          |  ****>|  DMARC   |<..
+                                          |  ****&gt;|  DMARC   |&lt;..
                                           |       | Verifier |
                                           V       +----------+
                                      +---------+       
