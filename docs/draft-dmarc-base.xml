@@ -277,9 +277,9 @@
             <section title="Out Of Scope">
                 <t>Items specifically not in scope for this work include: <list style="symbols">
                         <t> DMARC shall not be required to protect against any attacks against
-                            components listed in Security Dependencies (i.e. DNS attacks, bugs in
+                            components that are essential dependencies (e.g. DNS attacks, bugs in
                             DKIM verification, malware on the end-user machine or in the sender's
-                            system). Compromised components at or near the sender can cause passing
+                            system).  Compromised components at or near the sender can cause passing
                             results for mail which the sender did not intend to be authenticated,
                             while compromised components at the receiver can cause either passing
                             result for unauthenticated mail, or failing results for authenticated
@@ -404,7 +404,7 @@
             <!-- Authentication Mechanisms -->
 
 
-            <section anchor="summary" title="Summary">
+            <section anchor="overview" title="Overview">
 
                 <t> A DMARC-enabled Domain Owner creates a DNS record to specify policy. Mail sent
                     for such a domain may or may not also be authenticated with DKIM and/or SPF.</t>
@@ -597,8 +597,8 @@
         <section anchor="policy_element" title="Policy">
             <t> DMARC policies are published by Domain Owners and applied by Mail Receivers. </t>
 
-            <t> A Domain Owner advertises DMARC participation by adding a DNS TXT record (described
-                in <xref target="dmarc_record" />) to one or more domains. In doing so, Domain
+            <t> A Domain Owner advertises DMARC participation of one or more sending domains by adding a DNS TXT record (described
+                in <xref target="dmarc_record" />) to those domains.  In doing so, Domain
                 Owners make specific requests of Mail Receivers regarding the disposition of
                 messages purporting to be from one of the Domain Owner's domains and the provision
                 of feedback about those messages.</t>
@@ -615,7 +615,7 @@
                 to Mail Receivers that successful path authorization is not to be taken as
                 sufficient evidence that the Domain Owner authorized the message. </t>
 
-            <t> A Mail Receiver implementing the DMARC mechanism MUST make a best-effort attempt to
+            <t> A Mail Receiver implementing the DMARC mechanism makes a best-effort attempt to
                 adhere to the Domain Owner's published DMARC policy when a message fails the DMARC
                 test.  Since email streams can be complicated (due to forwarding, existing
                 RFC5322.From domain-spoofing services, etc.), Mail Receivers MAY deviate from a
@@ -763,7 +763,15 @@
                             Domain Owners to enact a slow rollout enforcement of the DMARC
                             mechanism. The prospect of "all or nothing" is recognized as preventing
                             many organizations from experimenting with strong authentication-based
-                            mechanisms. See <xref target="fallback" /> for details. </t>
+                            mechanisms. See <xref target="fallback" /> for details.  Note that
+			    random selection based on this percentage, such as the following pseudocode,
+			    is adequate:
+				<figure> <artwork>
+    if (random mod 100) < pct then
+      selected = true
+    else
+      selected = false
+				</artwork> </figure> </t>
 
                         <t hangText="rf:"> Format to be used for message-specific failure reports
                             (comma-separated plain-text list of values; OPTIONAL; default "afrf").
@@ -1051,14 +1059,14 @@
                     Receiver generating the report MUST NOT generate a report to either the original
                     or the override URI. </t>
 
-                <t> A report receiver MUST publish such a record in its DNS if it wishes to receive
+                <t> A report receiver publishes such a record in its DNS if it wishes to receive
                     reports for other domains. </t>
 
                 <t> The Domain Owner confirming via the DNS that it wishes to receive reports can
                     use a wildcard DNS record to confirm that it is willing to receive reports for
                     any domain. For example, a TXT resource record at "*._report._dmarc.example.com"
                     containing at least "v=DMARC1" confirms that example.com is willing to receive
-                    DMARC reports for any domain. </t>
+                    DMARC reports for any child domain. </t>
 
                 <t> If the destination of the reports is overcome by volume, it can simply remove
                     the confirming DNS record. However, due to positive caching, the result could
@@ -1244,7 +1252,7 @@
                         contain policy to be asserted for subdomains of the Organizational Domain. A
                         possibly empty set of records is returned. </t>
 
-                    <t> Records that do not include a "v=" tag that identifies the current version
+                    <t> Records that do not start with a "v=" tag that identifies the current version
                         of DMARC are discarded. </t>
 
                     <t> If the remaining set contains multiple records or no records, processing
@@ -1390,8 +1398,7 @@
             </section>
 
             <section anchor="sampling" title="Message Sampling">
-                <t> Attention must be paid to the possible presence of the "pct" tag in the DMARC
-                    policy record. If the tag is present, the Mail Receiver MUST NOT enact the
+                <t> If the "pct" tag is present in the policy record, the Mail Receiver MUST NOT enact the
                     requested policy ("p" tag or "sp" tag") on more than the stated percent of the
                     totality of affected messages. However, regardless of whether or not the "pct"
                     tag is present, the Mail Receiver MUST include all relevant message data in any
@@ -2130,7 +2137,7 @@
                 <section anchor="priv_tls" title="Secure Protocols">
                     <t> This document encourages use of secure transport mechanisms to prevent loss
                         of private data to third parties that may be able to monitor such
-                        transmissions. Open transport mechanisms should be avoided. </t>
+                        transmissions. Unencrypted mechanisms should be avoided. </t>
                 </section>
             </section>
 
@@ -2817,9 +2824,11 @@
                     constitutes an amplified denial-of-service attack. </t>
 
                 <t> The Organizational Domain mechanism is a necessary component to the goals of
-                    DMARC. The method described in <xref target="terms_and_defs" /> is not perfect,
+                    DMARC. The method described in <xref target="terms_and_defs" /> is far from perfect,
                     but serves this purpose reasonably well without adding undue burden or semantics
-                    to the DNS. </t>
+                    to the DNS.  If a method is created to do so that is more reliable and secure than
+		    the use of a public suffix list, DMARC should be amended to use that method as soon
+		    as it is generally available. </t>
 
                 <section anchor="suffixes" title="Public Suffix Lists">
                     <t> A public suffix list for the purposes of determining the Organizational
