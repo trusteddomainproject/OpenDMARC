@@ -320,7 +320,7 @@
                             publish a policy for message disposition results other than "all
                             authentication tests failed". </t>
                         <t> DMARC will not allow for use of header fields other than the
-                            RFC5322.From to perform identifier alignment checks. </t>
+                            RFC5322.From to field perform identifier alignment checks. </t>
                         <t> DMARC has no "short-circuit" provision, such as specifying that a pass
                             from one authentication test allows one to skip the other(s). All are
                             required for reporting. </t>
@@ -333,7 +333,7 @@
                         <t> DMARC reports only on the last-hop IP address, and does not provide for
                             reporting of the originating IP. </t>
                         <t> DMARC does not address attacks that provide false information in the
-                            "display name" portion of the RFC5322.From field. </t>
+                            display-name portion of the RFC5322.From field. </t>
                     </list>
                 </t>
             </section>
@@ -477,7 +477,7 @@
                     DMARC mechanism because it is a required SMTP and therefore guaranteed to be
                     present in compliant messages, and most MUAs represent the <xref target="MAIL"
                         >RFC5322</xref>.From field as the originator of the message and render some
-                    or all of this header's content to end users.</t>
+                    or all of this header field's content to end users.</t>
 
                 <t>Domain names in this context are to be compared in a case-insensitive manner, per
                         <xref target="DNS-CASE" />. </t>
@@ -907,8 +907,8 @@
                     are "reject", "quarantine", and "none". </t>
 
                 <t> For example, in the presence of "pct=50" and "p=reject" in the DMARC policy
-                    record for "example.com", half of the mesages with "example.com" in the
-                    RFC5322.From field which fail the DMARC test would be subjected to "reject"
+                    record for "example.com", half of the mesages with an RFC5322.Fro domain of "example.com"
+                    that fail the DMARC test would be subjected to "reject"
                     action, and the remainder subjected to "quarantine" action. </t>
                 <t>Mail receivers MAY implement pct via statistical mechanisms that achieve a close
                     approximation to the requested percentage. Mail receivers SHOULD make a
@@ -1263,7 +1263,7 @@
                     to an A-label for further processing. </t>
 
                 <t>In order to be processed by DMARC, a message must contain exactly one RFC5322
-                    From: identifier. Not all messages meet this requirement. They may <list
+                    From: field containing a single name-addr (see Section 3.4 of <xref target="MAIL"/>). Not all messages meet this requirement. They may <list
                         style="symbols">
                         <t>Have multiple RFC5322.From fields (which is also forbidden under <xref
                                 target="MAIL">RFC 5322</xref>)</t>
@@ -1388,7 +1388,7 @@
 
             <section anchor="discovery_fb_mech" title="Discovery">
                 <t>A Mail Receiver discovers reporting requests when it looks up a DMARC policy
-                    record that corresponds to a RFC5322 From: identifier on received mail. The
+                    record that corresponds to a RFC5322 From: domain on received mail. The
                     presence of the &quot;rua&quot; tag specifies where to send feedback. </t>
 
                 <t>For more on the considerations given to DMARC discovery, see <xref
@@ -1771,7 +1771,7 @@
 
             <section anchor="sec_from" title="Use of RFC5322.From">
                 <t> One of the most obvious points of security scrutiny for DMARC is the choice to
-                    focus on an identifier, namely the RFC5322.From, which is part of a body of data
+                    focus on an identifier, namely the RFC5322.From address, which is part of a body of data
                     trivially forged throughout the history of email. </t>
 
                 <t> Several points suggest it is the most correct and safest thing to do in this
@@ -1802,7 +1802,7 @@
 
             <section anchor="sec_display" title="Display Name Attacks">
                 <t> A common attack in messaging abuse is the presentation of false information in
-                    the "display name" portion of the RFC5322.From field. For example, it is
+                    the display-name portion of the RFC5322.From field. For example, it is
                     possible for the email address in that field to be an arbitrary address or
                     domain name, while containing a well-known name (a person, brand, role, etc.) in
                     the display name, intending to fool the end user into believing that the name is
@@ -2010,7 +2010,7 @@
                         practices. </t>
 
                     <t> Both report types may expose sender and recipient identifiers (e.g.,
-                        RFC5322.From fields), and although the <xref target="AFRF" /> format used
+                        RFC5322.From addresses), and although the <xref target="AFRF" /> format used
                         for failed message reporting supports redaction, failed message reporting is
                         capable of exposing the entire message to the report recipient. </t>
 
@@ -2061,7 +2061,7 @@
                     used to generate DMARC-passing email on behalf of the Organizational Domain. </t>
 
                 <t> For example, an attacker who controls the SPF record for "evil.example.com" can
-                    send mail with an RFC5322.From containing "foo@example.com" that can pass both
+                    send mail with an RFC5322.From field containing "foo@example.com" that can pass both
                     authentication and the DMARC check against "example.com".</t>
 
                 <t> The Organizational Domain administrator should be careful not to cede control of
