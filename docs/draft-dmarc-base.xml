@@ -1771,7 +1771,7 @@
 
                         <t hangText="Multiple Appearances:"> no </t>
 
-                        <t hangText='Related "Feedback-Type":'> dmarc </t>
+                        <t hangText='Related "Feedback-Type":'> auth-failure </t>
 
                         <t hangText="Published In:"> [this RFC] </t>
 
