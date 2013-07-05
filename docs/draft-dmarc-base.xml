@@ -104,9 +104,9 @@
                 enforcement of policies against unauthenticated email.</t>
 
             <t>DMARC allows senders and receivers to collaborate by <list style="numbers">
+                    <t>Providing receivers with assertions about senders' policies</t>
                     <t>Providing feedback to senders so they can monitor authentication and judge
                         threats</t>
-                    <t>Providing receivers with assertions about senders' policies</t>
                 </list>
             </t>
 
@@ -163,54 +163,30 @@
                     receivers. This preserves the positive aspects of the current email
                     infrastructure.</t>
 
-                <t>Although DMARC does not introduce third parties, they are free to use DMARC
-                    records to provide services.</t>
+                <t>Although DMARC does not introduce third parties to the email
+		    handling flow, it also does not preclude them.  Third parties
+		    are free to provide services in conjunction with DMARC. </t>
             </section>
             <!-- Scalability -->
 
             <section title="Anti-Phishing">
                 <t>DMARC is designed to prevent bad actors from sending mail which claims to come
-                    from legitimate senders, particularly senders of transactional email. One of the
-                    primary uses of this kind of spoofed mail is phishing (getting users to provide
-                    information by pretending to be the legitimate recipient of the information).
+                    from legitimate senders, particularly senders of transactional email.
+ 		    (official mail that is about business transactions), One of the
+                    primary uses of this kind of spoofed mail is phishing (enticing users to provide
+                    information by pretending to be the legitimate service requesting the information).
                     Thus, DMARC is significantly informed by ongoing efforts to enact large-scale,
                     Internet-wide, anti-phishing measures. </t>
                 <t>Although DMARC can only be used to combat specific forms of exact-domain spoofing
                     directly, the DMARC mechanism is a substantial step towards the creation of
                     reliable and defensible message streams.</t>
 
-                <t>DMARC does not attempt to solve all problems with spoofing. In particular, it
+                <t>DMARC does not attempt to solve all problems with spoofed or otherwise fraudulent email.  In particular, it
                     does not address the use of visually similar domain names (cousin domains) or
                     abuse of the <xref target="MAIL">RFC5322</xref>.From human readable
                     &quot;display name&quot;.</t>
             </section>
             <!-- Anti-Phishing -->
-
-            <section title="Towards An Authenticated Future"> </section>
-            <!-- Future -->
-
-            <section anchor="team" title="Experiment Team">
-                <t>[NOTE TO RFC EDITOR: Remove this section prior to publication.] </t>
-
-                <t>The contributors to DMARC share the view that layering security on top of
-                    Internet Mail requires a partnership between those who send mail (who sign
-                    messages with DKIM, authorize email servers with SPF, and consume feedback to
-                    achieve highly-accurate deployments) and those who receive mail (who test the
-                    authenticity assertions from senders and report authentication results back to
-                    senders to enable authentication accuracy and domain-usage intelligence). The
-                    team that produced this specification acknowledges that this new security layer
-                    is optional for the Internet community in general, though of increasing value to
-                    our peers due to the urgent need to respond to the persistent threats of
-                    phishing and malware distribution.</t>
-
-                <t>If this first public informational draft addresses your use cases for improved
-                    messaging security, please contact the authors expressing your interest to work
-                    with us on implementation testing and rolling implementation experience back
-                    into future versions of DMARC. It is the intention of the contributors to submit
-                    DMARC into a new IETF Working Group on a formal standards track, but only after
-                    gaining significant implementation experience. Please join us in making Internet
-                    messaging more secure. </t>
-            </section>
         </section>
         <!-- Introduction -->
 
@@ -228,10 +204,10 @@
                     From: address of the reputable sender. This kind of attack is more damaging to
                     end-users than attacks using other addresses because it is more believable and
                     for several reasons, more likely to be delivered to the inbox. (For instance,
-                    many MUAs support whitelisting of From: domains by end-users.) It is more
-                    damaging to the organizations being spoofed because they receive both the
-                    automatically generated bounce messages and the complaints from affected
-                    end-users. </t>
+                    many MUAs (Mail User Agents) support whitelisting of From: domains by end-users.) It is more
+                    damaging to the organizations being spoofed because the
+		    email, being indistinguishable to the user from legitimate
+		    email, severely damages the reputation of the organization. </t>
 
                 <t>Current email authentication systems appear sufficient to prevent these attacks,
                     since both SPF and DKIM should allow receiving systems or users to distinguish
@@ -243,7 +219,7 @@
                 <t>DMARC is intended to reduce the success of attackers sending mail pretending to
                     be from a domain they do not control, with minimal changes to existing mail
                     handling at both senders and receivers. It is particularly intended to protect
-                    transactional mail (official mail which is about business transactions), as
+                    transactional email, as
                     opposed to mail between individuals.</t>
                 <t> That has resulted in the following goals: <list style="symbols">
                         <t>Allow mail senders to assert policy about domain authentication for
@@ -259,20 +235,13 @@
 
                         <t>Minimize implementation complexity for both senders and receivers.</t>
                     </list></t>
-                <t> DMARC is explicitly not intended to address: <list style="symbols">
-                        <t>Authentication of individuals rather than domains.</t>
-
-                        <t>Handling of undesirable or malicious mail that is coming from the domain
-                            it claims to be sent from.</t>
-                    </list>
-                </t>
             </section>
 
 
 
             <section title="Sender/Domain Owner Requirements">
 
-                <t>DMARC assumes that entities who wish to protect mail sent with their identity via
+                <t>DMARC assumes that entities who send messages with their domains in the RFC5322.From field and wish to protect those messages with
                     DMARC can <list style="numbers">
                         <t>Control DNS entries for the domains to be protected, including adding
                             arbitrary new subdomains with TXT records.</t>
@@ -292,10 +261,10 @@
 
                 <t>DMARC assumes that mail receivers are able to <list style="numbers">
                         <t>Do additional DNS lookups, beyond those normally associated with the
-                            receipt of mail, to look for DMARC policy and reporting records. (This
-                            is a worst-case maximum of 3 additional lookups per message.)</t>
+                            receipt of a message, to look for DMARC policy and reporting records. (This
+                            is a worst-case maximum of 3 additional lookups per message, in addition to those required for DKIM and SPF.)</t>
 
-                        <t>Log received messages and aggregate reporting information about them for
+                        <t>Log details required to generate forensic and aggreagate reports about received messages for 
                             a minimum of 24 hours.</t>
 
                         <t>Send outgoing aggregate reports from some DMARC-compliant sending system
@@ -316,11 +285,8 @@
                             mail. </t>
                         <t> DMARC will not make a distinction between absent authentication and
                             failed authentication. </t>
-                        <t> DMARC (at least, the base version) will not provide the ability to
-                            publish a policy for message disposition results other than "all
-                            authentication tests failed". </t>
                         <t> DMARC will not allow for use of header fields other than the
-                            RFC5322.From to field perform identifier alignment checks. </t>
+                            RFC5322.From to field perform identifier alignment checks (see <xref target="id_alignment_element"/>). </t>
                         <t> DMARC has no "short-circuit" provision, such as specifying that a pass
                             from one authentication test allows one to skip the other(s). All are
                             required for reporting. </t>
@@ -334,6 +300,12 @@
                             reporting of the originating IP. </t>
                         <t> DMARC does not address attacks that provide false information in the
                             display-name portion of the RFC5322.From field. </t>
+                        <t>Authentication of individuals rather than domains.</t>
+
+                        <t>Handling of undesirable or malicious mail that is coming from the domain
+                            from which it claims to be sent.</t>
+                    </list>
+                </t>
                     </list>
                 </t>
             </section>
@@ -361,8 +333,8 @@
                         "Authenticated Identifiers". See <xref target="auth_mechs" /> for details
                         about the supported mechanisms. </t>
 
-                    <t hangText="Cousin Domain:"> A DNS domain that, when rendered by a Mail User
-                        Agent (MUA), looks similar to, or can lead users to believe the domain is
+                    <t hangText="Cousin Domain:"> A DNS domain that, when rendered by an MUA,
+                        looks similar to, or can lead users to believe the domain is
                         associated with, another name. For instance, "vendor5.example" would be a
                         Cousin Domain of "vendors.example". </t>
 
@@ -375,6 +347,10 @@
                         term as analogous to an Administrative Management Domain as defined in <xref
                             target="EMAIL-ARCH" />. </t>
 
+                    <t hangText="Identifier Alignment:"> The concept of alignment between the 
+			RFC5322.From address (i.e., the purported author of the message) and
+			the identifier(s) checked by message authentication schemes, in particular
+			SPF and DKIM. </t>
                     <t hangText="Mail Receiver:"> The entity or organization that receives and
                         processes email. Mail Receivers operate one or more Internet-facing Mail
                         Transport Agents (MTAs).</t>
@@ -451,7 +427,7 @@
 
                 <t>A DMARC-enabled Mail Receiver might also generate per-message reports that
                     contain information related to individual messages which fail SPF and/or DKIM.
-                    Per-message failure reports are useful for forensic use in debugging deployments
+                    Per-message failure reports are a useful source of information when debugging deployments
                     (if messages can be determined to be legitimate even though failing
                     authentication) or in analyzing attacks. The capability for such services is
                     enabled by DMARC but defined in other referenced material.</t>
@@ -460,6 +436,81 @@
                     authenticate only a DNS domain, and do not authenticate the local-part of any
                     email address identifier found in a message.</t>
             </section>
+
+            <section anchor="ascii_art" title="Flow Diagram">
+              <t> <figure> <artwork>
+ +--------+
+ | Author |<. . . . . . . . . . . . . . . . . . . . . . . . . . .
+ +--------+                           .               .         .
+     |                                .               .         .
+     V                                V               V         .
+ +------------+     +--------+       +----------+ +----------+  .
+ | Submission |<***>|  DKIM  |       |   DKIM   | |    SPF   |  .
+ |  Service   |     | Signer |       | Verifier | | Verifier |  .
+ +------------+     +--------+       +----------+ +----------+  .
+     |                                    ^            ^        .
+     |                                    *            *        .
+     V                                    V            *        .
+  +------+        (~~~~~~~~~~~~)       +------+        *        .
+  | sMTA |------->( other MTAs )------>| rMTA |<********        .
+  +------+        (~~~~~~~~~~~~)       +------+                 .
+                                          |  ^    +----------+  .
+                                          |  ****>|  DMARC   |<..
+                                          |       | Verifier |
+                                          V       +----------+
+                                     +---------+       
+                                     |  User   |
+                                     | Mailbox |
+                                     +---------+
+   	</artwork> </figure> </t>
+
+	<t> The above diagram shows the flow of messages through a DMARC-aware
+	    system.  Solid lines denote the actual message flow; dotted lines
+	    involve Domain Name System queries used to retrieve message policy
+	    related to the supported message authentication schemes; asterisk
+	    lines indicate data exchange between message handling modules
+	    and message authentication modules. </t>
+
+	<t> In essence the steps are as follows:
+		<list style="numbers">
+
+		<t> Author constructs an SPF policy and publishes it in its
+		    DNS database as per <xref target="SPF"/>.  Author also
+		    configures its system for DKIM signing as described
+		    in <xref target="DKIM"/>. </t>
+
+		<t> Author generates a message and hands the message to its
+		    designated mail submission service. </t>
+
+		<t> Submission service passes relevant details to the DKIM
+		    signing module in order to generate a DKIM signature to be
+		    applied to the message. </t>
+
+		<t> Submission service relays the now-signed message to
+		    its designated transport service for routing to its
+		    intended recipient(s). </t>
+
+		<t> Message may pass through other relays, but eventually
+		    arrives at a recipient's transport service </t>
+
+		<t> Recipient transport service conducts SPF and DKIM
+		    authentication checks by passing the necessary data to
+		    their respective modules, each of which require queries
+		    to the author's DNS data. </t>
+
+		<t> The results of these are passed to the DMARC module
+		    along with the Author domain.  The DMARC module does a small
+		    number of further DNS queries to the author domain to
+		    extract DMARC-specific policy details.  These, in
+		    combination, produce a DMARC policy result, and can
+		    optionally cause one of two kinds of reports to be
+		    generated (not shown). </t>
+
+		<t> Recipient transport service either delivers the message
+		    to the recipient inbox, or takes other local policy action
+		    based on the DMARC result (not shown). </t>
+		</list> </t>
+	    </section>
 
             <section anchor="id_alignment_element" title="Identifier Alignment">
                 <t>Email authentication technologies authenticate various (and disparate) aspects of
@@ -474,7 +525,7 @@
                 <t>DMARC uses the <xref target="MAIL">RFC5322</xref>.From domain to evaluate the
                     applicability of Authenticated Identifiers. The <xref target="MAIL"
                         >RFC5322</xref>.From domain was selected as the central identity of the
-                    DMARC mechanism because it is a required SMTP and therefore guaranteed to be
+                    DMARC mechanism because it is a required message header field and therefore guaranteed to be
                     present in compliant messages, and most MUAs represent the <xref target="MAIL"
                         >RFC5322</xref>.From field as the originator of the message and render some
                     or all of this header field's content to end users.</t>
@@ -491,16 +542,16 @@
                     <t>DMARC provides the option of applying DKIM in a strict mode or a relaxed
                         mode. </t>
 
-                    <t>In relaxed mode, the Organizational Domain of the <xref target="DKIM"
+                    <t>In relaxed mode, the Organizational Domains of both the <xref target="DKIM"
                          />-authenticated signing domain (taken from the value of the "d=" tag in
                         the signature) and that of the RFC5322.From domain must be equal. In strict
-                        mode, only an exact match is considered to produce identifier alignment. </t>
+                        mode, only an exact match between both of the Fully Qualified Domain Names (FQDN) considered to produce identifier alignment. </t>
 
                     <t>To illustrate, in relaxed mode, if a validated DKIM signature successfully
-                        verifies with a "d=" domain of "example.com", and the RFC5322.From domain is
+                        verifies with a "d=" domain of "example.com", and the RFC5322.From address is
                         "alerts@news.example.com", the DKIM "d=" domain and the RFC5322.From domain
                         are considered to be "in alignment". In strict mode, this test would
-                        fail.</t>
+                        fail since the "d=" domain does not match the FQDN of the address.</t>
 
                     <t>However, a DKIM signature bearing a value of "d=com" would never allow an "in
                         alignment" result as "com" should appear on all public suffix lists, and
@@ -560,17 +611,19 @@
 
             <t> A Domain Owner that does not advertise an SPF policy or sign with DKIM is making an
                 implicit statement that the use cases those protocols satisfy are not to be
-                considered when determining whether or not the message under evaluation is valid.
+                considered when determining whether the message under evaluation is valid.
                 For example, not publishing an SPF policy is an implicit message from Domain Owners
                 to Mail Receivers that successful path authorization is not to be taken as
                 sufficient evidence that the Domain Owner authorized the message. </t>
 
             <t> A Mail Receiver implementing the DMARC mechanism MUST make a best-effort attempt to
                 adhere to the Domain Owner's published DMARC policy when a message fails the DMARC
-                test. Since email streams can be complicated (due to forwarding, existing
+                test.  Since email streams can be complicated (due to forwarding, existing
                 RFC5322.From domain-spoofing services, etc.), Mail Receivers MAY deviate from a
                 Domain Owner's published policy during message processing and SHOULD make available
-                the fact of and reason for the deviation to the Domain Owner via feedback reporting.
+                the fact of and reason for the deviation to the Domain Owner via feedback reporting,
+		specifically using the "PolicyOverride" feature of the aggregate
+		report (see <xref target="fb_aggregate"/>).
             </t>
         </section>
         <!-- Policy -->
@@ -603,7 +656,7 @@
                 <t>
                     <xref target="URI" /> defines a generic syntax for identifying a resource. The
                     DMARC mechanism uses this as the format by which a Domain Owner specifies the
-                    destination for the two report types that are supported. </t>
+                    destination for the two report types (RUA and RUF) that are supported. </t>
 
                 <t> The place such URIs are specified (see <xref target="dmarc_format" />) allows a
                     list of these to be provided. A report is to be sent to each listed URI. Mail
@@ -620,7 +673,7 @@
                     point and a maximum size specification, and, if there are additional reporting
                     URIs in the list, a comma and the next URI. </t>
 
-                <t> For example, the URI "mailto:reports@example.com!50m" would request a report be
+                <t> For example, the URI "mailto:reports@example.com%2550m" would request a report be
                     sent via email to "reports@example.com" so long as the report payload does not
                     exceed 50 megabytes. </t>
 
@@ -885,11 +938,17 @@
 		prevents evaluation of DKIM; DKIM might otherwise pass, satisfying the DMARC
 		evaluation.  There is a trade-off to doing so, namely acceptance and processing
 		of the entire message body in exchange for the enhanced protection DMARC
-		provides.  DMARC-compliant Mail Receivers typically disregard any mail directive discovered as
+		provides. </t>
+
+		<t> DMARC-compliant Mail Receivers typically disregard any mail handling directive discovered as
                 part of an authentication mechanism (e.g., ADSP, SPF) where a DMARC record is also
-                discovered that specifies a policy other than "none".  However, this is not
-		mandatory.  Domain Owners that wish to ensure DMARC operators apply DMARC
-		policy rather than SPF policy SHOULD not use "-all" in their SPF policy records. </t>
+                discovered that specifies a policy other than "none".  Deviating from this practice
+		also introduces inconsistency between operators in terms of handling of the message.  However, such deviation is not
+		proscribed. </t>
+
+		<t> Accordingly, Domain Owners that wish to ensure DMARC operators apply DMARC
+		policy rather than SPF policy SHOULD not use "-all" in their
+		SPF policy records. </t>
 
 	    <t> To enable Domain Owners to
                 receive DMARC feedback without impacting existing mail processing, discovered
@@ -1226,8 +1285,7 @@
             <t> To implement the DMARC mechanism, the only action required of a Domain Owner is the
                 creation of the DMARC policy record in the DNS. However, in order to make meaningful
                 use of DMARC, a Domain Owner must at minimum either set up an address to receive
-                reports, or deploy authentication technologies, and most Domain Owners will want to
-                do both. </t>
+                reports, or deploy authentication technologies and ensure identifier alignment.  Most Domain Owners will want to do both. </t>
             <t>DMARC reports will be of significant size and the addresses that receive them are
                 publicly visible, so we encourage Domain Owners to set up dedicated email addresses
                 to receive and process reports, and to protect those email addresses
@@ -1262,8 +1320,8 @@
                     by DMARC. If the domain is encoded with UTF-8, the domain name must be converted
                     to an A-label for further processing. </t>
 
-                <t>In order to be processed by DMARC, a message must contain exactly one RFC5322
-                    From: field containing a single name-addr (see Section 3.4 of <xref target="MAIL"/>). Not all messages meet this requirement. They may <list
+                <t>In order to be processed by DMARC, a message must contain exactly one RFC5322 From: domain (a single From: field with a single domain in it).
+                    Not all messages meet this requirement. They may <list
                         style="symbols">
                         <t>Have multiple RFC5322.From fields (which is also forbidden under <xref
                                 target="MAIL">RFC 5322</xref>)</t>
@@ -1716,6 +1774,8 @@
  +----------+-------------+---------+------------------------------+
  |   aspf   | [THIS MEMO] | current | SPF alignment mode           |
  +----------+-------------+---------+------------------------------+
+ |   fo     | [THIS MEMO] | current | Failure reporting options    |
+ +----------+-------------+---------+------------------------------+
  |   pct    | [THIS MEMO] | current | Sampling rate                |
  +----------+-------------+---------+------------------------------+
  |    p     | [THIS MEMO] | current | Requested handling policy    |
@@ -1779,8 +1839,8 @@
                         <t> Of all the identifiers that are part of the message itself, this is the
                             only one guaranteed to be present. </t>
 
-                        <t> It seems the best choice of an identifier on which to focus as most Mail
-                            User Agents (MUAs) display some or all of the contents of that field in
+                        <t> It seems the best choice of an identifier on which to focus as most MUAs
+                            display some or all of the contents of that field in
                             a manner strongly suggesting those data as reflective of the true
                             originator of the message. </t>
 
@@ -1806,8 +1866,8 @@
                     possible for the email address in that field to be an arbitrary address or
                     domain name, while containing a well-known name (a person, brand, role, etc.) in
                     the display name, intending to fool the end user into believing that the name is
-                    used legitimately. The attack is predicated on the notion that most common Mail
-                    User Agents (MUAs) will show the display name and not the email address when
+                    used legitimately. The attack is predicated on the notion that most common
+                    MUAs will show the display name and not the email address when
                     both are available. </t>
 
                 <t> Generally, display name attacks are out of scope for DMARC as further
