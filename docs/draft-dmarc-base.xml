@@ -18,7 +18,8 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="std" docName="draft-kucherawy-dmarc-base-01" ipr="trust200902">
+<rfc category="std" docName="draft-kucherawy-dmarc-base-01" ipr="trust200902"
+     updates="6591">
 
     <front>
 
@@ -1755,6 +1756,28 @@
                     </list>
                 </t>
             </section>
+
+            <section anchor="iana_afrf"
+		title="Feedback Report Header Fields Registry">
+		<t> The following is added to the Feedback Report Header FIelds
+		    Registry:
+                    <list style="hanging">
+                        <t hangText="Field Name:"> Identity-Alignment </t>
+
+                        <t hangText="Description:"> indicates whether the message
+				about which a report is being generated had
+				any identifiers in alignment as defined in
+				[this RFC] </t>
+
+                        <t hangText="Multiple Appearances:"> no </t>
+
+                        <t hangText='Related "Feedback-Type":'> dmarc </t>
+
+                        <t hangText="Published In:"> [this RFC] </t>
+
+                        <t hangText="Status:"> current </t>
+                    </list> </t>
+	    </section>
 
             <section anchor="iana_dmarc_tags" title="DMARC Tag Registry">
                 <t>Names of DMARC tags must be registered with IANA. New entries are assigned only
