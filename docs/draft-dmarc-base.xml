@@ -1087,9 +1087,14 @@
                 <t> The format for these reports is defined in <xref target="xml_schema" />. </t>
 
                 <t> The report SHOULD include the following data: <list style="symbols">
-                        <t> Enough information for the report consumer to re-calculate DMARC
-                            disposition based on the published policy, message dispositon, and SPF,
-                            DKIM, and identifier alignment results. </t>
+                        <t> The DMARC policy discovered and applied, if any </t>
+			<t> The selected message disposition </t>
+			<t> The identifier evaluated by SPF and the SPF result,
+			    if any </t>
+			<t> The identifier evaluated by DKIM and the DKIM result,
+			    if any </t>
+			<t> For both DKIM and SPF, in indication of whether the
+			    identifier was in alignment </t>
                         <t> Data for each sender subdomain separately from mail from the sender's
                             organizational domain, even if there is no explicit subdomain policy. </t>
                         <t> Sending and receiving domains </t>
