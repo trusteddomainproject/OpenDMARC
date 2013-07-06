@@ -750,7 +750,7 @@
                                 <t hangText="reject:"> The Domain Owner wishes for Mail Receivers to
                                     reject email that fails the DMARC mechanism check. Rejection
                                     SHOULD occur during the SMTP transaction. See <xref
-                                        target="sec_rejection" /> for some discussion of SMTP
+                                        target="disc_rejection" /> for some discussion of SMTP
                                     rejection methods and their implications. </t>
                             </list>
                         </t>
@@ -1277,7 +1277,7 @@
             <t> If the RFC5322.From domain does not exist in the DNS, Mail Receivers SHOULD direct
                 the receiving SMTP server to reject the message. The choice of mechanism for such
                 rejection and the implications of those choices are discussed in <xref
-                    target="mail_receiver_actions" /> and <xref target="sec_rejection" />. </t>
+                    target="mail_receiver_actions" /> and <xref target="disc_rejection" />. </t>
 
             <t> Handling of DNS errors when querying for the DMARC policy record is left to the
                 discretion of the Mail Receiver. For example, to ensure minimal disruption of mail
@@ -1410,7 +1410,7 @@
                     classification as normal. </t>
 
                 <t> If email is subject to the DMARC policy of "reject", the Mail Receiver SHOULD
-                    reject the message (see <xref target="sec_rejection" />). If the email is not
+                    reject the message (see <xref target="disc_rejection" />). If the email is not
                     subject to the "reject" policy (due to the "pct" tag), the Mail Receiver SHOULD
                     treat the email as though the "quarantine" policy applies. This behavior allows
                     senders to experiment with progressively stronger policies without relaxing
@@ -1424,7 +1424,7 @@
                         <xref target="dmarc_record" /> and <xref target="feedback_mechanism" />
                     discuss aggregate feedback.</t>
 
-                <t>See <xref target="sec_storage" /> for a discussion of security matters regarding
+                <t>See <xref target="capacity" /> for a discussion of matters regarding
                     aggregation of such data. </t>
             </section>
             <!-- Store Results -->
@@ -1650,6 +1650,34 @@
         </section>
         <!-- Feedback -->
 
+        <section anchor="capacity" title="Capacity Planning">
+            <t> DMARC participants will need to perform capacity planning to support their
+                implementations. Some factors to consider include: <list style="hanging">
+                    <t hangText="Storage:"> As Mail Receivers process increasing numbers of
+                        messages -- from increasingly disparate sources -- claiming to be from
+                        DMARC-enabled domains, additional storage of information will be
+                        required to support the generation of feedback reports. Similarly,
+                        Domain Owners will need to plan based on how long they wish to store the
+                        data found in received reports. When Domain Owners enter exceptional
+                        situations and are unable to accept reports, Mail Receivers, as a matter
+                        of policy, might discard undelivered reports. </t>
+
+                    <t hangText="Frequency:"> Sending reports more frequently increases
+                        processing costs at both the Mail Receiver and the Domain Owner, but can
+                        decrease Mail Receiver storage requirements as data are consumed and
+                        storage is freed through report generation and transmission. At the same
+                        time, less frequent report generation may lead to somewhat stale
+                        feedback. An appropriate balance should be sought.</t>
+
+                    <t hangText="DNS:"> DMARC imposes up to two additional DNS queries per
+                        arriving message, namely the TXT queries to try to locate a policy
+                        statement. For Mail Receivers, these are queries sent; for Domain
+                        Owners, these are queries that must be handled. Both sides will need to
+                        plan for the additional DNS load. </t>
+                </list>
+            </t>
+        </section>
+
         <section anchor="minimum" title="Minimum Implementations">
             <t> A minimum implementation of DMARC has the following characteristics: <list
                     style="symbols">
@@ -1665,6 +1693,191 @@
                 </list>
             </t>
         </section>
+
+        <section anchor="privacy" title="Privacy Considerations">
+            <t> This section discusses security issues specific to private data that may be
+                included in the interactions that are part of DMARC. </t>
+
+            <section anchor="priv_data" title="Data Exposure Considerations">
+                <t> Aggregate reports are limited in scope to DMARC policy and disposition
+                    results, to information pertaining to the underlying authentication
+                    mechanisms, and to the identifiers involved in DMARC validation. </t>
+
+                <t> Failed message reporting provides message-specific details pertaining to
+                    authentication failures. Individual reports can contain message content as
+                    well as trace header fields. Domain Owners are able to analyze individual
+                    reports and attempt to determine root causes of authentication mechanism
+                    failures, gain insight into misconfigurations or other problems with email
+                    and network infrastructure, or inspect messages for insight into abusive
+                    practices. </t>
+
+                <t> Both report types may expose sender and recipient identifiers (e.g.,
+                    RFC5322.From addresses), and although the <xref target="AFRF" /> format used
+                    for failed message reporting supports redaction, failed message reporting is
+                    capable of exposing the entire message to the report recipient. </t>
+
+                <t> Domain Owners requesting reports will receive information about mail
+                    claiming to be from them, which includes mail that was not, in fact, from
+                    them. Information about the final destination of mail where it might
+                    otherwise be obscured by intermediate systems will therefore be exposed.
+                </t>
+            </section>
+
+            <section anchor="priv_rcpt" title="Report Recipients">
+                <t> A DMARC record can specify that reports should be sent to an intermediary
+                    operating on behalf of the Domain Owner. This is done when the Domain Owner
+                    contracts with an entity to monitor mail-streams for abuse and performance
+                    issues. Receipt by third parties of such data may or may not be permitted by
+                    the Mail Receiver's privacy policy, terms of use, or other similar governing
+                    document. Domain Owners and Mail Receivers should both review and understand
+                    if their own internal policies constrain the use and transmission of DMARC
+                    reporting. </t>
+            </section>
+
+            <section anchor="priv_gen" title="Report Generators">
+                <t> The entity (e.g., mailbox provider, Internet service provider) receiving
+                    emails is typically responsible for generating DMARC reports. Such entities
+                    are typically charged with protecting accidental disclosure of their users'
+                    data. In this case, disclosure is being requested by the entity generating
+                    the email in the first place, i.e., the Domain Owner, so this may not fit
+                    squarely within existing privacy policy provisions. For some providers,
+                    aggregate and failed message reporting are viewed as a function similar to
+                    complaint reporting about spamming or phishing, and treated similarly under
+                    the privacy policy. Report generators (i.e., Mail Receivers) are encouraged
+                    to review their reporting limitations under such policies before enabling
+                    DMARC reporting. </t>
+            </section>
+
+            <section anchor="priv_tls" title="Secure Protocols">
+                <t> This document encourages use of secure transport mechanisms to prevent loss
+                    of private data to third parties that may be able to monitor such
+                    transmissions. Unencrypted mechanisms should be avoided. </t>
+            </section>
+        </section>
+
+        <section anchor="discuss" title="Other Topics">
+            <t> This section discusses some topics regarding choices made in the
+		development of DMARC, largely to commit the history to
+		record. </t>
+
+            <section anchor="disc_from" title="Use of RFC5322.From">
+                <t> One of the most obvious points of security scrutiny for DMARC is the choice to
+                    focus on an identifier, namely the RFC5322.From address, which is part of a body of data
+                    trivially forged throughout the history of email. </t>
+
+                <t> Several points suggest it is the most correct and safest thing to do in this
+                    context: <list style="symbols">
+                        <t> Of all the identifiers that are part of the message itself, this is the
+                            only one guaranteed to be present. </t>
+
+                        <t> It seems the best choice of an identifier on which to focus as most MUAs
+                            display some or all of the contents of that field in
+                            a manner strongly suggesting those data as reflective of the true
+                            originator of the message. </t>
+
+                        <t> The focus of email authentication efforts has been to create mechanisms
+                            by which this field, or at least some field in the message, can be
+                            deemed genuine. Thus, this field is not easily forged within the context
+                            of its use with DMARC.</t>
+
+                        <t> The DMARC mechanism confers no additional privilege to the message
+                            without successful authentication of this identifier. </t>
+                    </list></t>
+
+                <t> The absence of a single, properly-formed RFC5322.From field renders the message
+                    invalid. This document prescribes no specific action in that case, other than to
+                    suggest that the message ought to be disposed of by the Mail Receiver's
+                    infrastructure in a safe manner that recognizes and possibly even highlights the
+                    malformation. </t>
+            </section>
+
+            <section anchor="disc_spf" title="Issues Specific to SPF">
+
+                <t>Though DMARC does not inherently change the semantics of an SPF policy record,
+                    historically lax enforcement of such policies has led many to publish extremely
+                    broad records containing many large network ranges. Domain Owners are strongly
+                    encouraged to carefully review their SPF records to understand which networks
+                    are authorized to send on behalf of the Domain Owner before publishing a DMARC
+                    record.</t>
+            </section>
+
+            <section anchor="disc_dns" title="DNS Load and Caching">
+                <t> DMARC policies are communicated using the DNS, and therefore inherit a number of
+                    considerations related to DNS caching. The inherent conflict between freshness
+                    and the impact of caching on the reduction of DNS-lookup overhead should be
+                    considered from the Mail Receiver's point of view. Should Domain Owners publish
+                    a DNS record with a very short TTL, Mail Receivers can be provoked through the
+                    injection of large volumes of messages to overwhelm the Domain Owner's DNS.
+                    Although this is not a concern specific to DMARC, the implications of a very
+                    short TTL should be considered when publishing DMARC policies.</t>
+
+                <t> Conversely, long TTLs will cause records to be cached for long periods of time.
+                    This can cause a critical change to DMARC parameters advertised by a Domain
+                    Owner to go unnoticed for the length of the TTL (while waiting for DNS caches to
+                    expire). Avoiding this problem can mean shorter TTLs, with the potential
+                    problems described above. A balance should be sought to maintain responsiveness
+                    of DMARC preference changes while preserving the benefits of DNS caching. </t>
+            </section>
+
+            <section anchor="disc_rejection" title="Rejecting Messages">
+                <t> This proposal calls for rejection of a message during the SMTP session under
+                    certain circumstances. This is typically done in one of two ways: <list
+                        style="symbols">
+                        <t> Full rejection, wherein the SMTP server issues a 5xy reply code as an
+                            indication to the SMTP client that the transaction failed; the SMTP
+                            client is then responsible for generating notification that delivery
+                            failed (see Section 4.2.5 of <xref target="SMTP" />). </t>
+
+                        <t> A "silent discard", wherein the SMTP server returns a 2xy reply code
+                            implying to the client that delivery (or, at least, relay) was
+                            successfully completed, but then simply discarding the message with no
+                            further action. </t>
+                    </list>
+                </t>
+
+                <t> Each of these has a cost. For instance, a silent discard may prevent
+                    "backscatter" (the annoying generation of delivery failure reports, which go
+                    back to the RFC5321.MailFrom address, about messages that were fraudulently
+                    generated), but effectively means the SMTP server has to be programmed to give a
+                    false result, which can confound external debugging efforts. </t>
+
+                <t> Similarly, the text portion of the SMTP reply may be important to consider. For
+                    example, when rejecting a message, revealing the reason for the rejection might
+                    give an attacker enough information to bypass those efforts on a later attempt,
+                    though it might also assist a legitimate client to determine the source of some
+                    local issue that caused the rejection. </t>
+
+                <t> In the latter case, when doing an SMTP rejection, providing a clear hint can be
+                    useful in resolving issues. A receiver might indicate in plain text the reason
+                    for the rejection by using the word "DMARC" somewhere in the reply text. Many
+                    systems are able to scan the SMTP reply text to determine the nature of the
+                    rejection, thus providing a machine-detectable reason for rejection allows
+                    automated sorting of rejection causes so they can be properly addressed. For
+                    example: <figure>
+                        <artwork>
+    550 5.7.1 Email rejected per DMARC policy for example.com</artwork>
+                    </figure></t>
+
+                <t> If a Mail Receiver elects to defer delivery due to inability to retrieve or
+                    apply DMARC policy, this is best done with a 4xy SMTP reply code. </t>
+            </section>
+
+            <section anchor="disc_id_align" title="Identifier Alignment Considerations">
+                <t> The DMARC mechanism allows both DKIM and SPF-authenticated identifiers to
+                    authenticate email on behalf of a Domain Owner, and, in the case of SPF, on
+                    behalf of different subdomains. If malicious or unaware users can gain control
+                    of the SPF record or signing practices for a sub-domain, the sub-domain can be
+                    used to generate DMARC-passing email on behalf of the Organizational Domain. </t>
+
+                <t> For example, an attacker who controls the SPF record for "evil.example.com" can
+                    send mail with an RFC5322.From field containing "foo@example.com" that can pass both
+                    authentication and the DMARC check against "example.com".</t>
+
+                <t> The Organizational Domain administrator should be careful not to cede control of
+                    sub-domains if this is an issue, and to consider using the "strict" Identifier
+                    Alignment option if appropriate. </t>
+            </section>
+        </section> <!-- Other Topics -->
 
         <section anchor="iana_considerations" title="IANA Considerations">
             <t>This section describes actions requested of IANA.</t>
@@ -1854,38 +2067,39 @@
         </section>
         <!-- IANA Considerations -->
 
-        <section anchor="sec_considerations" title="Security Considerations">
-            <t> This section discusses security-specific issues related to the DMARC mechanism. </t>
+        <section anchor="sec" title="Security Considerations">
+		<t> This section discusses security issues and possible
+		    remediations (where available) for DMARC. </t>
 
-            <section anchor="sec_from" title="Use of RFC5322.From">
-                <t> One of the most obvious points of security scrutiny for DMARC is the choice to
-                    focus on an identifier, namely the RFC5322.From address, which is part of a body of data
-                    trivially forged throughout the history of email. </t>
+            <section anchor="sec_rep_uris" title="Attacks on Reporting URIs">
+                <t>URIs published in DNS TXT records are well-understood possible targets for
+                    attack. Specifications such as <xref target="DNS" /> and <xref target="ROLES" />
+                    either expose or cause the exposure of email addresses that could be flooded by
+                    an attacker, for example; MX, NS and other records found in the DNS advertise
+                    potential attack destinations; common DNS names such as "www" plainly identify
+                    the locations at which particular services can be found, providing destinations
+                    for targeted denial-of-service or penetration attacks. </t>
 
-                <t> Several points suggest it is the most correct and safest thing to do in this
-                    context: <list style="symbols">
-                        <t> Of all the identifiers that are part of the message itself, this is the
-                            only one guaranteed to be present. </t>
+                <t>Thus, Domain Owners will need to harden these addresses against various attacks,
+                    including but not limited to: <list style="symbols">
+                        <t> high-volume denial-of-service attacks; </t>
 
-                        <t> It seems the best choice of an identifier on which to focus as most MUAs
-                            display some or all of the contents of that field in
-                            a manner strongly suggesting those data as reflective of the true
-                            originator of the message. </t>
+                        <t> deliberate construction of malformed reports intended to identify or
+                            exploit parsing or processing vulnerabilities; </t>
 
-                        <t> The focus of email authentication efforts has been to create mechanisms
-                            by which this field, or at least some field in the message, can be
-                            deemed genuine. Thus, this field is not easily forged within the context
-                            of its use with DMARC.</t>
+                        <t> deliberate construction of reports containing false claims for the
+                            Submitter or Reported-Domain fields, including the possibility of false
+                            data from compromised but known Mail Receivers. </t>
+                    </list>
+                </t>
+            </section>
 
-                        <t> The DMARC mechanism confers no additional privilege to the message
-                            without successful authentication of this identifier. </t>
-                    </list></t>
+            <section anchor="sec_dnssec" title="DNS Security">
+                <t> The DMARC mechanism and its underlying technologies (SPF, DKIM) depend on the
+                    security of the DNS.  To reduce the risk of subversion of the DMARC mechanism due
+                    to DNS-based exploits, serious consideration should be given to the deployment
+                    of DNSSEC in parallel to the deployment of DMARC. </t>
 
-                <t> The absence of a single, properly-formed RFC5322.From field renders the message
-                    invalid. This document prescribes no specific action in that case, other than to
-                    suggest that the message ought to be disposed of by the Mail Receiver's
-                    infrastructure in a safe manner that recognizes and possibly even highlights the
-                    malformation. </t>
             </section>
 
             <section anchor="sec_display" title="Display Name Attacks">
@@ -1928,57 +2142,6 @@
                 </t>
             </section>
 
-            <section anchor="sec_rep_uris" title="Attacks on Reporting URIs">
-                <t>URIs published in DNS TXT records are well-understood possible targets for
-                    attack. Specifications such as <xref target="DNS" /> and <xref target="ROLES" />
-                    either expose or cause the exposure of email addresses that could be flooded by
-                    an attacker, for example; MX, NS and other records found in the DNS advertise
-                    potential attack destinations; common DNS names such as "www" plainly identify
-                    the locations at which particular services can be found, providing destinations
-                    for targeted denial-of-service or penetration attacks. </t>
-
-                <t>Thus, Domain Owners will need to harden these addresses against various attacks,
-                    including but not limited to: <list style="symbols">
-                        <t> high-volume denial-of-service attacks; </t>
-
-                        <t> deliberate construction of malformed reports intended to identify or
-                            exploit parsing or processing vulnerabilities; </t>
-
-                        <t> deliberate construction of reports containing false claims for the
-                            Submitter or Reported-Domain fields, including the possibility of false
-                            data from compromised but known Mail Receivers. </t>
-                    </list>
-                </t>
-            </section>
-
-            <section anchor="sec_spf" title="Issues Specific to SPF">
-
-                <t>Though DMARC does not inherently change the semantics of an SPF policy record,
-                    historically lax enforcement of such policies has led many to publish extremely
-                    broad records containing many large network ranges. Domain Owners are strongly
-                    encouraged to carefully review their SPF records to understand which networks
-                    are authorized to send on behalf of the Domain Owner before publishing a DMARC
-                    record.</t>
-            </section>
-
-            <section anchor="sec_dns" title="DNS Load">
-                <t> DMARC policies are communicated using the DNS, and therefore inherit a number of
-                    considerations related to DNS caching. The inherent conflict between freshness
-                    and the impact of caching on the reduction of DNS-lookup overhead should be
-                    considered from the Mail Receiver's point of view. Should Domain Owners publish
-                    a DNS record with a very short TTL, Mail Receivers can be provoked through the
-                    injection of large volumes of messages to overwhelm the Domain Owner's DNS.
-                    Although this is not a concern specific to DMARC, the implications of a very
-                    short TTL should be considered when publishing DMARC policies.</t>
-
-                <t> Conversely, long TTLs will cause records to be cached for long periods of time.
-                    This can cause a critical change to DMARC parameters advertised by a Domain
-                    Owner to go unnoticed for the length of the TTL (while waiting for DNS caches to
-                    expire). Avoiding this problem can mean shorter TTLs, with the potential
-                    problems described above. A balance should be sought to maintain responsiveness
-                    of DMARC preference changes while preserving the benefits of DNS caching. </t>
-            </section>
-
             <section anchor="sec_external" title="External Reporting Addresses">
                 <t>To avoid abuse by bad actors, reporting addresses generally have to be inside the
                     domains about which reports are requested. In order to accommodate special cases
@@ -2007,174 +2170,7 @@
                     not mandatory ("MUST") but strongly recommended ("SHOULD"). It is possible that
                     it would be elevated to a "MUST" by later security review. </t>
             </section>
-
-
-            <section anchor="sec_rejection" title="Rejecting Messages">
-                <t> This proposal calls for rejection of a message during the SMTP session under
-                    certain circumstances. This is typically done in one of two ways: <list
-                        style="symbols">
-                        <t> Full rejection, wherein the SMTP server issues a 5xy reply code as an
-                            indication to the SMTP client that the transaction failed; the SMTP
-                            client is then responsible for generating notification that delivery
-                            failed (see Section 4.2.5 of <xref target="SMTP" />). </t>
-
-                        <t> A "silent discard", wherein the SMTP server returns a 2xy reply code
-                            implying to the client that delivery (or, at least, relay) was
-                            successfully completed, but then simply discarding the message with no
-                            further action. </t>
-                    </list>
-                </t>
-
-                <t> Each of these has a cost. For instance, a silent discard may prevent
-                    "backscatter" (the annoying generation of delivery failure reports, which go
-                    back to the RFC5321.MailFrom address, about messages that were fraudulently
-                    generated), but effectively means the SMTP server has to be programmed to give a
-                    false result, which can confound external debugging efforts. </t>
-
-                <t> Similarly, the text portion of the SMTP reply may be important to consider. For
-                    example, when rejecting a message, revealing the reason for the rejection might
-                    give an attacker enough information to bypass those efforts on a later attempt,
-                    though it might also assist a legitimate client to determine the source of some
-                    local issue that caused the rejection. </t>
-
-                <t> In the latter case, when doing an SMTP rejection, providing a clear hint can be
-                    useful in resolving issues. A receiver might indicate in plain text the reason
-                    for the rejection by using the word "DMARC" somewhere in the reply text. Many
-                    systems are able to scan the SMTP reply text to determine the nature of the
-                    rejection, thus providing a machine-detectable reason for rejection allows
-                    automated sorting of rejection causes so they can be properly addressed. For
-                    example: <figure>
-                        <artwork>
-    550 5.7.1 Email rejected per DMARC policy for example.com</artwork>
-                    </figure></t>
-
-                <t> If a Mail Receiver elects to defer delivery due to inability to retrieve or
-                    apply DMARC policy, this is best done with a 4xy SMTP reply code. </t>
-            </section>
-
-            <section anchor="sec_storage" title="Capacity Planning">
-                <t> DMARC participants will need to perform capacity planning to support their
-                    implementations. Some factors to consider include: <list style="hanging">
-                        <t hangText="Storage:"> As Mail Receivers process increasing numbers of
-                            messages -- from increasingly disparate sources -- claiming to be from
-                            DMARC-enabled domains, additional storage of information will be
-                            required to support the generation of feedback reports. Similarly,
-                            Domain Owners will need to plan based on how long they wish to store the
-                            data found in received reports. When Domain Owners enter exceptional
-                            situations and are unable to accept reports, Mail Receivers, as a matter
-                            of policy, might discard undelivered reports. </t>
-
-                        <t hangText="Frequency:"> Sending reports more frequently increases
-                            processing costs at both the Mail Receiver and the Domain Owner, but can
-                            decrease Mail Receiver storage requirements as data are consumed and
-                            storage is freed through report generation and transmission. At the same
-                            time, less frequent report generation may lead to somewhat stale
-                            feedback. An appropriate balance should be sought.</t>
-
-                        <t hangText="DNS:"> DMARC imposes up to two additional DNS queries per
-                            arriving message, namely the TXT queries to try to locate a policy
-                            statement. For Mail Receivers, these are queries sent; for Domain
-                            Owners, these are queries that must be handled. Both sides will need to
-                            plan for the additional DNS load. </t>
-                    </list>
-                </t>
-            </section>
-
-            <section anchor="sec_privacy" title="Privacy Considerations">
-                <t> This section discusses security issues specific to private data that may be
-                    included in the interactions that are part of DMARC. </t>
-
-                <section anchor="priv_data" title="Data Exposure Considerations">
-                    <t> Aggregate reports are limited in scope to DMARC policy and disposition
-                        results, to information pertaining to the underlying authentication
-                        mechanisms, and to the identifiers involved in DMARC validation. </t>
-
-                    <t> Failed message reporting provides message-specific details pertaining to
-                        authentication failures. Individual reports can contain message content as
-                        well as trace header fields. Domain Owners are able to analyze individual
-                        reports and attempt to determine root causes of authentication mechanism
-                        failures, gain insight into misconfigurations or other problems with email
-                        and network infrastructure, or inspect messages for insight into abusive
-                        practices. </t>
-
-                    <t> Both report types may expose sender and recipient identifiers (e.g.,
-                        RFC5322.From addresses), and although the <xref target="AFRF" /> format used
-                        for failed message reporting supports redaction, failed message reporting is
-                        capable of exposing the entire message to the report recipient. </t>
-
-                    <t> Domain Owners requesting reports will receive information about mail
-                        claiming to be from them, which includes mail that was not, in fact, from
-                        them. Information about the final destination of mail where it might
-                        otherwise be obscured by intermediate systems will therefore be exposed.
-                    </t>
-                </section>
-
-                <section anchor="priv_rcpt" title="Report Recipients">
-                    <t> A DMARC record can specify that reports should be sent to an intermediary
-                        operating on behalf of the Domain Owner. This is done when the Domain Owner
-                        contracts with an entity to monitor mail-streams for abuse and performance
-                        issues. Receipt by third parties of such data may or may not be permitted by
-                        the Mail Receiver's privacy policy, terms of use, or other similar governing
-                        document. Domain Owners and Mail Receivers should both review and understand
-                        if their own internal policies constrain the use and transmission of DMARC
-                        reporting. </t>
-                </section>
-
-                <section anchor="priv_gen" title="Report Generators">
-                    <t> The entity (e.g., mailbox provider, Internet service provider) receiving
-                        emails is typically responsible for generating DMARC reports. Such entities
-                        are typically charged with protecting accidental disclosure of their users'
-                        data. In this case, disclosure is being requested by the entity generating
-                        the email in the first place, i.e., the Domain Owner, so this may not fit
-                        squarely within existing privacy policy provisions. For some providers,
-                        aggregate and failed message reporting are viewed as a function similar to
-                        complaint reporting about spamming or phishing, and treated similarly under
-                        the privacy policy. Report generators (i.e., Mail Receivers) are encouraged
-                        to review their reporting limitations under such policies before enabling
-                        DMARC reporting. </t>
-                </section>
-
-                <section anchor="priv_tls" title="Secure Protocols">
-                    <t> This document encourages use of secure transport mechanisms to prevent loss
-                        of private data to third parties that may be able to monitor such
-                        transmissions. Unencrypted mechanisms should be avoided. </t>
-                </section>
-            </section>
-
-            <section anchor="sec_id_align" title="Identifier Alignment Considerations">
-                <t> The DMARC mechanism allows both DKIM and SPF-authenticated identifiers to
-                    authenticate email on behalf of a Domain Owner, and, in the case of SPF, on
-                    behalf of different subdomains. If malicious or unaware users can gain control
-                    of the SPF record or signing practices for a sub-domain, the sub-domain can be
-                    used to generate DMARC-passing email on behalf of the Organizational Domain. </t>
-
-                <t> For example, an attacker who controls the SPF record for "evil.example.com" can
-                    send mail with an RFC5322.From field containing "foo@example.com" that can pass both
-                    authentication and the DMARC check against "example.com".</t>
-
-                <t> The Organizational Domain administrator should be careful not to cede control of
-                    sub-domains if this is an issue, and to consider using the "strict" Identifier
-                    Alignment option if appropriate. </t>
-            </section>
-
-            <section anchor="sec_dnssec" title="DNS Security">
-                <t> The DMARC mechanism and its underlying technologies (SPF, DKIM) depend on the
-                    security of the DNS. To reduce the risk of subversion of the DMARC mechanism due
-                    to DNS-based exploits, serious consideration should be given to the deployment
-                    of DNSSEC in parallel to the deployment of DMARC. </t>
-
-                <t> DNSSEC-enabled environments should consider the implication of receiving
-                    insecure or bogus DNS replies in the DMARC context. Operators should understand
-                    whether their DMARC implementations will behave as expected when DNSSEC-secured
-                    queries temporarily fail due to attempted exploit. For example, if lookup of a
-                    specific domain's DMARC record is typically secured using DNSSEC, attention
-                    should to paid to cases and behaviors when secured lookups fail. The operator
-                    may consider configuring their DNSSEC-aware resolver to propagate a "temporary
-                    error" condition to the DMARC mechanism to defer acceptance of email until
-                    DNSSEC resolution can be restored. </t>
-            </section>
-        </section>
-        <!-- Security Considerations -->
+        </section> <!-- Security Considerations -->
     </middle>
 
     <back>
