@@ -1411,7 +1411,7 @@
 
                 <t> If email is subject to the DMARC policy of "quarantine", the Mail Receiver
                     SHOULD quarantine the message. If the email is not subject to the "quarantine"
-                    policy (due to the "pct" tag), the Mail Receiver SHOULD apply local spam
+                    policy (due to the "pct" tag), the Mail Receiver SHOULD apply local message
                     classification as normal. </t>
 
                 <t> If email is subject to the DMARC policy of "reject", the Mail Receiver SHOULD
