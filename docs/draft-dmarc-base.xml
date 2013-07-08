@@ -1501,7 +1501,10 @@
                         be included in one of the parts of the message. A human-readable portion MAY
                         be included as a MIME part (such as a text/plain part). </t>
 
-                    <t>The aggregate data MUST be an XML file that MAY be subjected to GZIP compression.  The
+                    <t>The aggregate data MUST be an XML file that SHOULD be subjected to GZIP compression.  Declining
+			to apply compression can cause the report to be too large for a receiver to process
+			(a commonly-observed receiver limit is ten megabytes);
+			doing the compression increases the chances of acceptance of the report at some compute cost.  The
                         aggregate data MUST be present using the media type "application/gzip", if
 			compressed, and "text/xml" otherwise.
                         The filename SHOULD be constructed using the following ABNF: <figure>
