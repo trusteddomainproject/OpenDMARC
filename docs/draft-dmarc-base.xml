@@ -333,16 +333,15 @@
                         about the supported mechanisms. </t>
 
                     <t hangText="Cousin Domain:"> A registered domain name that
-			is deceptively similar to a target name, which can be a
-			domain name or the name of a known entity.  The target
-			name is familiar to many end-users, and therefore
-			imparts a degree of trust.  The deceptive similarity can
-			trick the user by embedding the essential parts of the
-			target name in a new string (e.g.,
+			is deceptively similar to a target domain name or other
+			name of a known entity.  The target name is familiar to
+			many users, and therefore imparts a degree of trust.
+			The deception is enacted by embedding the essential
+			parts of the target name in a new string (such as,
 			"companysecurity.example" to attack "company.example"),
 			or it can use some variant of the target name, such as
-			replacing 'i' with '1'.  This latter form is sometimes
-			known as a "homograph attack".  </t>
+			replacing 'i' with '1', which is known as a
+			"homograph attack". </t>
 
                     <t hangText="Domain Owner:"> An entity or organization that "owns" a DNS domain.
                         The term "owns" here indicates that the entity or organization being
