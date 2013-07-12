@@ -956,12 +956,8 @@
 		<t> DMARC-compliant Mail Receivers typically disregard any mail handling directive discovered as
                 part of an authentication mechanism (e.g., ADSP, SPF) where a DMARC record is also
                 discovered that specifies a policy other than "none".  Deviating from this practice
-		also introduces inconsistency between operators in terms of handling of the message.  However, such deviation is not
+		introduces inconsistency among DMARC operators in terms of handling of the message.  However, such deviation is not
 		proscribed. </t>
-
-		<t> Accordingly, Domain Owners that wish to ensure DMARC operators apply DMARC
-		policy rather than SPF policy SHOULD not use "-all" in their
-		SPF policy records. </t>
 
 	    <t> To enable Domain Owners to
                 receive DMARC feedback without impacting existing mail processing, discovered
@@ -1814,6 +1810,11 @@
                     encouraged to carefully review their SPF records to understand which networks
                     are authorized to send on behalf of the Domain Owner before publishing a DMARC
                     record.</t>
+
+		<t> Some receiver architectures might implement SPF in advance of any DMARC
+		operations.  This means an SPF "-all" could go into effect, causing message
+		rejection, before any DMARC processing takes place.  Operators choosing to use "-all" should be aware of this conflict. </t>
+
             </section>
 
             <section anchor="disc_dns" title="DNS Load and Caching">
