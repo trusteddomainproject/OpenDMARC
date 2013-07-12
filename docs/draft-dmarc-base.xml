@@ -1812,8 +1812,10 @@
                     record.</t>
 
 		<t> Some receiver architectures might implement SPF in advance of any DMARC
-		operations.  This means an SPF "-all" could go into effect, causing message
-		rejection, before any DMARC processing takes place.  Operators choosing to use "-all" should be aware of this conflict. </t>
+		operations.  This means a Sender using a "-" prefix on an SPF mechanism,
+		such as "-all", could go into effect early in handling, causing message
+		rejection, before any DMARC processing takes place.  Operators choosing
+		to use "-all" should be aware of this. </t>
 
             </section>
 
