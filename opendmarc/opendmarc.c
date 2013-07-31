@@ -191,7 +191,6 @@ sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));
 sfsistat mlfi_connect __P((SMFICTX *, char *, _SOCK_ADDR *));
 sfsistat mlfi_envfrom __P((SMFICTX *, char **));
-sfsistat mlfi_eoh __P((SMFICTX *));
 sfsistat mlfi_eom __P((SMFICTX *));
 sfsistat mlfi_header __P((SMFICTX *, char *, char *));
 sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
