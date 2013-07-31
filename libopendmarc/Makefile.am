@@ -1,5 +1,5 @@
 SUBDIRS=tests docs
-INCLUDES		= -I. -I..
+AM_CPPFLAGS = -I. -I..
 LDADD = ./libopendmarc.la
 lib_LTLIBRARIES = libopendmarc.la
 libopendmarc_la_SOURCES	= dmarc.h \
