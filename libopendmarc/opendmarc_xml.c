@@ -474,7 +474,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 					(void) strlcat(reason_comment, " ", sizeof reason_comment);
 				(void) strlcat(reason_comment, cp, sizeof reason_comment);
 			}
-			else if (sidx > 0 && (strcasecmp(stack[sidx-1], "identifiers") == 0 ||
+			else if (sidx > 0 && strcasecmp(stack[sidx-1], "identifiers") == 0 &&
 				 strcasecmp(stack[sidx], "header_from") == 0)
 			{
 				/*
