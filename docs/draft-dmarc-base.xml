@@ -987,7 +987,7 @@
                     are "reject", "quarantine", and "none". </t>
 
                 <t> For example, in the presence of "pct=50" and "p=reject" in the DMARC policy
-                    record for "example.com", half of the mesages with an RFC5322.Fro domain of "example.com"
+                    record for "example.com", half of the mesages with an RFC5322.From domain of "example.com"
                     that fail the DMARC test would be subjected to "reject"
                     action, and the remainder subjected to "quarantine" action. </t>
                 <t>Mail receivers MAY implement pct via statistical mechanisms that achieve a close
