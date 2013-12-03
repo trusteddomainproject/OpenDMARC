@@ -99,23 +99,23 @@
                 have been generally successful, they require significant manual coordination between
                 parties.</t>
 
-            <t>This memo defines Domain-based Message Authentication, Reporting and Compliance
+            <t>This document defines Domain-based Message Authentication, Reporting and Compliance
                 (DMARC), a mechanism by which email operators leverage existing authentication and
                 policy advertisement technologies to enable both message-stream feedback and
                 enforcement of policies against unauthenticated email.</t>
 
-            <t>DMARC allows senders and receivers to collaborate by <list style="numbers">
-                    <t>Providing receivers with assertions about senders' policies</t>
+            <t>DMARC allows domain owners and receivers to collaborate by <list style="numbers">
+                    <t>Providing receivers with assertions about domain owners' policies</t>
                     <t>Providing feedback to senders so they can monitor authentication and judge
                         threats</t>
                 </list>
             </t>
 
             <t>The basic outline of DMARC is: <list style="numbers">
-                    <t>Senders make policy assertions about domains in DNS.</t>
+                    <t>Domain owners publish policy assertions about domains via the DNS.</t>
                     <t>SMTP receivers compare the RFC5322 From: address in the mail to the SPF and
                         DKIM results if present and the policy in DNS. <list style="numbers">
-                            <t>The receiver can use these results to determine how the mail is
+                            <t>These receivers can use these results to determine how the mail should be
                                 handled.</t>
                             <t>The receiver reports to the domain owner about mail claiming to be
                                 from their domain.</t>
@@ -223,12 +223,12 @@
                     transactional email, as
                     opposed to mail between individuals.</t>
                 <t> That has resulted in the following goals: <list style="symbols">
-                        <t>Allow mail senders to assert policy about domain authentication for
-                            consumption by mail receivers.</t>
+                        <t>Allow Domain Owners to assert policy about domain authentication for
+                            consumption by Mail Receivers.</t>
 
                         <t>Allow mail senders to verify their authentication deployment.</t>
 
-                        <t>Minimize the effect on legitimate messages.</t>
+                        <t>Minimize the effect on handling and delivery of legitimate messages.</t>
 
                         <t>Reduce the amount of successfully delivered spoofed email.</t>
 
@@ -275,7 +275,7 @@
 
 
             <section title="Out Of Scope">
-                <t>Items specifically not in scope for this work include: <list style="symbols">
+                <t>Several topics and issues are specifically out of scope for this work.  This includes the following: <list style="symbols">
                         <t> DMARC shall not be required to protect against any attacks against
                             components that are essential dependencies (e.g. DNS attacks, bugs in
                             DKIM verification, malware on the end-user machine or in the sender's
@@ -348,7 +348,7 @@
 
                     <t hangText="Domain Owner:"> An entity or organization that "owns" a DNS domain.
                         The term "owns" here indicates that the entity or organization being
-                        referenced holds the registration of that DNS domain. Entities that are
+                        referenced holds the registration of that DNS domain.  Entities that are
                         Domain Owners range from complex, globally-distributed organizations, to
                         service providers working on behalf of non-technical clients, to individuals
                         responsible for maintaining personal domains. This specification uses this
@@ -368,33 +368,8 @@
                         registrar. In the absence of more accurate methods, heuristics are used to
                         determine this, since it is not always the case that the registered domain
                         name is simply a top-level DNS domain plus one component (e.g.,
-                        "example.com", where "com" is a top-level domain). The Organizational Domain
-                        is determined by applying the following algorithm: <list style="numbers">
-                            <t> Acquire a "public suffix" list, i.e., a list of DNS domain names
-                                reserved for registrations. Some country TLDs make specific
-                                registration requirements, e.g. the United Kingdom places company
-                                registrations under ".co.uk"; other TLDs such as ".com" appear in
-                                the IANA registry of top-level DNS domains. A public suffix list is
-                                the union of all of these. <xref target="suffixes" /> contains some
-                                discussion about obtaining a public suffix list. </t>
-
-                            <t> Break the subject DNS domain name into a set of "n" ordered labels.
-                                Number these labels from right-to-left; e.g. for "example.com",
-                                "com" would be label 1 and "example" would be label 2. </t>
-
-                            <t> Search the public suffix list for the name that matches the largest
-                                number of labels found in the subject DNS domain. Let that number be
-                                "x". </t>
-
-                            <t> Construct a new DNS domain name using the name that matched from the
-                                public suffix list and prefixing to it the "x+1"th label from the
-                                subject domain. This new name is the Organizational Domain. </t>
-                        </list> Thus, since "com" is an IANA-registered TLD, a subject domain of
-                        "a.b.c.d.example.com" would have an Organizational Domain of
-                        "example.com".</t>
-
-                    <t> The process of determining a suffix is currently a heuristic one. No list is
-                        guaranteed to be accurate or current. </t>
+                        "example.com", where "com" is a top-level domain).  The Organizational Domain
+                        is determined by applying algorithm found in <xref target="od"/>. </t>
                 <t hangText="Report Receiver:"> An operator that receives reports from another operator
 			implementing the reporting mechanism described in this document.
 			Such an operator might be receiving reports about its own messages,
@@ -404,6 +379,10 @@
 			operate them. </t>
                 </list>
             </t>
+
+            <section anchor="overview" title="Overview">
+		<t> This section provides a general overview of the design and operation
+			of the DMARC environment. </t>
 
             <section anchor="auth_mechs" title="Authentication Mechanisms">
                 <t> The following mechanisms for determining Authenticated Identifiers are supported
@@ -420,14 +399,14 @@
             <!-- Authentication Mechanisms -->
 
 
-            <section anchor="overview" title="Overview">
+            <section anchor="general" title="General Concepts">
 
                 <t> A DMARC-enabled Domain Owner creates a DNS record to specify policy. Mail sent
-                    for such a domain may or may not also be authenticated with DKIM and/or SPF.</t>
+                    from such a domain may or may not also be authenticated with DKIM and/or SPF.</t>
 
                 <t>A DMARC-enabled Mail Receiver looks for DMARC records in DNS during SMTP
                     processing and uses them to filter mail at that time, and later to provide
-                    feedback to the claimed sender.</t>
+                    feedback to the Domain Owner.</t>
 
                 <t>DMARC's filtering component is based on whether SPF or DKIM can provide a
                     relevant authenticated identifier for the message under consideration. Messages
@@ -436,7 +415,7 @@
                     affected by DMARC policies.</t>
 
                 <t>DMARC's feedback component involves the collection of information about received
-                    messages claiming to be from the Domain Owner for periodic aggregate reports to
+                    messages claiming to be from the Organizational Domain for periodic aggregate reports to
                     the Domain Owner. The parameters and format for such reports are discussed in
                     later sections of this document.</t>
 
@@ -479,7 +458,7 @@
                                      +---------+
    	</artwork> </figure> </t>
 
-	<t> The above diagram shows the flow of messages through a DMARC-aware
+	<t> The above diagram shows a simple flow of messages through a DMARC-aware
 	    system.  Solid lines denote the actual message flow; dotted lines
 	    involve Domain Name System queries used to retrieve message policy
 	    related to the supported message authentication schemes; asterisk
@@ -511,13 +490,15 @@
 		<t> Recipient transport service conducts SPF and DKIM
 		    authentication checks by passing the necessary data to
 		    their respective modules, each of which require queries
-		    to the author's DNS data. </t>
+		    to the author's DNS data (when identifiers are
+		    aligned; see below). </t>
 
 		<t> The results of these are passed to the DMARC module
 		    along with the Author domain.  The DMARC module does a small
-		    number of further DNS queries to the author domain to
+		    number of further DNS queries to the Organizational Domain to
 		    extract DMARC-specific policy details.  These, in
-		    combination, produce a DMARC policy result, and can
+		    combination, produce a DMARC policy result (e.g., a
+		    "pass" or "fail"), and can
 		    optionally cause one of two kinds of reports to be
 		    generated (not shown). </t>
 
@@ -548,18 +529,29 @@
                 <t>Domain names in this context are to be compared in a case-insensitive manner, per
                         <xref target="DNS-CASE" />. </t>
 
-                <t>It is important to note that identity alignment cannot occur with a message that
+                <t>It is important to note that identifier alignment cannot occur with a message that
                     is not valid per <xref target="MAIL" />, particularly one with a malformed or
                     absent RFC5322.From field. Handling of such cases is left to the discretion of
                     the Mail Receiver. </t>
+		<t> Both of the underlying authentication technologies DMARC takes as input
+			yield authenticated domains as their outputs.  From the perspective
+			of DMARC, each
+			can be operated in a "strict" mode or a "relaxed" mode.  An operator
+			would normally select "strict" mode if it wanted to affect
+			only messages bearing an RFC5322.From domain exactly matching
+			the domains those mechanisms will verify.  Using "relaxed" mode
+			can be used when the operator also wishes to affect message flows bearing
+			subdomains of the verified domains. </t>
 
                 <section anchor="dkim_id_align" title="DKIM-authenticated Identifiers">
                     <t>DMARC provides the option of applying DKIM in a strict mode or a relaxed
-                        mode. </t>
+                        mode.  (Note that these are not related to DKIM's "simple" and "relaxed"
+			canonicalization modes.) </t>
 
                     <t>In relaxed mode, the Organizational Domains of both the <xref target="DKIM"
                          />-authenticated signing domain (taken from the value of the "d=" tag in
-                        the signature) and that of the RFC5322.From domain must be equal. In strict
+                        the signature) and that of the RFC5322.From domain must be equal if the identifiers
+			are to be considered aligned. In strict
                         mode, only an exact match between both of the Fully Qualified Domain Names (FQDN) considered to produce identifier alignment. </t>
 
                     <t>To illustrate, in relaxed mode, if a validated DKIM signature successfully
@@ -578,7 +570,7 @@
                         visible to the end user.</t>
 
                     <t>Note that a single email can contain multiple DKIM signatures, and it is
-                        considered to be a DMARC pass if any DKIM signature is aligned and
+                        considered to be a DMARC "pass" if any DKIM signature is aligned and
                         valid.</t>
                 </section>
                 <!-- DKIM Identifiers -->
@@ -610,10 +602,40 @@
         </section>
         <!-- Definitions -->
 
+        <section anchor="od" title="Organizational Domain">
+		<t> The Organizational Domain is determined using the following algorithm: <list style="numbers">
+                            <t> Acquire a "public suffix" list, i.e., a list of DNS domain names
+                                reserved for registrations. Some country TLDs make specific
+                                registration requirements, e.g. the United Kingdom places company
+                                registrations under ".co.uk"; other TLDs such as ".com" appear in
+                                the IANA registry of top-level DNS domains. A public suffix list is
+                                the union of all of these. <xref target="suffixes" /> contains some
+                                discussion about obtaining a public suffix list. </t>
+
+                            <t> Break the subject DNS domain name into a set of "n" ordered labels.
+                                Number these labels from right-to-left; e.g. for "example.com",
+                                "com" would be label 1 and "example" would be label 2. </t>
+
+                            <t> Search the public suffix list for the name that matches the largest
+                                number of labels found in the subject DNS domain. Let that number be
+                                "x". </t>
+
+                            <t> Construct a new DNS domain name using the name that matched from the
+                                public suffix list and prefixing to it the "x+1"th label from the
+                                subject domain. This new name is the Organizational Domain. </t>
+                        </list> Thus, since "com" is an IANA-registered TLD, a subject domain of
+                        "a.b.c.d.example.com" would have an Organizational Domain of
+                        "example.com".</t>
+
+                    <t> The process of determining a suffix is currently a heuristic one. No list is
+                        guaranteed to be accurate or current. </t>
+        	</section>
+        </section>
+
         <section anchor="policy_element" title="Policy">
             <t> DMARC policies are published by Domain Owners and applied by Mail Receivers. </t>
 
-            <t> A Domain Owner advertises DMARC participation of one or more sending domains by adding a DNS TXT record (described
+            <t> A Domain Owner advertises DMARC participation of one or more of its domains by adding a DNS TXT record (described
                 in <xref target="dmarc_record" />) to those domains.  In doing so, Domain
                 Owners make specific requests of Mail Receivers regarding the disposition of
                 messages purporting to be from one of the Domain Owner's domains and the provision
@@ -705,23 +727,18 @@
                     <xref target="iana_considerations" /> creates a registry for known DMARC tags
                     and registers the initial set defined in this memo. Only tags defined in this
                     memo or in later extensions, and thus added to that registry, are to be
-                    processed; unknown tags MUST be ignored. To avoid version compatibility issues,
-                    tags added to the DMARC specification SHOULD NOT change the semantics of
-                    existing records when processed by implementations conforming to prior
-                    specifications.</t>
+                    processed; unknown tags MUST be ignored. </t>
 
                 <t> The following tags are introduced as the initial valid DMARC tags: <list
                         style="hanging">
 
                         <t hangText="adkim:"> (plain-text; OPTIONAL, default is "r".) Indicates
-                            whether or not strict DKIM identifier alignment is required by the
-                            Domain Owner. If and only if the value of the string is "s", strict mode
-                            is in use. See <xref target="dkim_id_align" /> for details. </t>
+                            whether strict or relaxed DKIM identifier alignment is required by the
+                            Domain Owner. See <xref target="dkim_id_align" /> for details. </t>
 
                         <t hangText="aspf:"> (plain-text; OPTIONAL, default is "r".) Indicates
-                            whether or not strict SPF identifier alignment is required by the Domain
-                            Owner. If and only if the value of the string is "s", strict mode is in
-                            use. See <xref target="spf_id_align" /> for details. </t>
+                            whether strict or relaxed SPF identifier alignment is required by the Domain
+                            Owner. See <xref target="spf_id_align" /> for details. </t>
 
                         <t hangText="fo:"> Failure reporting options (plain-text; OPTIONAL, default
                             "0")) Provides requested options for generation of failure reports.
@@ -774,7 +791,7 @@
                         </t>
 
                         <t hangText="pct:"> (plain-text integer between 0 and 100, inclusive;
-                            OPTIONAL; default is 100). Percentage of messages from the DNS domain's
+                            OPTIONAL; default is 100). Percentage of messages from the Domain Owner's
                             mail stream to which the DMARC mechanism is to be applied. However, this
                             MUST NOT be applied to the DMARC-generated reports, all of which must be
                             sent and received unhindered. The purpose of the "pct" tag is to allow
@@ -792,14 +809,14 @@
 				</artwork> </figure> </t>
 
                         <t hangText="rf:"> Format to be used for message-specific failure reports
-                            (comma-separated plain-text list of values; OPTIONAL; default "afrf").
+                            (colon-separated plain-text list of values; OPTIONAL; default "afrf").
                             The value of this tag is a list of one or more report formats as
                             requested by the Domain Owner to be used when a message fails both <xref
                                 target="SPF" /> and <xref target="DKIM" /> tests to report details
                             of the individual failure. The values MUST be present in the registry of
                             reporting formats defined in <xref target="iana_considerations" />; a
                             Mail Receiver observing a different value SHOULD ignore it, or MAY
-                            ignore the entire DMARC record. Initial default values are "afrf"
+                            ignore the entire DMARC record. Possible values are "afrf"
                             (defined in <xref target="AFRF" />) and "iodef" (defined in <xref
                                 target="IODEF" />). See <xref target="forensic" /> for details. </t>
 
@@ -839,7 +856,7 @@
                             Mail Receivers MUST NOT generate failure reports. See <xref
                                 target="sec_external" /> for additional considerations. </t>
 
-                        <t hangText="sp:"> Requested Mail Receiver policy for subdomains
+                        <t hangText="sp:"> Requested Mail Receiver policy for all subdomains
                             (plain-text; OPTIONAL). Indicates the policy to be enacted by the
                             Receiver at the request of the Domain Owner. It applies only to
                             subdomains of the domain queried and not to the domain itself. Its
@@ -1166,7 +1183,7 @@
                         target="AFRF" />. This document updates the AFRF format as described in
                         <xref target="afrf_update" />. </t>
 
-                <t> The destination(s) and nature of the reports are defined by the "fo" and "ruf"
+                <t> The destination(s) and nature of the reports are defined by the "fo" and "rf"
                     tags as defined in <xref target="dmarc_format" />. </t>
 
                 <t> Where multiple URIs are selected to receive failure reports the report generator
@@ -1311,13 +1328,12 @@
         <section anchor="domain_owner_actions" title="Domain Owner Actions">
             <t> To implement the DMARC mechanism, the only action required of a Domain Owner is the
                 creation of the DMARC policy record in the DNS. However, in order to make meaningful
-                use of DMARC, a Domain Owner must at minimum either set up an address to receive
+                use of DMARC, a Domain Owner must at minimum either establish an address to receive
                 reports, or deploy authentication technologies and ensure identifier alignment.  Most Domain Owners will want to do both. </t>
             <t>DMARC reports will be of significant size and the addresses that receive them are
                 publicly visible, so we encourage Domain Owners to set up dedicated email addresses
-                to receive and process reports, and to protect those email addresses
-                appropriately.</t>
-
+                to receive and process reports, and to deploy abuse countermeasures on those email addresses as
+                appropriate.</t>
 
             <t> Authentication technologies are discussed in <xref target="DKIM" /> (see also <xref
                     target="DKIM-OVERVIEW" /> and <xref target="DKIM-DEPLOYMENT" />) and <xref
@@ -1476,7 +1492,7 @@
                     presence of the &quot;rua&quot; tag specifies where to send feedback. </t>
 
                 <t>For more on the considerations given to DMARC discovery, see <xref
-                        target="fb_verify"/>. </t>
+                        target="policy_discovery"/>. </t>
             </section>
             <!-- Discovery -->
 
@@ -1698,7 +1714,9 @@
                         arriving message, namely the TXT queries to try to locate a policy
                         statement. For Mail Receivers, these are queries sent; for Domain
                         Owners, these are queries that must be handled. Both sides will need to
-                        plan for the additional DNS load. </t>
+                        plan for the additional DNS load.  There were will be addiitonal DNS
+			load caused by the generation and sending of reports, and any
+			external reporting records placed in the DNS.  </t>
                 </list>
             </t>
         </section>
@@ -1717,6 +1735,8 @@
                             target="mail_receiver_actions" />. </t>
                 </list>
             </t>
+
+		<t> [TBD: Separate Domain Owner requirements from Mail Receiver requirements.] </t>
         </section>
 
         <section anchor="privacy" title="Privacy Considerations">
@@ -1746,6 +1766,10 @@
                     them. Information about the final destination of mail where it might
                     otherwise be obscured by intermediate systems will therefore be exposed.
                 </t>
+
+                <t> Domain Owners requesting reports will also receive information about mail
+			forwarded to unexpected Mail Receivers when message forwarding
+			relationships exists. </t>
             </section>
 
             <section anchor="priv_rcpt" title="Report Recipients">
@@ -1757,6 +1781,7 @@
                     document. Domain Owners and Mail Receivers should both review and understand
                     if their own internal policies constrain the use and transmission of DMARC
                     reporting. </t>
+
             </section>
 
             <section anchor="priv_gen" title="Report Generators">
@@ -1776,7 +1801,11 @@
             <section anchor="priv_tls" title="Secure Protocols">
                 <t> This document encourages use of secure transport mechanisms to prevent loss
                     of private data to third parties that may be able to monitor such
-                    transmissions. Unencrypted mechanisms should be avoided. </t>
+                    transmissions.  Unencrypted mechanisms should be avoided. </t>
+
+		<t> In particular, a message that was originally encrypted or otherwise
+			secured might appear in a report that is not sent securely, which
+			could reveal private information. </t>
             </section>
         </section>
 
@@ -1849,6 +1878,8 @@
                     expire). Avoiding this problem can mean shorter TTLs, with the potential
                     problems described above. A balance should be sought to maintain responsiveness
                     of DMARC preference changes while preserving the benefits of DNS caching. </t>
+
+		<t> [TBD: Add an analysis of the added DNS load.] </t>
             </section>
 
             <section anchor="disc_rejection" title="Rejecting Messages">
@@ -1896,16 +1927,16 @@
 
             <section anchor="disc_id_align" title="Identifier Alignment Considerations">
                 <t> The DMARC mechanism allows both DKIM and SPF-authenticated identifiers to
-                    authenticate email on behalf of a Domain Owner, and, in the case of SPF, on
+                    authenticate email on behalf of a Domain Owner and, possibly, on
                     behalf of different subdomains. If malicious or unaware users can gain control
-                    of the SPF record or signing practices for a sub-domain, the sub-domain can be
+                    of the SPF record or signing practices for a subdomain, the subdomain can be
                     used to generate DMARC-passing email on behalf of the Organizational Domain. </t>
 
                 <t> For example, an attacker who controls the SPF record for "evil.example.com" can
                     send mail with an RFC5322.From field containing "foo@example.com" that can pass both
                     authentication and the DMARC check against "example.com".</t>
 
-                <t> The Organizational Domain administrator should be careful not to cede control of
+                <t> The Organizational Domain administrator should be careful not to delegate control of
                     sub-domains if this is an issue, and to consider using the "strict" Identifier
                     Alignment option if appropriate. </t>
             </section>
@@ -2037,7 +2068,10 @@
                     Review, per <xref target="IANA-CONSIDERATIONS" />. Each registration must
                     include the tag name, the specification that defines it, a brief description,
                     and its status which must be one of "current", "experimental" or "historic". </t>
-
+		<t> To avoid version compatibility issues,
+                    tags added to the DMARC specification are to avoid changing the semantics of
+                    existing records when processed by implementations conforming to prior
+                    specifications.</t>
                 <t>The initial set of entries in this registry is as follows: <figure>
                         <artwork>
  +----------+-------------+---------+------------------------------+
@@ -2103,6 +2137,11 @@
 		<t> This section discusses security issues and possible
 		    remediations (where available) for DMARC. </t>
 
+            <section anchor="sec_auth" title="Authentication Methods">
+		<t> Security considerations from the authentication methods used by
+			DMARC are incorporated here by reference. </t>
+            </section>
+
             <section anchor="sec_rep_uris" title="Attacks on Reporting URIs">
                 <t>URIs published in DNS TXT records are well-understood possible targets for
                     attack. Specifications such as <xref target="DNS" /> and <xref target="ROLES" />
@@ -2130,8 +2169,8 @@
                 <t> The DMARC mechanism and its underlying technologies (SPF, DKIM) depend on the
                     security of the DNS.  To reduce the risk of subversion of the DMARC mechanism due
                     to DNS-based exploits, serious consideration should be given to the deployment
-                    of DNSSEC in parallel to the deployment of DMARC. </t>
-
+                    of DNSSEC in parallel to the deployment of DMARC by both Domain Owners
+		    and Mail Receivers. </t>
             </section>
 
             <section anchor="sec_display" title="Display Name Attacks">
@@ -2335,6 +2374,25 @@
                     <date month="August" year="2000" />
                 </front>
                 <seriesInfo name="RFC" value="5890" />
+            </reference>
+
+            <reference anchor="IODEF">
+                <front>
+                    <title> The Incident Object Description Exchange Format </title>
+
+                    <author fullname="R. Danyliw" initials="R." surname="Danyliw">
+                        <organization> CERT </organization>
+                    </author>
+                    <author fullname="J. Meijer" initials="J." surname="Meijer">
+                        <organization> UNINETT </organization>
+                    </author>
+                    <author fullname="Y. Demchenko" initials="Y." surname="Demchenko">
+                        <organization> University of Amsterdam </organization>
+                    </author>
+
+                    <date month="December" year="2007" />
+                </front>
+                <seriesInfo name="RFC" value="5070" />
             </reference>
 
             <reference anchor="KEYWORDS">
@@ -2657,25 +2715,6 @@
                 <seriesInfo name="RFC" value="5226" />
             </reference>
 
-            <reference anchor="IODEF">
-                <front>
-                    <title> The Incident Object Description Exchange Format </title>
-
-                    <author fullname="R. Danyliw" initials="R." surname="Danyliw">
-                        <organization> CERT </organization>
-                    </author>
-                    <author fullname="J. Meijer" initials="J." surname="Meijer">
-                        <organization> UNINETT </organization>
-                    </author>
-                    <author fullname="Y. Demchenko" initials="Y." surname="Demchenko">
-                        <organization> University of Amsterdam </organization>
-                    </author>
-
-                    <date month="December" year="2007" />
-                </front>
-                <seriesInfo name="RFC" value="5070" />
-            </reference>
-
             <reference anchor="ROLES">
                 <front>
                     <title> Mailbox Names for Common Services, Roles and Functions </title>
@@ -2864,6 +2903,9 @@
                         maintained by the Mozilla Foundation and made public at
                         http://publicsuffix.org. License terms governing the use of that list are
                         available at that URI. </t>
+
+		    <t> Note that if operators use a variety of public suffix lists,
+			interoperability will be diffcult or impossible to guarantee. </t>
                 </section>
             </section>
         </section>
