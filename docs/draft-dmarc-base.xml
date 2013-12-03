@@ -3662,7 +3662,7 @@
          messages. --&gt;
     &lt;xs:element name="policy_evaluated"
                 type="PolicyEvaluatedType"
-                minOccurs="0"/&gt;
+                minOccurs="1"/&gt;
   &lt;/xs:all&gt;
 &lt;/xs:complexType&gt;
 
