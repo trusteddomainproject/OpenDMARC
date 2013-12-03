@@ -1620,17 +1620,30 @@
                 <!-- Email Transport -->
 
                 <section anchor="http_transport_fb_mech" title="HTTP">
-                    <t>Where an "http" or "https" method is requested in a Domain Owner's URI list,
-                        the Mail Receiver MAY encode the data using the "application/gzip" media
-                        type (<xref target="GZIP" />) or MAY send the <xref target="xml_schema" />
-                        data uncompressed or unencoded. </t>
+                    <t> Where an "http" or "https" method is requested in a
+			Domain Owner's URI list, the Mail Receiver delivers
+			the the data using a PUT http request.  The URI for
+			the PUT request is the URI from the list concatenated
+			with a filename constructed as described in the
+			previous section.  The extension in the filename MUST
+			be "xml".  The filename SHOULD contain a unique-id
+			that is difficult to guess.  For example, if the URI
+			in the list were "http://example.com/dmarc-report/",
+			the URI for the PUT request might be:
 
-                    <t>The header portion of the POST or PUT request SHOULD contain a Subject field
-                        as described in <xref target="email_transport_fb_mech" />.</t>
+			<figure><artwork>
+    http://example.com/dmarc-report/
+        mail.receiver.example!example.com!
+        1013662812!1013749130!!~q!}{..xml
+			</artwork></figure></t>
 
-                    <t>HTTP permits the use of Content-Transfer-Encoding to upload gzip content
-                        using the POST or PUT instruction after translating the content to 7-bit
-                        ASCII. </t>
+		    <t> The Mail Receiver MUST send the report as a
+			text/xml media type and SHOULD use gzip
+			content coding.  If the URI has an "https", method the
+			Mail Receiver SHOULD present a client certificate that
+			includes the domain in its report (in the example
+			above, mail.receiver.example) to authenticate
+			itself. </t>
                 </section>
                 <!-- HTTP Transport -->
 
