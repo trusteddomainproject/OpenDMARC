@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.2.0		2014/01/??
+	Fix bug #45: Log the host portion of ignored Authentication-Results
+		fields at "debug" level.  Suggested by Andreas Schulze.
 	Fix bug #50: Check libbsd for strlcat() and strlcpy() so we don't
 		make our own when we don't need to.  Requested by
 		Scott Kitterman.
@@ -18,8 +20,6 @@ release, and a summary of the changes in that release.
 	Fix bug #60: Default AuthservID to the name provided by the MTA,
 		not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
-	Log the host portion of ignored Authentication-Results fields at
-		"debug" level.
 	CONTRIB: Fix #59: Allow database name, userid and password to be
 		specified on the command line rather than hard-coding them.
 		Problem noted by Scott Kitterman.

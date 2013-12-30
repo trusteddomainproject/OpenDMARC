@@ -2056,7 +2056,9 @@ mlfi_eom(SMFICTX *ctx)
 	**  Walk through Authentication-Results fields and pull out data.
 	*/
 
-	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
+	for (hdr = dfc->mctx_hqhead, c = 0;
+	     hdr != NULL;
+	     hdr = hdr->hdr_next, c++)
 	{
 		/* skip it if it's not Authentication-Results */
 		if (strcasecmp(hdr->hdr_name, AUTHRESHDRNAME) != 0)
@@ -2078,8 +2080,8 @@ mlfi_eom(SMFICTX *ctx)
 				if (conf->conf_dolog)
 				{
 					syslog(LOG_DEBUG,
-					       "%s ignoring Authentication-Results from %s",
-					       dfc->mctx_jobid,
+					       "%s ignoring Authentication-Results at %d from %s",
+					       dfc->mctx_jobid, c,
 					       ar.ares_host);
 				}
 
@@ -2092,8 +2094,8 @@ mlfi_eom(SMFICTX *ctx)
 				if (conf->conf_dolog)
 				{
 					syslog(LOG_DEBUG,
-					       "%s ignoring Authentication-Results from %s",
-					       dfc->mctx_jobid,
+					       "%s ignoring Authentication-Results at %d from %s",
+					       dfc->mctx_jobid, c,
 					       ar.ares_host);
 				}
 
@@ -2111,8 +2113,8 @@ mlfi_eom(SMFICTX *ctx)
 				if (conf->conf_dolog)
 				{
 					syslog(LOG_DEBUG,
-					       "%s ignoring Authentication-Results from %s",
-					       dfc->mctx_jobid,
+					       "%s ignoring Authentication-Results at %d from %s",
+					       dfc->mctx_jobid, c,
 					       ar.ares_host);
 				}
 
@@ -4158,32 +4160,46 @@ main(int argc, char **argv)
 		return status;
 	}
 
-	memset(argstr, '\0', sizeof argstr);
-	end = &argstr[sizeof argstr - 1];
-	n = sizeof argstr;
-	for (c = 1, p = argstr; c < argc && p < end; c++)
-	{
-		if (strchr(argv[c], ' ') != NULL)
-		{
-			status = snprintf(p, n, "%s \"%s\"",
-			                  c == 1 ? "args:" : "",
-			                  argv[c]);
-		}
-		else
-		{
-			status = snprintf(p, n, "%s %s",
-			                  c == 1 ? "args:" : "",
-			                  argv[c]);
-		}
-
-		p += status;
-		n -= status;
-	}
-
 	if (curconf->conf_dolog)
 	{
+		memset(argstr, '\0', sizeof argstr);
+		end = &argstr[sizeof argstr - 1];
+		n = sizeof argstr;
+		for (c = 1, p = argstr; c < argc && p < end; c++)
+		{
+			if (strchr(argv[c], ' ') != NULL)
+			{
+				status = snprintf(p, n, "%s \"%s\"",
+				                  c == 1 ? "args:" : "",
+				                  argv[c]);
+			}
+			else
+			{
+				status = snprintf(p, n, "%s %s",
+				                  c == 1 ? "args:" : "",
+				                  argv[c]);
+			}
+
+			p += status;
+			n -= status;
+		}
+
 		syslog(LOG_INFO, "%s v%s starting (%s)", DMARCF_PRODUCT,
 		       VERSION, argstr);
+
+		memset(argstr, '\0', sizeof argstr);
+		n = sizeof argstr;
+		for (c = 0; curconf->conf_trustedauthservids[c] != NULL; c++)
+		{
+			if (c != 0)
+				strlcat(argstr, ", ", n);
+			strlcat(argstr,
+			        curconf->conf_trustedauthservids[c],
+			        n);
+		}
+
+		syslog(LOG_INFO, "trusted authentication services: %s",
+		       argstr);
 	}
 
 	/* spawn the SIGUSR1 handler */
