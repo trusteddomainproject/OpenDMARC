@@ -92,6 +92,9 @@ my $dkimdomain;
 
 my $repdest;
 
+my $smtpstatus;
+my $smtpfail;
+
 my $doupdate = 1;
 my $testmode = 0;
 my $keepfiles = 0;
@@ -815,19 +818,25 @@ foreach (@$domainset)
 			$mailout .= "\n";
 			$mailout .= "--$boundary--\n";
 
-			# TODO: check return value of each smtp call
-			$smtp->mail($repemail);
-			$smtp->to($repdest);
-			$smtp->data();
-			$smtp->datasend($mailout);
-			$smtp->dataend();
-
-			if ($verbose)
+			$smtpstatus = "sent";
+			$smtpfail = 0;
+			if (!$smtp->mail($repemail)) ||
+			    !$smtp->to($repdest) ||
+			    !$smtp->data() ||
+			    !$smtp->datasend($mailout) ||
+			    !$smtp->dataend())
 			{
+				$smtpfail = 1;
+				$smtpstatus = "failed to send";
+			}
+
+			if ($verbose || $smtpfail)
+			{
+				$smtp
 				# now perl voodoo:
 				$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
 				chomp($answer);
-				print STDERR "$progname: sent report for $domain to $repdest ($answer)\n";
+				print STDERR "$progname: $smtpstatus report for $domain to $repdest ($answer)\n";
 			}
 
 			$smtp->reset();
