@@ -415,6 +415,7 @@ AC_OUTPUT([ Makefile
 		reports/opendmarc-expire.8
 		reports/opendmarc-import
 		reports/opendmarc-import.8
+		reports/opendmarc-importstats.8
 		reports/opendmarc-params
 		reports/opendmarc-params.8
 		reports/opendmarc-reports

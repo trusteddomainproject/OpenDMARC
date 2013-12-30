@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.2.0		2014/01/??
+	Fix bug #53: Add man page for opendmarc-importstats.  Requestedj
+		by Scott Kitterman.
 	Fix bug #55: The "SoftwareHeader" setting wasn't being set properly.
 		Problem noted by Birta Levente.
 	Fix bug #60: Default AuthservID to the name provided by the MTA,
