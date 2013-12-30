@@ -125,6 +125,7 @@ typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 /* DMARCF_CONFIG -- configuration object */
 struct dmarcf_config
 {
+	_Bool			conf_reqhdrs;
 	_Bool			conf_afrf;
 	_Bool			conf_afrfnone;
 	_Bool			conf_rejectfail;
@@ -201,8 +202,8 @@ sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
 
 static void dmarcf_config_free __P((struct dmarcf_config *));
 static struct dmarcf_config *dmarcf_config_new __P((void));
-sfsistat dkimf_insheader __P((SMFICTX *, int, char *, char *));
-sfsistat dkimf_setreply __P((SMFICTX *, char *, char *, char *));
+sfsistat dmarcf_insheader __P((SMFICTX *, int, char *, char *));
+sfsistat dmarcf_setreply __P((SMFICTX *, char *, char *, char *));
 
 /* globals */
 _Bool dolog;
@@ -1225,6 +1226,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_rejectfail,
 		                  sizeof conf->conf_rejectfail);
 
+		(void) config_get(data, "RequiredHeaders",
+		                  &conf->conf_reqhdrs,
+		                  sizeof conf->conf_reqhdrs);
+
 		(void) config_get(data, "ForensicReports",
 		                  &conf->conf_afrf,
 		                  sizeof conf->conf_afrf);
@@ -1983,28 +1988,68 @@ mlfi_eom(SMFICTX *ctx)
 	if (authservid == NULL)
 		authservid = hostname;
 
+	/* if requested, verify RFC5322-required headers (RFC5322 3.6) */
+	if (conf->conf_reqhdrs)
+	{
+		_Bool ok = TRUE;
+
+		/* exactly one From: */
+		if (dmarcf_findheader(dfc, "From", 0) == NULL ||
+		    dmarcf_findheader(dfc, "From", 1) != NULL)
+			ok = FALSE;
+
+		/* exactly one Date: */
+		if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
+		    dmarcf_findheader(dfc, "Date", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one Reply-To: */
+		if (dmarcf_findheader(dfc, "Reply-To", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one To: */
+		if (dmarcf_findheader(dfc, "To", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one Cc: */
+		if (dmarcf_findheader(dfc, "Cc", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one Bcc: */
+		if (dmarcf_findheader(dfc, "Bcc", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one Message-Id: */
+		if (dmarcf_findheader(dfc, "Message-Id", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one In-Reply-To: */
+		if (dmarcf_findheader(dfc, "In-Reply-To", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one References: */
+		if (dmarcf_findheader(dfc, "References", 1) != NULL)
+			ok = FALSE;
+
+		/* no more than one Subject: */
+		if (dmarcf_findheader(dfc, "Subject", 1) != NULL)
+			ok = FALSE;
+
+		if (!ok)
+		{
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_INFO,
+				       "%s: RFC5322 header requirement error",
+				       dfc->mctx_jobid);
+			}
+
+			return SMFIS_REJECT;
+		}
+	}
+
 	/* extract From: domain */
-	from = NULL;
-	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
-	{
-		if (strcasecmp(hdr->hdr_name, "from") == 0)
-		{
-			from = hdr;
-			break;
-		}
-	}
-
-	if (from == NULL)
-	{
-		if (conf->conf_dolog)
-		{
-			syslog(LOG_ERR, "%s: no From header field found",
-			       dfc->mctx_jobid);
-		}
-
-		return SMFIS_ACCEPT;
-	}
-
+	from = dmarcf_findheader(dfc, "From", 0);
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
 	status = dmarcf_mail_parse(addrbuf, &user, &domain);
@@ -2017,7 +2062,10 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid);
 		}
 
-		return SMFIS_ACCEPT;
+		if (conf->conf_reqhdrs)
+			return SMFIS_REJECT;
+		else
+			return SMFIS_ACCEPT;
 	}
 
 	if (conf->conf_ignoredomains != NULL &&

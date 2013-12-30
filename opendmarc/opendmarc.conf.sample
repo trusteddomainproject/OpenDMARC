@@ -230,6 +230,17 @@
 #
 # ReportCommand /usr/sbin/sendmail -t
 
+##  RequiredHeaders { true | false }
+##  	default "false"
+##
+##  If set, the filter will ensure the header of the message conforms to the
+##  basic header field count restrictions laid out in RFC5322, Section 3.6.
+##  Messages failing this test are rejected without further processing.  A
+##  From: field from which no domain name could be extracted will also be
+##  rejected.
+#
+# RequiredHeaders false
+
 ##  Socket socketspec
 ##  	default (none)
 ##
