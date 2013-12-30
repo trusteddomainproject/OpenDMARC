@@ -152,8 +152,13 @@ AC_CHECK_SIZEOF(void *)
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 
-AC_CHECK_FUNCS(strlcat)
-AC_CHECK_FUNCS(strlcpy)
+AC_SEARCH_LIBS(strlcat, bsd strl,
+	AC_DEFINE(HAVE_STRLCAT, 1,
+	[Define to 1 if you have the `strlcat()' function.]))
+AC_SEARCH_LIBS(strlcpy, bsd strl,
+	AC_DEFINE(HAVE_STRLCPY, 1,
+	[Define to 1 if you have the `strlcpy()' function.]))
+
 AC_CHECK_FUNCS(basename)
 AC_CHECK_FUNCS(syslog)
 AC_CHECK_FUNCS(cuserid)

@@ -4,6 +4,9 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.2.0		2014/01/??
+	Fix bug #50: Check libbsd for strlcat() and strlcpy() so we don't
+		make our own when we don't need to.  Requested by
+		Scott Kitterman.
 	Fix bug #51: Check status after every phase of SMTP when sending
 		reports.  Suggested by Todd Lyons.
 	Fix bug #52: Update path to draft RFC in contrib/spec.  Problem noted
