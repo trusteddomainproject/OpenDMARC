@@ -2012,7 +2012,8 @@ mlfi_eom(SMFICTX *ctx)
 	{
 		if (conf->conf_dolog)
 		{
-			syslog(LOG_ERR, "%s: can't parse From header field",
+			syslog(LOG_ERR,
+			       "%s: unable to parse From header field",
 			       dfc->mctx_jobid);
 		}
 
@@ -2192,7 +2193,7 @@ mlfi_eom(SMFICTX *ctx)
 					if (conf->conf_dolog)
 					{
 						syslog(LOG_ERR,
-						       "%s: can't parse validated SPF address <%s>",
+						       "%s: unable to parse validated SPF address <%s>",
 						       dfc->mctx_jobid,
 						       spfaddr);
 					}

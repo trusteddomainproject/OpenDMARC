@@ -8,6 +8,8 @@ release, and a summary of the changes in that release.
 		Requested by Scott Kitterman.
 	Fix bug #45: Log the host portion of ignored Authentication-Results
 		fields at "debug" level.  Suggested by Andreas Schulze.
+	Fix bug $46: Charitable tweak to a couple of log messages.  Requested
+		by Andreas Schulze.
 	Fix bug #50: Check libbsd for strlcat() and strlcpy() so we don't
 		make our own when we don't need to.  Requested by
 		Scott Kitterman.
