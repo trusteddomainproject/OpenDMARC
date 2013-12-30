@@ -1184,10 +1184,6 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			else	
 				conf->conf_authservid = strdup(str);
 		}
-		else
-		{
-			conf->conf_authservid = strdup(myhostname);
-		}
 
 		str = NULL;
 		(void) config_get(data, "TrustedAuthservIDs", &str, sizeof str);

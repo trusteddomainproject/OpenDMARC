@@ -4,6 +4,9 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.2.0		2014/01/??
+	Fix bug #60: Default AuthservID to the name provided by the MTA,
+		not the local host name, which is consistent with what
+		OpenDKIM does.  Suggested by Robbert Klarenbeek.
 	Log the host portion of ignored Authentication-Results fields at
 		"debug" level.
 
