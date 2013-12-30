@@ -10,6 +10,7 @@ release, and a summary of the changes in that release.
 		fields at "debug" level.  Suggested by Andreas Schulze.
 	Fix bug $46: Charitable tweak to a couple of log messages.  Requested
 		by Andreas Schulze.
+	Fix bug #48: Add a libopendmarc use overview page.
 	Fix bug #50: Check libbsd for strlcat() and strlcpy() so we don't
 		make our own when we don't need to.  Requested by
 		Scott Kitterman.
@@ -21,6 +22,9 @@ release, and a summary of the changes in that release.
 		by Scott Kitterman.
 	Fix bug #55: The "SoftwareHeader" setting wasn't being set properly.
 		Problem noted by Birta Levente.
+	Fix bug #56: Add "RequiredHeaders" setting to enforce syntax checks
+		against a message and reject those that don't comply.
+		Suggested by Franck Martin.
 	Fix bug #60: Default AuthservID to the name provided by the MTA,
 		not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
