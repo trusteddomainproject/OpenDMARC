@@ -2078,18 +2078,50 @@ mlfi_eom(SMFICTX *ctx)
 			unsigned char *slash;
 
 			if (!conf->conf_authservidwithjobid)
+			{
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_DEBUG,
+					       "%s ignoring Authentication-Results from %s",
+					       dfc->mctx_jobid,
+					       ar.ares_host);
+				}
+
 				continue;
+			}
 
 			slash = (unsigned char *) strchr(ar.ares_host, '/');
 			if (slash == NULL)
+			{
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_DEBUG,
+					       "%s ignoring Authentication-Results from %s",
+					       dfc->mctx_jobid,
+					       ar.ares_host);
+				}
+
 				continue;
+			}
 
 			*slash = '\0';
 			if (!dmarcf_match(ar.ares_host,
 			                  conf->conf_trustedauthservids,
 			                  FALSE) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
+			{
+				*slash = '/';
+
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_DEBUG,
+					       "%s ignoring Authentication-Results from %s",
+					       dfc->mctx_jobid,
+					       ar.ares_host);
+				}
+
 				continue;
+			}
 		}
 
 		/* walk through what was found */

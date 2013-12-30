@@ -3,6 +3,10 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.2.0		2014/01/??
+	Log the host portion of ignored Authentication-Results fields at
+		"debug" level.
+
 1.1.3		2013/04/13
 	Fix reporting of nonexistent SPF results.  Problem noted by
 		Andrei Ioachim.
