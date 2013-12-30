@@ -9,6 +9,9 @@ release, and a summary of the changes in that release.
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
 	Log the host portion of ignored Authentication-Results fields at
 		"debug" level.
+	CONTRIB: Fix #59: Allow database name, userid and password to be
+		specified on the command line rather than hard-coding them.
+		Problem noted by Scott Kitterman.
 
 1.1.3		2013/04/13
 	Fix reporting of nonexistent SPF results.  Problem noted by
