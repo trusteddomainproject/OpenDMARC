@@ -136,6 +136,7 @@ struct dmarcf_config
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
+	char *			conf_afrfas;
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_tmpdir;
@@ -1231,6 +1232,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "ForensicReportsOnNone",
 		                  &conf->conf_afrfnone,
 		                  sizeof conf->conf_afrfnone);
+
+		(void) config_get(data, "ForensicReportsSentBy",
+		                  &conf->conf_afrfas,
+		                  sizeof conf->conf_afrfas);
 
 		(void) config_get(data, "RecordAllMessages",
 		                  &conf->conf_recordall,
@@ -2427,9 +2432,19 @@ mlfi_eom(SMFICTX *ctx)
 			dmarcf_dstring_blank(dfc->mctx_afrf);
 		}
 
-		dmarcf_dstring_printf(dfc->mctx_afrf,
-		                      "From: %s <%s@%s>\n", DMARCF_PRODUCT,
-		                      myname, hostname);
+		if (conf->conf_afrfas != NULL)
+		{
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "From: %s",
+			                      conf->conf_afrfas);
+		}
+		else
+		{
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "From: %s <%s@%s>\n",
+			                      DMARCF_PRODUCT,
+			                      myname, hostname);
+		}
 
 		for (c = 0; ruv[c] != NULL; c++)
 		{

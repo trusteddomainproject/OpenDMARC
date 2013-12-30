@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.2.0		2014/01/??
+	Fix bug #44: Allow override of the From: field on forensic reports.
+		Requested by Kevin San Diego.
 	Fix bug #45: Log the host portion of ignored Authentication-Results
 		fields at "debug" level.  Suggested by Andreas Schulze.
 	Fix bug #50: Check libbsd for strlcat() and strlcpy() so we don't

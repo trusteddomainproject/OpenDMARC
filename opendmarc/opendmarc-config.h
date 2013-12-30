@@ -29,6 +29,7 @@ struct configdef dmarcf_config[] =
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ForensicReports",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ForensicReportsOnNone",	CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "ForensicReportsSentBy",	CONFIG_TYPE_STRING,	FALSE },
 	{ "HistoryFile",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreHosts",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreMailFrom",		CONFIG_TYPE_STRING,	FALSE },

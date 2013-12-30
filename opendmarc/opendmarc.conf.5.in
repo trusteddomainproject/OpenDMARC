@@ -144,6 +144,12 @@ Supplementary to the previous setting, enables generation of forensic reports
 for sending domains that publish a "none" policy.
 
 .TP
+.I ForensicReportsSentBy (string)
+Sets the value of the From: field to be used when sending forensic reports
+(see above).  The default is to use the userid of the user executing the
+filter and the local host name to construct an email address.
+
+.TP
 .I HistoryFile (string)
 If set, specifies the location of a text file to which records are written
 that can be used to generate DMARC aggregate reports.  Records are
