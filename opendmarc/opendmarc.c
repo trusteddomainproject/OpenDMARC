@@ -138,6 +138,7 @@ struct dmarcf_config
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
 	char *			conf_afrfas;
+	char *			conf_afrfbcc;
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_tmpdir;
@@ -1241,6 +1242,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "ForensicReportsSentBy",
 		                  &conf->conf_afrfas,
 		                  sizeof conf->conf_afrfas);
+
+		(void) config_get(data, "ForensicReportsBcc",
+		                  &conf->conf_afrfbcc,
+		                  sizeof conf->conf_afrfbcc);
 
 		(void) config_get(data, "RecordAllMessages",
 		                  &conf->conf_recordall,
@@ -2456,7 +2461,8 @@ mlfi_eom(SMFICTX *ctx)
 	if ((policy == DMARC_POLICY_REJECT ||
 	     policy == DMARC_POLICY_QUARANTINE ||
 	     (conf->conf_afrfnone && policy == DMARC_POLICY_NONE)) &&
-	    conf->conf_afrf && ruv != NULL)
+	    conf->conf_afrf &&
+	    (conf->conf_afrfbcc != NULL || ruv != NULL))
 	{
 		_Bool first = TRUE;
 
@@ -2495,7 +2501,7 @@ mlfi_eom(SMFICTX *ctx)
 			                      myname, hostname);
 		}
 
-		for (c = 0; ruv[c] != NULL; c++)
+		for (c = 0; ruv != NULL && ruv[c] != NULL; c++)
 		{
 			if (strncasecmp(ruv[c], "mailto:", 7) != 0)
 				continue;
@@ -2513,6 +2519,17 @@ mlfi_eom(SMFICTX *ctx)
 			dmarcf_dstring_cat(dfc->mctx_afrf, &ruv[c][7]);
 		}
 
+		if (conf->conf_afrfbcc != NULL)
+		{
+			if (first)
+			{
+				dmarcf_dstring_cat(dfc->mctx_afrf, "To: ");
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   conf->conf_afrfbcc);
+				first = FALSE;
+			}
+		}
+
 		if (!first)
 		{
 			time_t now;
@@ -2524,6 +2541,15 @@ mlfi_eom(SMFICTX *ctx)
 			/* finish To: from above */
 			dmarcf_dstring_cat(dfc->mctx_afrf, "\n");
 
+			/* Bcc: */
+			if (ruv != NULL && conf->conf_afrfbcc != NULL)
+			{
+				dmarcf_dstring_cat(dfc->mctx_afrf, "Bcc: ");
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   conf->conf_afrfbcc);
+				dmarcf_dstring_cat(dfc->mctx_afrf, "\n");
+			}
+			
 			/* Date: */
 			(void) time(&now);
 			tm = localtime(&now);

@@ -120,6 +120,17 @@
 # 
 # ForensicReports false
 
+##  ForensicReportsBcc (string)
+##  	default (none)
+##
+##  When forensic reports are enabled and one is to be generated, always
+##  send one to the address(es) specified here.  If a forensic report is
+##  requested by the domain owner, the address(es) are added in a Bcc: field.
+##  If no request is made, they address(es) are used in a To: field.  There
+##  is no default.
+# 
+# ForensicReportsBcc postmaster@example.coom
+
 ##  ForensicReportsOnNone { true | false }
 ##  	default "false"
 ##
