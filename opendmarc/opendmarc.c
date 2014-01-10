@@ -2208,9 +2208,20 @@ mlfi_eom(SMFICTX *ctx)
 					                       "mailfrom") == 0)
 						{
 							spfaddr = ar.ares_result[c].result_value[pc];
-							strncpy(addrbuf,
-							        spfaddr,
-							        sizeof addrbuf - 1);
+							if (strchr(spfaddr, '@') != NULL)
+							{
+								strncpy(addrbuf,
+								        spfaddr,
+								        sizeof addrbuf - 1);
+							}
+							else
+							{
+								snprintf(addrbuf,
+								         sizeof addrbuf,
+								         "UNKNOWN@%s",
+								         spfaddr);
+							}
+
 							spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 						}
 						else if (strcasecmp(ar.ares_result[c].result_property[pc],
@@ -2218,9 +2229,10 @@ mlfi_eom(SMFICTX *ctx)
 						         addrbuf[0] == '\0')
 						{
 							spfaddr = ar.ares_result[c].result_value[pc];
-							strncpy(addrbuf,
-							        spfaddr,
-							        sizeof addrbuf - 1);
+							snprintf(addrbuf,
+							         sizeof addrbuf,
+							         "UNKNOWN@%s",
+							         spfaddr);
 							spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
 						}
 					}

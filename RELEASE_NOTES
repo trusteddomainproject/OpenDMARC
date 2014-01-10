@@ -14,10 +14,13 @@ release, and a summary of the changes in that release.
 		Suggested by Franck Martin.
 	Feature request #65: Add "ForensicReportsBcc".  Requested by
 		Franck Martin.
-	Fix bug $46: Charitable tweak to a couple of log messages.  Requested
+	Fix bug #46: Charitable tweak to a couple of log messages.  Requested
 		by Andreas Schulze.
 	Fix bug #55: The "SoftwareHeader" setting wasn't being set properly.
 		Problem noted by Birta Levente.
+	Fix bug #58: The "smtp.mailfrom" part of an Authentication-Results field
+		might contain only a domain name.  Problem noted by Scott
+		Kitterman.
 	Fix bug #60: Default AuthservID to the name provided by the MTA,
 		not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
