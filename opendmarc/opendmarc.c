@@ -1996,57 +1996,49 @@ mlfi_eom(SMFICTX *ctx)
 	/* if requested, verify RFC5322-required headers (RFC5322 3.6) */
 	if (conf->conf_reqhdrs)
 	{
-		_Bool ok = TRUE;
+		unsigned char* reqhdrs_error = NULL; /* no error */
 
-		/* exactly one From: */
 		if (dmarcf_findheader(dfc, "From", 0) == NULL ||
 		    dmarcf_findheader(dfc, "From", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "not exactly one From field";
 
-		/* exactly one Date: */
 		if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
 		    dmarcf_findheader(dfc, "Date", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "not exactly one Date field";
 
-		/* no more than one Reply-To: */
 		if (dmarcf_findheader(dfc, "Reply-To", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple Reply-To fields";
 
-		/* no more than one To: */
 		if (dmarcf_findheader(dfc, "To", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple To fields";
 
-		/* no more than one Cc: */
 		if (dmarcf_findheader(dfc, "Cc", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple Cc fields";
 
-		/* no more than one Bcc: */
 		if (dmarcf_findheader(dfc, "Bcc", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple Bcc fields";
 
-		/* no more than one Message-Id: */
 		if (dmarcf_findheader(dfc, "Message-Id", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple Message-Id fields";
 
-		/* no more than one In-Reply-To: */
 		if (dmarcf_findheader(dfc, "In-Reply-To", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple In-Reply-To fields";
 
-		/* no more than one References: */
 		if (dmarcf_findheader(dfc, "References", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple References fields";
 
-		/* no more than one Subject: */
 		if (dmarcf_findheader(dfc, "Subject", 1) != NULL)
-			ok = FALSE;
+			reqhdrs_error = "multiple Subject fields";
 
-		if (!ok)
+		if (reqhdrs_error != NULL)
 		{
+			unsigned char replybuf[BUFRSZ + 1];
+
 			if (conf->conf_dolog)
 			{
 				syslog(LOG_INFO,
-				       "%s: RFC5322 header requirement error",
-				       dfc->mctx_jobid);
+				       "%s: RFC5322 requirement error: %s",
+				       dfc->mctx_jobid, reqhdrs_error);
 			}
 
 			return SMFIS_REJECT;

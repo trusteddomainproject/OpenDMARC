@@ -11,7 +11,8 @@ release, and a summary of the changes in that release.
 		by Andreas Schulze.
 	Feature request #56: Add "RequiredHeaders" setting to enforce syntax
 		checks against a message and reject those that don't comply.
-		Suggested by Franck Martin.
+		Suggested by Franck Martin; additional code from Andreas
+		Schulze.
 	Feature request #65: Add "ForensicReportsBcc".  Requested by
 		Franck Martin.
 	Fix bug #46: Charitable tweak to a couple of log messages.  Requested
