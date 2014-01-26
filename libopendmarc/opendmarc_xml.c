@@ -292,7 +292,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 					(void) strlcpy(e, "<", elen);
 					(void) strlcat(e, cp, elen);
 					(void) strlcat(e, ">: Too much stack depth", elen);
-					return ary = opendmarc_util_clearargv(ary);
+					return ary = opendmarc_util_clearnargv(ary, &ary_cnt);
 				}
 				(void) strlcpy(stack[sidx], cp, MAX_STACK_LINE_LEN);
 				cp = sp;

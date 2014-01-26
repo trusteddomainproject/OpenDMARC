@@ -1273,7 +1273,7 @@ opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t
 
 	if (pctx->organizational_domain != NULL)
 		which = pctx->organizational_domain;
-	if (pctx->from_domain != NULL)
+	else if (pctx->from_domain != NULL)
 		which = pctx->from_domain;
 	if (which == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
