@@ -116,7 +116,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
-%doc INSTALL README RELEASE_NOTES docs/draft-dmarc-base-00-02.txt
+%doc INSTALL README RELEASE_NOTES docs/draft-dmarc-base-02.txt
 %doc db/README.schema db/schema.mysql
 %config(noreplace) %{_sysconfdir}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/tmpfiles.d/%{name}.conf

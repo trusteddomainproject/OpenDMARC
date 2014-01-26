@@ -1,5 +1,5 @@
 /*
-**  Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
 */
 
 #include "build-config.h"
@@ -125,6 +125,7 @@ typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 /* DMARCF_CONFIG -- configuration object */
 struct dmarcf_config
 {
+	_Bool			conf_reqhdrs;
 	_Bool			conf_afrf;
 	_Bool			conf_afrfnone;
 	_Bool			conf_rejectfail;
@@ -136,6 +137,8 @@ struct dmarcf_config
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
+	char *			conf_afrfas;
+	char *			conf_afrfbcc;
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_tmpdir;
@@ -191,7 +194,6 @@ sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));
 sfsistat mlfi_connect __P((SMFICTX *, char *, _SOCK_ADDR *));
 sfsistat mlfi_envfrom __P((SMFICTX *, char **));
-sfsistat mlfi_eoh __P((SMFICTX *));
 sfsistat mlfi_eom __P((SMFICTX *));
 sfsistat mlfi_header __P((SMFICTX *, char *, char *));
 sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
@@ -201,8 +203,8 @@ sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
 
 static void dmarcf_config_free __P((struct dmarcf_config *));
 static struct dmarcf_config *dmarcf_config_new __P((void));
-sfsistat dkimf_insheader __P((SMFICTX *, int, char *, char *));
-sfsistat dkimf_setreply __P((SMFICTX *, char *, char *, char *));
+sfsistat dmarcf_insheader __P((SMFICTX *, int, char *, char *));
+sfsistat dmarcf_setreply __P((SMFICTX *, char *, char *, char *));
 
 /* globals */
 _Bool dolog;
@@ -411,6 +413,10 @@ dmarcf_parse_received_spf(char *str)
 			{
 				copying = FALSE;
 				parens++;
+			}
+ 			else if (isascii(*p) && isspace(*p))
+			{
+				copying = FALSE;
 			}
 			else if (r < end)
 			{
@@ -1181,10 +1187,6 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			else	
 				conf->conf_authservid = strdup(str);
 		}
-		else
-		{
-			conf->conf_authservid = strdup(myhostname);
-		}
 
 		str = NULL;
 		(void) config_get(data, "TrustedAuthservIDs", &str, sizeof str);
@@ -1225,6 +1227,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_rejectfail,
 		                  sizeof conf->conf_rejectfail);
 
+		(void) config_get(data, "RequiredHeaders",
+		                  &conf->conf_reqhdrs,
+		                  sizeof conf->conf_reqhdrs);
+
 		(void) config_get(data, "ForensicReports",
 		                  &conf->conf_afrf,
 		                  sizeof conf->conf_afrf);
@@ -1232,6 +1238,14 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "ForensicReportsOnNone",
 		                  &conf->conf_afrfnone,
 		                  sizeof conf->conf_afrfnone);
+
+		(void) config_get(data, "ForensicReportsSentBy",
+		                  &conf->conf_afrfas,
+		                  sizeof conf->conf_afrfas);
+
+		(void) config_get(data, "ForensicReportsBcc",
+		                  &conf->conf_afrfbcc,
+		                  sizeof conf->conf_afrfbcc);
 
 		(void) config_get(data, "RecordAllMessages",
 		                  &conf->conf_recordall,
@@ -1979,28 +1993,60 @@ mlfi_eom(SMFICTX *ctx)
 	if (authservid == NULL)
 		authservid = hostname;
 
+	/* if requested, verify RFC5322-required headers (RFC5322 3.6) */
+	if (conf->conf_reqhdrs)
+	{
+		unsigned char* reqhdrs_error = NULL; /* no error */
+
+		if (dmarcf_findheader(dfc, "From", 0) == NULL ||
+		    dmarcf_findheader(dfc, "From", 1) != NULL)
+			reqhdrs_error = "not exactly one From field";
+
+		if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
+		    dmarcf_findheader(dfc, "Date", 1) != NULL)
+			reqhdrs_error = "not exactly one Date field";
+
+		if (dmarcf_findheader(dfc, "Reply-To", 1) != NULL)
+			reqhdrs_error = "multiple Reply-To fields";
+
+		if (dmarcf_findheader(dfc, "To", 1) != NULL)
+			reqhdrs_error = "multiple To fields";
+
+		if (dmarcf_findheader(dfc, "Cc", 1) != NULL)
+			reqhdrs_error = "multiple Cc fields";
+
+		if (dmarcf_findheader(dfc, "Bcc", 1) != NULL)
+			reqhdrs_error = "multiple Bcc fields";
+
+		if (dmarcf_findheader(dfc, "Message-Id", 1) != NULL)
+			reqhdrs_error = "multiple Message-Id fields";
+
+		if (dmarcf_findheader(dfc, "In-Reply-To", 1) != NULL)
+			reqhdrs_error = "multiple In-Reply-To fields";
+
+		if (dmarcf_findheader(dfc, "References", 1) != NULL)
+			reqhdrs_error = "multiple References fields";
+
+		if (dmarcf_findheader(dfc, "Subject", 1) != NULL)
+			reqhdrs_error = "multiple Subject fields";
+
+		if (reqhdrs_error != NULL)
+		{
+			unsigned char replybuf[BUFRSZ + 1];
+
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_INFO,
+				       "%s: RFC5322 requirement error: %s",
+				       dfc->mctx_jobid, reqhdrs_error);
+			}
+
+			return SMFIS_REJECT;
+		}
+	}
+
 	/* extract From: domain */
-	from = NULL;
-	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
-	{
-		if (strcasecmp(hdr->hdr_name, "from") == 0)
-		{
-			from = hdr;
-			break;
-		}
-	}
-
-	if (from == NULL)
-	{
-		if (conf->conf_dolog)
-		{
-			syslog(LOG_ERR, "%s: no From header field found",
-			       dfc->mctx_jobid);
-		}
-
-		return SMFIS_ACCEPT;
-	}
-
+	from = dmarcf_findheader(dfc, "From", 0);
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
 	status = dmarcf_mail_parse(addrbuf, &user, &domain);
@@ -2008,11 +2054,15 @@ mlfi_eom(SMFICTX *ctx)
 	{
 		if (conf->conf_dolog)
 		{
-			syslog(LOG_ERR, "%s: can't parse From header field",
+			syslog(LOG_ERR,
+			       "%s: unable to parse From header field",
 			       dfc->mctx_jobid);
 		}
 
-		return SMFIS_ACCEPT;
+		if (conf->conf_reqhdrs)
+			return SMFIS_REJECT;
+		else
+			return SMFIS_ACCEPT;
 	}
 
 	if (conf->conf_ignoredomains != NULL &&
@@ -2057,7 +2107,9 @@ mlfi_eom(SMFICTX *ctx)
 	**  Walk through Authentication-Results fields and pull out data.
 	*/
 
-	for (hdr = dfc->mctx_hqhead; hdr != NULL; hdr = hdr->hdr_next)
+	for (hdr = dfc->mctx_hqhead, c = 0;
+	     hdr != NULL;
+	     hdr = hdr->hdr_next, c++)
 	{
 		/* skip it if it's not Authentication-Results */
 		if (strcasecmp(hdr->hdr_name, AUTHRESHDRNAME) != 0)
@@ -2075,18 +2127,50 @@ mlfi_eom(SMFICTX *ctx)
 			unsigned char *slash;
 
 			if (!conf->conf_authservidwithjobid)
+			{
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_DEBUG,
+					       "%s ignoring Authentication-Results at %d from %s",
+					       dfc->mctx_jobid, c,
+					       ar.ares_host);
+				}
+
 				continue;
+			}
 
 			slash = (unsigned char *) strchr(ar.ares_host, '/');
 			if (slash == NULL)
+			{
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_DEBUG,
+					       "%s ignoring Authentication-Results at %d from %s",
+					       dfc->mctx_jobid, c,
+					       ar.ares_host);
+				}
+
 				continue;
+			}
 
 			*slash = '\0';
 			if (!dmarcf_match(ar.ares_host,
 			                  conf->conf_trustedauthservids,
 			                  FALSE) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
+			{
+				*slash = '/';
+
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_DEBUG,
+					       "%s ignoring Authentication-Results at %d from %s",
+					       dfc->mctx_jobid, c,
+					       ar.ares_host);
+				}
+
 				continue;
+			}
 		}
 
 		/* walk through what was found */
@@ -2116,9 +2200,20 @@ mlfi_eom(SMFICTX *ctx)
 					                       "mailfrom") == 0)
 						{
 							spfaddr = ar.ares_result[c].result_value[pc];
-							strncpy(addrbuf,
-							        spfaddr,
-							        sizeof addrbuf - 1);
+							if (strchr(spfaddr, '@') != NULL)
+							{
+								strncpy(addrbuf,
+								        spfaddr,
+								        sizeof addrbuf - 1);
+							}
+							else
+							{
+								snprintf(addrbuf,
+								         sizeof addrbuf,
+								         "UNKNOWN@%s",
+								         spfaddr);
+							}
+
 							spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 						}
 						else if (strcasecmp(ar.ares_result[c].result_property[pc],
@@ -2126,9 +2221,10 @@ mlfi_eom(SMFICTX *ctx)
 						         addrbuf[0] == '\0')
 						{
 							spfaddr = ar.ares_result[c].result_value[pc];
-							strncpy(addrbuf,
-							        spfaddr,
-							        sizeof addrbuf - 1);
+							snprintf(addrbuf,
+							         sizeof addrbuf,
+							         "UNKNOWN@%s",
+							         spfaddr);
 							spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
 						}
 					}
@@ -2154,7 +2250,7 @@ mlfi_eom(SMFICTX *ctx)
 					if (conf->conf_dolog)
 					{
 						syslog(LOG_ERR,
-						       "%s: can't parse validated SPF address <%s>",
+						       "%s: unable to parse validated SPF address <%s>",
 						       dfc->mctx_jobid,
 						       spfaddr);
 					}
@@ -2240,10 +2336,25 @@ mlfi_eom(SMFICTX *ctx)
 		{
 			if (strcasecmp(hdr->hdr_name, RECEIVEDSPF) == 0)
 			{
-				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "spf %d\n",
-				                      dmarcf_parse_received_spf(hdr->hdr_value));
+				int spfres;
+				int spfmode;
 
+				if (dfc->mctx_fromdomain[0] == '\0')
+					spfmode = DMARC_POLICY_SPF_ORIGIN_HELO;
+				else
+					spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
+
+				spfres = dmarcf_parse_received_spf(hdr->hdr_value);
+
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf %d\n", spfres);
+
+				/* use the MAIL FROM domain */
+				ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc,
+				                                     dfc->mctx_envdomain,
+				                                     spfres,
+				                                     spfmode,
+				                                     NULL);
 				wspf = TRUE;
 			}
 		}
@@ -2354,7 +2465,8 @@ mlfi_eom(SMFICTX *ctx)
 	if ((policy == DMARC_POLICY_REJECT ||
 	     policy == DMARC_POLICY_QUARANTINE ||
 	     (conf->conf_afrfnone && policy == DMARC_POLICY_NONE)) &&
-	    conf->conf_afrf && ruv != NULL)
+	    conf->conf_afrf &&
+	    (conf->conf_afrfbcc != NULL || ruv != NULL))
 	{
 		_Bool first = TRUE;
 
@@ -2379,11 +2491,21 @@ mlfi_eom(SMFICTX *ctx)
 			dmarcf_dstring_blank(dfc->mctx_afrf);
 		}
 
-		dmarcf_dstring_printf(dfc->mctx_afrf,
-		                      "From: %s <%s@%s>\n", DMARCF_PRODUCT,
-		                      myname, hostname);
+		if (conf->conf_afrfas != NULL)
+		{
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "From: %s",
+			                      conf->conf_afrfas);
+		}
+		else
+		{
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "From: %s <%s@%s>\n",
+			                      DMARCF_PRODUCT,
+			                      myname, hostname);
+		}
 
-		for (c = 0; ruv[c] != NULL; c++)
+		for (c = 0; ruv != NULL && ruv[c] != NULL; c++)
 		{
 			if (strncasecmp(ruv[c], "mailto:", 7) != 0)
 				continue;
@@ -2401,6 +2523,17 @@ mlfi_eom(SMFICTX *ctx)
 			dmarcf_dstring_cat(dfc->mctx_afrf, &ruv[c][7]);
 		}
 
+		if (conf->conf_afrfbcc != NULL)
+		{
+			if (first)
+			{
+				dmarcf_dstring_cat(dfc->mctx_afrf, "To: ");
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   conf->conf_afrfbcc);
+				first = FALSE;
+			}
+		}
+
 		if (!first)
 		{
 			time_t now;
@@ -2412,6 +2545,15 @@ mlfi_eom(SMFICTX *ctx)
 			/* finish To: from above */
 			dmarcf_dstring_cat(dfc->mctx_afrf, "\n");
 
+			/* Bcc: */
+			if (ruv != NULL && conf->conf_afrfbcc != NULL)
+			{
+				dmarcf_dstring_cat(dfc->mctx_afrf, "Bcc: ");
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   conf->conf_afrfbcc);
+				dmarcf_dstring_cat(dfc->mctx_afrf, "\n");
+			}
+			
 			/* Date: */
 			(void) time(&now);
 			tm = localtime(&now);
@@ -4112,32 +4254,46 @@ main(int argc, char **argv)
 		return status;
 	}
 
-	memset(argstr, '\0', sizeof argstr);
-	end = &argstr[sizeof argstr - 1];
-	n = sizeof argstr;
-	for (c = 1, p = argstr; c < argc && p < end; c++)
-	{
-		if (strchr(argv[c], ' ') != NULL)
-		{
-			status = snprintf(p, n, "%s \"%s\"",
-			                  c == 1 ? "args:" : "",
-			                  argv[c]);
-		}
-		else
-		{
-			status = snprintf(p, n, "%s %s",
-			                  c == 1 ? "args:" : "",
-			                  argv[c]);
-		}
-
-		p += status;
-		n -= status;
-	}
-
 	if (curconf->conf_dolog)
 	{
+		memset(argstr, '\0', sizeof argstr);
+		end = &argstr[sizeof argstr - 1];
+		n = sizeof argstr;
+		for (c = 1, p = argstr; c < argc && p < end; c++)
+		{
+			if (strchr(argv[c], ' ') != NULL)
+			{
+				status = snprintf(p, n, "%s \"%s\"",
+				                  c == 1 ? "args:" : "",
+				                  argv[c]);
+			}
+			else
+			{
+				status = snprintf(p, n, "%s %s",
+				                  c == 1 ? "args:" : "",
+				                  argv[c]);
+			}
+
+			p += status;
+			n -= status;
+		}
+
 		syslog(LOG_INFO, "%s v%s starting (%s)", DMARCF_PRODUCT,
 		       VERSION, argstr);
+
+		memset(argstr, '\0', sizeof argstr);
+		n = sizeof argstr;
+		for (c = 0; curconf->conf_trustedauthservids[c] != NULL; c++)
+		{
+			if (c != 0)
+				strlcat(argstr, ", ", n);
+			strlcat(argstr,
+			        curconf->conf_trustedauthservids[c],
+			        n);
+		}
+
+		syslog(LOG_INFO, "trusted authentication services: %s",
+		       argstr);
 	}
 
 	/* spawn the SIGUSR1 handler */

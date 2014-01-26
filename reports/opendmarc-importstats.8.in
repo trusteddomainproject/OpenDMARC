@@ -1,0 +1,33 @@
+.TH opendmarc-importstats 8 "The Trusted Domain Project"
+.SH NAME
+.B opendmarc-importstats
+\- import OpenDMARC statistics/history data 
+.SH SYNOPSIS
+.B opendmarc-importstats
+.SH DESCRIPTION
+.B opendmarc-importstats
+is a fairly trivial shell script, typically executed by
+.I cron(8),
+that rotates an OpenDMARC statistics/history data file to a unique filename
+and then attempts to import it to a local database for later processing by
+executing
+.I opendmarc-import(8).
+On successful import, the unique file is removed; on failure, the script
+executes
+.I ls(1)
+on the file and exits without removing the unique file.  The intent of this
+last step is to cause
+.I cron
+to generate a message to a responsible party so that the failure will be
+investigated.
+.SH VERSION
+This man page covers the version of
+.I opendmarc-importstats
+that shipped with version @VERSION@ of
+.I OpenDMARC.
+.SH COPYRIGHT
+Copyright (c) 2013, The Trusted Domain Project.  All rights reserved.
+.SH SEE ALSO
+.I cron(8),
+.I opendmarc(8),
+.I opendmarc-import(8)

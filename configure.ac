@@ -16,8 +16,8 @@ AC_PREREQ(2.61)
 # Package version
 #
 m4_define([VERSION_RELEASE], 1)
-m4_define([VERSION_MAJOR_REV], 1)
-m4_define([VERSION_MINOR_REV], 3)
+m4_define([VERSION_MAJOR_REV], 2)
+m4_define([VERSION_MINOR_REV], 0)
 m4_define([VERSION_PATCH], 0)
 
 #
@@ -27,7 +27,7 @@ m4_define([VERSION_PATCH], 0)
 #
 
 m4_define([LIBVERSION_CURRENT], 1)
-m4_define([LIBVERSION_REVISION], 0)
+m4_define([LIBVERSION_REVISION], 1)
 m4_define([LIBVERSION_AGE], 0)
 
 #
@@ -152,8 +152,13 @@ AC_CHECK_SIZEOF(void *)
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 
-AC_CHECK_FUNCS(strlcat)
-AC_CHECK_FUNCS(strlcpy)
+AC_SEARCH_LIBS(strlcat, bsd strl,
+	AC_DEFINE(HAVE_STRLCAT, 1,
+	[Define to 1 if you have the `strlcat()' function.]))
+AC_SEARCH_LIBS(strlcpy, bsd strl,
+	AC_DEFINE(HAVE_STRLCPY, 1,
+	[Define to 1 if you have the `strlcpy()' function.]))
+
 AC_CHECK_FUNCS(basename)
 AC_CHECK_FUNCS(syslog)
 AC_CHECK_FUNCS(cuserid)
@@ -415,6 +420,7 @@ AC_OUTPUT([ Makefile
 		reports/opendmarc-expire.8
 		reports/opendmarc-import
 		reports/opendmarc-import.8
+		reports/opendmarc-importstats.8
 		reports/opendmarc-params
 		reports/opendmarc-params.8
 		reports/opendmarc-reports

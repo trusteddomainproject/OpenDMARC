@@ -1,0 +1,84 @@
+<html>
+<head>
+<title>Overview</title>
+</head>
+<body>
+<!--
+-->
+
+<h1>Overview</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+For basic processig of an arriving message under
+<b>Domain-Based Message Authentication, Reporting and Conformance</b>
+("DMARC"), make the following calls:
+
+<ol>
+ <li> <tt><a href="opendmarc_policy_library_init.html">opendmarc_policy_library_init(&amp;lib)</a>;</tt>
+      <ul>
+       <li> initialize an instance of the library
+       <li> this must be done once before any of the other calls are made
+       <li> this needs to be called once when the application is started,
+            but its result can be reused at the start of processing of each
+            message
+      </ul>
+ <li> <tt>dmarc = <a href="opendmarc_policy_connect_init.html">opendmarc_policy_connect_init(ip-address, ip-version)</a>;</tt>
+      <ul>
+       <li> initialize a handle set up for signing all messages from a new
+            connection
+       <li> establishes the context needed for evaluating SPF
+       <li> the handle returned here can be used for all messages that arrive
+            from the given IP address; simply call
+            <a href="opendmarc_policy_connect_rset.html">opendmarc_policy_connect_rset()</a>
+            between each message
+       <li> each thread must request its own handle for processing messages
+      </ul>
+ <li> <tt><a href="opendmarc_policy_store_from_domain.html">opendmarc_policy_store_from_domain(dmarc, domain)</a>;</tt>
+      <ul>
+       <li> store the domain name found in the From: field of an arriving
+            message
+      </ul>
+ <li> <tt><a href="opendmarc_policy_store_spf.html">opendmarc_policy_store_spf(dmarc, ...)</a>;</tt>
+      <ul>
+       <li> stores the SPF result details for the current message once they
+            are available from some other API
+      </ul>
+ <li> <tt><a href="opendmarc_policy_store_dkim.html">opendmarc_policy_store_dkim(dmarc, ...)</a>;</tt>
+      <ul>
+       <li> stores a set of DKIM result details for the current message once
+            they are available from some other API
+       <li> this can be called multiple times per message since a single
+            message can have multiple DKIM signatures attached to it
+      </ul>
+ <li> <tt><a href="opendmarc_policy_query_dmarc.html">opendmarc_policy_query_dmarc(dmarc)</a>;</tt>
+      <ul>
+       <li> performs DMARC policy query and evaluation on the message based
+            on details provided above
+      </ul>
+ <li> <tt><a href="opendmarc_get_policy_to_enforce.html">opendmarc_get_policy_to_enforce(dmarc)</a>;</tt>
+      <ul>
+       <li> report the policy in effect over the From: domain found in the
+	    message; indicates what the final disposition of the current
+            message should be
+      </ul>
+ <li> <tt><a href="opendmarc_policy_connect_shutdown.html">opendmarc_policy_connect_shutdown(dmarc)</a>;</tt>
+      <ul>
+       <li> shuts down the previously allocated handle
+      </ul>
+ <li> <tt><a href="opendmarc_policy_library_shutdown.html">opendmarc_policy_library_shutdown(lib)</a>;</tt>
+      <ul>
+       <li> free resources related to the library
+      </ul>
+</ol> <br>
+
+<hr size="1">
+<font size="-1">
+<br>
+Copyright (c) 2013, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the respective licenses.
+</font>
+</body>
+</html>

@@ -33,4 +33,5 @@ dist_doc_DATA = index.html \
 	opendmarc_tld_shutdown.html \
 	opendmarc_util_clearargv.html \
 	opendmarc_xml.html \
-	opendmarc_xml_parse.html
+	opendmarc_xml_parse.html \
+	overview.html
