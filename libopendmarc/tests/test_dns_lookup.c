@@ -1,6 +1,8 @@
 #include "../opendmarc_internal.h"
 #include "../dmarc.h"
 
+#define TESTFILE "testfiles/effective_tld_names.dat"
+
 typedef struct {
 	char *	domain;
 	int	cpnotnull;
@@ -75,6 +77,7 @@ dmarc_dns_test_record(void)
 
 typedef struct {
 	char *	domain;
+	int	use_tld_list;
 	int 	status;
 } DL2; 
 
@@ -82,10 +85,12 @@ int
 dmarc_dns_test_query(void)
 {
 	DL2 domain_list[] = {
-		{"linkedin.com", 0},
-		{"mail.bcx.com", DMARC_DNS_ERROR_NO_RECORD},
-		{"none.bcx.com",	DMARC_DNS_ERROR_NO_RECORD},
-		{"web.de", DMARC_DNS_ERROR_NO_RECORD},
+		{"linkedin.com",FALSE, 	0},
+		{"mail.bcx.com",FALSE, 	DMARC_DNS_ERROR_NO_RECORD},
+		{"none.bcx.com",FALSE, 	DMARC_DNS_ERROR_NO_RECORD},
+		{"web.de",	FALSE, 	DMARC_DNS_ERROR_NO_RECORD},
+		{"service3.zalando-lounge.de", FALSE, DMARC_PARSE_OKAY},
+		{"service3.zalando-lounge.de", TRUE, DMARC_PARSE_OKAY},
 		{NULL, 0},
 	};
 	DL2 *	dp;
@@ -97,6 +102,8 @@ dmarc_dns_test_query(void)
 	for (dp = domain_list; dp->domain != NULL; ++dp)
 	{
 		pctx = opendmarc_policy_connect_init("0.0.0.0", FALSE);
+		if (dp->use_tld_list)
+			(void) opendmarc_tld_read_file(TESTFILE, "//", "*.", "!");
 		status = opendmarc_policy_query_dmarc(pctx, dp->domain);
 		pctx = opendmarc_policy_connect_shutdown(pctx);
 		if (status != dp->status)
