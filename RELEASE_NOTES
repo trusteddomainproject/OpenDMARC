@@ -38,7 +38,7 @@ release, and a summary of the changes in that release.
 		by Scott Kitterman.
 	REPORTS: Fix bug #51: Check status after every phase of SMTP when
 		sending reports.  Suggested by Todd Lyons.
-	LIBOPENDMARC: Fixed a bug wherein some instances the fetch of the
+	LIBOPENDMARC: Fixed a bug where in some instances the fetch of the
 		orgainizational domain could wrongly return the from domain. 
 
 1.1.3		2013/04/13
