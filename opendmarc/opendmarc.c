@@ -2032,8 +2032,6 @@ mlfi_eom(SMFICTX *ctx)
 
 		if (reqhdrs_error != NULL)
 		{
-			unsigned char replybuf[BUFRSZ + 1];
-
 			if (conf->conf_dolog)
 			{
 				syslog(LOG_INFO,
