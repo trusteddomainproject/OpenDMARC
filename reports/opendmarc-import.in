@@ -485,14 +485,7 @@ while (<STDIN>)
 	  case "dkim"		{
 					undef @dkim_entry;
 					push(@dkim_entry, $value);
-					if ($dkim_result eq "1")
-					{
-						push(@dkim_entry, 1);
-					}
-					else
-					{
-						push(@dkim_entry, 0);
-					}
+					push(@dkim_entry, $dkim_result);
 					if ($dkim_result eq "4" ||
 					    $dkim_result eq "5")
 					{
