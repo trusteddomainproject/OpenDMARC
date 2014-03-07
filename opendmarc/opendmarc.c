@@ -2281,9 +2281,6 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
-				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
-					continue;
-
 				domain = NULL;
 
 				for (pc = 0;
@@ -2305,6 +2302,10 @@ mlfi_eom(SMFICTX *ctx)
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %d\n", domain,
 				                      ar.ares_result[c].result_result);
+
+				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+					continue;
+
 		                                     
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
 				                                      domain,
