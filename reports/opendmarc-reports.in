@@ -820,7 +820,7 @@ foreach (@$domainset)
 
 			$smtpstatus = "sent";
 			$smtpfail = 0;
-			if (!$smtp->mail($repemail)) ||
+			if (!$smtp->mail($repemail) ||
 			    !$smtp->to($repdest) ||
 			    !$smtp->data() ||
 			    !$smtp->datasend($mailout) ||
@@ -832,7 +832,6 @@ foreach (@$domainset)
 
 			if ($verbose || $smtpfail)
 			{
-				$smtp
 				# now perl voodoo:
 				$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
 				chomp($answer);
