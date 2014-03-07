@@ -25,6 +25,8 @@ release, and a summary of the changes in that release.
 	Fix bug #60: Default AuthservID to the name provided by the MTA,
 		not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
+	Merge request #2: Validate external recipients before adding them to
+		report recipient lists.  Code from Will Orr.
 	Record all DKIM results to the history file, rather than only
 		passing results.
 	BUILD: Fix bug #50: Check libbsd for strlcat() and strlcpy() so we
