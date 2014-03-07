@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.2.0		2014/01/??
+1.2.0		2014/03/??
 	Feature request #44: Allow override of the From: field on forensic
 		reports.  Requested by Scott Kitterman.
 	Feature request #45: Log the host portion of ignored
@@ -25,6 +25,8 @@ release, and a summary of the changes in that release.
 	Fix bug #60: Default AuthservID to the name provided by the MTA,
 		not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
+	Record all DKIM results to the history file, rather than only
+		passing results.
 	BUILD: Fix bug #50: Check libbsd for strlcat() and strlcpy() so we
 		don't make our own when we don't need to.  Requested by
 		Scott Kitterman.
