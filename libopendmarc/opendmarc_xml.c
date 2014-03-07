@@ -2,7 +2,7 @@
 ** OPENDMARC_XML.C
 **		OPENDMARC_XML -- Parse a blob of xml DMARC report data
 **		OPENDMARC_XML_PARSE -- Read a file into a blob
-**  Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
 ************************************************************************/ 
 # include "opendmarc_internal.h"
 # include "opendmarc_strl.h"
