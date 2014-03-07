@@ -36,5 +36,25 @@ accumulated information to generate reports, and age out old data.
 To use mkdb.mysql, enter the MySQL command line tool, connect to the database
 in which you want to create the required tables, and type "source mkdb.mysql".
 
+SETUP
+=====
+
+1) From within the MySQL command line environment, "source mkdb.mysql" to
+   create the required database and tables.  You may also wish to set up
+   users and access grants for users that will access this data.
+
+2) Add a HistoryFile entry to opendmarc.conf referring to the location where
+   per-message DMARC details should be recorded.  This location should be
+   readable and writable by the user running the filter, but nobody else.
+
+3) Add a cron job that will use opendmarc-import to import the history file's
+   contents at regular and fairly frequent intervals (each minute or at least
+   every five minutes).  The included opendmarc-importstats script might be
+   useful here.  Ensure the appropriate database access parameters (names,
+   users, passwords) are set in the script.
+
+4) Add a cron job that will run opendmarc-reports to generate and send the
+   XML reports based on recent database entries.
+
 --
-Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
