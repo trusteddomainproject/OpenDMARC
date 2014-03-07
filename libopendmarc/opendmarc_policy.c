@@ -525,39 +525,43 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 	if (uri == NULL)
 		return DMARC_PARSE_ERROR_EMPTY;
 
-	memset(buf, 0, sizeof buf);
-	memset(copy, 0, sizeof copy);
-	memset(domain, 0, sizeof domain);
-	memset(domain_tld, 0, sizeof domain_tld);
-	memset(uri_tld, 0, sizeof uri_tld);
+	memset(buf, '\0', sizeof buf);
+	memset(copy, '\0', sizeof copy);
+	memset(domain, '\0', sizeof domain);
+	memset(domain_tld, '\0', sizeof domain_tld);
+	memset(uri_tld, '\0', sizeof uri_tld);
 
 	/* Get out domain from our URI */
-	if (!opendmarc_util_finddomain(uri, domain, sizeof domain))
+	if (opendmarc_util_finddomain(uri, domain, sizeof domain) == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
 
 	/* Ensure that we're not doing a cross-domain check */
 	err = opendmarc_get_tld(domain, uri_tld, sizeof uri_tld);
-	err += opendmarc_get_tld(pctx->from_domain, domain_tld, sizeof domain_tld);
-	if (err)
+	err += opendmarc_get_tld(pctx->from_domain, domain_tld,
+	                         sizeof domain_tld);
+	if (err != 0)
 		return DMARC_DNS_ERROR_NO_RECORD;
 
-	if (!strncasecmp((char *)uri_tld, (char *)domain_tld, sizeof uri_tld))
+	if (strncasecmp((char *) uri_tld, (char *) domain_tld,
+	                sizeof uri_tld) == 0)
 		return DMARC_PARSE_OKAY;
 
-	strlcpy((char *)copy, (char *)pctx->from_domain, sizeof copy);
-	strlcat((char *)copy, "._report._dmarc.", sizeof copy);
-	strlcat((char *)copy, (char *)domain, sizeof copy);
+	strlcpy((char *) copy, (char *) pctx->from_domain, sizeof copy);
+	strlcat((char *) copy, "._report._dmarc.", sizeof copy);
+	strlcat((char *) copy, (char *) domain, sizeof copy);
 
 	/* Query DNS */
 	for (i = 0; i < DNS_MAX_RETRIES && ret == NULL; i++)
 	{
-		ret = (u_char*)dmarc_dns_get_record((char *)copy, &dns_reply, (char *)buf, sizeof buf);
-		if (ret) break;
-		if (dns_reply == HOST_NOT_FOUND) break;
+		ret = (u_char *) dmarc_dns_get_record((char *) copy, &dns_reply,
+		                                      (char *) buf, sizeof buf);
+		if (ret != 0 || dns_reply == HOST_NOT_FOUND)
+			break;
 
 		/* requery if didn't resolve CNAME */
-		if (ret == NULL && *buf != '\0') {
-			(void)strlcpy((char *)copy, (char *)buf, sizeof copy);
+		if (ret == NULL && *buf != '\0')
+		{
+			strlcpy((char *) copy, (char *) buf, sizeof copy);
 			continue;
 		}
 	}
@@ -565,7 +569,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 	if (dns_reply == NETDB_SUCCESS && buf != NULL)
 	{
 		/* Must include DMARC version */
-		if (!strncasecmp((char *)buf, "v=DMARC1", sizeof buf))
+		if (strncasecmp((char *)buf, "v=DMARC1", sizeof buf) == 0)
 			return DMARC_PARSE_OKAY;
 		else
 			return DMARC_DNS_ERROR_NO_RECORD;
@@ -1004,7 +1008,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					if (! opendmarc_policy_query_dmarc_xdomain(pctx, xp))
+					if (opendmarc_policy_query_dmarc_xdomain(pctx, xp) == DMARC_PARSE_OKAY)
 						pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
 											&(pctx->rua_cnt));
 				}
@@ -1033,7 +1037,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					if (! opendmarc_policy_query_dmarc_xdomain(pctx, xp))
+					if (opendmarc_policy_query_dmarc_xdomain(pctx, xp) == DMARC_PARSE_OKAY)
 						pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
 											&(pctx->ruf_cnt));
 				}
