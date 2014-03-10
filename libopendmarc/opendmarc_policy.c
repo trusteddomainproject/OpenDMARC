@@ -2,7 +2,7 @@
 ** $Id: opendmarc_policy.c,v 1.2 2010/12/03 23:06:48 bcx Exp $
 ** The user interface to the rest of this library.
 **
-**  Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 #include "opendmarc_internal.h"
 #include "dmarc.h"
@@ -226,7 +226,6 @@ int
 opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 {
 	u_char rev_sub[512];
-	u_char sub_od[512];
 	u_char rev_tld[512];
 	u_char tld_buf[512];
 	u_char *ep;
@@ -237,44 +236,41 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 	if (tld == NULL)
 		return EINVAL;
 
-	if (mode == DMARC_RECORD_A_UNSPECIFIED)
-		mode = DMARC_RECORD_A_RELAXED;
+	if (mode== DMARC_RECORD_A_UNSPECIFIED)
+		mode= DMARC_RECORD_A_RELAXED;
 
-	/* a precise match is always aligned */
-	if (strcasecmp(subdomain, tld) == 0)
-		return 0;
-
-	/* if we're in strict mode, we're done */
-	if (mode == DMARC_RECORD_A_STRICT)
-		return -1;
-
-	/* this gets the OD of "tld", if able, and puts it in tld_buf */
 	(void) memset(tld_buf, '\0', sizeof tld_buf);
 	ret = opendmarc_get_tld(tld, tld_buf, sizeof tld_buf);
 	if (ret != 0)
 		(void) strlcpy(tld_buf, tld, sizeof tld_buf);
 
-	/* this gets the OD of "subdomain", if able, and puts it in sub_od */
-	(void) memset(sub_od, '\0', sizeof sub_od);
-	ret = opendmarc_get_tld(subdomain, sub_od, sizeof sub_od);
-	if (ret != 0)
-		(void) strlcpy(sub_od, subdomain, sizeof sub_od);
-
-	/* this reverses "sub_od" into rev_sub */
 	(void) memset(rev_sub, '\0', sizeof rev_sub);
-	(void) opendmarc_reverse_domain(sub_od, rev_sub, sizeof rev_sub);
-	ep = rev_sub + strlen(rev_sub) - 1;
+	(void) opendmarc_reverse_domain(subdomain, rev_sub, sizeof rev_sub);
+	ep = rev_sub + strlen(rev_sub) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_sub, ".", sizeof rev_sub);
 
-	/* this reverses "tld_buf" into rev_tld */
 	(void) memset(rev_tld, '\0', sizeof rev_tld);
-	(void) opendmarc_reverse_domain(tld_buf, rev_tld, sizeof rev_tld);
-	ep = rev_tld + strlen(rev_tld) - 1;
+	(void) opendmarc_reverse_domain(tld_buf,   rev_tld, sizeof rev_tld);
+	ep = rev_tld + strlen(rev_tld) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_tld, ".", sizeof rev_tld);
 
-	return (strcasecmp(rev_tld, rev_sub) == 0) ? 0 : -1;
+	/*
+	 * Perfect match is aligned irrespective of relaxed or strict.
+	 */
+	if (strcasecmp(rev_tld, rev_sub) == 0)
+		return 0;
+
+	ret = strncasecmp(rev_tld, rev_sub, strlen(rev_tld));
+	if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
+			return 0;
+
+        ret = strncasecmp(rev_sub, rev_tld, strlen(rev_sub));
+        if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
+                        return 0;
+
+	return -1;
 }
 
 /**************************************************************************
@@ -495,106 +491,6 @@ set_final:
 	}
 	pctx->dkim_outcome = result;
 	return DMARC_PARSE_OKAY;
-}
-
-/**************************************************************************
-** OPENDMARC_POLICY_QUERY_DMARC_XDOMAIN -- Verify that we have permission
-**										to send to domain
-**	Parameters:
-**		pctx	-- The context to uptdate
-**		uri		-- URI listed in DMARC record
-**	Returns:
-**		DMARC_PARSE_OKAY		-- On success, and fills pctx
-**		DMARC_PARSE_ERROR_NULL_CTX	-- If pctx was NULL
-**		DMARC_PARSE_ERROR_EMPTY		-- if domain NULL or zero
-**		DMARC_PARSE_ERROR_NO_DOMAIN	-- No domain in domain
-**		DMARC_DNS_ERROR_TMPERR		-- No domain, try again later
-**		DMARC_DNS_ERROR_NO_RECORD	-- No DMARC record found.
-**	Side Effects:
-**		Performs one or more DNS lookups
-** 
-***************************************************************************/
-OPENDMARC_STATUS_T
-opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
-{
-	u_char buf[BUFSIZ];
-	u_char copy[256];
-	u_char domain[256];
-	u_char domain_tld[256];
-	u_char uri_tld[256];
-	u_char *ret = NULL;
-	int dns_reply = 0;
-	int i = 0;
-	int err = 0;
-
-	if (pctx == NULL)
-		return DMARC_PARSE_ERROR_NULL_CTX;
-
-	if (uri == NULL)
-		return DMARC_PARSE_ERROR_EMPTY;
-
-	memset(buf, '\0', sizeof buf);
-	memset(copy, '\0', sizeof copy);
-	memset(domain, '\0', sizeof domain);
-	memset(domain_tld, '\0', sizeof domain_tld);
-	memset(uri_tld, '\0', sizeof uri_tld);
-
-	/* Get out domain from our URI */
-	if (opendmarc_util_finddomain(uri, domain, sizeof domain) == NULL)
-		return DMARC_PARSE_ERROR_NO_DOMAIN;
-
-	/* Ensure that we're not doing a cross-domain check */
-	err = opendmarc_get_tld(domain, uri_tld, sizeof uri_tld);
-	err += opendmarc_get_tld(pctx->from_domain, domain_tld,
-	                         sizeof domain_tld);
-	if (err != 0)
-		return DMARC_DNS_ERROR_NO_RECORD;
-
-	if (strncasecmp((char *) uri_tld, (char *) domain_tld,
-	                sizeof uri_tld) == 0)
-		return DMARC_PARSE_OKAY;
-
-	strlcpy((char *) copy, (char *) pctx->from_domain, sizeof copy);
-	strlcat((char *) copy, "._report._dmarc.", sizeof copy);
-	strlcat((char *) copy, (char *) domain, sizeof copy);
-
-	/* Query DNS */
-	for (i = 0; i < DNS_MAX_RETRIES && ret == NULL; i++)
-	{
-		ret = (u_char *) dmarc_dns_get_record((char *) copy, &dns_reply,
-		                                      (char *) buf, sizeof buf);
-		if (ret != 0 || dns_reply == HOST_NOT_FOUND)
-			break;
-
-		/* requery if didn't resolve CNAME */
-		if (ret == NULL && *buf != '\0')
-		{
-			strlcpy((char *) copy, (char *) buf, sizeof copy);
-			continue;
-		}
-	}
-
-	if (dns_reply == NETDB_SUCCESS && buf != NULL)
-	{
-		/* Must include DMARC version */
-		if (strncasecmp((char *)buf, "v=DMARC1", sizeof buf) == 0)
-			return DMARC_PARSE_OKAY;
-		else
-			return DMARC_DNS_ERROR_NO_RECORD;
-	}
-
-	switch (dns_reply)
-	{
-		case HOST_NOT_FOUND:
-		case NO_DATA:
-		case NO_RECOVERY:
-			return DMARC_DNS_ERROR_NO_RECORD;
-		case TRY_AGAIN:
-		case NETDB_INTERNAL:
-			return DMARC_DNS_ERROR_TMPERR;
-		default:
-			return DMARC_DNS_ERROR_NO_RECORD;
-	}
 }
 
 /**************************************************************************
@@ -1016,9 +912,8 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					if (opendmarc_policy_query_dmarc_xdomain(pctx, xp) == DMARC_PARSE_OKAY)
-						pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
-											&(pctx->rua_cnt));
+					pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
+										&(pctx->rua_cnt));
 				}
 				if (yp != NULL)
 					xp = yp+1;
@@ -1045,9 +940,8 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					if (opendmarc_policy_query_dmarc_xdomain(pctx, xp) == DMARC_PARSE_OKAY)
-						pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
-											&(pctx->ruf_cnt));
+					pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
+										&(pctx->ruf_cnt));
 				}
 				if (yp != NULL)
 					xp = yp+1;
