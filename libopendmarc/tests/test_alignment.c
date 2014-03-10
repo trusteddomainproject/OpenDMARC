@@ -21,6 +21,8 @@ main(int argc, char **argv)
 		/* 5 */ {".mac.com.",           "mac.com",	DMARC_RECORD_A_STRICT,	 0},
 		/* 6 */ {"....mac.com....",     "mac.com",	DMARC_RECORD_A_STRICT,	 0},
 		/* 7 */ {"mac...com",           "..com",	DMARC_RECORD_A_STRICT,	-1},
+		/* 8 */ {"a.b.com",             "b.com",	DMARC_RECORD_A_RELAXED,	 0},
+		/* 9 */ {"b.com",               "a.b.com",	DMARC_RECORD_A_RELAXED,	 0},
 			{NULL, NULL, 0},
 	};
 	int	outcome;
@@ -52,7 +54,7 @@ main(int argc, char **argv)
 		}
 		else
 		{
-			printf("\tALIGNMENT No TLD file: find test: %d: FAIL\n", count);
+			printf("\tALIGNMENT No TLD file: domain=%s versus tld=%s relaxed test No. %d: FAIL\n", alignp->subdomain, alignp->tld, count);
 			fails += 1;
 		}
 	}
