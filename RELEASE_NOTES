@@ -43,6 +43,9 @@ release, and a summary of the changes in that release.
 	REPORTS: Fix bug #51: Check status after every phase of SMTP when
 		sending reports.  Suggested by Todd Lyons.
 	REPORTS: Fix DKIM status importing.
+	LIBOPENDMARC: Fix bug #68: Fix strict/relaxed checking logic when
+		a public suffix list is available.  Reported by
+		Andreas Schulze.
 	LIBOPENDMARC: Fixed a bug where in some instances the fetch of the
 		orgainizational domain could wrongly return the from domain. 
 	LIBOPENDMARC: Fix call to missing function.  Patch from William Orr.
