@@ -266,6 +266,10 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 	if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
 			return 0;
 
+        ret = strncasecmp(rev_sub, rev_tld, strlen(rev_sub));
+        if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
+                        return 0;
+
 	return -1;
 }
 

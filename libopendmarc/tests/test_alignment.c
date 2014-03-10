@@ -20,7 +20,9 @@ main(int argc, char **argv)
 		/* 4 */ {"a.foo.com",           "b.foo.com",	DMARC_RECORD_A_RELAXED,	 0},
 		/* 5 */ {".mac.com.",           "mac.com",	DMARC_RECORD_A_STRICT,	 0},
 		/* 6 */ {"....mac.com....",     "mac.com",	DMARC_RECORD_A_STRICT,	 0},
-		/* 7 */ {"mac...com",           "..com",	DMARC_RECORD_A_STRICT,	-1},
+		/* 7 */ {"mac...com",            "..com",	DMARC_RECORD_A_STRICT,	-1},
+		/* 8 */ {"a.b.com",              "b.com",	DMARC_RECORD_A_RELAXED,	 0},
+		/* 9 */ {"b.com",         	 "a.b.com",	DMARC_RECORD_A_RELAXED,	 0},
 			{NULL, NULL, 0},
 	};
 	int	outcome;
