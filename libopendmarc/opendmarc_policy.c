@@ -494,6 +494,106 @@ set_final:
 }
 
 /**************************************************************************
+** OPENDMARC_POLICY_QUERY_DMARC_XDOMAIN -- Verify that we have permission
+**										to send to domain
+**	Parameters:
+**		pctx	-- The context to uptdate
+**		uri		-- URI listed in DMARC record
+**	Returns:
+**		DMARC_PARSE_OKAY		-- On success, and fills pctx
+**		DMARC_PARSE_ERROR_NULL_CTX	-- If pctx was NULL
+**		DMARC_PARSE_ERROR_EMPTY		-- if domain NULL or zero
+**		DMARC_PARSE_ERROR_NO_DOMAIN	-- No domain in domain
+**		DMARC_DNS_ERROR_TMPERR		-- No domain, try again later
+**		DMARC_DNS_ERROR_NO_RECORD	-- No DMARC record found.
+**	Side Effects:
+**		Performs one or more DNS lookups
+** 
+***************************************************************************/
+OPENDMARC_STATUS_T
+opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
+{
+	u_char buf[BUFSIZ];
+	u_char copy[256];
+	u_char domain[256];
+	u_char domain_tld[256];
+	u_char uri_tld[256];
+	u_char *ret = NULL;
+	int dns_reply = 0;
+	int i = 0;
+	int err = 0;
+
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+
+	if (uri == NULL)
+		return DMARC_PARSE_ERROR_EMPTY;
+
+	memset(buf, '\0', sizeof buf);
+	memset(copy, '\0', sizeof copy);
+	memset(domain, '\0', sizeof domain);
+	memset(domain_tld, '\0', sizeof domain_tld);
+	memset(uri_tld, '\0', sizeof uri_tld);
+
+	/* Get out domain from our URI */
+	if (opendmarc_util_finddomain(uri, domain, sizeof domain) == NULL)
+		return DMARC_PARSE_ERROR_NO_DOMAIN;
+
+	/* Ensure that we're not doing a cross-domain check */
+	err = opendmarc_get_tld(domain, uri_tld, sizeof uri_tld);
+	err += opendmarc_get_tld(pctx->from_domain, domain_tld,
+	                         sizeof domain_tld);
+	if (err != 0)
+		return DMARC_DNS_ERROR_NO_RECORD;
+
+	if (strncasecmp((char *) uri_tld, (char *) domain_tld,
+	                sizeof uri_tld) == 0)
+		return DMARC_PARSE_OKAY;
+
+	strlcpy((char *) copy, (char *) pctx->from_domain, sizeof copy);
+	strlcat((char *) copy, "._report._dmarc.", sizeof copy);
+	strlcat((char *) copy, (char *) domain, sizeof copy);
+
+	/* Query DNS */
+	for (i = 0; i < DNS_MAX_RETRIES && ret == NULL; i++)
+	{
+		ret = (u_char *) dmarc_dns_get_record((char *) copy, &dns_reply,
+		                                      (char *) buf, sizeof buf);
+		if (ret != 0 || dns_reply == HOST_NOT_FOUND)
+			break;
+
+		/* requery if didn't resolve CNAME */
+		if (ret == NULL && *buf != '\0')
+		{
+			strlcpy((char *) copy, (char *) buf, sizeof copy);
+			continue;
+		}
+	}
+
+	if (dns_reply == NETDB_SUCCESS && buf != NULL)
+	{
+		/* Must include DMARC version */
+		if (strncasecmp((char *)buf, "v=DMARC1", sizeof buf) == 0)
+			return DMARC_PARSE_OKAY;
+		else
+			return DMARC_DNS_ERROR_NO_RECORD;
+	}
+
+	switch (dns_reply)
+	{
+		case HOST_NOT_FOUND:
+		case NO_DATA:
+		case NO_RECOVERY:
+			return DMARC_DNS_ERROR_NO_RECORD;
+		case TRY_AGAIN:
+		case NETDB_INTERNAL:
+			return DMARC_DNS_ERROR_TMPERR;
+		default:
+			return DMARC_DNS_ERROR_NO_RECORD;
+	}
+}
+
+/**************************************************************************
 ** OPENDMARC_POLICY_QUERY_DMARC -- Look up the _dmarc record for the 
 **					specified domain. If not found
 **				  	try the organizational domain.
@@ -912,8 +1012,9 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
-										&(pctx->rua_cnt));
+					if (opendmarc_policy_query_dmarc_xdomain(pctx, xp) == DMARC_PARSE_OKAY)
+						pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
+											&(pctx->rua_cnt));
 				}
 				if (yp != NULL)
 					xp = yp+1;
@@ -940,8 +1041,9 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
-										&(pctx->ruf_cnt));
+					if (opendmarc_policy_query_dmarc_xdomain(pctx, xp) == DMARC_PARSE_OKAY)
+						pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
+											&(pctx->ruf_cnt));
 				}
 				if (yp != NULL)
 					xp = yp+1;
