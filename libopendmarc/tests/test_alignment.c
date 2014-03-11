@@ -23,6 +23,7 @@ main(int argc, char **argv)
 		/* 7 */ {"mac...com",           "..com",	DMARC_RECORD_A_STRICT,	-1},
 		/* 8 */ {"a.b.com",             "b.com",	DMARC_RECORD_A_RELAXED,	 0},
 		/* 9 */ {"b.com",               "a.b.com",	DMARC_RECORD_A_RELAXED,	 0},
+		/* 10 */ {"a.b.de",             "a.b.de",	DMARC_RECORD_A_STRICT,	 0},
 			{NULL, NULL, 0},
 	};
 	int	outcome;
