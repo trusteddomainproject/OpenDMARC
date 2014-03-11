@@ -240,9 +240,7 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 		mode= DMARC_RECORD_A_RELAXED;
 
 	(void) memset(tld_buf, '\0', sizeof tld_buf);
-	ret = opendmarc_get_tld(tld, tld_buf, sizeof tld_buf);
-	if (ret != 0)
-		(void) strlcpy(tld_buf, tld, sizeof tld_buf);
+	(void) strlcpy(tld_buf, tld, sizeof tld_buf);
 
 	(void) memset(rev_sub, '\0', sizeof rev_sub);
 	(void) opendmarc_reverse_domain(subdomain, rev_sub, sizeof rev_sub);
@@ -270,6 +268,28 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
         if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
                         return 0;
 
+	ret = opendmarc_get_tld(tld, tld_buf, sizeof tld_buf);
+	if (ret != 0)
+		return -1;
+	(void) memset(rev_tld, '\0', sizeof rev_tld);
+	(void) opendmarc_reverse_domain(tld_buf,   rev_tld, sizeof rev_tld);
+	ep = rev_tld + strlen(rev_tld) -1;
+	if (*ep != '.')
+		(void) strlcat((char *)rev_tld, ".", sizeof rev_tld);
+
+	/*
+	 * Perfect match is aligned irrespective of relaxed or strict.
+	 */
+	if (strcasecmp(rev_tld, rev_sub) == 0)
+		return 0;
+
+	ret = strncasecmp(rev_tld, rev_sub, strlen(rev_tld));
+	if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
+			return 0;
+
+        ret = strncasecmp(rev_sub, rev_tld, strlen(rev_sub));
+        if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
+                        return 0;
 	return -1;
 }
 
