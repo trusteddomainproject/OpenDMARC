@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="std" docName="draft-kucherawy-dmarc-base-03" ipr="trust200902"
+<rfc category="std" docName="draft-kucherawy-dmarc-base-04" ipr="trust200902"
      updates="6591">
 
     <front>
@@ -66,7 +66,7 @@
                 effects: receivers have difficulty providing feedback to senders about
                 authentication, senders therefore have difficulty evaluating their authentication
                 deployments, and as a result neither is able to make effective use of existing
-                authentication technology</t>
+                authentication technology.</t>
 
 
 
@@ -164,16 +164,16 @@
                     receivers. This preserves the positive aspects of the current email
                     infrastructure.</t>
 
-                <t>Although DMARC does not introduce third parties to the email
-		    handling flow, it also does not preclude them.  Third parties
-		    are free to provide services in conjunction with DMARC. </t>
+                <t> Although DMARC does not introduce third parties to the email
+                    handling flow, it also does not preclude them.  Third parties
+                    are free to provide services in conjunction with DMARC. </t>
             </section>
             <!-- Scalability -->
 
             <section title="Anti-Phishing">
                 <t>DMARC is designed to prevent bad actors from sending mail which claims to come
                     from legitimate senders, particularly senders of transactional email.
- 		    (official mail that is about business transactions), One of the
+                    (official mail that is about business transactions), One of the
                     primary uses of this kind of spoofed mail is phishing (enticing users to provide
                     information by pretending to be the legitimate service requesting the information).
                     Thus, DMARC is significantly informed by ongoing efforts to enact large-scale,
@@ -207,15 +207,15 @@
                     for several reasons, more likely to be delivered to the inbox. (For instance,
                     many MUAs (Mail User Agents) support whitelisting of From: domains by end-users.) It is more
                     damaging to the organizations being spoofed because the
-		    email, being indistinguishable to the user from legitimate
-		    email, severely damages the reputation of the organization. </t>
+`                   email, being indistinguishable to the user from legitimate
+                    email, severely damages the reputation of the organization. </t>
 
                 <t>Current email authentication systems appear sufficient to prevent these attacks,
                     since both SPF and DKIM should allow receiving systems or users to distinguish
                     between forged and genuine email from a domain. In practice, however, these
                     technologies are difficult to implement correctly as a sender and therefore
                     difficult to use safely as a receiver. DMARC aims to bridge these gaps with
-                    minimal interference to existing systmes.</t>
+                    minimal interference to existing systems.</t>
 
                 <t>DMARC is intended to reduce the success of attackers sending mail pretending to
                     be from a domain they do not control, with minimal changes to existing mail
@@ -265,7 +265,7 @@
                             receipt of a message, to look for DMARC policy and reporting records. (This
                             is a worst-case maximum of 3 additional lookups per message, in addition to those required for DKIM and SPF.)</t>
 
-                        <t>Log details required to generate forensic and aggreagate reports about received messages for 
+                        <t>Log details required to generate forensic and aggregate reports about received messages for 
                             a minimum of 24 hours.</t>
 
                         <t>Send outgoing aggregate reports from some DMARC-compliant sending system
@@ -333,18 +333,18 @@
                         about the supported mechanisms. </t>
 
                     <t hangText="Author Domain:"> The domain name of the apparent author,
-			as extracted from the RFC5322.From field. </t>
+                        as extracted from the RFC5322.From field. </t>
 
                     <t hangText="Cousin Domain:"> A registered domain name that
-			is deceptively similar to a target domain name or other
-			name of a known entity.  The target name is familiar to
-			many users, and therefore imparts a degree of trust.
-			The deception is enacted by embedding the essential
-			parts of the target name in a new string (such as,
-			"companysecurity.example" to attack "company.example"),
-			or it can use some variant of the target name, such as
-			replacing 'i' with '1', which is known as a
-			"homograph attack". </t>
+                        is deceptively similar to a target domain name or other
+                        name of a known entity.  The target name is familiar to
+                        many users, and therefore imparts a degree of trust.
+                        The deception is enacted by embedding the essential
+                        parts of the target name in a new string (such as,
+                        "companysecurity.example" to attack "company.example"),
+                        or it can use some variant of the target name, such as
+                        replacing 'i' with '1', which is known as a
+                        "homograph attack". </t>
 
                     <t hangText="Domain Owner:"> An entity or organization that "owns" a DNS domain.
                         The term "owns" here indicates that the entity or organization being
@@ -356,9 +356,9 @@
                             target="EMAIL-ARCH" />. </t>
 
                     <t hangText="Identifier Alignment:"> The concept of alignment between the 
-			RFC5322.From address (i.e., the purported author of the message) and
-			the identifier(s) checked by message authentication schemes, in particular
-			SPF and DKIM. </t>
+                        RFC5322.From address (i.e., the purported author of the message) and
+                        the identifier(s) checked by message authentication schemes, in particular
+                        SPF and DKIM. </t>
                     <t hangText="Mail Receiver:"> The entity or organization that receives and
                         processes email. Mail Receivers operate one or more Internet-facing Mail
                         Transport Agents (MTAs).</t>
@@ -371,18 +371,18 @@
                         "example.com", where "com" is a top-level domain).  The Organizational Domain
                         is determined by applying algorithm found in <xref target="od"/>. </t>
                 <t hangText="Report Receiver:"> An operator that receives reports from another operator
-			implementing the reporting mechanism described in this document.
-			Such an operator might be receiving reports about its own messages,
-			or reports about the messages claiming to be from a third party.
-			This term applies collectively to the system components that
-			receive and process these reports and the organizations that
-			operate them. </t>
+                        implementing the reporting mechanism described in this document.
+                        Such an operator might be receiving reports about its own messages,
+                        or reports about the messages claiming to be from a third party.
+                        This term applies collectively to the system components that
+                        receive and process these reports and the organizations that
+                        operate them. </t>
                 </list>
             </t>
 
             <section anchor="overview" title="Overview">
-		<t> This section provides a general overview of the design and operation
-			of the DMARC environment. </t>
+                <t> This section provides a general overview of the design and operation
+                    of the DMARC environment. </t>
 
             <section anchor="auth_mechs" title="Authentication Mechanisms">
                 <t> The following mechanisms for determining Authenticated Identifiers are supported
@@ -456,57 +456,57 @@
                                      |  User   |
                                      | Mailbox |
                                      +---------+
-   	</artwork> </figure> </t>
+    </artwork> </figure> </t>
 
-	<t> The above diagram shows a simple flow of messages through a DMARC-aware
-	    system.  Solid lines denote the actual message flow; dotted lines
-	    involve Domain Name System queries used to retrieve message policy
-	    related to the supported message authentication schemes; asterisk
-	    lines indicate data exchange between message handling modules
-	    and message authentication modules. </t>
+    <t> The above diagram shows a simple flow of messages through a DMARC-aware
+        system.  Solid lines denote the actual message flow; dotted lines
+        involve Domain Name System queries used to retrieve message policy
+        related to the supported message authentication schemes; asterisk
+        lines indicate data exchange between message handling modules
+        and message authentication modules. </t>
 
-	<t> In essence the steps are as follows:
-		<list style="numbers">
+    <t> In essence the steps are as follows:
+        <list style="numbers">
 
-		<t> Author constructs an SPF policy and publishes it in its
-		    DNS database as per <xref target="SPF"/>.  Author also
-		    configures its system for DKIM signing as described
-		    in <xref target="DKIM"/>. </t>
+        <t> Author constructs an SPF policy and publishes it in its
+            DNS database as per <xref target="SPF"/>.  Author also
+            configures its system for DKIM signing as described
+            in <xref target="DKIM"/>. </t>
 
-		<t> Author generates a message and hands the message to its
-		    designated mail submission service. </t>
+        <t> Author generates a message and hands the message to its
+            designated mail submission service. </t>
 
-		<t> Submission service passes relevant details to the DKIM
-		    signing module in order to generate a DKIM signature to be
-		    applied to the message. </t>
+        <t> Submission service passes relevant details to the DKIM
+            signing module in order to generate a DKIM signature to be
+            applied to the message. </t>
 
-		<t> Submission service relays the now-signed message to
-		    its designated transport service for routing to its
-		    intended recipient(s). </t>
+        <t> Submission service relays the now-signed message to
+            its designated transport service for routing to its
+            intended recipient(s). </t>
 
-		<t> Message may pass through other relays, but eventually
-		    arrives at a recipient's transport service </t>
+        <t> Message may pass through other relays, but eventually
+            arrives at a recipient's transport service </t>
 
-		<t> Recipient transport service conducts SPF and DKIM
-		    authentication checks by passing the necessary data to
-		    their respective modules, each of which require queries
-		    to the author's DNS data (when identifiers are
-		    aligned; see below). </t>
+        <t> Recipient transport service conducts SPF and DKIM
+            authentication checks by passing the necessary data to
+            their respective modules, each of which require queries
+            to the author's DNS data (when identifiers are
+            aligned; see below). </t>
 
-		<t> The results of these are passed to the DMARC module
-		    along with the Author domain.  The DMARC module does a small
-		    number of further DNS queries to the Organizational Domain to
-		    extract DMARC-specific policy details.  These, in
-		    combination, produce a DMARC policy result (e.g., a
-		    "pass" or "fail"), and can
-		    optionally cause one of two kinds of reports to be
-		    generated (not shown). </t>
+        <t> The results of these are passed to the DMARC module
+            along with the Author domain.  The DMARC module does a small
+            number of further DNS queries to the Organizational Domain to
+            extract DMARC-specific policy details.  These, in
+            combination, produce a DMARC policy result (e.g., a
+            "pass" or "fail"), and can
+            optionally cause one of two kinds of reports to be
+            generated (not shown). </t>
 
-		<t> Recipient transport service either delivers the message
-		    to the recipient inbox, or takes other local policy action
-		    based on the DMARC result (not shown). </t>
-		</list> </t>
-	    </section>
+        <t> Recipient transport service either delivers the message
+            to the recipient inbox, or takes other local policy action
+            based on the DMARC result (not shown). </t>
+        </list> </t>
+        </section>
 
             <section anchor="id_alignment_element" title="Identifier Alignment">
                 <t>Email authentication technologies authenticate various (and disparate) aspects of
@@ -533,25 +533,25 @@
                     is not valid per <xref target="MAIL" />, particularly one with a malformed or
                     absent RFC5322.From field. Handling of such cases is left to the discretion of
                     the Mail Receiver. </t>
-		<t> Both of the underlying authentication technologies DMARC takes as input
-			yield authenticated domains as their outputs.  From the perspective
-			of DMARC, each
-			can be operated in a "strict" mode or a "relaxed" mode.  An operator
-			would normally select "strict" mode if it wanted to affect
-			only messages bearing an RFC5322.From domain exactly matching
-			the domains those mechanisms will verify.  Using "relaxed" mode
-			can be used when the operator also wishes to affect message flows bearing
-			subdomains of the verified domains. </t>
+        <t> Both of the underlying authentication technologies DMARC takes as input
+            yield authenticated domains as their outputs.  From the perspective
+            of DMARC, each
+            can be operated in a "strict" mode or a "relaxed" mode.  An operator
+            would normally select "strict" mode if it wanted to affect
+            only messages bearing an RFC5322.From domain exactly matching
+            the domains those mechanisms will verify.  Using "relaxed" mode
+            can be used when the operator also wishes to affect message flows bearing
+            subdomains of the verified domains. </t>
 
                 <section anchor="dkim_id_align" title="DKIM-authenticated Identifiers">
-                    <t>DMARC provides the option of applying DKIM in a strict mode or a relaxed
-                        mode.  (Note that these are not related to DKIM's "simple" and "relaxed"
-			canonicalization modes.) </t>
+                    <t>DMARC provides the option of applying DKIM in a strict or relaxed
+                        identifier alignment mode.  (Note that these are not related to DKIM's "simple" and "relaxed"
+                        canonicalization modes.) </t>
 
                     <t>In relaxed mode, the Organizational Domains of both the <xref target="DKIM"
                          />-authenticated signing domain (taken from the value of the "d=" tag in
                         the signature) and that of the RFC5322.From domain must be equal if the identifiers
-			are to be considered aligned. In strict
+                        are to be considered aligned. In strict
                         mode, only an exact match between both of the Fully Qualified Domain Names (FQDN) considered to produce identifier alignment. </t>
 
                     <t>To illustrate, in relaxed mode, if a validated DKIM signature successfully
@@ -576,7 +576,7 @@
                 <!-- DKIM Identifiers -->
 
                 <section anchor="spf_id_align" title="SPF-authenticated Identifiers">
-                    <t>DMARC provides the option of applying SPF in a strict mode or a relaxed mode. </t>
+                    <t>DMARC provides the option of applying SPF in a strict or relaxed identifier alignment mode. </t>
 
                     <t>In relaxed mode, the <xref target="SPF" />-authenticated domain and
                         RFC5322.From domain must have the same Organizational Domain. In strict
@@ -603,7 +603,7 @@
         <!-- Definitions -->
 
         <section anchor="od" title="Organizational Domain">
-		<t> The Organizational Domain is determined using the following algorithm: <list style="numbers">
+        <t> The Organizational Domain is determined using the following algorithm: <list style="numbers">
                             <t> Acquire a "public suffix" list, i.e., a list of DNS domain names
                                 reserved for registrations. Some country TLDs make specific
                                 registration requirements, e.g. the United Kingdom places company
@@ -629,7 +629,7 @@
 
                     <t> The process of determining a suffix is currently a heuristic one. No list is
                         guaranteed to be accurate or current. </t>
-        	</section>
+            </section>
         </section>
 
         <section anchor="policy_element" title="Policy">
@@ -647,13 +647,13 @@
                 are equivalent.</t>
 
             <t> A Domain Owner may find that although its messages pass a particular
-		authentication scheme's checks, it wishes not to have Mail Receivers
-		consider those results as evidence that the message was authorized.
-		In this case, the Domain Owner simply declines to advertise participation
-		in those schemes.  For example, if the results of path authorization
-		checks ought not be considered as part of the overall DMARC result for
-		a given Author Domain, then the Domain Owner does not publish an
-		SPF policy record. </t>
+                authentication scheme's checks, it wishes not to have Mail Receivers
+                consider those results as evidence that the message was authorized.
+                In this case, the Domain Owner simply declines to advertise participation
+                in those schemes.  For example, if the results of path authorization
+                checks ought not be considered as part of the overall DMARC result for
+                a given Author Domain, then the Domain Owner does not publish an
+                SPF policy record that can produce an SPF pass result. </t>
 
             <t> A Mail Receiver implementing the DMARC mechanism makes a best-effort attempt to
                 adhere to the Domain Owner's published DMARC policy when a message fails the DMARC
@@ -661,8 +661,8 @@
                 RFC5322.From domain-spoofing services, etc.), Mail Receivers MAY deviate from a
                 Domain Owner's published policy during message processing and SHOULD make available
                 the fact of and reason for the deviation to the Domain Owner via feedback reporting,
-		specifically using the "PolicyOverride" feature of the aggregate
-		report (see <xref target="fb_aggregate"/>).
+                specifically using the "PolicyOverride" feature of the aggregate
+                report (see <xref target="fb_aggregate"/>).
             </t>
         </section>
         <!-- Policy -->
@@ -733,11 +733,11 @@
                         style="hanging">
 
                         <t hangText="adkim:"> (plain-text; OPTIONAL, default is "r".) Indicates
-                            whether strict or relaxed DKIM identifier alignment is required by the
+                            whether strict or relaxed DKIM identifier alignment mode is required by the
                             Domain Owner. See <xref target="dkim_id_align" /> for details. </t>
 
                         <t hangText="aspf:"> (plain-text; OPTIONAL, default is "r".) Indicates
-                            whether strict or relaxed SPF identifier alignment is required by the Domain
+                            whether strict or relaxed SPF identifier alignment mode is required by the Domain
                             Owner. See <xref target="spf_id_align" /> for details. </t>
 
                         <t hangText="fo:"> Failure reporting options (plain-text; OPTIONAL, default
@@ -799,14 +799,14 @@
                             mechanism. The prospect of "all or nothing" is recognized as preventing
                             many organizations from experimenting with strong authentication-based
                             mechanisms. See <xref target="fallback" /> for details.  Note that
-			    random selection based on this percentage, such as the following pseudocode,
-			    is adequate:
-				<figure> <artwork>
+                            random selection based on this percentage, such as the following pseudocode,
+                            is adequate:
+                <figure> <artwork><![CDATA[
     if (random mod 100) < pct then
       selected = true
     else
       selected = false
-				</artwork> </figure> </t>
+                ]]></artwork> </figure> </t>
 
                         <t hangText="rf:"> Format to be used for message-specific failure reports
                             (colon-separated plain-text list of values; OPTIONAL; default "afrf").
@@ -874,7 +874,7 @@
                 <t> A DMARC policy record MUST comply with the formal specification found in <xref
                         target="dmarc_abnf" /> in that the "v" and "p" tags MUST be present and MUST
                     appear in that order. Unknown tags MUST be ignored. Syntax errors in the
-                    remainder of the record SHOULD be discarded in favour of default values (if any)
+                    remainder of the record SHOULD be discarded in favor of default values (if any)
                     or ignored outright. </t>
 
                 <t> Note that given the rules of the previous paragraph, addition of a new tag into
@@ -904,41 +904,47 @@
                     [dmarc-sep dmarc-adkim]
                     [dmarc-sep dmarc-aspf]
                     [dmarc-sep dmarc-ainterval]
+                    [dmarc-sep dmarc-fo]
                     [dmarc-sep dmarc-rfmt]
                     [dmarc-sep dmarc-percent]
                     [dmarc-sep]
                     ; components other than dmarc-version and
                     ; dmarc-request may appear in any order
 
-  dmarc-version   = "v" *WSP "=DMARC1"
+  dmarc-version   = %x76 *WSP "=" %x44 %x4d %x41 %x52 %x43 %x31
 
   dmarc-sep       = *WSP %3b *WSP
 
-  dmarc-request   = "p" *WSP "=" *WSP 
+  dmarc-request   = %x70 *WSP "=" *WSP 
                     ( "none" / "quarantine" / "reject" )
 
-  dmarc-srequest  = "sp" *WSP "=" *WSP 
+  dmarc-srequest  = %x73 %x70 *WSP "=" *WSP 
                     ( "none" / "quarantine" / "reject" )
 
-  dmarc-auri      = "rua" *WSP "=" *WSP
+  dmarc-auri      = %x72 %x75 %x61 *WSP "=" *WSP
                     dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
-  dmarc-ainterval = "ri" *WSP "=" *WSP 1*DIGIT
-
-  dmarc-furi      = "ruf" *WSP "=" *WSP
+  dmarc-furi      = %x72 %x75 %x66 *WSP "=" *WSP
                      dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
-  dmarc-rfmt      = "rf" *WSP "=" *WSP
-                    ( "afrf" / "iodef" )
-
-  dmarc-percent   = "pct" *WSP "=" *WSP
-                     1*3DIGIT
-
-  dmarc-adkim     = "adkim"  *WSP "=" *WSP
+  dmarc-adkim     = %x61 %x64 %x6b %x69 %x6d *WSP "=" *WSP
                     ( "r" / "s" )
 
-  dmarc-aspf      = "aspf" *WSP "=" *WSP
-                    ( "r" / "s" )</artwork>
+  dmarc-aspf      = %x61 %x73 %x70 %x66 *WSP "=" *WSP
+                    ( "r" / "s" )
+
+  dmarc-ainterval = %x72 %x69 *WSP "=" *WSP 1*DIGIT
+
+  dmarc-fo        = %x66 %x6f *WSP "=" *WSP
+                    ( "0" / "1" / "d" / "s" )
+                    *(*WSP ":" *WSP ( "0" / "1" / "d" / "s" ))
+
+  dmarc-rfmt      = %x72 %x66  *WSP "=" *WSP
+                    ( "afrf" / "iodef" )
+
+  dmarc-percent   = %x70 %x63 %x74 *WSP "=" *WSP
+                     1*3DIGIT
+                    </artwork>
                 </figure>
 
                 <t> A size limitation in a dmarc-uri, if provided, is interpreted as a count of
@@ -975,20 +981,20 @@
                 delivery rates of spam campaigns.</t>
 
             <t> Final disposition of a message is always a matter of local policy.
-		An operator that wishes to favor DMARC policy over SPF policy, for example,
-		will disregard the SPF policy since enacting an SPF-determined rejection
-		prevents evaluation of DKIM; DKIM might otherwise pass, satisfying the DMARC
-		evaluation.  There is a trade-off to doing so, namely acceptance and processing
-		of the entire message body in exchange for the enhanced protection DMARC
-		provides. </t>
+                An operator that wishes to favor DMARC policy over SPF policy, for example,
+                will disregard the SPF policy since enacting an SPF-determined rejection
+                prevents evaluation of DKIM; DKIM might otherwise pass, satisfying the DMARC
+                evaluation.  There is a trade-off to doing so, namely acceptance and processing
+                of the entire message body in exchange for the enhanced protection DMARC
+                provides. </t>
 
-		<t> DMARC-compliant Mail Receivers typically disregard any mail handling directive discovered as
+        <t> DMARC-compliant Mail Receivers typically disregard any mail handling directive discovered as
                 part of an authentication mechanism (e.g., ADSP, SPF) where a DMARC record is also
                 discovered that specifies a policy other than "none".  Deviating from this practice
-		introduces inconsistency among DMARC operators in terms of handling of the message.  However, such deviation is not
-		proscribed. </t>
+                introduces inconsistency among DMARC operators in terms of handling of the message.  However, such deviation is not
+                proscribed. </t>
 
-	    <t> To enable Domain Owners to
+        <t> To enable Domain Owners to
                 receive DMARC feedback without impacting existing mail processing, discovered
                 policies of "p=none" SHOULD NOT modify existing mail disposition processing. </t>
 
@@ -1004,7 +1010,7 @@
                     are "reject", "quarantine", and "none". </t>
 
                 <t> For example, in the presence of "pct=50" and "p=reject" in the DMARC policy
-                    record for "example.com", half of the mesages with an RFC5322.From domain of "example.com"
+                    record for "example.com", half of the messages with an RFC5322.From domain of "example.com"
                     that fail the DMARC test would be subjected to "reject"
                     action, and the remainder subjected to "quarantine" action. </t>
                 <t>Mail receivers MAY implement pct via statistical mechanisms that achieve a close
@@ -1040,8 +1046,7 @@
                     authority component of a <xref target="URI" /> specified in the "rua" or "ruf"
                     tag, the following verification steps SHOULD be taken: <list style="numbers">
                         <t> Extract the host portion of the authority component of the URI. Call
-                            this the "destination host", and refers to a Report
-			    Receiver. </t>
+                            this the "destination host", and refers to a Report Receiver. </t>
 
                         <t> Prepend the string "_report._dmarc". </t>
 
@@ -1065,7 +1070,7 @@
 
                         <t> If at least one TXT resource record remains in the set after parsing,
                             then the external reporting arrangement was authorized by the
-			    Report Receiver. </t>
+                            Report Receiver. </t>
 
                         <t> If a "rua" or "ruf" tag is thus discovered, replace the corresponding
                             value extracted from the domain's DMARC policy record with the one found
@@ -1120,13 +1125,13 @@
 
                 <t> The report SHOULD include the following data: <list style="symbols">
                         <t> The DMARC policy discovered and applied, if any </t>
-			<t> The selected message disposition </t>
-			<t> The identifier evaluated by SPF and the SPF result,
-			    if any </t>
-			<t> The identifier evaluated by DKIM and the DKIM result,
-			    if any </t>
-			<t> For both DKIM and SPF, in indication of whether the
-			    identifier was in alignment </t>
+            <t> The selected message disposition </t>
+            <t> The identifier evaluated by SPF and the SPF result,
+                if any </t>
+            <t> The identifier evaluated by DKIM and the DKIM result,
+                if any </t>
+            <t> For both DKIM and SPF, in indication of whether the
+                identifier was in alignment </t>
                         <t> Data for each sender subdomain separately from mail from the sender's
                             organizational domain, even if there is no explicit subdomain policy. </t>
                         <t> Sending and receiving domains </t>
@@ -1183,7 +1188,11 @@
                         target="AFRF" />. This document updates the AFRF format as described in
                         <xref target="afrf_update" />. </t>
 
-                <t> The destination(s) and nature of the reports are defined by the "fo" and "rf"
+                <t> The format for failure reports is defined in either <xref target="AFRF" /> or
+                        <xref target="IODEF" /> depending on the value found in the "rf" tag of the
+                    DMARC record (or its default). </t>
+
+                <t> The destination(s) and nature of the reports are defined by the "ruf" and "fo"
                     tags as defined in <xref target="dmarc_format" />. </t>
 
                 <t> Where multiple URIs are selected to receive failure reports the report generator
@@ -1250,15 +1259,11 @@
             </section>
             <!-- Failure Reports -->
 
-            <section anchor="fb_failure" title="Failure Reports">
-                <t> Message-specific authentication-failure-related reporting can be used to
-                    identify problems with Domain-Owner-controlled infrastructure and to investigate
-                    the sources and causes of failing messages. They might also be used to aid
-                    investigations into the sources and objectives of fraudulent messages. </t>
-
-                <t> The format for these reports is defined in either <xref target="AFRF" /> or
-                        <xref target="IODEF" /> depending on the value found in the "ruf" tag of the
-                    DMARC record (or its default). </t>
+            <section anchor="fb_failure" title="Utility of Failure Reports">
+                <t> Failure reports can be used to identify problems with infrastructure controlled
+                    by Domain Owners and to investigate the sources and causes of failing messages.
+                    They might also be used to aid investigations into the sources and objectives of
+                    fraudulent messages. </t>
 
                 <t> These reports SHOULD include the "call-to-action" URI(s) from inside messages
                     that failed to authenticate. </t>
@@ -1280,7 +1285,7 @@
                         matching the one found in the RFC5322.From domain in the message. A possibly
                         empty set of records is returned. </t>
 
-                    <t> Records that do not start with a &quot;v=&quot; tag that identifies the the
+                    <t> Records that do not start with a &quot;v=&quot; tag that identifies the
                         current version of DMARC are discarded. </t>
 
                     <t> If the set is now empty, the Mail Receiver MUST query the DNS for a DMARC
@@ -1402,15 +1407,15 @@
                         <t> Perform DKIM signature verification checks. A single email may contain
                             multiple DKIM signatures. The results of this step are passed to the
                             remainder of the algorithm and MUST include the value of the "d=" tag
-                            from all DKIM signatures that successfully validated. </t>
+                            from all checked DKIM signatures. </t>
 
                         <t> Perform SPF validation checks. The results of this step are passed to
                             the remainder of the algorithm and MUST include the domain name used to
-                            complete the SPF check if evaluation returned a "pass" result. </t>
+                            complete the SPF check. </t>
 
                         <t> Conduct identifier alignment checks. With authentication checks and
                             policy discovery performed, the Mail Receiver checks if Authenticated
-                            Identifiers fall into alignment as decribed in <xref
+                            Identifiers fall into alignment as described in <xref
                                 target="terms_and_defs" />. If one or more of the Authenticated
                             Identifiers align with the RFC5322.From domain, the message is
                             considered to pass the DMARC mechanism check. All other conditions
@@ -1519,7 +1524,7 @@
                 <section anchor="email_transport_fb_mech" title="Email">
                     <t>In the case of a "mailto" URI, the Mail Receiver MUST communicate reports
                         using the method described in <xref target="STARTTLS"/>
-			whenever it is offered by a Report Receiver.  </t>
+                        whenever it is offered by a Report Receiver.  </t>
 
                     <t>The message generated by the Mail Receiver must be a <xref target="MIME" />
                         formatted <xref target="MAIL" /> message. The aggregate report itself MUST
@@ -1527,18 +1532,17 @@
                         be included as a MIME part (such as a text/plain part). </t>
 
                     <t>The aggregate data MUST be an XML file that SHOULD be subjected to GZIP compression.  Declining
-			to apply compression can cause the report to be too large for a receiver to process
-			(a commonly-observed receiver limit is ten megabytes);
-			doing the compression increases the chances of acceptance of the report at some compute cost.  The
+                        to apply compression can cause the report to be too large for a receiver to process
+                        (a commonly-observed receiver limit is ten megabytes);
+                        doing the compression increases the chances of acceptance of the report at some compute cost.  The
                         aggregate data SHOULD be present using the media type "application/gzip" if
-			compressed (see <xref target="GZIP"/>), and "text/xml" otherwise.
+                        compressed (see <xref target="GZIP"/>), and "text/xml" otherwise.
                         The filename is typically constructed using the following ABNF: <figure>
                             <artwork>
   filename = receiver "!" policy-domain "!" begin-timestamp 
              "!" end-timestamp [ "!" unique-id ] "." extension
 
-  unique-id = token
-            ; "token" is imported from [MIME]
+  unique-id = 1*(ALPHA | DIGIT)
 
   receiver = domain
            ; imported from [MAIL]
@@ -1560,7 +1564,7 @@
                     </t>
 
                     <t> The extension MUST be "xml" for a plain XML file,
-			or "xml.gz" for an XML file compressed using GZIP. </t>
+                        or "xml.gz" for an XML file compressed using GZIP. </t>
 
                     <t> "unique-id" allows an optional unique ID generated by the Mail Receiver to
                         distinguish among multiple reports generated simultaneously by different
@@ -1605,7 +1609,7 @@
                     <t> For instance, this is a possible Subject field for a report to the Domain
                         Owner &quot;example.com&quot; from the Mail Receiver
                         &quot;mail.receiver.example&quot;.  It is line-wrapped as allowed by
-		        <xref target="MAIL"/>. <figure>
+                        <xref target="MAIL"/>. <figure>
                             <artwork>
 <![CDATA[Subject: Report Domain: example.com
     Submitter: mail.receiver.example
@@ -1621,29 +1625,29 @@
 
                 <section anchor="http_transport_fb_mech" title="HTTP">
                     <t> Where an "http" or "https" method is requested in a
-			Domain Owner's URI list, the Mail Receiver delivers
-			the the data using a PUT http request.  The URI for
-			the PUT request is the URI from the list concatenated
-			with a filename constructed as described in the
-			previous section.  The extension in the filename MUST
-			be "xml".  The filename SHOULD contain a unique-id
-			that is difficult to guess.  For example, if the URI
-			in the list were "http://example.com/dmarc-report/",
-			the URI for the PUT request might be:
+                        Domain Owner's URI list, the Mail Receiver delivers
+                        the data using a PUT http request.  The URI for
+                        the PUT request is the URI from the list concatenated
+                        with a filename constructed as described in the
+                        previous section.  The extension in the filename MUST
+                        be "xml".  The filename SHOULD contain a unique-id
+                        that is difficult to guess.  For example, if the URI
+                        in the list were "http://example.com/dmarc-report/",
+                        the URI for the PUT request might be:
 
-			<figure><artwork>
+            <figure><artwork>
     http://example.com/dmarc-report/
         mail.receiver.example!example.com!
         1013662812!1013749130!!~q!}{..xml
-			</artwork></figure></t>
+            </artwork></figure></t>
 
-		    <t> The Mail Receiver MUST send the report as a
-			text/xml media type and SHOULD use gzip
-			content coding.  If the URI has an "https", method the
-			Mail Receiver SHOULD present a client certificate that
-			includes the domain in its report (in the example
-			above, mail.receiver.example) to authenticate
-			itself. </t>
+            <t> The Mail Receiver MUST send the report as a
+                text/xml media type and SHOULD use gzip
+                content coding.  If the URI has an "https", method the
+                Mail Receiver SHOULD present a client certificate that
+                includes the domain in its report (in the example
+                above, mail.receiver.example) to authenticate
+                itself. </t>
                 </section>
                 <!-- HTTP Transport -->
 
@@ -1727,9 +1731,9 @@
                         arriving message, namely the TXT queries to try to locate a policy
                         statement. For Mail Receivers, these are queries sent; for Domain
                         Owners, these are queries that must be handled. Both sides will need to
-                        plan for the additional DNS load.  There were will be addiitonal DNS
-			load caused by the generation and sending of reports, and any
-			external reporting records placed in the DNS.  </t>
+                        plan for the additional DNS load.  There were will be additional DNS
+                        load caused by the generation and sending of reports, and any
+                        external reporting records placed in the DNS.  </t>
                 </list>
             </t>
         </section>
@@ -1749,7 +1753,7 @@
                 </list>
             </t>
 
-		<t> [TBD: Separate Domain Owner requirements from Mail Receiver requirements.] </t>
+        <t> [TBD: Separate Domain Owner requirements from Mail Receiver requirements.] </t>
         </section>
 
         <section anchor="privacy" title="Privacy Considerations">
@@ -1781,8 +1785,8 @@
                 </t>
 
                 <t> Domain Owners requesting reports will also receive information about mail
-			forwarded to unexpected Mail Receivers when message forwarding
-			relationships exists. </t>
+                    forwarded to unexpected Mail Receivers when message forwarding
+                    relationships exists. </t>
             </section>
 
             <section anchor="priv_rcpt" title="Report Recipients">
@@ -1816,16 +1820,16 @@
                     of private data to third parties that may be able to monitor such
                     transmissions.  Unencrypted mechanisms should be avoided. </t>
 
-		<t> In particular, a message that was originally encrypted or otherwise
-			secured might appear in a report that is not sent securely, which
-			could reveal private information. </t>
+                <t> In particular, a message that was originally encrypted or otherwise
+                    secured might appear in a report that is not sent securely, which
+                    could reveal private information. </t>
             </section>
         </section>
 
         <section anchor="discuss" title="Other Topics">
             <t> This section discusses some topics regarding choices made in the
-		development of DMARC, largely to commit the history to
-		record. </t>
+                development of DMARC, largely to commit the history to
+                record. </t>
 
             <section anchor="disc_from" title="Use of RFC5322.From">
                 <t> One of the most obvious points of security scrutiny for DMARC is the choice to
@@ -1867,11 +1871,11 @@
                     are authorized to send on behalf of the Domain Owner before publishing a DMARC
                     record.</t>
 
-		<t> Some receiver architectures might implement SPF in advance of any DMARC
-		operations.  This means a "-" prefix on a Sender's SPF mechanism, such as "-all",
-		could cause that rejection go into effect early in handling, causing message
-		rejection, before any DMARC processing takes place.  Operators choosing to use
-		"-all" should be aware of this. </t>
+                <t> Some receiver architectures might implement SPF in advance of any DMARC
+                    operations.  This means a "-" prefix on a Sender's SPF mechanism, such as "-all",
+                    could cause that rejection go into effect early in handling, causing message
+                    rejection, before any DMARC processing takes place.  Operators choosing to use
+                    "-all" should be aware of this. </t>
 
             </section>
 
@@ -1892,7 +1896,7 @@
                     problems described above. A balance should be sought to maintain responsiveness
                     of DMARC preference changes while preserving the benefits of DNS caching. </t>
 
-		<t> [TBD: Add an analysis of the added DNS load.] </t>
+                <t> [TBD: Add an analysis of the added DNS load.] </t>
             </section>
 
             <section anchor="disc_rejection" title="Rejecting Messages">
@@ -1942,7 +1946,7 @@
                 <t> The DMARC mechanism allows both DKIM and SPF-authenticated identifiers to
                     authenticate email on behalf of a Domain Owner and, possibly, on
                     behalf of different subdomains. If malicious or unaware users can gain control
-                    of the SPF record or signing practices for a subdomain, the subdomain can be
+                    of the SPF record or DKIM signing practices for a subdomain, the subdomain can be
                     used to generate DMARC-passing email on behalf of the Organizational Domain. </t>
 
                 <t> For example, an attacker who controls the SPF record for "evil.example.com" can
@@ -2053,17 +2057,14 @@
                 </t>
             </section>
 
-            <section anchor="iana_afrf"
-		title="Feedback Report Header Fields Registry">
-		<t> The following is added to the Feedback Report Header FIelds
-		    Registry:
+            <section anchor="iana_afrf" title="Feedback Report Header Fields Registry">
+                <t> The following is added to the Feedback Report Header Fields Registry:
                     <list style="hanging">
                         <t hangText="Field Name:"> Identity-Alignment </t>
 
                         <t hangText="Description:"> indicates whether the message
-				about which a report is being generated had
-				any identifiers in alignment as defined in
-				[this RFC] </t>
+                            about which a report is being generated had
+                            any identifiers in alignment as defined in [this RFC] </t>
 
                         <t hangText="Multiple Appearances:"> no </t>
 
@@ -2073,7 +2074,7 @@
 
                         <t hangText="Status:"> current </t>
                     </list> </t>
-	    </section>
+            </section>
 
             <section anchor="iana_dmarc_tags" title="DMARC Tag Registry">
                 <t>Names of DMARC tags must be registered with IANA. New entries are assigned only
@@ -2081,7 +2082,7 @@
                     Review, per <xref target="IANA-CONSIDERATIONS" />. Each registration must
                     include the tag name, the specification that defines it, a brief description,
                     and its status which must be one of "current", "experimental" or "historic". </t>
-		<t> To avoid version compatibility issues,
+                <t> To avoid version compatibility issues,
                     tags added to the DMARC specification are to avoid changing the semantics of
                     existing records when processed by implementations conforming to prior
                     specifications.</t>
@@ -2147,12 +2148,12 @@
         <!-- IANA Considerations -->
 
         <section anchor="sec" title="Security Considerations">
-		<t> This section discusses security issues and possible
-		    remediations (where available) for DMARC. </t>
+        <t> This section discusses security issues and possible
+            remediations (where available) for DMARC. </t>
 
             <section anchor="sec_auth" title="Authentication Methods">
-		<t> Security considerations from the authentication methods used by
-			DMARC are incorporated here by reference. </t>
+        <t> Security considerations from the authentication methods used by
+            DMARC are incorporated here by reference. </t>
             </section>
 
             <section anchor="sec_rep_uris" title="Attacks on Reporting URIs">
@@ -2183,7 +2184,7 @@
                     security of the DNS.  To reduce the risk of subversion of the DMARC mechanism due
                     to DNS-based exploits, serious consideration should be given to the deployment
                     of DNSSEC in parallel to the deployment of DMARC by both Domain Owners
-		    and Mail Receivers. </t>
+                    and Mail Receivers. </t>
             </section>
 
             <section anchor="sec_display" title="Display Name Attacks">
@@ -2815,7 +2816,7 @@
                 <t> The DMARC development team considered this and decided not to include support
                     for doing so, for two primary reasons: <list style="numbers">
                         <t> The main user protection approach is to be concerned with what the user
-                            sees when a message is rendered. There is no consistent behaviour among
+                            sees when a message is rendered. There is no consistent behavior among
                             MUAs regarding what to do with the content of the Sender field, if
                             present. Accordingly, supporting checking of the Sender identifier would
                             mean applying policy to an identifier the end user might never actually
@@ -2907,8 +2908,8 @@
                     DMARC. The method described in <xref target="terms_and_defs" /> is far from perfect,
                     but serves this purpose reasonably well without adding undue burden or semantics
                     to the DNS.  If a method is created to do so that is more reliable and secure than
-		    the use of a public suffix list, DMARC should be amended to use that method as soon
-		    as it is generally available. </t>
+                    the use of a public suffix list, DMARC should be amended to use that method as soon
+                    as it is generally available. </t>
 
                 <section anchor="suffixes" title="Public Suffix Lists">
                     <t> A public suffix list for the purposes of determining the Organizational
@@ -2917,8 +2918,8 @@
                         http://publicsuffix.org. License terms governing the use of that list are
                         available at that URI. </t>
 
-		    <t> Note that if operators use a variety of public suffix lists,
-			interoperability will be diffcult or impossible to guarantee. </t>
+                    <t> Note that if operators use a variety of public suffix lists,
+                        interoperability will be difficult or impossible to guarantee. </t>
                 </section>
             </section>
         </section>
@@ -2956,9 +2957,9 @@
                         <figure>
                             <preamble> Example 2: SPF in alignment (parent): </preamble>
                             <artwork>
-     MAIL FROM: &lt;sender@example.com&gt;
+     MAIL FROM: &lt;sender@child.example.com&gt;
 
-     From: sender@child.example.com
+     From: sender@example.com
      Date: Fri, Feb 15 2002 16:54:30 -0800
      To: receiver@example.org
      Subject: here's a sample</artwork>
@@ -2966,8 +2967,8 @@
                         </figure>
                     </t>
 
-                    <t> In this case, the RFC5321.MailFrom parameter includes a DNS domain that is a
-                        parent of the RFC5322.From domain. Thus, the identifiers are in alignment if
+                    <t> In this case, the RFC5322.From parameter includes a DNS domain that is a
+                        parent of the RFC5321.MailFrom domain. Thus, the identifiers are in alignment if
                         "relaxed" SPF mode is requested by the Domain Owner, and not in alignment if
                         "strict" SPF mode is requested. </t>
 
@@ -3281,7 +3282,7 @@
 
                     <t> The third-party has access to the appropriate DKIM private or signing keys
                         for the selectors it will use. However the third-party uses sub-domains like
-                        "id1234.bounces.example.com" in the RFC5321.Mailfrom address for campaign
+                        "id1234.bounces.example.com" in the RFC5321.MailFrom address for campaign
                         tracking and troubleshooting purposes. The sub-domain "bounces.example.com"
                         has been delegated to the third-party so that it can publish appropriate MX
                         records in the DNS. </t>
