@@ -861,7 +861,10 @@
                             Receiver at the request of the Domain Owner. It applies only to
                             subdomains of the domain queried and not to the domain itself. Its
                             syntax is identical to that of the "p" tag defined above. If absent, the
-                            policy specified by the "p" tag MUST be applied for subdomains. </t>
+                            policy specified by the "p" tag MUST be applied for subdomains. Note
+                            "sp" will be ignored for DMARC records published on sub-domains of
+                            Organizational Domains due to the effect of the DMARC Policy Discovery mechanism
+                            described in <xref target="policy_discovery" />.</t>
 
                         <t hangText="v:"> Version (plain-text; REQUIRED). Identifies the record
                             retrieved as a DMARC record. It MUST have the value of "DMARC1". The
@@ -1041,10 +1044,12 @@
                     destinations, which will in turn flood the victim with unwanted reports.
                     Therefore, a verification mechanism is included. </t>
 
-                <t> When a Mail Receiver discovers a DMARC policy in the DNS, and the domain at
-                    which that record was discovered is not identical to the host part of the
-                    authority component of a <xref target="URI" /> specified in the "rua" or "ruf"
-                    tag, the following verification steps SHOULD be taken: <list style="numbers">
+                <t> When a Mail Receiver discovers a DMARC policy in the DNS, and the Organizational
+                    Domain at which that record was discovered is not identical to the Organizational
+                    Domain of the host part of the authority component of a <xref target="URI" />
+                    specified in the "rua" or "ruf" tag, the following verification steps SHOULD be
+                    taken:
+                    <list style="numbers">
                         <t> Extract the host portion of the authority component of the URI. Call
                             this the "destination host", and refers to a Report Receiver. </t>
 
