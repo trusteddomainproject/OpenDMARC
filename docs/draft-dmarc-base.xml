@@ -805,8 +805,7 @@
     if (random mod 100) < pct then
       selected = true
     else
-      selected = false
-                ]]></artwork> </figure> </t>
+      selected = false ]]></artwork> </figure> </t>
 
                         <t hangText="rf:"> Format to be used for message-specific failure reports
                             (colon-separated plain-text list of values; OPTIONAL; default "afrf").
@@ -1349,19 +1348,6 @@
                     target="DKIM-OVERVIEW" /> and <xref target="DKIM-DEPLOYMENT" />) and <xref
                     target="SPF" />. </t>
 
-
-
-            <t>Many URI schemes involve direct connections to the specified service (e.g., http,
-                ftp), but some involve the possibility of intermediate handling (e.g. mailto). A
-                report generator will therefore be able to tell right away if submission of a report
-                to the former type of service has succeeded or whether an alternate (if available)
-                needs to be attempted, but this will not be immediately obvious for the latter type
-                of service. For example, a report submitted by mail may succeed at least as far as
-                the local MTA, but could bounce later; however, a DMARC report generator will not
-                immediately know about this downstream error. </t>
-
-            <t>Therefore, Domain Owners SHOULD include "mailto" URIs at the end of the lists of URIs
-                they publish. </t>
         </section>
         <!-- Domain Owner Actions -->
 
@@ -1628,34 +1614,6 @@
                 </section>
                 <!-- Email Transport -->
 
-                <section anchor="http_transport_fb_mech" title="HTTP">
-                    <t> Where an "http" or "https" method is requested in a
-                        Domain Owner's URI list, the Mail Receiver delivers
-                        the data using a PUT http request.  The URI for
-                        the PUT request is the URI from the list concatenated
-                        with a filename constructed as described in the
-                        previous section.  The extension in the filename MUST
-                        be "xml".  The filename SHOULD contain a unique-id
-                        that is difficult to guess.  For example, if the URI
-                        in the list were "http://example.com/dmarc-report/",
-                        the URI for the PUT request might be:
-
-            <figure><artwork>
-    http://example.com/dmarc-report/
-        mail.receiver.example!example.com!
-        1013662812!1013749130!!~q!}{..xml
-            </artwork></figure></t>
-
-            <t> The Mail Receiver MUST send the report as a
-                text/xml media type and SHOULD use gzip
-                content coding.  If the URI has an "https", method the
-                Mail Receiver SHOULD present a client certificate that
-                includes the domain in its report (in the example
-                above, mail.receiver.example) to authenticate
-                itself. </t>
-                </section>
-                <!-- HTTP Transport -->
-
                 <section anchor="other_transport_fb_mech" title="Other Methods">
                     <t>Other registered URI schemes may be explicitly supported in later versions.
                     </t>
@@ -1686,10 +1644,7 @@
                                 Mail Receiver attempted to send. Where more than one transport
                                 system was attempted, the sizes may be different; in such cases,
                                 separate error reports MUST be generated so that this value matches
-                                the actual attempt that was made. For example, a "mailto" error
-                                report would be sent to the "mailto" URIs with one size, while the
-                                "https" reports might be POSTed to those URIs with a different size,
-                                as they have different transport and encoding requirements. </t>
+                                the actual attempt that was made.</t>
 
                             <t hangText="Submitter:"> The domain-name representing the Mail Receiver
                                 that generated, but was unable to submit, the report. </t>
@@ -1757,8 +1712,6 @@
                             target="mail_receiver_actions" />. </t>
                 </list>
             </t>
-
-        <t> [TBD: Separate Domain Owner requirements from Mail Receiver requirements.] </t>
         </section>
 
         <section anchor="privacy" title="Privacy Considerations">
@@ -1901,7 +1854,6 @@
                     problems described above. A balance should be sought to maintain responsiveness
                     of DMARC preference changes while preserving the benefits of DNS caching. </t>
 
-                <t> [TBD: Add an analysis of the added DNS load.] </t>
             </section>
 
             <section anchor="disc_rejection" title="Rejecting Messages">
@@ -3553,28 +3505,6 @@
                     authenticated using SPF. Also, the value of the "filename" MIME parameter is
                     wrapped for printing in this specification but would normally appear as one
                     continuous string. </t>
-            </section>
-
-            <section anchor="ex_https" title="https Transport example">
-                <t> A DMARC record can contain an "https" reporting address, such as: <figure>
-                        <artwork>
-  https://feedback.example.com/dmarc-feedback-submissions</artwork>
-                    </figure></t>
-
-                <t> A sample aggregate report from the Mail Receiver at mail.receiver.example, being
-                    posted per the above URL via an established secure HTTP (https) connection,
-                    might look like this: <figure>
-                        <artwork>
-  POST /dmarc-feedback-submissions HTTP/1.1
-  Host: feedback.example.com
-  Subject: Report Domain: example.com
-      Submitter: mail.receiver.example
-      Report-ID: &lt;2002.02.15.1&gt;
-  Content-Type: application/gzip
-  Content-Length: 19191
-    
-  &lt;gzipped content of report here&gt;</artwork>
-                    </figure></t>
             </section>
         </section>
         <!-- Examples -->
