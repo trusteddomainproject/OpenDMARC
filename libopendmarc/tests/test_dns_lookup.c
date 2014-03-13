@@ -119,12 +119,61 @@ dmarc_dns_test_query(void)
 	return failures;
 }
 
+typedef struct {
+	char * domain;
+	char * uri;
+	int status;
+} DL3;
+
+int
+dmarc_dns_test_xdomain_query(void)
+{
+	DL3 domain_list[] = {
+		{"facebookmail.com", "d@ruf.agari.com", DMARC_PARSE_OKAY},
+		{"csh.rit.edu", "postmaster@csh.rit.edu", DMARC_PARSE_OKAY},
+		{"csh.rit.edu", "postmaster@mail.csh.rit.edu", DMARC_PARSE_OKAY},
+		{"linkedin.com", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
+		{"none.bcx.com", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
+		{"none.fnnfansavasdfjashfasfsdf.csadfsdf", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
+		{NULL, NULL, 0},
+	};
+
+	DL3 *dp;
+	int successes, failures;
+	DMARC_POLICY_T *pctx;
+	OPENDMARC_STATUS_T status;
+
+	successes = failures = 0;
+	for (dp = domain_list; dp->domain != NULL; ++dp)
+	{
+		pctx = opendmarc_policy_connect_init("0.0.0.0", FALSE);
+		pctx->from_domain = strdup(dp->domain);
+		status = opendmarc_policy_query_dmarc_xdomain(pctx, dp->uri);
+		pctx = opendmarc_policy_connect_shutdown(pctx);
+
+		if (status != dp->status)
+		{
+			printf("\t%s(%d): %s, %s: %d: FAIL.\n", __FILE__, __LINE__, dp->domain, dp->uri, status);
+			++failures;
+		}
+		else
+		{
+			++successes;
+		}
+	}
+
+	printf("Test opendmarc_policy_query_dmarc_xdomain(): %d pass, %d fail\n", successes, failures);
+	return failures;
+}
+
 int
 main(int argc, char **argv)
 {
 	if (dmarc_dns_test_record() != 0)
 		return 1;
 	if (dmarc_dns_test_query() != 0)
+		return 1;
+	if (dmarc_dns_test_xdomain_query() != 0)
 		return 1;
 	return 0;
 }

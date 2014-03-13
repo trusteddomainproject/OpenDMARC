@@ -2,7 +2,7 @@
 ** OPENDMARC_XML.C
 **		OPENDMARC_XML -- Parse a blob of xml DMARC report data
 **		OPENDMARC_XML_PARSE -- Read a file into a blob
-**  Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
 ************************************************************************/ 
 # include "opendmarc_internal.h"
 # include "opendmarc_strl.h"
@@ -25,7 +25,6 @@ static char *Taglist[] = {
 	"header_from",
 	"human_result",
 	"identifiers",
-	"identities",
 	"org_name",
 	"p",
 	"pct",
@@ -292,7 +291,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 					(void) strlcpy(e, "<", elen);
 					(void) strlcat(e, cp, elen);
 					(void) strlcat(e, ">: Too much stack depth", elen);
-					return ary = opendmarc_util_clearargv(ary);
+					return (ary = opendmarc_util_clearargv(ary));
 				}
 				(void) strlcpy(stack[sidx], cp, MAX_STACK_LINE_LEN);
 				cp = sp;
@@ -475,8 +474,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 					(void) strlcat(reason_comment, " ", sizeof reason_comment);
 				(void) strlcat(reason_comment, cp, sizeof reason_comment);
 			}
-			else if (sidx > 0 && (strcasecmp(stack[sidx-1], "identities") == 0 ||
-			         strcasecmp(stack[sidx-1], "identifiers") == 0) &&
+			else if (sidx > 0 && strcasecmp(stack[sidx-1], "identifiers") == 0 &&
 				 strcasecmp(stack[sidx], "header_from") == 0)
 			{
 				/*

@@ -35,10 +35,7 @@ import email
 import time
 import MySQLdb
 
-db = MySQLdb.connect(user='dmarc',passwd='xxx',db='dmarc', use_unicode=True)
-MySQLdb.paramstyle='format'
-
-def dmfail(h,f):
+def dmfail(db,h,f):
     e = email.message_from_file(h)
     if(e.get_content_type() != "multipart/report"):
         print f,"is not a report"
@@ -76,11 +73,29 @@ def dmfail(h,f):
 #################################################################################################
 if __name__ == "__main__":
     import sys
+    import argparse
+
+    parser = argparse.ArgumentParser(description="process DMARC failures")
+    parser.add_argument("-n", "--dbname", dest="dbname", action="store",
+                        type="string", help="database name",
+                        default="opendmarc")
+    parser.add_argument("-p", "--dbpasswd", dest="dbpasswd", action="store",
+                        type="string", help="database password",
+                        default="opendmarc")
+    parser.add_argument("-u", "--dbuser", dest="dbuser", action="store",
+                        type="string", help="database user",
+                        default="opendmarc")
+    parser.add_argument("file", nargs="*")
+    args = parser.parse_args()
     
-    if(len(sys.argv) < 2):
-        dmfail(sys.stdin,"stdin");
+    db = MySQLdb.connect(user=args.dbuser, passwd=args.dbpasswd,
+                         db=args.dbname, use_unicode=True)
+    MySQLdb.paramstyle='format'
+
+    if(len(args.file) == 0):
+        dmfail(db,sys.stdin,"stdin");
     else:
-        for f in sys.argv[1:]:
+        for f in args.file:
             h = open(f)
-            dmfail(h, f)
+            dmfail(db,h,f)
             h.close()

@@ -125,7 +125,7 @@ Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
 The default is 5.  Ignored if not using an asynchronous resolver package.
 
 .TP
-.I EnableCoredumps (boolean)
+.I EnableCoredumps (Boolean)
 On systems that have such support, make an explicit request to the kernel
 to dump cores when the filter crashes for some reason.  Some modern UNIX
 systems suppress core dumps during crashes for security reasons if the
@@ -133,15 +133,28 @@ user ID has changed during the lifetime of the process.  Currently only
 supported on Linux.
 
 .TP
-.I ForensicReports (boolean)
+.I ForensicReports (Boolean)
 Enables generation of forensic reports when the DMARC test fails and the
 purported sender of the message has requested such reports.  Reports are
 formatted per RFC6591.
 
 .TP
-.I ForensicReportsOnNone (boolean)
+.I ForensicReportsBcc (string)
+When forensic reports are enabled and one is to be generated, always send one
+to the address(es) specified here.  If a forensic report is requested by
+the domain owner, the address(es) are added in a Bcc: field.  If no request
+is made, they address(es) are used in a To: field.  There is no default.
+
+.TP
+.I ForensicReportsOnNone (Boolean)
 Supplementary to the previous setting, enables generation of forensic reports
 for sending domains that publish a "none" policy.
+
+.TP
+.I ForensicReportsSentBy (string)
+Sets the value of the From: field to be used when sending forensic reports
+(see above).  The default is to use the userid of the user executing the
+filter and the local host name to construct an email address.
 
 .TP
 .I HistoryFile (string)
@@ -207,6 +220,13 @@ delivery when
 .I ForensicReports
 is enabled.  Defaults to
 .I /usr/sbin/sendmail.
+
+.TP
+.I RequiredHeaders (Boolean)
+If set, the filter will ensure the header of the message conforms to the basic
+header field count restrictions laid out in RFC5322, Section 3.6.  Messages
+failing this test are rejected without further processing.  A From:
+field from which no domain name could be extracted will also be rejected.
 
 .TP
 .I Socket (string)
@@ -307,7 +327,7 @@ This man page covers version @VERSION@ of
 .I opendmarc.
 
 .SH COPYRIGHT
-Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
 .SH SEE ALSO
 .I opendmarc(8), sendmail(8)
 .P

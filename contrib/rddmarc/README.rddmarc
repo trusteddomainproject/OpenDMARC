@@ -1,11 +1,11 @@
 These are little scripts to parse DMARC reports.
 
 The first, rddmarc, is a perl script that take an incoming DMARC
-summary report email, extracts and unpacks the ZIP file, parses the
-XML, and puts the parts about received mail into a MySQL database.
-The database is set up to handle reports about multiple domains from
-multiple reporters. It's handling reports from Google, Yahoo, xs4all
-and Netease.  
+summary report email, extracts and unpacks the gzip or ZIP file,
+parses the XML, and puts the parts about received mail into a MySQL
+database.  The database is set up to handle reports about multiple
+domains from multiple reporters. It's handling reports from Google,
+Yahoo, xs4all and Netease.  
 
 It expects filenames on the command line, each of which contains a
 mail message, but it'd easy enough to adjust it to read stdin or
@@ -14,7 +14,7 @@ anywhere else.
 It works great on FreeBSD, can probably be made to work on linux with
 modest effort, no clue about other systems.  It needs the
 MIME::Parser, XML::Simple, and DBI perl modules and the freeware unzip
-program to extract stuff from the ZIP file.
+program to extract stuff from the gzip or ZIP file.
 
 It now handles both IPv4 and IPv6 addresses.  If you have been
 running the ipv4 version, see mkdmarc for instructions on how
