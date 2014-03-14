@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="std" docName="draft-kucherawy-dmarc-base-04" ipr="trust200902"
+<rfc category="std" docName="draft-kucherawy-dmarc-base-03" ipr="trust200902"
      updates="6591">
 
     <front>
