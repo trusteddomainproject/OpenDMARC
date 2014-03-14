@@ -1,10 +1,2 @@
 This directory includes the text version of the DMARC specification most
-recently released for public use by the DMARC.org organization.  The terms
-under which it is released can be found in the LICENSE file in this directory.
-Note that the terms found there apply only to the DMARC specification itself,
-and not to the remainder of this package.
-
-The LICENSE (called the Open Web Foundation Agreement v1.0, or OWFa 1.0)
-was signed by all of the members of DMARC.org prior to the time the document
-was made public.  To request copies of the signed versions of these
-agreements, contact questions@dmarc.org.
+recently released for public use by the DMARC.org organization.
