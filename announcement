@@ -1,25 +1,63 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v1.1.3 released
+Subject: OpenDMARC v1.2.0 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v1.1.3, now available for download from SourceForge.
+OpenDMARC v1.2.0, now available for download from SourceForge.
 
-This is a bug fix release that fixes one API bug and also corrects some
-issues with reporting of SPF results.  Upgrade is recommended.
+This is both a new feature and bug fix release.  Most of the new features are
+based on operatinal experience from the field after almost a year since our
+previous release.  Upgrade is recommended.
 
 The full RELEASE_NOTES for this version, showing changes since the last
 release:
 
-1.1.3		2013/04/13
-	Fix reporting of nonexistent SPF results.  Problem noted by
-		Andrei Ioachim.
-	Fix extraction of data from Received-SPF.  Problem noted by
-		Todd Lyons.
-	LIBOPENDMARC: Fix bug #47: Make sure that
-		opendmarc_policy_fetch_utilized_domain() returns the
-		organizational domain if that's the domain whose policy
-		was selected.  Reported by John Mears.
+1.2.0		2014/03/14
+	Feature request #44: Allow override of the From: field on forensic
+		reports.  Requested by Scott Kitterman.
+	Feature request #45: Log the host portion of ignored
+		Authentication-Results fields at "debug" level.  Suggested
+		by Andreas Schulze.
+	Feature request #56: Add "RequiredHeaders" setting to enforce syntax
+		checks against a message and reject those that don't comply.
+		Suggested by Franck Martin; additional code from Andreas
+		Schulze.
+	Feature request #65: Add "ForensicReportsBcc".  Requested by
+		Franck Martin.
+	Fix bug #46: Charitable tweak to a couple of log messages.  Requested
+		by Andreas Schulze.
+	Fix bug #55: The "SoftwareHeader" setting wasn't being set properly.
+		Problem noted by Birta Levente.
+	Fix bug #58: The "smtp.mailfrom" part of an Authentication-Results
+		field might contain only a domain name.  Problem noted by Scott
+		Kitterman.
+	Fix bug #60: Default AuthservID to the name provided by the MTA,
+		not the local host name, which is consistent with what
+		OpenDKIM does.  Suggested by Robbert Klarenbeek.
+	Merge request #2: Validate external recipients before adding them to
+		report recipient lists.  Code from Will Orr.
+	Record all DKIM results to the history file, rather than only
+		passing results.
+	BUILD: Fix bug #50: Check libbsd for strlcat() and strlcpy() so we
+		don't make our own when we don't need to.  Requested by
+		Scott Kitterman.
+	CONTRIB: Fix bug #52: Update path to draft RFC in contrib/spec.
+		Problem noted by Kevin San Diego.
+	CONTRIB: Fix bug #59: Allow database name, userid and password to be
+		specified on the command line rather than hard-coding them.
+		Problem noted by Scott Kitterman.
+	DOCS: Fix bug #48: Add a libopendmarc use overview page.
+	DOCS: Fix bug #53: Add man page for opendmarc-importstats.  Requested
+		by Scott Kitterman.
+	REPORTS: Fix bug #51: Check status after every phase of SMTP when
+		sending reports.  Suggested by Todd Lyons.
+	REPORTS: Fix DKIM status importing.
+	LIBOPENDMARC: Fix bug #68: Fix strict/relaxed checking logic when
+		a public suffix list is available.  Reported by
+		Andreas Schulze.
+	LIBOPENDMARC: Fixed a bug where in some instances the fetch of the
+		orgainizational domain could wrongly return the from domain. 
+	LIBOPENDMARC: Fix call to missing function.  Patch from William Orr.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
