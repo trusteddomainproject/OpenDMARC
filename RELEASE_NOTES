@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.2.0		2014/03/??
+1.2.0		2014/03/14
 	Feature request #44: Allow override of the From: field on forensic
 		reports.  Requested by Scott Kitterman.
 	Feature request #45: Log the host portion of ignored
