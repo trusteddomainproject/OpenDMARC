@@ -6,6 +6,8 @@ release, and a summary of the changes in that release.
 1.2.1		2014/03/??
 	Fix bug #72: Don't crash when From fields are absent.  Patch from
 		Andreas Schulze.
+	REPORTS: Fix bug #70: Fix date range generation in reports.  Patch
+		from Karol Augustin.
 
 1.2.0		2014/03/14
 	Feature request #44: Allow override of the From: field on forensic
