@@ -3,6 +3,10 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.2.1		2014/03/??
+	Fix bug #72: Don't crash when From fields are absent.  Patch from
+		Andreas Schulze.
+
 1.2.0		2014/03/14
 	Feature request #44: Allow override of the From: field on forensic
 		reports.  Requested by Scott Kitterman.
