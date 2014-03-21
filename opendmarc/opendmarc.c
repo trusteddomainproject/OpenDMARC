@@ -1993,14 +1993,27 @@ mlfi_eom(SMFICTX *ctx)
 	if (authservid == NULL)
 		authservid = hostname;
 
+	/* ensure there was a From field */
+	from = dmarcf_findheader(dfc, "From", 0);
+	if (from == NULL)
+	{
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_INFO,
+			       "%s: RFC5322 requirement error: missing From field; accepting",
+			       dfc->mctx_jobid);
+		}
+
+		return SMFIS_ACCEPT;
+	}
+
 	/* if requested, verify RFC5322-required headers (RFC5322 3.6) */
 	if (conf->conf_reqhdrs)
 	{
 		unsigned char* reqhdrs_error = NULL; /* no error */
 
-		if (dmarcf_findheader(dfc, "From", 0) == NULL ||
-		    dmarcf_findheader(dfc, "From", 1) != NULL)
-			reqhdrs_error = "not exactly one From field";
+		if (dmarcf_findheader(dfc, "From", 1) != NULL)
+			reqhdrs_error = "multiple From fields";
 
 		if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
 		    dmarcf_findheader(dfc, "Date", 1) != NULL)
@@ -2044,7 +2057,6 @@ mlfi_eom(SMFICTX *ctx)
 	}
 
 	/* extract From: domain */
-	from = dmarcf_findheader(dfc, "From", 0);
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
 	status = dmarcf_mail_parse(addrbuf, &user, &domain);
