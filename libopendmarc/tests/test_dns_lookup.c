@@ -129,12 +129,14 @@ int
 dmarc_dns_test_xdomain_query(void)
 {
 	DL3 domain_list[] = {
-		{"facebookmail.com", "d@ruf.agari.com", DMARC_PARSE_OKAY},
-		{"csh.rit.edu", "postmaster@csh.rit.edu", DMARC_PARSE_OKAY},
-		{"csh.rit.edu", "postmaster@mail.csh.rit.edu", DMARC_PARSE_OKAY},
-		{"linkedin.com", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
-		{"none.bcx.com", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
-		{"none.fnnfansavasdfjashfasfsdf.csadfsdf", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
+		{"facebookmail.com",			"d@ruf.agari.com", 		DMARC_PARSE_OKAY},
+		{"facebookmail.com",			"postmater@facebook.com", 	DMARC_DNS_ERROR_NO_RECORD},
+		{"facebook.com",			"postmater@facebook.com", 	DMARC_PARSE_OKAY},
+		{"csh.rit.edu",				"postmaster@csh.rit.edu", 	DMARC_PARSE_OKAY},
+		{"csh.rit.edu",				"postmaster@mail.csh.rit.edu",  DMARC_PARSE_OKAY},
+		{"linkedin.com", 			"worr@csh.rit.edu", 		DMARC_DNS_ERROR_NO_RECORD},
+		{"none.bcx.com",			"worr@csh.rit.edu", 		DMARC_DNS_ERROR_NO_RECORD},
+		{"none.fnnfansavasdfjashfasfsdf.csadf", "worr@csh.rit.edu", 		DMARC_DNS_ERROR_NO_RECORD},
 		{NULL, NULL, 0},
 	};
 
