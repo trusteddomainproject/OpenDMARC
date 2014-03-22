@@ -343,6 +343,6 @@ strip_local_part:
 		if (*ep == '.')
 			*ep = '\0';
 	}
-	(void) strncpy(buf, cp, buflen);
+	(void) strlcpy(buf, cp, buflen);
 	return buf;
 }

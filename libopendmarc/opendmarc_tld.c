@@ -19,7 +19,9 @@ opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
 	u_char  copy[MAXDNSHOSTNAME];
 
 	if (buf == NULL || buflen == 0 || domain == NULL)
+	{
 		return EINVAL;
+	}
 
 
 	(void) memset((char *)buf, '\0', buflen);
@@ -32,7 +34,9 @@ opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
 			break;
 	}
 	if (strlen(cp) == 0)
+	{
 		return EINVAL;
+	}
 	if (cp > domain)
 		--cp;
 	(void) memset((char *)copy, '\0', sizeof copy);
@@ -169,8 +173,6 @@ got_xn:
 			(void) strlcat((char *)revbuf, ".", sizeof revbuf);
 
 		vp = opendmarc_hash_lookup(hashp, revbuf, (void *)revbuf, strlen(revbuf));
-		if (vp == NULL)
-			printf("%s: %s\n", "opendmarc_hash_lookup", strerror(errno));
 		nlines++;
 	}
 	(void) fclose(fp);
@@ -226,7 +228,6 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 	
 	if (domain == NULL || tld == NULL || tld_len == 0)
 		return errno = EINVAL;
-
 	ret = opendmarc_reverse_domain(domain, revbuf, sizeof revbuf);
 	if (ret != 0)
 		return (errno == 0) ? EINVAL : errno;
@@ -239,7 +240,13 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 	(void) pthread_mutex_unlock(&TLD_hctx_mutex);
 # endif
 	if (vp == NULL)
-		return EINVAL;
+	{
+		/*
+		** No tld list was supplied so copy the domain and return.
+		*/
+		(void) strlcpy(tld, domain, tld_len);
+		return 0;
+	}
 
 	for (rp = revbuf + strlen(revbuf) -1; rp > revbuf; --rp)
 	{
