@@ -3,7 +3,13 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.2.0		2014/03/??
+1.2.1		2014/03/??
+	Fix bug #72: Don't crash when From fields are absent.  Patch from
+		Andreas Schulze.
+	REPORTS: Fix bug #70: Fix date range generation in reports.  Patch
+		from Karol Augustin.
+
+1.2.0		2014/03/14
 	Feature request #44: Allow override of the From: field on forensic
 		reports.  Requested by Scott Kitterman.
 	Feature request #45: Log the host portion of ignored
@@ -19,8 +25,8 @@ release, and a summary of the changes in that release.
 		by Andreas Schulze.
 	Fix bug #55: The "SoftwareHeader" setting wasn't being set properly.
 		Problem noted by Birta Levente.
-	Fix bug #58: The "smtp.mailfrom" part of an Authentication-Results field
-		might contain only a domain name.  Problem noted by Scott
+	Fix bug #58: The "smtp.mailfrom" part of an Authentication-Results
+		field might contain only a domain name.  Problem noted by Scott
 		Kitterman.
 	Fix bug #60: Default AuthservID to the name provided by the MTA,
 		not the local host name, which is consistent with what
