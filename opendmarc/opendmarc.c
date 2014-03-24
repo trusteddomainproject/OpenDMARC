@@ -2683,8 +2683,27 @@ mlfi_eom(SMFICTX *ctx)
 				status = pclose(out);
 				if (status != 0 && conf->conf_dolog)
 				{
-					syslog(LOG_ERR, "%s: pclose() returned status %d",
-					       dfc->mctx_jobid, status);
+					int val;
+					const char *how;
+
+					if (WIFEXITED(status))
+					{
+						how = "exited with status";
+						val = WEXITSTATUS(status);
+					}
+					else if (WIFSIGNALED(status))
+					{
+						how = "killed with signal";
+						val = WTERMSIG(status);
+					}
+					else
+					{
+						how = "returned status";
+						val = status;
+					}
+
+					syslog(LOG_ERR, "%s: pclose() %s %d",
+					       dfc->mctx_jobid, how, val);
 				}
 			}
 		}
