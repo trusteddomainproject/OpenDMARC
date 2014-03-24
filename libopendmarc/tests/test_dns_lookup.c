@@ -17,6 +17,7 @@ dmarc_dns_test_record(void)
 		{"_dmarc.bcx.com", TRUE, TRUE, "DMARC record found"},
 		{"bcx.org._report._dmarc.bcx.com", TRUE, TRUE, "DMARC _report record found"},
 		{"_dmarc.mail.bcx.com", FALSE, FALSE, "Existing domain, no DMARC"},
+		{"*._report._dmarc.bcx.com", TRUE, TRUE, "DMARC record found"},
 		{"_dmarc.none.bcx.com",	FALSE, FALSE, "No such domain"},
 		{"web.de", FALSE, FALSE, "Existing domain, no DMARC"},
 		/* {"_dmarc.sf1.i.bcx.com", TRUE, TRUE, "Got DMARC record via CNAME"}, */
@@ -89,6 +90,7 @@ dmarc_dns_test_query(void)
 		{"mail.bcx.com",FALSE, 	DMARC_DNS_ERROR_NO_RECORD},
 		{"none.bcx.com",FALSE, 	DMARC_DNS_ERROR_NO_RECORD},
 		{"web.de",	FALSE, 	DMARC_DNS_ERROR_NO_RECORD},
+		{"service3.zalando-lounge.de", TRUE, DMARC_PARSE_OKAY},
 		{"service3.zalando-lounge.de", FALSE, DMARC_PARSE_OKAY},
 		{"service3.zalando-lounge.de", TRUE, DMARC_PARSE_OKAY},
 		{NULL, 0},
@@ -108,11 +110,11 @@ dmarc_dns_test_query(void)
 		pctx = opendmarc_policy_connect_shutdown(pctx);
 		if (status != dp->status)
 		{
-			printf("\t%s(%d): %s: %d: FAIL.\n", __FILE__, __LINE__, dp->domain, status);
+			printf("\t%s(%d): %s: status=%d, sought_status=%d: FAIL.\n", __FILE__, __LINE__, dp->domain, status, dp->status);
 			++failures;
 			continue;
 		}
-		//printf("\t%s(%d): %s: %d: PASS.\n", __FILE__, __LINE__, dp->domain, status);
+		//printf("\t%s(%d): %s: status=%d, sought_status=%d: PASS.\n", __FILE__, __LINE__, dp->domain, status, dp->status);
 		++success;
 	}
 	printf("Test opendmarc_policy_query_dmarc(): %d pass, %d fail\n", success, failures);
@@ -129,12 +131,14 @@ int
 dmarc_dns_test_xdomain_query(void)
 {
 	DL3 domain_list[] = {
-		{"facebookmail.com", "d@ruf.agari.com", DMARC_PARSE_OKAY},
-		{"csh.rit.edu", "postmaster@csh.rit.edu", DMARC_PARSE_OKAY},
-		{"csh.rit.edu", "postmaster@mail.csh.rit.edu", DMARC_PARSE_OKAY},
-		{"linkedin.com", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
-		{"none.bcx.com", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
-		{"none.fnnfansavasdfjashfasfsdf.csadfsdf", "worr@csh.rit.edu", DMARC_DNS_ERROR_NO_RECORD},
+		{"facebookmail.com",			"d@ruf.agari.com", 		DMARC_PARSE_OKAY},
+		{"facebookmail.com",			"postmater@facebook.com", 	DMARC_DNS_ERROR_NO_RECORD},
+		{"facebook.com",			"postmater@facebook.com", 	DMARC_PARSE_OKAY},
+		{"csh.rit.edu",				"postmaster@csh.rit.edu", 	DMARC_PARSE_OKAY},
+		{"csh.rit.edu",				"postmaster@mail.csh.rit.edu",  DMARC_PARSE_OKAY},
+		{"linkedin.com", 			"worr@csh.rit.edu", 		DMARC_DNS_ERROR_NO_RECORD},
+		{"none.bcx.com",			"worr@csh.rit.edu", 		DMARC_DNS_ERROR_NO_RECORD},
+		{"none.fnnfansavasdfjashfasfsdf.csadf", "worr@csh.rit.edu", 		DMARC_DNS_ERROR_NO_RECORD},
 		{NULL, NULL, 0},
 	};
 
@@ -149,8 +153,8 @@ dmarc_dns_test_xdomain_query(void)
 		pctx = opendmarc_policy_connect_init("0.0.0.0", FALSE);
 		pctx->from_domain = strdup(dp->domain);
 		status = opendmarc_policy_query_dmarc_xdomain(pctx, dp->uri);
-		pctx = opendmarc_policy_connect_shutdown(pctx);
 
+		pctx = opendmarc_policy_connect_shutdown(pctx);
 		if (status != dp->status)
 		{
 			printf("\t%s(%d): %s, %s: %d: FAIL.\n", __FILE__, __LINE__, dp->domain, dp->uri, status);
