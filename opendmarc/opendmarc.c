@@ -1995,17 +1995,6 @@ mlfi_eom(SMFICTX *ctx)
 
 	/* ensure there was a From field */
 	from = dmarcf_findheader(dfc, "From", 0);
-	if (from == NULL)
-	{
-		if (conf->conf_dolog)
-		{
-			syslog(LOG_INFO,
-			       "%s: RFC5322 requirement error: missing From field; accepting",
-			       dfc->mctx_jobid);
-		}
-
-		return SMFIS_ACCEPT;
-	}
 
 	/* if requested, verify RFC5322-required headers (RFC5322 3.6) */
 	if (conf->conf_reqhdrs)
@@ -2054,6 +2043,19 @@ mlfi_eom(SMFICTX *ctx)
 
 			return SMFIS_REJECT;
 		}
+	}
+
+	/* if there was no From:, there's nothing to process past here */
+	if (from == NULL)
+	{
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_INFO,
+			       "%s: RFC5322 requirement error: missing From field; accepting",
+			       dfc->mctx_jobid);
+		}
+
+		return SMFIS_ACCEPT;
 	}
 
 	/* extract From: domain */
