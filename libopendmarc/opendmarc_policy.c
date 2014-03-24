@@ -1059,7 +1059,6 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			for (xp = vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];
-				int	ret;
 
 				yp = strchr(xp, ',');
 				if (yp != NULL)
@@ -1068,10 +1067,8 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					ret = opendmarc_policy_query_dmarc_xdomain(pctx, xp);
-					if (ret == DMARC_PARSE_OKAY)
-						pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
-											&(pctx->rua_cnt));
+					pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
+										&(pctx->rua_cnt));
 				}
 				if (yp != NULL)
 					xp = yp+1;
@@ -1090,7 +1087,6 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			for (xp = vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];
-				int	ret;
 
 				yp = strchr(xp, ',');
 				if (yp != NULL)
@@ -1099,10 +1095,8 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
 				if (xp != NULL || strlen((char *)xp) > 0)
 				{
-					ret = opendmarc_policy_query_dmarc_xdomain(pctx, xp);
-					if (ret == DMARC_PARSE_OKAY)
-						pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
-											&(pctx->ruf_cnt));
+					pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
+										&(pctx->ruf_cnt));
 				}
 				if (yp != NULL)
 					xp = yp+1;
@@ -1300,6 +1294,7 @@ opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 {
 	u_char *sp, *ep, *rp;
 	int	i;
+	int	ret;
 
 	if (pctx == NULL)
 	{
@@ -1312,6 +1307,9 @@ opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 		ep = list_buf + size_of_buf;
 		for (i = 0; i < pctx->rua_cnt; i++)
 		{
+			ret = opendmarc_policy_query_dmarc_xdomain(pctx, pctx->rua_list[i]);
+			if (ret != DMARC_PARSE_OKAY)
+				continue;
 			for (rp = (pctx->rua_list)[i]; *rp != '\0'; ++rp)
 			{
 				*sp++ = *rp;
@@ -1354,6 +1352,7 @@ opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 {
 	u_char *sp, *ep, *rp;
 	int	i;
+	int	ret;
 
 	if (pctx == NULL)
 	{
@@ -1366,6 +1365,9 @@ opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 		ep = list_buf + size_of_buf;
 		for (i = 0; i < pctx->ruf_cnt; i++)
 		{
+			ret = opendmarc_policy_query_dmarc_xdomain(pctx, pctx->ruf_list[i]);
+			if (ret != DMARC_PARSE_OKAY)
+				continue;
 			for (rp = (pctx->ruf_list)[i]; *rp != '\0'; ++rp)
 			{
 				*sp++ = *rp;

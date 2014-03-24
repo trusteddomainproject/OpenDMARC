@@ -74,6 +74,7 @@ Query the library to find the list of <tt>ruf=</tt> values from the <tt>DMARC</t
 <a href="opendmarc_policy_query_dmarc.html">opendmarc_policy_query_dmarc()</a>
 or supplied to the library with
 <a href="opendmarc_policy_store_dmarc.html">opendmarc_policy_store_dmarc()</a>.
+<li>Note that each returned record is looked up using DNS to find if it is accepting reports for the from_domain. If not, it is eliminated from the returned list.
 </ul>
 </td>
 </tr>
