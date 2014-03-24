@@ -2001,8 +2001,9 @@ mlfi_eom(SMFICTX *ctx)
 	{
 		unsigned char* reqhdrs_error = NULL; /* no error */
 
-		if (dmarcf_findheader(dfc, "From", 1) != NULL)
-			reqhdrs_error = "multiple From fields";
+		if (from == NULL ||
+		    dmarcf_findheader(dfc, "From", 1) != NULL)
+			reqhdrs_error = "not exactly one From field";
 
 		if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
 		    dmarcf_findheader(dfc, "Date", 1) != NULL)
