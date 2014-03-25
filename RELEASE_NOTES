@@ -10,6 +10,8 @@ release, and a summary of the changes in that release.
 		non-zero.  Problem noted by Michael Nausch.
 	REPORTS: Fix bug #70: Fix date range generation in reports.  Patch
 		from Karol Augustin.
+	LIBOPENDMARC: Fix bug #71: Fix "rua" extraction from DMARC records
+		Problem noted by Karol Augustin.
 
 1.2.0		2014/03/14
 	Feature request #44: Allow override of the From: field on forensic
