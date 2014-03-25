@@ -1264,17 +1264,23 @@
             <!-- Failure Reports -->
 
             <section anchor="fb_failure" title="Utility of Failure Reports">
-                <t> Failure reports can also be used to identify problems with infrastructure controlled
-                    by Domain Owners and to investigate the sources and causes of failing messages.
-                    They might also be used to aid investigations into the sources and objectives of
-                    fraudulent messages. </t>
+		<t> Failure reports are normally generated and sent almost
+		    immediately after the Mail Receiver detects an
+		    authentication failure.  Rather than waiting for an
+		    aggregate report, these reports are useful for quickly
+		    notifying the Domain Owners when there is an
+		    authentication failure.  Whether the failure is due to an
+		    infrastructure problem or the message is inauthentic,
+		    failure reports also provide more information about the
+		    failed message than is available in an aggregate
+		    report. </t>
 
-                <t> These reports SHOULD include the "call-to-action" URI(s) from inside messages
-                    that failed to authenticate. </t>
-
-		<t> Failure reports have the advantage of being generated almost immediately
-		    when the failure has occurred.  This is in contrast to the aggregate
-		    reports, which are typically sent hourly. </t>
+		<t> These reports SHOULD include any URI(s) from the message
+		    that failed authentication.  These reports SHOULD include
+		    as much of the message and message header as is reasonable
+		    to support the Domain Owner's investigation into what
+		    caused the message to fail authentication and track down
+		    the sender. </t>
             </section>
             <!-- Failure Feedback -->
         </section>
