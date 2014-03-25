@@ -207,7 +207,7 @@
                     for several reasons, more likely to be delivered to the inbox. (For instance,
                     many MUAs (Mail User Agents) support whitelisting of From: domains by end-users.) It is more
                     damaging to the organizations being spoofed because the
-`                   email, being indistinguishable to the user from legitimate
+                    email, being indistinguishable to the user from legitimate
                     email, severely damages the reputation of the organization. </t>
 
                 <t>Current email authentication systems appear sufficient to prevent these attacks,
@@ -860,7 +860,7 @@
                             Receiver at the request of the Domain Owner. It applies only to
                             subdomains of the domain queried and not to the domain itself. Its
                             syntax is identical to that of the "p" tag defined above. If absent, the
-                            policy specified by the "p" tag MUST be applied for subdomains. Note
+                            policy specified by the "p" tag MUST be applied for subdomains. Note that
                             "sp" will be ignored for DMARC records published on sub-domains of
                             Organizational Domains due to the effect of the DMARC Policy Discovery mechanism
                             described in <xref target="policy_discovery" />.</t>
@@ -1264,13 +1264,17 @@
             <!-- Failure Reports -->
 
             <section anchor="fb_failure" title="Utility of Failure Reports">
-                <t> Failure reports can be used to identify problems with infrastructure controlled
+                <t> Failure reports can also be used to identify problems with infrastructure controlled
                     by Domain Owners and to investigate the sources and causes of failing messages.
                     They might also be used to aid investigations into the sources and objectives of
                     fraudulent messages. </t>
 
                 <t> These reports SHOULD include the "call-to-action" URI(s) from inside messages
                     that failed to authenticate. </t>
+
+		<t> Failure reports have the advantage of being generated almost immediately
+		    when the failure has occurred.  This is in contrast to the aggregate
+		    reports, which are typically sent hourly. </t>
             </section>
             <!-- Failure Feedback -->
         </section>
@@ -1615,7 +1619,9 @@
                 <!-- Email Transport -->
 
                 <section anchor="other_transport_fb_mech" title="Other Methods">
-                    <t>Other registered URI schemes may be explicitly supported in later versions.
+                    <t>The specification as written allows for the addition of
+			other registered URI schemes to be supported in later
+			versions.
                     </t>
                 </section>
                 <!-- Other Transport -->
