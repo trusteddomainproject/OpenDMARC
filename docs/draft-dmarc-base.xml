@@ -3758,8 +3758,8 @@
   &lt;/xs:sequence&gt;
 &lt;/xs:complexType&gt;
 
-&lt;!-- This element contains all the authentication results used
-     to evaluate the DMARC disposition for the given set of
+&lt;!-- This element contains all the authentication results that
+     were evaluated by the receiving system for the given set of
      messages. --&gt;
 &lt;xs:complexType name="RecordType"&gt;
   &lt;xs:sequence&gt;
