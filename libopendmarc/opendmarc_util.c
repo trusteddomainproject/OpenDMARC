@@ -1,6 +1,5 @@
 /*************************************************************************
-** $Id: opendmarc_util.c,v 1.2 2010/12/03 23:06:48 bcx Exp $
-**  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012, 2014, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 #include "opendmarc_internal.h"
 #include "opendmarc_strl.h"

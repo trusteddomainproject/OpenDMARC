@@ -3,7 +3,7 @@
 **	DMARC_DNS_GET_RECORD -- looks up and returns the txt record
 **	DMARC_DNS_TEST_RECORD -- hook to test
 ** 
-**  Copyright (c) 2012, 2013, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
 ************************************************************************/ 
 #ifndef BIND_8_COMPAT
 # define BIND_8_COMPAT
