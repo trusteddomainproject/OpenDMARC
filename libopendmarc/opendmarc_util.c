@@ -3,6 +3,7 @@
 **  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 #include "opendmarc_internal.h"
+#include "opendmarc_strl.h"
 
 /*****************************************************
 **  OPENDMARC_UTIL_CLEARARGV -- Free the argv array

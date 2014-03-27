@@ -179,7 +179,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	/*
 	 * Copy the domain so we can scribble on it. The orginal
 	 * may point to a static string.
-	 * We should use strlcopy(), but not all systems have it.
+	 * We should use strlcpy(), but not all systems have it.
 	 */
 	(void) memset(hbuf, '\0', sizeof hbuf);
 	(void) strncpy(hbuf, domain, sizeof hbuf - 1);
