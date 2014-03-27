@@ -2595,7 +2595,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Content-Type: multipart/report;"
-			                      "\n\treport-type=feedbackreport;"
+			                      "\n\treport-type=feedback-report;"
 			                      "\n\tboundary=\"%s:%s\"\n",
 			                      hostname, dfc->mctx_jobid);
 
