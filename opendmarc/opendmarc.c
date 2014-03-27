@@ -1294,10 +1294,8 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		}
 	}
 
-	if (conf->conf_authservid == NULL)
-		conf->conf_authservid = strdup(myhostname);
-
-	if (conf->conf_trustedauthservids == NULL)
+	if (conf->conf_trustedauthservids == NULL &&
+	    conf->conf_authservid != NULL)
 	{
 		dmarcf_mkarray(conf->conf_authservid,
 		               &conf->conf_trustedauthservids);
@@ -2134,7 +2132,8 @@ mlfi_eom(SMFICTX *ctx)
 			continue;
 
 		/* skip it if it's not one of ours */
-		if (!dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
+		if (strcasecmp(ar.ares_host, authservid) != 0 &&
+		    !dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
 		                  FALSE))
 		{
 			unsigned char *slash;
@@ -2167,7 +2166,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 
 			*slash = '\0';
-			if (!dmarcf_match(ar.ares_host,
+			if (strcasecmp(ar.ares_host, authservid) != 0 &&
+			    !dmarcf_match(ar.ares_host,
 			                  conf->conf_trustedauthservids,
 			                  FALSE) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
