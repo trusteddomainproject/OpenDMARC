@@ -4315,8 +4315,12 @@ main(int argc, char **argv)
 		       VERSION, argstr);
 
 		memset(argstr, '\0', sizeof argstr);
+		strlcpy(argstr, "(none)", sizeof argstr);
 		n = sizeof argstr;
-		for (c = 0; curconf->conf_trustedauthservids[c] != NULL; c++)
+		for (c = 0;
+		     curconf->conf_trustedauthservids != NULL &&
+		     curconf->conf_trustedauthservids[c] != NULL;
+		     c++)
 		{
 			if (c != 0)
 				strlcat(argstr, ", ", n);
