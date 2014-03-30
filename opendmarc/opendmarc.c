@@ -4322,11 +4322,19 @@ main(int argc, char **argv)
 		     curconf->conf_trustedauthservids[c] != NULL;
 		     c++)
 		{
-			if (c != 0)
+			if (c == 0)
+			{
+				strlcpy(argstr, 
+				        curconf->conf_trustedauthservids[c],
+				        n);
+			}
+			else
+			{
 				strlcat(argstr, ", ", n);
-			strlcat(argstr,
-			        curconf->conf_trustedauthservids[c],
-			        n);
+				strlcat(argstr,
+				        curconf->conf_trustedauthservids[c],
+				        n);
+			}
 		}
 
 		syslog(LOG_INFO, "trusted authentication services: %s",
