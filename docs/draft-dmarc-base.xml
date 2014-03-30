@@ -712,7 +712,7 @@
                     point and a maximum size specification, and, if there are additional reporting
                     URIs in the list, a comma and the next URI. </t>
 
-                <t> For example, the URI "mailto:reports@example.com%2550m" would request a report be
+                <t> For example, the URI "mailto:reports@example.com%2150m" would request a report be
                     sent via email to "reports@example.com" so long as the report payload does not
                     exceed 50 megabytes. </t>
 
