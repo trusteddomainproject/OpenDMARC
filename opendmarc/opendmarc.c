@@ -2133,8 +2133,9 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* skip it if it's not one of ours */
 		if (strcasecmp(ar.ares_host, authservid) != 0 &&
-		    !dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
-		                  FALSE))
+		    (conf->conf_trustedauthservids != NULL &&
+		     !dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
+		                   FALSE)))
 		{
 			unsigned char *slash;
 
@@ -2167,9 +2168,10 @@ mlfi_eom(SMFICTX *ctx)
 
 			*slash = '\0';
 			if (strcasecmp(ar.ares_host, authservid) != 0 &&
-			    !dmarcf_match(ar.ares_host,
-			                  conf->conf_trustedauthservids,
-			                  FALSE) ||
+			    (conf->conf_trustedauthservids != NULL &&
+			     !dmarcf_match(ar.ares_host,
+			                   conf->conf_trustedauthservids,
+			                   FALSE)) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
 			{
 				*slash = '/';
