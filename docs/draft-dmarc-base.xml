@@ -18,9 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="std" docName="draft-kucherawy-dmarc-base-03" ipr="trust200902"
-     updates="6591">
-
+<rfc category="info" docName="draft-kucherawy-dmarc-base-04" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -1189,7 +1187,7 @@
                 <t> When a Domain Owner requests failure reports for the purpose of forensic
                     analysis, and the Mail Receiver is willing to provide such reports, the Mail
                     Receiver generates and sends a message using the format described in <xref
-                        target="AFRF" />. This document updates the AFRF format as described in
+                        target="AFRF" />. This document proposes updates the AFRF format as described in
                         <xref target="afrf_update" />. </t>
 
                 <t> The format for failure reports is defined in either <xref target="AFRF" /> or
@@ -1222,9 +1220,9 @@
 
                 <section anchor="afrf_update" title="Reporting Format Update">
                     <t>
-                        <xref target="AFRF" /> is updated to include the following changes: <list
+                        Operators implementing this specification also implement an augmented version of <xref target="AFRF" /> as follows: <list
                             style="numbers">
-                            <t> Section 3.2 is updated to indicate that a DMARC failure report
+                            <t> A DMARC failure report
                                 includes the following ARF header fields, with the indicated
                                 normative requirement levels: <list style="symbols">
                                     <t> Identity-Alignment (REQUIRED; defined below) </t>
@@ -1237,8 +1235,8 @@
                                 </list>
                             </t>
 
-                            <t> Section 3.2 is updated to define the "Identity-Alignment" field as
-                                containing a comma-separated list of authentication mechanism names
+                            <t> The "Identity-Alignment" field is defined to
+                                contain a comma-separated list of authentication mechanism names
                                 that produced an aligned identity, or the keyword "none" if none
                                 did. ABNF: <figure>
                                     <artwork>
@@ -1251,7 +1249,7 @@
                  ; each may appear at most once in an id-align</artwork>
                                 </figure></t>
 
-                            <t> Section 3.3 is updated to add Authentication Failure Type "dmarc",
+                            <t> Authentication Failure Type "dmarc" is defined,
                                 which is to be used when a failure report is generated because some
                                 or all of the authentication mechanisms failed to produce aligned
                                 identifiers. Note that a failure report generator MAY also
