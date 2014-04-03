@@ -2167,11 +2167,11 @@ mlfi_eom(SMFICTX *ctx)
 			}
 
 			*slash = '\0';
-			if (strcasecmp(ar.ares_host, authservid) != 0 &&
-			    (conf->conf_trustedauthservids != NULL &&
-			     !dmarcf_match(ar.ares_host,
-			                   conf->conf_trustedauthservids,
-			                   FALSE)) ||
+			if ((strcasecmp(ar.ares_host, authservid) != 0 &&
+			     (conf->conf_trustedauthservids != NULL &&
+			      !dmarcf_match(ar.ares_host,
+			                    conf->conf_trustedauthservids,
+			                    FALSE))) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
 			{
 				*slash = '/';
