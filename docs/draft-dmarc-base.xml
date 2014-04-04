@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="info" docName="draft-kucherawy-dmarc-base-04" ipr="trust200902">
+<rfc category="info" docName="draft-kucherawy-dmarc-base-05" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -911,38 +911,38 @@
                     ; components other than dmarc-version and
                     ; dmarc-request may appear in any order
 
-  dmarc-version   = %x76 *WSP "=" %x44 %x4d %x41 %x52 %x43 %x31
+  dmarc-version   = "v" *WSP "=" %x44 %x4d %x41 %x52 %x43 %x31
 
   dmarc-sep       = *WSP %3b *WSP
 
-  dmarc-request   = %x70 *WSP "=" *WSP 
+  dmarc-request   = "p" *WSP "=" *WSP 
                     ( "none" / "quarantine" / "reject" )
 
-  dmarc-srequest  = %x73 %x70 *WSP "=" *WSP 
+  dmarc-srequest  = "sp" *WSP "=" *WSP 
                     ( "none" / "quarantine" / "reject" )
 
-  dmarc-auri      = %x72 %x75 %x61 *WSP "=" *WSP
+  dmarc-auri      = "rua" *WSP "=" *WSP
                     dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
-  dmarc-furi      = %x72 %x75 %x66 *WSP "=" *WSP
+  dmarc-furi      = "ruf" *WSP "=" *WSP
                      dmarc-uri *(*WSP "," *WSP dmarc-uri)
 
-  dmarc-adkim     = %x61 %x64 %x6b %x69 %x6d *WSP "=" *WSP
+  dmarc-adkim     = "adkim" *WSP "=" *WSP
                     ( "r" / "s" )
 
-  dmarc-aspf      = %x61 %x73 %x70 %x66 *WSP "=" *WSP
+  dmarc-aspf      = "aspf" *WSP "=" *WSP
                     ( "r" / "s" )
 
-  dmarc-ainterval = %x72 %x69 *WSP "=" *WSP 1*DIGIT
+  dmarc-ainterval = "ri" *WSP "=" *WSP 1*DIGIT
 
-  dmarc-fo        = %x66 %x6f *WSP "=" *WSP
+  dmarc-fo        = "fo" *WSP "=" *WSP
                     ( "0" / "1" / "d" / "s" )
                     *(*WSP ":" *WSP ( "0" / "1" / "d" / "s" ))
 
-  dmarc-rfmt      = %x72 %x66  *WSP "=" *WSP
+  dmarc-rfmt      = "rf"  *WSP "=" *WSP
                     ( "afrf" / "iodef" )
 
-  dmarc-percent   = %x70 %x63 %x74 *WSP "=" *WSP
+  dmarc-percent   = "pct" *WSP "=" *WSP
                      1*3DIGIT
                     </artwork>
                 </figure>
@@ -952,8 +952,6 @@
                     "g" for gigabytes, "t" for terabytes). Without a unit, the number is presumed to
                     be a basic byte count. Note that the units are considered to be powers of two; a
                     kilobyte is 2^10, a megabyte is 2^20, etc. </t>
-
-                <t> Tag and value matching is case-insensitive. </t>
             </section>
             <!-- Formal Definition -->
         </section>
