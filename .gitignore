@@ -20,3 +20,4 @@ opendmarc*.gz.asc
 *.orig
 *.rej
 HOURS
+tags

@@ -277,6 +277,25 @@
 #
 # SoftwareHeader false
 
+##  SpfIgnoreResults { true | false }
+##	default "false"
+##
+##  Causes the filter to ignore any SPF results in the headers of the
+##  message. This is useful it you want the filter to perfrom SPF checks
+##  itself, or because you down't trust the arrival headers.
+#
+# SpfIgnoreResults false
+
+##  SpfSelfValidate { true | false }
+##	default false
+##
+##  Causes the filter to perfrom a fallback SPF check itself when
+##  it can find no SPF results in the message headers. If SpfIgnoreResults
+##  is also true, it never looks for SPF results in headers and
+##  always performs the SPF check itself but only if this is true.
+#
+# SpfSelfValidate false
+
 ##  Syslog { true | false }
 ##  	default "false"
 ##

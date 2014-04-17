@@ -119,6 +119,8 @@ struct dmarcf_connctx
 	struct sockaddr_storage	cctx_ip;
 	char			cctx_ipstr[BUFRSZ + 1];
 	char			cctx_host[MAXHOSTNAMELEN + 1];
+	char			cctx_helo[MAXHOSTNAMELEN + 1];
+	char			cctx_rawmfrom[MAXHOSTNAMELEN + 1];
 };
 typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 
@@ -134,6 +136,8 @@ struct dmarcf_config
 	_Bool			conf_addswhdr;
 	_Bool			conf_authservidwithjobid;
 	_Bool			conf_recordall;
+	_Bool			conf_spfignoreresults;
+	_Bool			conf_spfselfvalidate;
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
@@ -193,6 +197,7 @@ struct lookup log_facilities[] =
 sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));
 sfsistat mlfi_connect __P((SMFICTX *, char *, _SOCK_ADDR *));
+sfsistat mlfi_helo __P((SMFICTX *, char *));
 sfsistat mlfi_envfrom __P((SMFICTX *, char **));
 sfsistat mlfi_eom __P((SMFICTX *));
 sfsistat mlfi_header __P((SMFICTX *, char *, char *));
@@ -743,7 +748,7 @@ dmarcf_mkarray(char *str, char ***array)
 	int ns;
 	char *p;
 	char *ctx;
-	char **out;
+	char **out = NULL;
 
 	for (p = strtok_r(str, ",", &ctx);
 	     p != NULL;
@@ -1745,6 +1750,38 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 }
 
 /*
+**  MLFI_HELO -- handler for HELO/EHLO command; only used for spf checks if configured.
+**
+**  Parameters:
+**  	ctx -- milter context
+**  	helo_domain -- possible helo domain
+**
+**  Return value:
+**  	An SMFIS_* constant.
+*/
+
+sfsistat
+mlfi_helo(SMFICTX *ctx, char *helo_domain)
+{
+	DMARCF_CONNCTX cc;
+	struct dmarcf_config *conf;
+
+	assert(ctx != NULL);
+
+	cc = (DMARCF_CONNCTX) dmarcf_getpriv(ctx);
+	if (cc != NULL)
+	{
+		conf = cc->cctx_config;
+		if (conf->conf_spfselfvalidate == FALSE)
+			return SMFIS_CONTINUE;
+
+		if (helo_domain != NULL)
+			strncpy(cc->cctx_helo, helo_domain, sizeof cc->cctx_helo - 1);
+	}
+	return SMFIS_CONTINUE;
+}
+
+/*
 **  MLFI_ENVFROM -- handler for MAIL FROM command; used to reset for a message
 **
 **  Parameters:
@@ -1805,6 +1842,8 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 		unsigned char *p;
 		unsigned char *q;
 
+		strncpy(cc->cctx_rawmfrom, envfrom[0],
+			sizeof cc->cctx_rawmfrom - 1);
 		strncpy(dfc->mctx_envfrom, envfrom[0],
 		        sizeof dfc->mctx_envfrom - 1);
 
@@ -2166,10 +2205,10 @@ mlfi_eom(SMFICTX *ctx)
 			}
 
 			*slash = '\0';
-			if (strcasecmp(ar.ares_host, authservid) != 0 &&
+			if ((strcasecmp(ar.ares_host, authservid) != 0 &&
 			    !dmarcf_match(ar.ares_host,
 			                  conf->conf_trustedauthservids,
-			                  FALSE) ||
+			                  FALSE)) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
 			{
 				*slash = '/';
@@ -2374,12 +2413,84 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
-	if (!wspf)
-		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf -1\n");
-
 	/*
 	**  Interact with libopendmarc.
 	*/
+
+	if (!wspf)
+	{
+		if (conf->conf_spfselfvalidate == TRUE)
+		{
+			int spf_result;
+			char human[512];
+			int used_mfrom;
+			char *use_domain;
+			int spf_mode;
+			char *pass_fail;
+
+			spf_result = opendmarc_spf_test(cc->cctx_ipstr,
+								cc->cctx_rawmfrom,
+								cc->cctx_helo,
+								NULL,
+								FALSE,
+								human,
+								sizeof human,
+								&used_mfrom);
+			if (used_mfrom == TRUE)
+			{
+				use_domain = dfc->mctx_envfrom;
+				spf_mode   = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
+			}
+			else
+			{
+				use_domain = cc->cctx_helo;
+				spf_mode   = DMARC_POLICY_SPF_ORIGIN_HELO;
+			}
+			ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc, 
+				                                     use_domain,
+				                                     spf_result,
+				                                     spf_mode,
+				                                     human);
+			switch (spf_mode)
+			{
+			    case DMARC_POLICY_SPF_OUTCOME_PASS:
+				pass_fail = "pass";
+				break;
+			    case DMARC_POLICY_SPF_OUTCOME_NONE:
+				pass_fail = "none";
+				break;
+			    case DMARC_POLICY_SPF_OUTCOME_TMPFAIL:
+				pass_fail = "tmpfail";
+				break;
+			    default:
+			    case DMARC_POLICY_SPF_OUTCOME_FAIL:
+				pass_fail = "fail";
+				break;
+			}
+			if (spf_mode == DMARC_POLICY_SPF_ORIGIN_HELO)
+				snprintf(header, sizeof header,
+					 "%s; spf=%s header.from=%s",
+					 authservid, pass_fail, use_domain);
+			else
+				snprintf(header, sizeof header,
+					 "%s; spf=%s smtp.mailfrom=%s",
+					 authservid, pass_fail, use_domain);
+
+			if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+					     header) == MI_FAILURE)
+			{
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "%s: %s header add failed",
+					       dfc->mctx_jobid,
+					       AUTHRESULTSHDR);
+				}
+			}
+		}
+		else
+			dmarcf_dstring_printf(dfc->mctx_histbuf, "spf -1\n");
+	}
 
 	ostatus = opendmarc_policy_query_dmarc(cc->cctx_dmarc,
 	                                       dfc->mctx_fromdomain);
@@ -2998,7 +3109,7 @@ struct smfiDesc smfilter =
 	SMFI_VERSION,	/* version code -- do not change */
 	0,		/* flags; updated in main() */
 	mlfi_connect,	/* connection info filter */
-	NULL,		/* SMTP HELO command filter */
+	mlfi_helo,	/* SMTP HELO command filter */
 	mlfi_envfrom,	/* envelope sender filter */
 	NULL,		/* envelope recipient filter */
 	mlfi_header,	/* header filter */
