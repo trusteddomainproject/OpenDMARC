@@ -1,5 +1,5 @@
-
 #include "opendmarc_internal.h"
+#include "opendmarc_strl.h"
 
 /*
 ** Beware that some Linux versions incorrectly define 
@@ -14,8 +14,24 @@
 # define T_SPF	(99)
 #endif
 
+/***************************************************************************************************
+** opendmarc_spf_dns_lookup_a_actual -- Looks type of address that is sought
+**
+** Arguments:
+**	domain		-- the domain name to look up.
+**	sought		-- type of lookup A or AAA
+**	ary		-- array of strings containing list of IP addresses
+**	cnt		-- Pointer to count of lines in array
+** Returns:
+**	ary	-- on success
+**	NULL	-- otherise, and place the h_errno error into reply
+** Side Effects:
+**	Makes a connection to the local name server and blocks
+**	waiting for a reply.
+***************************************************************************************************/
+
 char **
-opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
+opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt)
 {
 	char *		bp;
 	u_char *	cp;
@@ -36,7 +52,6 @@ opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 #if HAVE_RES_NINIT
 	struct __res_state resp;
 #endif /* HAVE_RES_NINIT */
-
 
 	/*
 	 * If a null or empy domain was given to us, just say it
@@ -73,10 +88,10 @@ opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 		++bp;
 
 #ifdef HAVE_RES_NINIT
-	k = res_nquery(&resp, bp, C_IN, T_A, a_buf, sizeof a_buf);
+	k = res_nquery(&resp, bp, C_IN, sought, a_buf, sizeof a_buf);
 	res_nclose(&resp);
 #else /* HAVE_RES_NINIT */
-	k = res_query(bp, C_IN, T_A, a_buf, sizeof a_buf);
+	k = res_query(bp, C_IN, type, sought, sizeof a_buf);
 #endif /* HAVE_RES_NINIT */
 	if (k < 0)
 	{
@@ -134,7 +149,7 @@ opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 			cp += k;
 			continue;
 		}
-		if (type != T_A)
+		if (type != type)
 		{
 			cp += l;
 			continue;
@@ -150,6 +165,47 @@ opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 	return ary;
 }
 
+/***************************************************************************************************
+** opendmarc_spf_dns_lookup_a -- Looks up the IPv4 and IPv6 addresses of the domain
+**
+** Arguments:
+**	domain		-- the domain name to look up.
+**	ary		-- array of strings containing list of IP addresses
+**	cnt		-- Pointer to count of lines in array
+** Returns:
+**	ary	-- on success
+**	NULL	-- otherise, and place the h_errno error into reply
+** Side Effects:
+**	Makes a connection to the local name server and blocks
+**	waiting for a reply.
+***************************************************************************************************/
+char **
+opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
+{
+	char **retp;
+
+	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
+#ifdef T_AAA
+	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAA, ary, cnt);
+#endif /* T_AAA */
+	return retp;
+}
+
+/***************************************************************************************************
+** opendmarc_spf_dns_lookup_mx -- Looks up the MX records for a domain
+**
+** Arguments:
+**	domain		-- The domain name to look up.
+**	ary		-- Array of strings containing list MX hosts
+##			   Note that spf only cares if they exist.
+**	cnt		-- Pointer to count of lines in array
+** Returns:
+**	ary	-- on success
+**	NULL	-- otherise, and place the h_errno error into reply
+** Side Effects:
+**	Makes a connection to the local name server and blocks
+**	waiting for a reply.
+***************************************************************************************************/
 char **
 opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt)
 {
@@ -224,80 +280,21 @@ opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt)
 	return ary;
 }
 
-char **
-opendmarc_spf_dns_lookup_mx_domain(char *domain, char **ary, int *cnt)
-{
-	register u_char *eob, *cp;
-	register int k;
-	u_char buf[BUFSIZ];
-	HEADER *hp;
-	union {
-		HEADER  h;
-		u_char  u[PACKETSZ];
-	} q;
-	int acnt, qdcnt;
-	u_short pref;
-	u_short type;
-	u_long ttl;
-	extern int h_errno;
-#if HAVE_RES_NINIT
-	struct __res_state resp;
-#endif /* HAVE_RES_NINIT */
-
-	if (domain == NULL)
-	{
-		return NULL;
-	}
-
-#ifdef HAVE_RES_NINIT 
-        memset(&resp, '\0', sizeof resp);
-	res_ninit(&resp);
-	k = res_nquery(&resp, domain, C_IN, T_MX, (u_char *) &q, sizeof(q));
-	res_nclose(&resp);
-#else /* HAVE_RES_NINIT */
-	k = res_query(domain, C_IN, T_MX, (u_char *) &q, sizeof(q));
-#endif /* HAVE_RES_NINIT */
-
-	if (k < 0)
-	{
-		return NULL;
-	}
-	hp  = &(q.h);  
-	cp  = q.u + HFIXEDSZ;
-	eob = q.u + k;
-
-	for (qdcnt = ntohs(hp->qdcount); qdcnt--; cp += k + QFIXEDSZ)
-		if ((k = dn_skipname(cp, eob)) < 0)
-		{
-			return NULL;
-		}
-
-	acnt = ntohs(hp->ancount);
-	while (--acnt >= 0 && cp < eob)
-	{
-		if ((k = dn_expand(q.u, eob, cp, (char *)buf, BUFSIZ-1)) < 0)
-			break;
-		cp += k;
-		if (cp > eob)
-			break;
-		GETSHORT(type, cp);
-		cp += INT16SZ;
-		GETLONG(ttl, cp);
-		GETSHORT(k, cp);
-		if (type != T_MX)
-		{
-			cp += k;
-			continue;
-		}
-		GETSHORT(pref, cp);
-		if ((k = dn_expand(q.u, eob, cp, (char *)buf, BUFSIZ-1)) < 0)
-			break;
-		cp += k;
-		ary = opendmarc_util_pushnargv((char *)buf, ary, cnt);
-	}
-	return ary;
-}
-
+/***************************************************************************************************
+** opendmarc_spf_dns_lookup_ptr -- Looks up IP address to get domain 
+**
+** Arguments:
+**	domain		-- The domain name to look up.
+**	ary		-- Array of strings containing list MX hosts
+##			   Note that spf only cares if they exist.
+**	cnt		-- Pointer to count of lines in array
+** Returns:
+**	ary	-- on success
+**	NULL	-- otherise, and place the h_errno error into reply
+** Side Effects:
+**	Makes a connection to the local name server and blocks
+**	waiting for a reply.
+***************************************************************************************************/
 char **
 opendmarc_spf_dns_lookup_ptr(char *ip, char **ary, int *cnt)
 {
@@ -396,78 +393,6 @@ opendmarc_spf_dns_lookup_ptr(char *ip, char **ary, int *cnt)
 	return ary;
 }
 
-int
-opendmarc_spf_dns_cidr_address(char *addr, u_long *hi, u_long *lo)
-{
-	char *cidr;
-	char *cp, *ep;
-	char buf[BUFSIZ];
-	u_long i;
-	u_long bits;
-	u_long mask;
-	u_long high, low;
-	struct sockaddr_in sin;
-
-	if (hi == NULL)
-		hi = &high;
-	if (lo == NULL)
-		lo = &low;
-
-	if (addr == NULL)
-		return FALSE;
-
-	(void) memset(buf, '\0', sizeof buf);
-	(void) strlcpy(buf, addr, sizeof buf);
-
-	cidr = strchr(buf, '/');
-	if (cidr == NULL)
-	{
-		if (inet_aton(addr, &sin.sin_addr) != 0)
-		{
-			(void)memcpy(lo, &sin.sin_addr, sizeof(sin.sin_addr));
-			(void)memcpy(hi, &sin.sin_addr, sizeof(sin.sin_addr));
-		}
-		return TRUE;
-	}
-	*cidr++ = '\0';
-	bits = strtoul(cidr, NULL, 10);
-
-	cp = buf;
-	ep = strchr(buf, '.');
-	if (ep == NULL)
-		return FALSE;
-	*ep++ = '\0';
-	i = strtoul(cp, NULL, 10) << 24;
-
-	cp = ep;
-	ep = strchr(cp, '.');
-	if (ep == NULL)
-		return FALSE;
-	*ep++ = '\0';
-	i += strtoul(cp, NULL, 10) << 16;
-
-	cp = ep;
-	ep = strchr(cp, '.');
-	if (ep == NULL)
-		return FALSE;
-	*ep++ = '\0';
-	i += strtoul(cp, NULL, 10) << 8;
-
-	cp = ep;
-	i += strtoul(cp, NULL, 10);
-
-	mask = (bits == 0) ? 0 : ~(u_long)0 << (32 - bits);
-
-	low = i & mask;
-	high = i | (~mask & 0xFFFFFFFF);
-
-	(void)memcpy(lo, &low, sizeof(sin.sin_addr));
-	(void)memcpy(hi, &high, sizeof(sin.sin_addr));
-
-	return TRUE;
-}
-
-
 /***************************************************************
 ** opendmarc_spf_dns_does_domain_exist -- does an a, aaaa, or mx record exist?
 **
@@ -515,12 +440,16 @@ opendmarc_spf_dns_does_domain_exist(char *domain, int *reply)
         memset(&resp, '\0', sizeof resp);
 	res_ninit(&resp);
         (void) res_nquery(&resp, domain, C_IN, T_A, a_q, sizeof a_q);  
+#ifdef T_AAAA
         (void) res_nquery(&resp, domain, C_IN, T_AAAA, aaaa_q, sizeof aaaa_q);  
+#endif /* T_AAAA */
         (void) res_nquery(&resp, domain, C_IN, T_MX, mx_q, sizeof mx_q);  
 	res_nclose(&resp);
 #else /* HAVE_RES_NINIT */
         (void) res_query(domain, C_IN, T_A, a_q, sizeof a_q);  
+#ifdef T_AAAA
         (void) res_query(domain, C_IN, T_AAAA, aaaa_q, sizeof aaaa_q);  
+#endif /* T_AAAA */
         (void) res_query(domain, C_IN, T_MX, mx_q, sizeof mx_q);  
 #endif /* HAVE_RES_NINIT */
         

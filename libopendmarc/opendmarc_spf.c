@@ -6,6 +6,7 @@
 **	Spf2.0 ignores pra
 **********************************************************************/ 
 #include "opendmarc_internal.h"
+#include "opendmarc_strl.h"
 #include "dmarc.h"
 
 #ifndef TRUE
@@ -1951,11 +1952,15 @@ opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, 
 		switch (ret)
 		{
 		    case SPF_RETURN_UNDECIDED:
+		    case SPF_RETURN_QMARK_ALL_NEUTRAL:
+		    case SPF_RETURN_TILDE_ALL_SOFT_FAIL:
 			if (softfail_okay_flag == TRUE)
 				return DMARC_POLICY_SPF_OUTCOME_PASS;
 			else
 				return DMARC_POLICY_SPF_OUTCOME_FAIL;
 			break;
+		    case SPF_RETURN_INTERNAL:
+			return DMARC_POLICY_SPF_OUTCOME_TMPFAIL;
 		}
 		return DMARC_POLICY_SPF_OUTCOME_FAIL;
 	}
