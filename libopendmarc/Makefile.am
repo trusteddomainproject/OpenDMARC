@@ -11,6 +11,8 @@ libopendmarc_la_SOURCES	= dmarc.h \
 			  opendmarc_hash.c \
 			  opendmarc_strl.c \
                           opendmarc_strl.h \
+			  opendmarc_spf.c \
+			  opendmarc_spf_dns.c \
                           opendmarc_internal.h
 libopendmarc_la_LDFLAGS = -version-info $(LIBOPENDMARC_VERSION_INFO)
 libopendmarc_includedir = $(includedir)/opendmarc

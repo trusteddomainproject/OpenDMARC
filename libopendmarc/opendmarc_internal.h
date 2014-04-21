@@ -222,8 +222,53 @@ u_char ** opendmarc_util_clearargv(u_char **ary);
 u_char ** opendmarc_util_dupe_argv(u_char **ary);
 u_char *  opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen);
 u_char *  opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen);
+char **   opendmarc_util_freenargv(char **ary, int *num);
+char **   opendmarc_util_pushnargv(char *str, char **ary, int *num);
+char *    opendmarc_util_ultoa(unsigned long val, char *buffer, size_t bufferlen);
 
 /* opendmarc_policy.c */
 void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in **nsaddr_list);
+
+/* opendmarc_spf.c and opendmarc_spf_dns.c */
+#define MAX_SPF_RECURSION (10)
+typedef struct spf_context_struct { 
+        int     nlines;
+	char *  lines[MAX_SPF_RECURSION+2];
+	int     status;
+	int     in_token;
+	char    mailfrom_addr[512];
+	char    helo_domain[256];
+	char    mailfrom_domain[256];
+	char    validated_domain[256];
+	char    ip_address[32];
+	char    spf_record[BUFSIZ *2];
+	char ** iplist;
+	int     ipcount;
+	char    exp_buf[512];
+	int     did_get_exp;
+} SPF_CTX_T;
+char ** 	opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt);
+char ** 	opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt);
+char ** 	opendmarc_spf_dns_lookup_mx_domain(char *domain, char **ary, int *cnt);
+char ** 	opendmarc_spf_dns_lookup_ptr(char *ip, char **ary, int *cnt);
+int     	opendmarc_spf_dns_cidr_address(char *addr, u_long *hi, u_long *lo);
+int     	opendmarc_spf_dns_does_domain_exist(char *domain, int *reply);
+char *  	opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen, char *cname, size_t cnamelen, int spfcheck);
+int     	opendmarc_spf_dns_does_domain_exist(char *domain, int *reply);
+char *  	opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen, char *cname, size_t cnamelen, int spfcheck);
+int 		opendmarc_spf_ipv6_cidr_check(char *ipv6_str, char *cidr_string);
+int 		opendmarc_spf_cidr_address(u_long ip, char *cidr_addr);
+SPF_CTX_T *     opendmarc_spf_alloc_ctx();
+SPF_CTX_T *     opendmarc_spf_free_ctx(SPF_CTX_T *spfctx);
+int             opendmarc_spf_status_to_pass(int status, int none_pass);
+int             opendmarc_spf_specify_mailfrom(SPF_CTX_T *spfctx, char *mailfrom, size_t mailfrom_len, int *use_domain);
+int             opendmarc_spf_specify_helo_domain(SPF_CTX_T *spfctx, char *helo_domain, size_t helo_domain_len);
+int             opendmarc_spf_specify_ip_address(SPF_CTX_T *spfctx, char *ip_address, size_t ip_address_len);
+int             opendmarc_spf_specify_record(SPF_CTX_T *spfctx, char *spf_record, size_t spf_record_length);
+int             opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_len);
+const char *    opendmarc_spf_status_to_msg(SPF_CTX_T *spfctx, int status);
+
+
+
 
 #endif /* OPENDMARC_INTERNAL_H */

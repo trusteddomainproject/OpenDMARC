@@ -9,7 +9,7 @@ check_PROGRAMS		 = test_tld test_finddomain \
 			   test_parse_to_buf \
 			   test_alignment
 if LIVE_TESTS
-check_PROGRAMS           += test_dns_lookup
+check_PROGRAMS           += test_dns_lookup test_spf
 endif
 
 test_dns_lookup_SOURCES  = test_dns_lookup.c
@@ -25,6 +25,8 @@ test_parse_to_buf_SOURCES = test_parse_to_buf.c
 test_dmarc_fetch_SOURCES = test_dmarc_fetch.c
 
 test_xml_parse_SOURCES   = test_xml_parse.c
+
+test_spf_SOURCES         = test_spf.c
 
 test_alignment_SOURCES   = test_alignment.c
 

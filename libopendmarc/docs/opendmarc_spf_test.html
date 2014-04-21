@@ -1,0 +1,109 @@
+<html>
+<head><title>opendmarc_spf_test()</title></head>
+<body>
+<!--
+$Id: opendmarc_spf_test.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
+-->
+<h1>opendmarc_spf_test()</h1>
+<p align="right"><a href="index.html">[back to index]</a></p>
+
+<table border="0" cellspacing=4 cellpadding=4>
+<!---------- Synopsis ----------->
+<tr><th valign="top" align=left width=150>SYNOPSIS</th><td>
+<pre>
+#include &lt;dmarc.h&gt;
+int opendmarc_spf_test(
+	char *ip_address, char *mail_from_domain, char *helo_domain,
+	char *spf_record, int softfail_okay_flag, char *human_readable,
+	size_t human_readable_len, int *used_mfrom
+);
+</pre>
+Validate a passed in SPF record or look up one and validate it.
+</td></tr>
+
+<!----------- Description ---------->
+<tr><th valign="top" align=left>DESCRIPTION</th><td>
+<table border="1" cellspacing=1 cellpadding=4>
+<tr align="left" valign=top>
+<th width="80">Called When</th>
+<td><tt>opendmarc_spf_test()</tt>
+	May be called anytime all its needed information is gathered. The envelope sender (MAIL From: or mlfi_envfrom)
+	is the earliest it can be called. The mlfi_eom() is the optimum time because that is the only
+	routine that can add a header.
+</tr>
+</table>
+
+<!----------- Arguments ---------->
+<tr><th valign="top" align=left>ARGUMENTS</th><td>
+    <table border="1" cellspacing=0>
+    <tr bgcolor="#dddddd"><th>Argument</th><th>Description</th></tr>
+    <tr valign="top"><td>ip_address</td>
+	<td>A pointer to a string representation of an IPv4 or IPv6 address.
+	</td></tr>
+    <tr valign="top"><td>mail_from_domain</td>
+	<td>This can be the domain itself, or the full sender address or even the
+	angle brace enclosed address. Any of of those will work, including the
+	empty address &lt;&gt; and the literal MAILER_DAEMON.
+	</td></tr>
+    <tr valign="top"><td>helo_domain</td>
+	<td>This is the domain specified with the HELO command. This domain is ignored
+	if the mail_from_domain contains an actual domain.
+	</td></tr>
+    <tr valign="top"><td>spf_record</td>
+	<td>If not NULL, is a string containing the SPF record to validate.
+	If NULL, the record will be looked up based on either the <tt>mail_from_domain</tt> or <tt>helo_domain</tt>/.
+	</td></tr>
+    <tr valign="top"><td>softfail_okay_flag</td>
+	<td>If zero softfails (~all and ?all) are treated the same as if the are hard fails.
+	If non-zero, softfails are threated as a pass.
+	</td></tr>
+    <tr valign="top"><td>human_readable</td>
+	<td>If not NULL, is the address of a string buffer into which to scribble a human readble reason for
+	any result.
+	</td></tr>
+    <tr valign="top"><td>human_readable_len</td>
+	<td>The sizeof() or number of characters available in <tt>human_readable</tt>.
+	</td></tr>
+    <tr valign="top"><td>used_mfrom</td>
+	<td>Address of an integer into which either TRUE or FALSE will be written. If TRUE,
+	the <tt>mail_from_domain</tt> was used to validate the SPF record. If FALSE,
+	the <tt>helo_domain</tt> was used to validate the SPF record.
+	</td></tr>
+    </table>
+</td></tr>
+
+<!----------- Return Values ---------->
+<tr>
+<th valign="top" align=left>RETURN VALUES</th> 
+<td>
+<ul>
+<li><tt>DMARC_POLICY_SPF_OUTCOME_PASS</tt> -- On success
+<li><tt>DMARC_POLICY_SPF_OUTCOME_FAIL</tt> -- If the SPF record check failed.
+<li><tt>DMARC_POLICY_SPF_OUTCOME_TMPFAIL</tt> -- If there was as recoverable failure.
+<li><tt>DMARC_POLICY_SPF_OUTCOME_NONE</tt> -- If domain did not have an spf record.
+</ul>
+</td>
+</tr>
+
+<!----------- Notes ---------->
+<tr>
+<th valign="top" align=left>NOTES</th> 
+<td>
+<ul>
+<li>This spf record check performs it own DNS lookups. There are no hooks provided
+to subsitute your own DNS lookup routines at this time.
+</ul>
+</td>
+</tr>
+</table>
+
+<hr size="1">
+<font size="-1">
+Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+
+<br>
+By using this file, you agree to the terms and conditions set
+forth in the license.
+</font>
+</body>
+</html>

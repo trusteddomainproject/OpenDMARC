@@ -28,6 +28,7 @@ dist_doc_DATA = index.html \
 	opendmarc_policy_store_from_domain.html \
 	opendmarc_policy_store_spf.html \
 	opendmarc_policy_to_buf.html \
+	opendmarc_spf_test.html \
 	opendmarc_status_t.html \
 	opendmarc_tld_read_file.html \
 	opendmarc_tld_shutdown.html \

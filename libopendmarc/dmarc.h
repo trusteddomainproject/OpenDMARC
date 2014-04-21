@@ -161,6 +161,11 @@ const char *	   opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status);
 int                opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode);
 int 		   opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen);
 
+/*
+ * SPF Processing
+ */
+int         opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int soft_fail_as_pass, char *human_readable, size_t human_readable_len, int *use_mailfrom);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.2.1		2014/03/??
+	Feature Add configuration support for internal spf checks. Hooks in
+		the milter to check spf is configured to do so.
 	Fix bug #60, part II: Default AuthservID to the name provided by the
 		MTA, not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
@@ -19,6 +21,9 @@ release, and a summary of the changes in that release.
 		from Karol Augustin.
 	LIBOPENDMARC: Fix bug #71: Fix "rua" extraction from DMARC records
 		Problem noted by Karol Augustin.
+	LIBOPENDMARC: Added support for milter to perform own spf checks.
+		Three new files: opendmarc_spf.c, opendmard_spf_dns.c and
+		test/test_spf.c Does not require Libspf2.
 
 1.2.0		2014/03/14
 	Feature request #44: Allow override of the From: field on forensic

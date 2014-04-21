@@ -346,3 +346,141 @@ strip_local_part:
 	(void) strlcpy(buf, cp, buflen);
 	return buf;
 }
+
+char **
+opendmarc_util_freenargv(char **ary, int *num)
+{
+	if (ary != NULL)
+	{
+		char **ccp;
+
+		for (ccp = ary; *ccp != NULL; ++ccp)
+		{
+			(void) free(*ccp);
+			*ccp = NULL;
+		}
+		(void) free(ary);
+		ary = NULL;
+	}
+	if (num != NULL)
+		*num = 0;
+	return NULL;
+}
+
+char **
+opendmarc_util_pushnargv(char *str, char **ary, int *num)
+{
+	int    i;
+	char **tmp;
+
+	if (str != NULL)
+	{
+		if (ary == NULL)
+		{
+			ary = calloc(sizeof(char **), 2);
+			if (ary == NULL)
+			{
+				if (num != NULL)
+					*num = 0;
+				return NULL;
+			}
+			*ary = strdup(str);
+			*(ary+1) = NULL;
+			if (*ary == NULL)
+			{
+				(void) free(ary);
+				ary = NULL;
+				if (num != NULL)
+					*num = 0;
+				return NULL;
+			}
+			if (num != NULL)
+				*num = 1;
+			return ary;
+		}
+		i = 0;
+		if (num == NULL)
+		{
+			for (i = 0; ;i++)
+			{
+				if (ary[i] == NULL)
+					break;
+			}
+		}
+		else
+			i = *num;
+		tmp = realloc((void *)ary, sizeof(char **) * (i+2));
+		if (tmp == NULL)
+		{
+			ary = opendmarc_util_freenargv(ary, num);
+			return NULL;
+		}
+		ary = tmp;
+		ary[i] = strdup(str);
+		if (ary[i] == NULL)
+		{
+			ary = opendmarc_util_freenargv(ary, num);
+			return NULL;
+		}
+		++i;
+		ary[i] = NULL;
+		if (num != NULL)
+			*num = i;
+	}
+	return ary;
+}
+
+/*      
+** Convert a decimal unsigned long interger into a string.
+** Returns a pointer to the passed buffer.
+*/
+char *  
+opendmarc_util_ultoa(unsigned long val, char *buffer, size_t bufferlen)
+{       
+	register char  *b = buffer;
+	register size_t l = bufferlen;
+	register unsigned long    v = val;
+	register long  mod, d, digit;
+#define MAXDIGITS (32)
+	int digits[MAXDIGITS];
+
+	if (b == NULL || l < 2)
+		return NULL;
+
+	if (v == 0)
+	{
+		*b++ = '0';
+		*b = '\0';
+		return buffer;
+	}
+	digit = 0;
+	do
+	{
+		mod = v % 10;
+		v = v / 10;
+		digits[digit] = mod;
+		++digit;
+		if (digit >= MAXDIGITS)
+			break;
+	} while(v != 0);
+	for (d = digit-1; d >= 0; --d)
+	{
+		 switch (digits[d])
+		 {
+			case 0: *b++ = '0'; --l; break;
+			case 1: *b++ = '1'; --l; break;
+			case 2: *b++ = '2'; --l; break;
+			case 3: *b++ = '3'; --l; break;
+			case 4: *b++ = '4'; --l; break;
+			case 5: *b++ = '5'; --l; break;
+			case 6: *b++ = '6'; --l; break;
+			case 7: *b++ = '7'; --l; break;
+			case 8: *b++ = '8'; --l; break;
+			case 9: *b++ = '9'; --l; break;
+		 }
+		 if (l == 1)
+			break;
+	}
+	*b = '\0';
+	return buffer;
+}
