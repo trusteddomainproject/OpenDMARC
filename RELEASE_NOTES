@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.2.1		2014/03/??
+1.2.1		2014/04/??
 	Feature Add configuration support for internal spf checks. Hooks in
 		the milter to check spf is configured to do so.
 	Fix bug #60, part II: Default AuthservID to the name provided by the
