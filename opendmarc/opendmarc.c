@@ -2621,7 +2621,7 @@ mlfi_eom(SMFICTX *ctx)
 		if (conf->conf_afrfas != NULL)
 		{
 			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "From: %s",
+			                      "From: %s\n",
 			                      conf->conf_afrfas);
 		}
 		else
