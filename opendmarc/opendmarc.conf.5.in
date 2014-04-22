@@ -261,6 +261,19 @@ the path of the message from injection to delivery.  The product's name,
 version, and the job ID are included in the header field's contents.
 
 .TP
+.I SPFIgnoreResults (Boolean)
+Causes the filter to ignore any SPF results in the header of the
+message.  This is useful if you want the filter to perfrom SPF checks
+itself, or because you don't trust the arriving header.  The default is "false".
+
+.TP
+.I SPFSelfValidate (Boolean)
+Causes the filter to perform a fallback SPF check itself when
+it can find no SPF results in the message header.  If SPFIgnoreResults
+is also set, it never looks for SPF results in headers and
+always performs the SPF check itself when this is set.  The default is "false".
+
+.TP
 .I Syslog (Boolean)
 Log via calls to
 .I syslog(3)
