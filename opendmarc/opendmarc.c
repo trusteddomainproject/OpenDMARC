@@ -2172,7 +2172,7 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* skip it if it's not one of ours */
 		if (strcasecmp(ar.ares_host, authservid) != 0 &&
-		    (conf->conf_trustedauthservids != NULL &&
+		    (conf->conf_trustedauthservids == NULL ||
 		     !dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
 		                   FALSE)))
 		{
@@ -2207,7 +2207,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			*slash = '\0';
 			if ((strcasecmp(ar.ares_host, authservid) != 0 &&
-			     (conf->conf_trustedauthservids != NULL &&
+			     (conf->conf_trustedauthservids == NULL ||
 			      !dmarcf_match(ar.ares_host,
 			                    conf->conf_trustedauthservids,
 			                    FALSE))) ||
@@ -2225,6 +2225,8 @@ mlfi_eom(SMFICTX *ctx)
 
 				continue;
 			}
+
+			*slash = '/';
 		}
 
 		/* walk through what was found */
