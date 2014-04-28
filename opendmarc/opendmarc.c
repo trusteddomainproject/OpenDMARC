@@ -1228,6 +1228,14 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_enablecores,
 		                  sizeof conf->conf_enablecores);
 
+		(void) config_get(data, "SPFIgnoreResults",
+		                  &conf->conf_spfignoreresults,
+		                  sizeof conf->conf_spfignoreresults);
+
+		(void) config_get(data, "SPFSelfValidate",
+		                  &conf->conf_spfselfvalidate,
+		                  sizeof conf->conf_spfselfvalidate);
+
 		(void) config_get(data, "RejectFailures",
 		                  &conf->conf_rejectfail,
 		                  sizeof conf->conf_rejectfail);
@@ -1772,11 +1780,14 @@ mlfi_helo(SMFICTX *ctx, char *helo_domain)
 	if (cc != NULL)
 	{
 		conf = cc->cctx_config;
-		if (conf->conf_spfselfvalidate == FALSE)
+		if (!conf->conf_spfselfvalidate)
 			return SMFIS_CONTINUE;
 
 		if (helo_domain != NULL)
-			strncpy(cc->cctx_helo, helo_domain, sizeof cc->cctx_helo - 1);
+		{
+			strncpy(cc->cctx_helo, helo_domain,
+			        sizeof cc->cctx_helo - 1);
+		}
 	}
 	return SMFIS_CONTINUE;
 }
@@ -2423,7 +2434,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	if (!wspf)
 	{
-		if (conf->conf_spfselfvalidate == TRUE)
+		if (conf->conf_spfselfvalidate)
 		{
 			int spf_result;
 			char human[512];
