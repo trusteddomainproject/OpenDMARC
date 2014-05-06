@@ -19,7 +19,7 @@
 **
 ** Arguments:
 **	domain		-- the domain name to look up.
-**	sought		-- type of lookup A or AAA
+**	sought		-- type of lookup A or AAAA
 **	ary		-- array of strings containing list of IP addresses
 **	cnt		-- Pointer to count of lines in array
 ** Returns:
@@ -91,7 +91,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 	k = res_nquery(&resp, bp, C_IN, sought, a_buf, sizeof a_buf);
 	res_nclose(&resp);
 #else /* HAVE_RES_NINIT */
-	k = res_query(bp, C_IN, type, sought, sizeof a_buf);
+	k = res_query(bp, C_IN, sought, a_buf, sizeof a_buf);
 #endif /* HAVE_RES_NINIT */
 	if (k < 0)
 	{
