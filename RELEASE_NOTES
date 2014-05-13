@@ -22,6 +22,8 @@ release, and a summary of the changes in that release.
 		non-zero.  Problem noted by Michael Nausch.
 	REPORTS: Feature request #80: Generate aggregate reports on UTC
 		day boundaries.  Requested by Tomki Camp.
+	REPORTS: Feature request #84: Optionally expire old data from
+		lower-growth tables.  Requested by Christoph Steindl.
 	REPORTS: Fix bug #70: Fix date range generation in reports.  Patch
 		from Karol Augustin.
 	REPORTS: Fix bug #82: Fix recording of report timestamp to avoid lost

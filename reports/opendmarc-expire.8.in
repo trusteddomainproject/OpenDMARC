@@ -11,6 +11,9 @@ expires old records from the database that is part of the OpenDMARC aggregate
 reporting feature.
 .SH OPTIONS
 .TP
+.I --alltables
+Expire records in all tables rather than only the large ones.
+.TP
 .I --dbhost=host
 Attempts to connect to the database server on the named
 .I host.
