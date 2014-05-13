@@ -32,6 +32,8 @@ release, and a summary of the changes in that release.
 		records.  Reported by Christoph Steindl.
 	REPORTS: Fix bug #83: When expiring data, truncate the signatures table
 		if all messages were expired.  Reported by Christoph Steindl.
+	REPORTS: Fix bug #85: Report subdomain policy.  Patch from
+		Christoph Steindl.
 	LIBOPENDMARC: Fix bug #71: Fix "rua" extraction from DMARC records
 		Problem noted by Karol Augustin.
 	LIBOPENDMARC: Added support for milter to perform own spf checks.

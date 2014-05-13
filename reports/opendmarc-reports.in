@@ -64,7 +64,9 @@ my $forcedomain;
 my @skipdomains;
 
 my $policy;
+my $spolicy;
 my $policystr;
+my $spolicystr;
 my $pct;
 
 my $repuri;
@@ -433,7 +435,7 @@ foreach (@$domainset)
 		next;
 	}
 
-	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, pct, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
 	if (!$dbi_s->execute($domainid))
 	{
 		print STDERR "$progname: can't get reporting URI for domain $domain: " . $dbi_h->errstr . "\n";
@@ -464,11 +466,15 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[4]))
 		{
-			$pct = $dbi_a->[4];
+			$spolicy = $dbi_a->[4];
 		}
 		if (defined($dbi_a->[5]))
 		{
-			$lastsent = $dbi_a->[5];
+			$pct = $dbi_a->[5];
+		}
+		if (defined($dbi_a->[6]))
+		{
+			$lastsent = $dbi_a->[6];
 		}
 	}
 
@@ -514,6 +520,14 @@ foreach (@$domainset)
 		case ord("r")	{ $policystr = "reject"; }
 		else		{ $policystr = "unknown"; }
 	}
+
+ 	switch ($spolicy)
+ 	{
+ 		case ord("n")	{ $spolicystr = "none"; }
+ 		case ord("q")	{ $spolicystr = "quarantine"; }
+ 		case ord("r")	{ $spolicystr = "reject"; }
+ 		else		{ $spolicystr = "unknown"; }
+ 	}
 
 	if ($daybound)
 	{
@@ -567,6 +581,7 @@ foreach (@$domainset)
 	print $tmpout "  <adkim>$adkimstr</adkim>\n";
 	print $tmpout "  <aspf>$aspfstr</aspf>\n";
 	print $tmpout "  <p>$policystr</p>\n";
+	print $tmpout "  <sp>$spolicystr</sp>\n";
 	print $tmpout "  <pct>$pct</pct>\n";
 	print $tmpout " </policy_published>\n";
 
