@@ -375,7 +375,7 @@ if ($alltables)
 		(SELECT DISTINCT from_domain FROM messages) AND id NOT IN
 		(SELECT DISTINCT env_domain FROM messages) AND id NOT IN
 		(SELECT DISTINCT policy_domain FROM messages) AND id NOT IN
-		(SELECT DISTINCT domain FROM signatures)"):
+		(SELECT DISTINCT domain FROM signatures)");
 	$rows = $dbi_s->execute();
 	if (!$rows)
 	{
