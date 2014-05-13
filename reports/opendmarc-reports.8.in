@@ -17,6 +17,10 @@ of reporting URIs, which this script uses to make reports available to those
 that request them.
 .SH OPTIONS
 .TP
+.I --daybound
+Generate reports on day boundaries.  Overrides the value of
+.I --interval
+(see below).
 .I --dbhost=hostname
 Specifies the hostname on which the SQL server is running.  Defaults to
 the value of the environment variable OPENDMARC_DBHOST, or "localhost" if
@@ -74,6 +78,10 @@ Causes reports to be sent by transmitting them using SMTP to the specified
 .I port.
 The default is 25.
 .TP
+.I --utc
+Instructs the database to change to the UTC timezone when generating output.
+Otherwise, the database default is used.
+.TP
 .I --verbose
 Increase the amount of verbosity written to standard output.
 .TP
@@ -85,7 +93,7 @@ This man page covers the version of
 that shipped with version @VERSION@ of
 .I OpenDMARC.
 .SH COPYRIGHT
-Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012, 2014, The Trusted Domain Project.  All rights reserved.
 .SH SEE ALSO
 .I opendmarc(8),
 .I opendmarc.conf(5),

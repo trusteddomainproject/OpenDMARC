@@ -98,6 +98,8 @@ my $smtpfail;
 my $doupdate = 1;
 my $testmode = 0;
 my $keepfiles = 0;
+my $use_utc = 0;
+my $daybound = 0;
 
 my $msgid;
 
@@ -139,6 +141,7 @@ my $answer;
 sub usage
 {
 	print STDERR "$progname: usage: $progname [options]\n";
+	print STDERR "\t--day              send yesterday's data\n";
 	print STDERR "\t--dbhost=host      database host [$def_dbhost]\n";
 	print STDERR "\t--dbname=name      database name [$def_dbname]\n";
 	print STDERR "\t--dbpasswd=passwd  database password [$def_dbpasswd]\n";
@@ -156,6 +159,7 @@ sub usage
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
 	print STDERR "\t--test             don't send reports\n";
+	print STDERR "\t--utc              operate in UTC\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t                   (repeat for increased output)\n";
@@ -166,7 +170,8 @@ sub usage
 setlocale(LC_ALL, 'C');
 
 # parse command line arguments
-my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
+my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
+                                            'dbhost=s' => \$dbhost,
                                             'dbname=s' => \$dbname,
                                             'dbpasswd=s' => \$dbpasswd,
                                             'dbport=s' => \$dbport,
@@ -182,6 +187,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'smtp-server=s' => \$smtp_server,
                                             'smtp-port=i' => \$smtp_port,
                                             'update!' => \$doupdate,
+                                            'utc!' => \$use_utc,
                                             'verbose+' => \$verbose,
                                             'version!' => \$showversion,
                                            );
@@ -296,6 +302,19 @@ if ($verbose >= 2)
 	print STDERR "$progname: connected to database\n";
 }
 
+if ($use_utc)
+{
+	$dbi_s = $dbi_h->prepare("SET TIME_ZONE='+00:00'");
+
+	if (!$dbi_s->execute())
+	{
+		print STDERR "$progname: failed to change to UTC: " . $dbi_h->errstr . "\n";
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+}
+
 #
 # Select domains on which to report
 #
@@ -312,6 +331,18 @@ if (defined($forcedomain))
 	if (!$dbi_s->execute($forcedomain))
 	{
 		print STDERR "$progname: failed to test for database entry: " . $dbi_h->errstr . "\n";
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+}
+elsif ($daybound)
+{
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE DATE(lastsent) <= DATE(CURRENT_TIMESTAMP())");
+
+	if (!$dbi_s->execute())
+	{
+		print STDERR "$progname: failed to collect domain names: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
 		$dbi_h->disconnect;
 		exit(1);
@@ -484,7 +515,15 @@ foreach (@$domainset)
 
 	$now = time();
 
-	$dbi_s = $dbi_h->prepare("SELECT UNIX_TIMESTAMP(MIN(date)), UNIX_TIMESTAMP(MAX(date)) FROM messages WHERE from_domain = ? AND UNIX_TIMESTAMP(date) > ?");
+	if ($daybound)
+	{
+		$dbi_s = $dbi_h->prepare("SELECT UNIX_TIMESTAMP(MIN(date)), UNIX_TIMESTAMP(MAX(date)) FROM messages WHERE from_domain = ? AND DATE(date) >= DATE(?) AND DATE(date) < DATE(CURRENT_TIMESTAMP())");
+	}
+	else
+	{
+		$dbi_s = $dbi_h->prepare("SELECT UNIX_TIMESTAMP(MIN(date)), UNIX_TIMESTAMP(MAX(date)) FROM messages WHERE from_domain = ? AND UNIX_TIMESTAMP(date) > ?");
+	}
+
 	if (!$dbi_s->execute($domainid, $lastsent))
 	{
 		print STDERR "$progname: can't extract begin/end times for domain $domain: " . $dbi_h->errstr . "\n";
@@ -531,8 +570,16 @@ foreach (@$domainset)
 	print $tmpout "  <pct>$pct</pct>\n";
 	print $tmpout " </policy_published>\n";
 
-	$dbi_s = $dbi_h->prepare("SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, messages.align_spf, messages.align_dkim FROM messages JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id WHERE messages.from_domain = ? AND messages.date > FROM_UNIXTIME($lastsent)");
-	if (!$dbi_s->execute($domainid))
+	if ($daybound)
+	{
+		$dbi_s = $dbi_h->prepare("SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, messages.align_spf, messages.align_dkim FROM messages JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id WHERE messages.from_domain = ? AND DATE(messages.date) >= DATE(?) && DATE(messages.date) < DATE(CURRENT_TIMESTAMP())");
+	}
+	else
+	{
+		$dbi_s = $dbi_h->prepare("SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, messages.align_spf, messages.align_dkim FROM messages JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id WHERE messages.from_domain = ? AND messages.date > FROM_UNIXTIME(?)");
+	}
+
+	if (!$dbi_s->execute($domainid, $lastsent))
 	{
 		print STDERR "$progname: can't extract report for domain $domain: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
