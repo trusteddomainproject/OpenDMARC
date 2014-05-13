@@ -13,6 +13,10 @@ release, and a summary of the changes in that release.
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
 	Fix bug #72: Don't crash when From fields are absent.  Patch from
 		Andreas Schulze.
+	Fix bug #74: Change "Forensic" to "Failure" just about everywhere
+		to match the language now being used in the base DMARC
+		draft.  Note that this also changes some names in the
+		configuration file.
 	Fix bug #75: Correct typo in MIME of forensic reports.  Reported by
 		Julian Mehnle.
 	Fix bug #76: Repair damage with respect to Authentication-Results

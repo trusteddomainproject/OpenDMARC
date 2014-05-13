@@ -133,26 +133,26 @@ user ID has changed during the lifetime of the process.  Currently only
 supported on Linux.
 
 .TP
-.I ForensicReports (Boolean)
-Enables generation of forensic reports when the DMARC test fails and the
+.I FailureReports (Boolean)
+Enables generation of failure reports when the DMARC test fails and the
 purported sender of the message has requested such reports.  Reports are
 formatted per RFC6591.
 
 .TP
-.I ForensicReportsBcc (string)
-When forensic reports are enabled and one is to be generated, always send one
-to the address(es) specified here.  If a forensic report is requested by
+.I FailureReportsBcc (string)
+When failure reports are enabled and one is to be generated, always send one
+to the address(es) specified here.  If a failure report is requested by
 the domain owner, the address(es) are added in a Bcc: field.  If no request
 is made, they address(es) are used in a To: field.  There is no default.
 
 .TP
-.I ForensicReportsOnNone (Boolean)
-Supplementary to the previous setting, enables generation of forensic reports
+.I FailureReportsOnNone (Boolean)
+Supplementary to the previous setting, enables generation of failure reports
 for sending domains that publish a "none" policy.
 
 .TP
-.I ForensicReportsSentBy (string)
-Sets the value of the From: field to be used when sending forensic reports
+.I FailureReportsSentBy (string)
+Sets the value of the From: field to be used when sending failure reports
 (see above).  The default is to use the userid of the user executing the
 filter and the local host name to construct an email address.
 
@@ -220,9 +220,9 @@ The default is "false".
 
 .TP
 .I ReportCommand (string)
-Indicates the shell command to which forensic reports should be passed for
+Indicates the shell command to which failure reports should be passed for
 delivery when
-.I ForensicReports
+.I FailureReports
 is enabled.  Defaults to
 .I /usr/sbin/sendmail.
 

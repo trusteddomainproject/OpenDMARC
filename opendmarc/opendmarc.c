@@ -1245,19 +1245,19 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_reqhdrs,
 		                  sizeof conf->conf_reqhdrs);
 
-		(void) config_get(data, "ForensicReports",
+		(void) config_get(data, "FailureReports",
 		                  &conf->conf_afrf,
 		                  sizeof conf->conf_afrf);
 
-		(void) config_get(data, "ForensicReportsOnNone",
+		(void) config_get(data, "FailureReportsOnNone",
 		                  &conf->conf_afrfnone,
 		                  sizeof conf->conf_afrfnone);
 
-		(void) config_get(data, "ForensicReportsSentBy",
+		(void) config_get(data, "FailureReportsSentBy",
 		                  &conf->conf_afrfas,
 		                  sizeof conf->conf_afrfas);
 
-		(void) config_get(data, "ForensicReportsBcc",
+		(void) config_get(data, "FailureReportsBcc",
 		                  &conf->conf_afrfbcc,
 		                  sizeof conf->conf_afrfbcc);
 
@@ -2607,7 +2607,7 @@ mlfi_eom(SMFICTX *ctx)
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf %d\n", align_spf);
 
 	/*
-	**  Generate a forensic report.
+	**  Generate a failure report.
 	*/
 
 	ruv = opendmarc_policy_fetch_ruf(cc->cctx_dmarc, NULL, 0, TRUE);
@@ -2628,7 +2628,7 @@ mlfi_eom(SMFICTX *ctx)
 				if (conf->conf_dolog)
 				{
 					syslog(LOG_ERR,
-					       "%s: failed to create buffer for forensic report",
+					       "%s: unable to create buffer for failure report",
 					       dfc->mctx_jobid);
 				}
 
