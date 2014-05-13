@@ -1563,7 +1563,7 @@ mlfi_negotiate(SMFICTX *ctx,
 	unsigned long *pf0, unsigned long *pf1,
 	unsigned long *pf2, unsigned long *pf3)
 {
-	unsigned long reqactions = SMFIF_ADDHDRS;
+	unsigned long reqactions = SMFIF_ADDHDRS|SMFIF_QUARANTINE;
 	unsigned long wantactions = 0;
 	unsigned long protosteps = (SMFIP_NOHELO |
 	                            SMFIP_NOUNKNOWN |

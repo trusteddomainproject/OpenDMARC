@@ -17,6 +17,8 @@ release, and a summary of the changes in that release.
 		Julian Mehnle.
 	Fix bug #76: Repair damage with respect to Authentication-Results
 		header field selection.  Reported by Todd Lyons.
+	Fix bug #77: Request quarantine from the MTA during option
+		negotiation.  Reported by Richard Platel.
 	Fix bug #78: Add missing newline in forensic report header.
 	Provide better logging when pclose() for a forensic report returns
 		non-zero.  Problem noted by Michael Nausch.
