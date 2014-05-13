@@ -167,6 +167,11 @@ rather periodically imported into a relational database from which the
 aggregate reports can be extracted.
 
 .TP
+.I IgnoreAuthenticatedClients (Boolean)
+If set, causes mail from authenticated clients (i.e., those that used
+SMTP AUTH) to be ignored by the filter.  The default is "false".
+
+.TP
 .I IgnoreHosts (string)
 Specifies the path to a file that contains a list of hostnames, IP addresses,
 and/or CIDR expressions identifying hosts whose SMTP connections are to be

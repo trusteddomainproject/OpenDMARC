@@ -32,6 +32,7 @@ struct configdef dmarcf_config[] =
 	{ "ForensicReportsOnNone",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ForensicReportsSentBy",	CONFIG_TYPE_STRING,	FALSE },
 	{ "HistoryFile",		CONFIG_TYPE_STRING,	FALSE },
+	{ "IgnoreAuthenticatedClients",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "IgnoreHosts",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreMailFrom",		CONFIG_TYPE_STRING,	FALSE },
 	{ "MilterDebug",		CONFIG_TYPE_INTEGER,	FALSE },

@@ -138,6 +138,7 @@ struct dmarcf_config
 	_Bool			conf_recordall;
 	_Bool			conf_spfignoreresults;
 	_Bool			conf_spfselfvalidate;
+	_Bool			conf_ignoreauthclients;
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
@@ -1264,6 +1265,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_recordall,
 		                  sizeof conf->conf_recordall);
 
+		(void) config_get(data, "IgnoreAuthenticatedClients",
+		                  &conf->conf_ignoreauthclients,
+		                  sizeof conf->conf_ignoreauthclients);
+
 		(void) config_get(data, "TemporaryDirectory",
 		                  &conf->conf_tmpdir,
 		                  sizeof conf->conf_tmpdir);
@@ -1818,6 +1823,10 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 	if (cc->cctx_msg != NULL)
 		dmarcf_cleanup(ctx);
+
+	if (conf->conf_ignoreauthclients &&
+	    dmarcf_getsymval(ctx, "auth_authen") != NULL)
+		return SMFIS_ACCEPT;
 
 	dfc = (DMARCF_MSGCTX) malloc(sizeof(struct dmarcf_msgctx));
 	if (dfc == NULL)

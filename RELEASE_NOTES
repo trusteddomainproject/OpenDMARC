@@ -4,8 +4,10 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.3.0		2014/04/??
-	Add configuration support for internal SPF checks.  Hooks in
+	Add configuration support for internal SPF checks.  Inlcudes hooks in
 		the milter to check that SPF is configured to do so.
+	Feature request #79: Optionally ignore clients that authenticated
+		using SMTP AUTH.
 	Feature request #80: Generate aggregate reports on UTC day boundaries.
 		Requested by Tomki Camp.
 	Fix bug #60, part II: Default AuthservID to the name provided by the

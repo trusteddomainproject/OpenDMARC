@@ -165,6 +165,14 @@
 #
 # HistoryFile /var/run/opendmarc.dat
 
+##  IgnoreAuthenticatedClients { true | false }
+##  	default "false"
+##
+##  If set, causes mail from authenticated clients (i.e., those that used
+##  SMTP AUTH) to be ignored by the filter.
+#
+# IgnoreAuthenticatedClients false
+
 ##  IgnoreHosts path
 ##  	default (internal)
 ##
