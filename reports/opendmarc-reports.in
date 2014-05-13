@@ -386,6 +386,8 @@ if (!defined($smtp))
 	exit(1);
 }
 
+$now = time();
+
 foreach (@$domainset)
 {
 	$domain = $_->[0];
@@ -512,8 +514,6 @@ foreach (@$domainset)
 		case ord("r")	{ $policystr = "reject"; }
 		else		{ $policystr = "unknown"; }
 	}
-
-	$now = time();
 
 	if ($daybound)
 	{
@@ -828,7 +828,6 @@ foreach (@$domainset)
 
 			$boundary = "report_section";
 
-			$now = time();
  			$report_id = $domain . "-" . $now . "@" . $repdom;
 			$datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",
 			                    localtime);
@@ -901,8 +900,8 @@ foreach (@$domainset)
 	# update "last sent" timestamp
 	if ($doupdate)
 	{
-		$dbi_s = $dbi_h->prepare("UPDATE requests SET lastsent = CURRENT_TIMESTAMP() WHERE domain = ?");
-		if (!$dbi_s->execute($domainid))
+		$dbi_s = $dbi_h->prepare("UPDATE requests SET lastsent = FROM_UNIXTIME(?) WHERE domain = ?");
+		if (!$dbi_s->execute($now, $domainid))
 		{
 			print STDERR "$progname: can't update last sent time for domain $domain: " . $dbi_h->errstr . "\n";
 			$dbi_s->finish;
