@@ -8,8 +8,6 @@ release, and a summary of the changes in that release.
 		the milter to check that SPF is configured to do so.
 	Feature request #79: Optionally ignore clients that authenticated
 		using SMTP AUTH.
-	Feature request #80: Generate aggregate reports on UTC day boundaries.
-		Requested by Tomki Camp.
 	Fix bug #60, part II: Default AuthservID to the name provided by the
 		MTA, not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
@@ -20,12 +18,16 @@ release, and a summary of the changes in that release.
 	Fix bug #76: Repair damage with respect to Authentication-Results
 		header field selection.  Reported by Todd Lyons.
 	Fix bug #78: Add missing newline in forensic report header.
-	Fix bug #82: Fix recording of report timestamp to avoid lost records.
-		Reported by Christoph Steindl.
 	Provide better logging when pclose() for a forensic report returns
 		non-zero.  Problem noted by Michael Nausch.
+	REPORTS: Feature request #80: Generate aggregate reports on UTC
+		day boundaries.  Requested by Tomki Camp.
 	REPORTS: Fix bug #70: Fix date range generation in reports.  Patch
 		from Karol Augustin.
+	REPORTS: Fix bug #82: Fix recording of report timestamp to avoid lost
+		records.  Reported by Christoph Steindl.
+	REPORTS: Fix bug #83: When expiring data, truncate the signatures table
+		if all messages were expired.  Reported by Christoph Steindl.
 	LIBOPENDMARC: Fix bug #71: Fix "rua" extraction from DMARC records
 		Problem noted by Karol Augustin.
 	LIBOPENDMARC: Added support for milter to perform own spf checks.
