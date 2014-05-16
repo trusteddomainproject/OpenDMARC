@@ -340,7 +340,7 @@ if (defined($forcedomain))
 }
 elsif ($daybound)
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE DATE(lastsent) <= DATE(CURRENT_TIMESTAMP())");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE DATE(lastsent) < DATE(CURRENT_TIMESTAMP())");
 
 	if (!$dbi_s->execute())
 	{
