@@ -829,7 +829,6 @@ foreach (@$domainset)
 		# send/post report
 		elsif ($uri->scheme eq "mailto")
 		{
-			my $now;
 			my $datestr;
 			my $report_id;
 
