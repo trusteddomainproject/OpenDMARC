@@ -1,14 +1,194 @@
 /********************************************************************
 ** OPENDMARC_SPF.C --  Process the spf record of the inbound message
-**
-** Known possible bugs:
-** 	spf can sometimes fail on a dns tempfail
-**	Spf2.0 ignores pra
 **********************************************************************/ 
-#include "opendmarc_internal.h"
-#include "opendmarc_strl.h"
-#include "dmarc.h"
+# include "opendmarc_internal.h"
+# include "opendmarc_strl.h"
+# include "dmarc.h"
 
+#if WITH_SPF
+
+#if HAVE_SPF2_H
+// Here we have spf.h, so libspf2 is available.
+
+SPF_CTX_T *
+opendmarc_spf2_alloc_ctx()
+{
+	SPF_CTX_T *spfctx = NULL;
+
+	spfctx = malloc(sizeof(SPF_CTX_T));
+	if (spfctx == NULL)
+		return NULL;
+	(void) memset(spfctx, '\0', sizeof(SPF_CTX_T));
+	spfctx->spf_server = SPF_server_new(SPF_DNS_CACHE, 0);
+	spfctx->spf_request = SPF_request_new(spfctx->spf_server);
+	return spfctx;
+}
+
+SPF_CTX_T *
+opendmarc_spf2_free_ctx(SPF_CTX_T *spfctx)
+{
+	if (spfctx == NULL)
+		return spfctx;
+
+	if (spfctx->spf_response != NULL)
+		SPF_response_free(spfctx->spf_response);
+	if (spfctx->spf_request != NULL)
+		SPF_request_free(spfctx->spf_request);
+	if (spfctx->spf_server != NULL)
+		SPF_server_free(spfctx->spf_server);
+	(void) free(spfctx);
+	spfctx = NULL;
+	return spfctx;
+}
+
+int
+opendmarc_spf2_find_mailfrom_domain(SPF_CTX_T *spfctx, char *raw_address, char *mailfrom, size_t mailfrom_len, int *use_flag)
+{
+	char copy[sizeof spfctx->mailfrom_addr];
+	char *cp;
+	char *ep;
+
+	if (use_flag != NULL)
+		*use_flag = FALSE;
+
+	if (spfctx == NULL)
+		return EINVAL;
+
+	if (mailfrom == NULL || raw_address == NULL)
+		return EINVAL;
+	
+	(void) memset(copy, '\0', sizeof copy);
+	(void) strlcpy(copy, raw_address, sizeof copy);
+
+	cp = strrchr(copy, '<');
+	if (cp == NULL)
+		cp = copy;
+	else
+		++cp;
+	ep = strchr(cp, '>');
+	if (ep != NULL)
+		*ep = '\0';
+
+	ep = strchr(cp, '@');
+	if (ep != NULL)
+	{
+		cp = ep+1;
+		if (use_flag != NULL)
+			*use_flag = TRUE;
+	}
+		
+	if (strcasecmp(cp, "MAILER_DAEMON") == 0)
+		cp = "";
+
+	(void) memset(mailfrom, '\0', mailfrom_len);
+	(void) strlcpy(mailfrom, cp, mailfrom_len);
+	return 0;
+}
+
+int
+opendmarc_spf2_specify_ip_address(SPF_CTX_T *spfctx, char *ip_address, size_t ip_address_len)
+{
+	if (spfctx == NULL)
+		return EINVAL;
+
+	if (ip_address == NULL)
+		return EINVAL;
+
+	/*
+	 * we don't care at this point if it is ipv6 or ipv4
+	 */
+	SPF_request_set_ipv4_str(spfctx->spf_request, ip_address);
+	return 0;
+}
+
+int
+opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom)
+{
+	SPF_CTX_T *	ctx;
+	int		ret;
+	char 		xbuf[BUFSIZ];
+	char		helo[512];
+	char		mfrom[512];
+
+	if (used_mfrom != NULL)
+		*used_mfrom = FALSE;
+
+	(void) memset(xbuf, '\0', sizeof xbuf);
+	ctx = opendmarc_spf2_alloc_ctx();
+	if (ctx == NULL)
+	{
+		if (human_readable != NULL)
+			(void) strlcpy(human_readable, strerror(errno), human_readable_len);
+		return DMARC_POLICY_SPF_OUTCOME_TMPFAIL;
+	}
+
+	if (ip_address == NULL)
+	{
+		if (human_readable != NULL)
+			(void) strlcpy(human_readable, "No IP address available", human_readable_len);
+		ctx = opendmarc_spf2_free_ctx(ctx);
+		return DMARC_POLICY_SPF_OUTCOME_FAIL;
+	}
+
+	if (mail_from_domain == NULL && helo_domain == NULL)
+	{
+		if (human_readable != NULL)
+			(void) strlcpy(human_readable, "No Domain name available to check", human_readable_len);
+		ctx = opendmarc_spf2_free_ctx(ctx);
+		return DMARC_POLICY_SPF_OUTCOME_FAIL;
+	}
+
+	ret = opendmarc_spf2_specify_ip_address(ctx, ip_address, strlen(ip_address));
+	if (ret != 0)
+	{
+		if (human_readable != NULL)
+			(void) strlcpy(human_readable, strerror(errno), human_readable_len);
+		ctx = opendmarc_spf2_free_ctx(ctx);
+		return DMARC_POLICY_SPF_OUTCOME_TMPFAIL;
+	}
+
+	ret = opendmarc_spf2_find_mailfrom_domain(ctx, mail_from_domain, mfrom, sizeof mfrom, used_mfrom);
+	if (ret |= 0 || used_mfrom == FALSE)
+	{
+		(void) strlcpy(helo, helo_domain, sizeof helo);
+		SPF_request_set_env_from(ctx->spf_request, helo);
+	}
+	else
+	{
+		SPF_request_set_env_from(ctx->spf_request, mfrom);
+	}
+	ctx->spf_response = NULL;
+	SPF_request_query_mailfrom(ctx->spf_request, &(ctx->spf_response));
+
+	if (human_readable != NULL)
+		(void) strlcpy(human_readable, SPF_strresult(SPF_response_result(ctx->spf_response)), human_readable_len);
+	ctx->spf_result = SPF_response_result(ctx->spf_response);
+	ret = (int) ctx->spf_result;
+	ctx = opendmarc_spf2_free_ctx(ctx);
+
+	if (ret != SPF_RESULT_PASS)
+	{
+		switch (ret)
+		{
+		    case SPF_RESULT_NEUTRAL:
+		    case SPF_RESULT_NONE:
+		    case SPF_RESULT_SOFTFAIL:
+			if (softfail_okay_flag == TRUE)
+				return DMARC_POLICY_SPF_OUTCOME_PASS;
+			else
+				return DMARC_POLICY_SPF_OUTCOME_FAIL;
+			break;
+		    case SPF_RESULT_TEMPERROR:
+			return DMARC_POLICY_SPF_OUTCOME_TMPFAIL;
+		}
+		return DMARC_POLICY_SPF_OUTCOME_FAIL;
+	}
+	return DMARC_POLICY_SPF_OUTCOME_PASS;
+}
+
+#else /* HAVE_SPF2_H */
+
+// No spf.h so no libspf2 to use so we use the internal spf check.
 #ifndef TRUE
 # define TRUE (1)
 #endif
@@ -1966,3 +2146,7 @@ opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, 
 	}
 	return DMARC_POLICY_SPF_OUTCOME_PASS;
 }
+
+#endif /* HAVE_SPF2_H */
+
+#endif /* WITH_SPF */

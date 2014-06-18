@@ -6,6 +6,11 @@
 # Acceptable arguments to configure are:
 # 	The usual CC= etc.
 # 	--with-wall forces CC=gcc -Wall
+# SPF support. Define --with-spf to include either internal or libspf2 support
+#	--with-spf
+# LibSPF2 support. Define the next to if you want libspf2 instead of internal support.
+#	--with-spf2-include=path
+#	--with-spf2-lib=path
 
 #
 # Setup
@@ -184,6 +189,7 @@ AC_ARG_WITH([wall],
 	AC_HELP_STRING([--with-wall], [(no default)]),
 	CC="gcc -Wall",)
 
+
 #
 # See if we will need -lresolv
 #
@@ -233,6 +239,30 @@ AC_ARG_WITH([sql-backend],
             [SQL_BACKEND="$withval"], [SQL_BACKEND="mysql"])
 AC_SUBST(SQL_BACKEND)
 AC_DEFINE_UNQUOTED(SQL_BACKEND, "$SQL_BACKEND", [default SQL back-end])
+
+AC_ARG_WITH([spf],
+AC_HELP_STRING([--with-spf], [(no default)]),
+AC_DEFINE(WITH_SPF, 1, [Define to 1 if you want SPF support.]), [])
+
+AC_ARG_WITH([spf2-include],
+	AC_HELP_STRING([--with-spf2-include], [(no default)]),
+	SPF2_INCLUDE="$withval", [])
+AC_ARG_WITH([spf2-lib],
+	AC_HELP_STRING([--with-spf2-lib], [(no default)]),
+	SPF2_LIB="$withval", [])
+if test "x$SPF2_INCLUDE" != "x" -a "x$SPF2_LIB" != "x"
+then
+	if test -f ${SPF2_INCLUDE}/spf.h
+	then
+		AC_DEFINE(HAVE_SPF2_H, 1, [Define to 1 if you have libspf2's `spf.h'])
+		spf2_include="-I $SPF2_INCLUDE"
+		saved_CFLAGS="$CFLAGS"
+		saved_LDFLAGS="$LDFLAGS"
+		CFLAGS="$spf2_include $saved_CFLAGS"
+		LDFLAGS="$saved_LDFLAGS -L${SPF2_LIB}"
+	fi
+	AC_SEARCH_LIBS(SPF_record_new, spf2)
+fi
 
 #
 # opendmarc

@@ -1,5 +1,55 @@
-#include "../opendmarc_internal.h"
-#include "../dmarc.h"
+#include "opendmarc_internal.h"
+#include "dmarc.h"
+
+#if WITH_SPF
+
+#if HAVE_SPF2_H
+// Yes we have the spf.h file, so we test libspf2
+typedef struct {
+	char *helo;
+	char *mfrom;
+	char *ip;
+	int  outcome;
+} SPF2_T;
+int
+opendmarc_spf2_run_test()
+{
+	SPF2_T tests[] = {
+		{"bcx.com",   "root@bcx.com",   "204.14.152.228",    DMARC_POLICY_SPF_OUTCOME_PASS},
+		{"agari.com", "root@agari.com", "2001:a60:901e::22", DMARC_POLICY_SPF_OUTCOME_PASS},
+		{"agari.com", "root@agari.com", "1.2.3.4",           DMARC_POLICY_SPF_OUTCOME_FAIL},
+		{"agari.com", "root@agari.com", "185.28.196.1",      DMARC_POLICY_SPF_OUTCOME_PASS},
+		{"bcx.com",    "<>",             "204.14.152.228",   DMARC_POLICY_SPF_OUTCOME_PASS},
+		{NULL, NULL, NULL, 0}
+	};
+	int		status;
+	char		human[512];
+	int		used_mfrom;
+	int		failures = 0;
+	int		success = 0;
+	SPF2_T *	tpp;
+
+	for (tpp = tests; tpp->helo != NULL; tpp++)
+	{
+		(void) memset(human, '\0', sizeof human);
+		status = opendmarc_spf2_test(tpp->ip, tpp->mfrom, tpp->helo, NULL, FALSE, human, sizeof human, &used_mfrom);
+		if (status != tpp->outcome)
+		{
+			printf("Error: ip=\"%s\", mfrom=\"%s\", helo=\"%s\", error(%d)= %s\n", tpp->ip, tpp->mfrom, tpp->helo, status, human);
+			++failures;
+		}
+		else
+		{
+			//printf("Success: ip=\"%s\", mfrom=\"%s\", helo=\"%s\", error(%d)= %s\n", tpp->ip, tpp->mfrom, tpp->helo, status, human);
+			++success;
+		}
+	}
+	printf("Test opendmarc_spf_ip4_tests(): %d pass, %d fail\n", success, failures);
+	return failures;
+}
+
+#else /* HAVE_SPF2_H */
+// No spf.h so we test the internal library.
 
 typedef struct {
 	char *	ip;
@@ -93,7 +143,7 @@ opendmarc_spf_test_exp()
 		++failures;
 
 	ctx = opendmarc_spf_free_ctx(ctx);
-	printf("Test opendmarc_spf_test_exp(): %d pass, %d fail\n", success, failures);
+	printf("Test opendmarc_spf_run_test(): %d pass, %d fail\n", success, failures);
 	return failures;
 }
 
@@ -166,14 +216,20 @@ opendmarc_spf_ip4_tests(void)
 	}
 	printf("Test opendmarc_spf_ip4_tests(): %d pass, %d fail\n", success, failures);
 	return failures;
-	return 0;
 }
+#endif /* HAVE_SPF2_H */
 
 int
 main(int argc, char **argv)
 {
 
+#if HAVE_SPF2_H
+	if (opendmarc_spf2_run_test() != 0)
+#else /* HAVE_SPF2_H */
 	if (opendmarc_spf_ip6_tests() != 0 || opendmarc_spf_ip4_tests() != 0 || opendmarc_spf_test_records() != 0 || opendmarc_spf_test_exp() != 0)
+#endif /* HAVE_SPF2_H */
 		return 1;
 	return 0;
 }
+
+#endif /* WITH_SPF */

@@ -164,7 +164,8 @@ int 		   opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 /*
  * SPF Processing
  */
-int         opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int soft_fail_as_pass, char *human_readable, size_t human_readable_len, int *use_mailfrom);
+int     opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int soft_fail_as_pass, char *human_readable, size_t human_readable_len, int *use_mailfrom);
+int	opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom);
 
 #ifdef __cplusplus
 }
