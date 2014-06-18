@@ -119,8 +119,10 @@ struct dmarcf_connctx
 	struct sockaddr_storage	cctx_ip;
 	char			cctx_ipstr[BUFRSZ + 1];
 	char			cctx_host[MAXHOSTNAMELEN + 1];
+#if WITH_SPF
 	char			cctx_helo[MAXHOSTNAMELEN + 1];
 	char			cctx_rawmfrom[MAXHOSTNAMELEN + 1];
+#endif
 };
 typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 
@@ -198,7 +200,9 @@ struct lookup log_facilities[] =
 sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));
 sfsistat mlfi_connect __P((SMFICTX *, char *, _SOCK_ADDR *));
+#if WITH_SPF
 sfsistat mlfi_helo __P((SMFICTX *, char *));
+#endif
 sfsistat mlfi_envfrom __P((SMFICTX *, char **));
 sfsistat mlfi_eom __P((SMFICTX *));
 sfsistat mlfi_header __P((SMFICTX *, char *, char *));
@@ -1762,6 +1766,7 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 	return SMFIS_CONTINUE;
 }
 
+#if WITH_SPF
 /*
 **  MLFI_HELO -- handler for HELO/EHLO command; only used for spf checks if configured.
 **
@@ -1796,6 +1801,7 @@ mlfi_helo(SMFICTX *ctx, char *helo_domain)
 	}
 	return SMFIS_CONTINUE;
 }
+#endif /* WITH_SPF */
 
 /*
 **  MLFI_ENVFROM -- handler for MAIL FROM command; used to reset for a message
@@ -1862,8 +1868,10 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 		unsigned char *p;
 		unsigned char *q;
 
+#if WITH_SPF
 		strncpy(cc->cctx_rawmfrom, envfrom[0],
 			sizeof cc->cctx_rawmfrom - 1);
+#endif
 		strncpy(dfc->mctx_envfrom, envfrom[0],
 		        sizeof dfc->mctx_envfrom - 1);
 
@@ -2443,6 +2451,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	if (!wspf)
 	{
+#if WITH_SPF
 		if (conf->conf_spfselfvalidate)
 		{
 			int spf_result;
@@ -2452,7 +2461,12 @@ mlfi_eom(SMFICTX *ctx)
 			int spf_mode;
 			char *pass_fail;
 
-			spf_result = opendmarc_spf_test(cc->cctx_ipstr,
+#if HAVE_SPF2_H
+			spf_result = opendmarc_spf2_test(
+#else
+			spf_result = opendmarc_spf_test(
+#endif
+								cc->cctx_ipstr,
 								cc->cctx_rawmfrom,
 								cc->cctx_helo,
 								NULL,
@@ -2513,6 +2527,7 @@ mlfi_eom(SMFICTX *ctx)
 			}
 		}
 		else
+#endif /* WITH_SPF */
 			dmarcf_dstring_printf(dfc->mctx_histbuf, "spf -1\n");
 	}
 
@@ -3133,7 +3148,11 @@ struct smfiDesc smfilter =
 	SMFI_VERSION,	/* version code -- do not change */
 	0,		/* flags; updated in main() */
 	mlfi_connect,	/* connection info filter */
+#if WITH_SPF
 	mlfi_helo,	/* SMTP HELO command filter */
+#else
+	NULL,		/* SMTP HELO command filter */
+#endif
 	mlfi_envfrom,	/* envelope sender filter */
 	NULL,		/* envelope recipient filter */
 	mlfi_header,	/* header filter */

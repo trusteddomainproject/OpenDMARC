@@ -1,6 +1,6 @@
 SUBDIRS=testfiles
 LDADD = ../libopendmarc.la $(LIBRESOLV)
-AM_CPPFLAGS = -I..
+AM_CPPFLAGS = -I.. -I../..
 
 check_PROGRAMS		 = test_tld test_finddomain \
 			   test_dmarc_parse \

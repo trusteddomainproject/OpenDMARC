@@ -43,7 +43,7 @@ fi
 
 autoreconf -v -i
 
-CONF="./configure --with-wall -C"
+CONF="./configure -q --with-wall -C --with-spf --with-spf2-include=/usr/local/include/spf2 --with-spf2-lib=/usr/local/lib/"
 echo ${CONF}
 perform "$CONF"
 perform "make -s"

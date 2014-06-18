@@ -2,7 +2,10 @@
 
 #ifndef OPENDMARC_INTERNAL_H
 #define OPENDMARC_INTERNAL_H
-#include "build-config.h"
+
+#if HAVE_CONFIG_H
+# include "build-config.h"
+#endif
 
 # if HAVE_CTYPE_H
 #	include <ctype.h>
@@ -229,6 +232,24 @@ char *    opendmarc_util_ultoa(unsigned long val, char *buffer, size_t bufferlen
 /* opendmarc_policy.c */
 void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in **nsaddr_list);
 
+#if WITH_SPF
+
+#if HAVE_SPF2_H
+#define HAVE_NS_TYPE
+#include "spf.h"
+typedef struct spf_context_struct { 
+	SPF_server_t *		spf_server;
+	SPF_request_t *		spf_request;
+	SPF_response_t *	spf_response;
+	SPF_result_t		spf_result;
+	char    		mailfrom_addr[512];
+	char			mailfrom_domain[256];
+	char    		helo_domain[256];
+} SPF_CTX_T;
+int opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom);
+
+#else /* not HAVE_SPF2_H */
+
 /* opendmarc_spf.c and opendmarc_spf_dns.c */
 #define MAX_SPF_RECURSION (10)
 typedef struct spf_context_struct { 
@@ -247,6 +268,7 @@ typedef struct spf_context_struct {
 	char    exp_buf[512];
 	int     did_get_exp;
 } SPF_CTX_T;
+int		opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom);
 char ** 	opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt);
 char ** 	opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt);
 char ** 	opendmarc_spf_dns_lookup_mx_domain(char *domain, char **ary, int *cnt);
@@ -267,8 +289,8 @@ int             opendmarc_spf_specify_ip_address(SPF_CTX_T *spfctx, char *ip_add
 int             opendmarc_spf_specify_record(SPF_CTX_T *spfctx, char *spf_record, size_t spf_record_length);
 int             opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_len);
 const char *    opendmarc_spf_status_to_msg(SPF_CTX_T *spfctx, int status);
+#endif /* HAVE_SPF2_H */
 
-
-
+#endif /* WITH_SPF */
 
 #endif /* OPENDMARC_INTERNAL_H */

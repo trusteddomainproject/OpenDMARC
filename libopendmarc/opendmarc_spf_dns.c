@@ -1,6 +1,8 @@
 #include "opendmarc_internal.h"
 #include "opendmarc_strl.h"
+#include "dmarc.h"
 
+#if WITH_SPF && ! HAVE_SPF2_H
 /*
 ** Beware that some Linux versions incorrectly define 
 ** MAXHOSTNAMELEN as 64, but DNS lookups require a length
@@ -737,3 +739,4 @@ got_spf_record:
 	return NULL;
 }
 
+#endif /* WITH_SPF && ! HAVE_SPF2_H */
