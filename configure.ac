@@ -262,6 +262,7 @@ then
 		LDFLAGS="$saved_LDFLAGS -L${SPF2_LIB}"
 	fi
 	AC_SEARCH_LIBS(SPF_record_new, spf2)
+	AC_SEARCH_LIBS(SPF_server_new, spf2)
 fi
 
 #
