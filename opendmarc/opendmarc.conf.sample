@@ -289,6 +289,9 @@
 ##  SPFSelfValidate { true | false }
 ##	default false
 ##
+##  Enable internal spf checking with --with-spf
+##  To use libspf2 instead:  --with-spf --with-spf2-include=path --with-spf2-lib=path
+##
 ##  Causes the filter to perform a fallback SPF check itself when
 ##  it can find no SPF results in the message header.  If SPFIgnoreResults
 ##  is also set, it never looks for SPF results in headers and

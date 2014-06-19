@@ -6,6 +6,12 @@ release, and a summary of the changes in that release.
 1.3.0		2014/04/??
 	Add configuration support for internal SPF checks.  Hooks in
 		the milter to check that SPF is configured to do so.
+		To enable, configure with --with-spf
+	Add build configure for libspf2 support in place of internal spf
+		support. To enable, configure with
+		--with-spf --with-spf2-include=path --with-spf2-lib=path
+		Has been tested with libspf2-1.2.10 and libspf2-1.2.9
+		Note that libspf2 hangs on Solaris.
 	Fix bug #60, part II: Default AuthservID to the name provided by the
 		MTA, not the local host name, which is consistent with what
 		OpenDKIM does.  Suggested by Robbert Klarenbeek.
