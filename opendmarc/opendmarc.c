@@ -138,6 +138,7 @@ struct dmarcf_config
 	_Bool			conf_addswhdr;
 	_Bool			conf_authservidwithjobid;
 	_Bool			conf_recordall;
+#if WITH_SPF
 	_Bool			conf_spfignoreresults;
 	_Bool			conf_spfselfvalidate;
 	_Bool			conf_ignoreauthclients;
@@ -2260,7 +2261,11 @@ mlfi_eom(SMFICTX *ctx)
 		/* walk through what was found */
 		for (c = 0; c < ar.ares_count; c++)
 		{
-			if (ar.ares_result[c].result_method == ARES_METHOD_SPF)
+			if (ar.ares_result[c].result_method == ARES_METHOD_SPF
+#if WITH_SPF
+					&& conf->conf_spfignoreresults == FALSE
+#endif
+					)
 			{
 				int spfmode;
 
@@ -2413,7 +2418,11 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
-	if (!wspf)
+	if (!wspf
+#if WITH_SPF
+		&& conf->conf_spfignoreresults == FALSE
+#endif
+		)
 	{
 		for (hdr = dfc->mctx_hqhead;
 		     hdr != NULL && !wspf;
