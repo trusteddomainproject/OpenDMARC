@@ -51,6 +51,7 @@ struct lookup methods[] =
 	{ "domainkeys",		ARES_METHOD_DOMAINKEYS },
 	{ "iprev",		ARES_METHOD_IPREV },
 	{ "sender-id",		ARES_METHOD_SENDERID },
+	{ "smime",		ARES_METHOD_SMIME },
 	{ "spf",		ARES_METHOD_SPF },
 	{ NULL,			ARES_METHOD_UNKNOWN }
 };
