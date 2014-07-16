@@ -141,6 +141,7 @@ struct dmarcf_config
 #if WITH_SPF
 	_Bool			conf_spfignoreresults;
 	_Bool			conf_spfselfvalidate;
+#endif /* WITH_SPF */
 	_Bool			conf_ignoreauthclients;
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
@@ -1234,6 +1235,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_enablecores,
 		                  sizeof conf->conf_enablecores);
 
+#if WITH_SPF
 		(void) config_get(data, "SPFIgnoreResults",
 		                  &conf->conf_spfignoreresults,
 		                  sizeof conf->conf_spfignoreresults);
@@ -1241,6 +1243,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "SPFSelfValidate",
 		                  &conf->conf_spfselfvalidate,
 		                  sizeof conf->conf_spfselfvalidate);
+#endif /* WITH_SPF */
 
 		(void) config_get(data, "RejectFailures",
 		                  &conf->conf_rejectfail,
