@@ -55,6 +55,10 @@ static char *optlist[] =
 	"POLL",
 #endif /* POLL */
 
+#if WITH_SPF
+	"WITH_SPF",
+#endif /* WITH_SPF */
+
 	NULL
 };
 
