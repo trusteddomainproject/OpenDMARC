@@ -6,7 +6,7 @@ release, and a summary of the changes in that release.
 1.3.0		2014/07/??
 	Add configuration support for internal SPF checks.  Inlcudes hooks in
 		the milter to check that SPF is configured to do so.
-		This can use a private SPF impleemntation or libspf2.
+		This can use a private SPF implementation or libspf2.
 	Feature request #79: Optionally ignore clients that authenticated
 		using SMTP AUTH.
 	Fix bug #60, part II: Default AuthservID to the name provided by the
