@@ -141,6 +141,7 @@ struct dmarcf_config
 #if WITH_SPF
 	_Bool			conf_spfignoreresults;
 	_Bool			conf_spfselfvalidate;
+#endif /* WITH_SPF */
 	_Bool			conf_ignoreauthclients;
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
