@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.3.0		2014/05/??
+1.3.0		2014/07/??
 	Add configuration support for internal SPF checks.  Inlcudes hooks in
 		the milter to check that SPF is configured to do so.
 		This can use a private SPF impleemntation or libspf2.
