@@ -27,6 +27,7 @@ release, and a summary of the changes in that release.
 	Fix bug #78: Add missing newline in forensic report header.
 	Fix bug #90: Make "--with-squlbackend" without any value do the
 		right thing.  Reported by Scott Kitterman.
+	Fix bug #93: Honor size limits in URIs.  Patch from Tomki Camp.
 	Make "smime" and "rrvs" legal Authentication-Results methods.
 	Provide better logging when pclose() for a forensic report returns
 		non-zero.  Problem noted by Michael Nausch.
