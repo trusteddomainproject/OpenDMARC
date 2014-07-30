@@ -2266,9 +2266,9 @@ mlfi_eom(SMFICTX *ctx)
 		{
 			if (ar.ares_result[c].result_method == ARES_METHOD_SPF
 #if WITH_SPF
-					&& conf->conf_spfignoreresults == FALSE
+			    && !conf->conf_spfignoreresults
 #endif
-					)
+			)
 			{
 				int spfmode;
 
@@ -2423,9 +2423,9 @@ mlfi_eom(SMFICTX *ctx)
 
 	if (!wspf
 #if WITH_SPF
-		&& conf->conf_spfignoreresults == FALSE
+	    && !conf->conf_spfignoreresults
 #endif
-		)
+	)
 	{
 		for (hdr = dfc->mctx_hqhead;
 		     hdr != NULL && !wspf;
@@ -2473,19 +2473,19 @@ mlfi_eom(SMFICTX *ctx)
 			int spf_mode;
 			char *pass_fail;
 
-#if HAVE_SPF2_H
+# if HAVE_SPF2_H
 			spf_result = opendmarc_spf2_test(
-#else
+# else /* HAVE_SPF2_H */
 			spf_result = opendmarc_spf_test(
-#endif
-								cc->cctx_ipstr,
-								cc->cctx_rawmfrom,
-								cc->cctx_helo,
-								NULL,
-								FALSE,
-								human,
-								sizeof human,
-								&used_mfrom);
+# endif /* HAVE_SPF2_H */
+				cc->cctx_ipstr,
+				cc->cctx_rawmfrom,
+				cc->cctx_helo,
+				NULL,
+				FALSE,
+				human,
+				sizeof human,
+				&used_mfrom);
 			if (used_mfrom == TRUE)
 			{
 				use_domain = dfc->mctx_envfrom;
@@ -2505,26 +2505,42 @@ mlfi_eom(SMFICTX *ctx)
 			{
 			    case DMARC_POLICY_SPF_OUTCOME_PASS:
 				pass_fail = "pass";
+				dfc->mctx_spfresult = ARES_RESULT_PASS;
 				break;
+
 			    case DMARC_POLICY_SPF_OUTCOME_NONE:
 				pass_fail = "none";
+				dfc->mctx_spfresult = ARES_RESULT_NONE;
 				break;
+
 			    case DMARC_POLICY_SPF_OUTCOME_TMPFAIL:
-				pass_fail = "tmpfail";
+				pass_fail = "tempfail";
+				dfc->mctx_spfresult = ARES_RESULT_TEMPERROR;
 				break;
-			    default:
+
 			    case DMARC_POLICY_SPF_OUTCOME_FAIL:
+				dfc->mctx_spfresult = ARES_RESULT_FAIL;
 				pass_fail = "fail";
 				break;
+
+			    default:
+				dfc->mctx_spfresult = ARES_RESULT_PERMERROR;
+				pass_fail = "permerror";
+				break;
 			}
+
 			if (spf_mode == DMARC_POLICY_SPF_ORIGIN_HELO)
+			{
 				snprintf(header, sizeof header,
-					 "%s; spf=%s header.from=%s",
+					 "%s; spf=%s smtp.helo=%s",
 					 authservid, pass_fail, use_domain);
+			}
 			else
+			{
 				snprintf(header, sizeof header,
 					 "%s; spf=%s smtp.mailfrom=%s",
 					 authservid, pass_fail, use_domain);
+			}
 
 			if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
 					     header) == MI_FAILURE)
@@ -2537,6 +2553,9 @@ mlfi_eom(SMFICTX *ctx)
 					       AUTHRESULTSHDR);
 				}
 			}
+
+			dmarcf_dstring_printf(dfc->mctx_histbuf, "spf %d\n",
+			                      dfc->mctx_spfresult);
 		}
 		else
 #endif /* WITH_SPF */
