@@ -10,6 +10,8 @@
 # define _REENTRANT
 #endif /* _REENTRANT */
 
+#include "build-config.h"
+
 /* system includes */
 #include <sys/types.h>
 #include <string.h>
@@ -17,8 +19,22 @@
 #include <stdlib.h>
 #include <assert.h>
 
+/* libbsd if found */
+#ifdef USE_BSD_H
+# include <bsd/string.h>
+#endif /* USE_BSD_H */
+
+/* libstrl if needed */
+#ifdef USE_STRL_H
+# include <strl.h>
+#endif /* USE_STRL_H */
+
+/* opendmarc_strl if needed */
+#ifdef USE_DMARCSTRL_H
+# include <opendmarc_strl.h>
+#endif /* USE_DMARCSTRL_H */
+
 /* opendmarc includes */
-#include "opendmarc_strl.h"
 #include "config.h"
 
 /* limits */

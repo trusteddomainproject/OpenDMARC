@@ -4,6 +4,8 @@
 **  $Id: test.c,v 1.15 2010/09/02 04:04:20 cm-msk Exp $
 */
 
+#include "build-config.h"
+
 /* system includes */
 #include <sys/param.h>
 #include <sys/types.h>
@@ -17,14 +19,26 @@
 #include <time.h>
 #include <assert.h>
 
+/* libbsd if found */
+#ifdef USE_BSD_H
+# include <bsd/string.h>
+#endif /* USE_BSD_H */
+
+/* libstrl if needed */
+#ifdef USE_STRL_H
+# include <strl.h>
+#endif /* USE_STRL_H */
+
+/* opendmarc_strl if needed */
+#ifdef USE_DMARCSTRL_H
+# include <opendmarc_strl.h>
+#endif /* USE_DMARCSTRL_H */
+
 /* libopendkim includes */
 #include "build-config.h"
 
 /* libmilter includes */
 #include <libmilter/mfapi.h>
-
-/* libopendmarc includes */
-#include "opendmarc_strl.h"
 
 /* opendmarc includes */
 #include "test.h"

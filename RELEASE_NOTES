@@ -4,9 +4,6 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.3.0		2014/07/??
-	Add configuration support for internal SPF checks.  Includes hooks in
-		the milter to check that SPF is configured to do so.
-		This can use a private SPF implementation or libspf2.
 	Feature request #79: Optionally ignore clients that authenticated
 		using SMTP AUTH.
 	Fix bug #60, part II: Default AuthservID to the name provided by the
@@ -31,6 +28,11 @@ release, and a summary of the changes in that release.
 	Make "smime" and "rrvs" legal Authentication-Results methods.
 	Provide better logging when pclose() for a forensic report returns
 		non-zero.  Problem noted by Michael Nausch.
+	Add configuration support for internal SPF checks.  Includes hooks in
+		the milter to check that SPF is configured to do so.
+		This can use a private SPF implementation or libspf2.
+	Fix strlcat() and strlcpy() support for Debian.  Patch from Scott
+		Kitterman.
 	REPORTS: Feature request #80: Generate aggregate reports on UTC
 		day boundaries.  Requested by Tomki Camp.
 	REPORTS: Feature request #84: Optionally expire old data from

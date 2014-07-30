@@ -182,6 +182,32 @@ AC_CHECK_FUNCS(strncasecmp)
 AC_CHECK_HEADERS(signal.h)
 AC_CHECK_HEADERS(regex.h)
 
+bsdstrl_h_found="no"
+strl_h_found="no"
+AC_CHECK_HEADERS([bsd/string.h], [bsdstrl_h_found="yes"])
+AC_CHECK_HEADERS([strl.h], [strl_h_found="yes"])
+
+# we need to include <strl.h> if an installed strl.h was found and no
+# bsd/string.h was found
+if test x"$strl_h_found" = x"yes" -a x"$bsdstrl_h_found" = x"no"
+then
+        AC_DEFINE([USE_STRL_H], 1,
+                  [Define to 1 if you need to include <strl.h> to get the `strlcat()' and `strlcpy()' functions.])
+fi
+
+if test x"$bsdstrl_h_found" = x"yes"
+then
+        AC_DEFINE([USE_BSD_H], 1,
+                  [Define to 1 if you need to include <bsd/string.h> to get the `strlcat()' and `strlcpy()' functions.])
+fi
+
+# Use opendmarc strl if neither a system strl nor libbsd are found
+if test x"$strl_h_found" = x"no" -a x"$bsdstrl_h_found" = x"no"
+then
+        AC_DEFINE([USE_DMARCSTRL_H], 1,
+                  [Define to 1 if you need to include <opendmarc_strl.h> to get the `strlcat()' and `strlcpy()' functions.])
+fi
+
 AC_PROG_LN_S
 AC_CHECK_PROG(miltertest, miltertest, "yes", "no")
 AC_SUBST(ac_aux_dir)
