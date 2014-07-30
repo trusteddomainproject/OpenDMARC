@@ -238,6 +238,10 @@ AC_ARG_WITH([sql-backend],
             AS_HELP_STRING([--with-sql-backend],
                            [selection of SQL backend in use]),
             [SQL_BACKEND="$withval"], [SQL_BACKEND="mysql"])
+if test x"$SQL_BACKEND" = x"yes"
+then
+	SQL_BACKEND="mysql"
+fi
 AC_SUBST(SQL_BACKEND)
 AC_DEFINE_UNQUOTED(SQL_BACKEND, "$SQL_BACKEND", [default SQL back-end])
 
