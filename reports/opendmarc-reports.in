@@ -102,6 +102,7 @@ my $testmode = 0;
 my $keepfiles = 0;
 my $use_utc = 0;
 my $daybound = 0;
+my $report_maxbytes_global = 15728640; # default: 15M, per spec
 
 my $msgid;
 
@@ -808,6 +809,36 @@ foreach (@$domainset)
 			next;
 		}
 
+		$repdest = $uri->opaque;
+		my $report_maxbytes = $report_maxbytes_global;
+
+		# check for max report size
+		if ($repdest =~ m/^(\S+)!(\d{1,15})([kmgt])?$/i)
+		{
+			$repdest = $1;
+			$report_maxbytes = $2;
+			if ($3)
+			{
+				my $letter = lc($3);
+				if ($letter eq 'k')
+				{
+					$report_maxbytes = $report_maxbytes * 1024;
+				}
+				if ($letter eq 'm')
+				{
+					$report_maxbytes = $report_maxbytes * 1048576;
+				}
+				if ($letter eq 'g')
+				{
+					$report_maxbytes = $report_maxbytes * (2**30);
+				}
+				if ($letter eq 't')
+				{
+					$report_maxbytes = $report_maxbytes * (2**40);
+				}
+			}
+		}
+
 		# Test mode, just report what would have been done
 		if ($testmode)
 		{
@@ -839,8 +870,6 @@ foreach (@$domainset)
 				unlink($repfile);
 				next;
 			}
-		
-			$repdest = $uri->opaque;
 
 			$boundary = "report_section";
 
@@ -879,25 +908,34 @@ foreach (@$domainset)
 
 			$mailout .= "\n";
 			$mailout .= "--$boundary--\n";
+			my $reportsize = length($mailout);
 
-			$smtpstatus = "sent";
-			$smtpfail = 0;
-			if (!$smtp->mail($repemail) ||
-			    !$smtp->to($repdest) ||
-			    !$smtp->data() ||
-			    !$smtp->datasend($mailout) ||
-			    !$smtp->dataend())
+			if ($reportsize > $report_maxbytes)
 			{
-				$smtpfail = 1;
-				$smtpstatus = "failed to send";
+				# XXX -- generate an error report here
+				print STDERR "$progname: report was too large ($reportsize bytes) per limitation of URI " . $uri->opaque . " for domain $domain\n";
 			}
-
-			if ($verbose || $smtpfail)
+			else
 			{
-				# now perl voodoo:
-				$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
-				chomp($answer);
-				print STDERR "$progname: $smtpstatus report for $domain to $repdest ($answer)\n";
+				$smtpstatus = "sent";
+				$smtpfail = 0;
+				if (!$smtp->mail($repemail) ||
+				    !$smtp->to($repdest) ||
+				    !$smtp->data() ||
+				    !$smtp->datasend($mailout) ||
+				    !$smtp->dataend())
+				{
+					$smtpfail = 1;
+					$smtpstatus = "failed to send";
+				}
+
+				if ($verbose || $smtpfail)
+				{
+					# now perl voodoo:
+					$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
+					chomp($answer);
+					print STDERR "$progname: $smtpstatus report for $domain to $repdest ($answer)\n";
+				}
 			}
 
 			$smtp->reset();
