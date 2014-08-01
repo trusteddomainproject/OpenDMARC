@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.3.0		2014/07/31
+	Integrated SPF checking is now available through the new
+		SPFSelfValidate and SPFIgnoreResults settings.
 	Feature request #79: Optionally ignore clients that authenticated
 		using SMTP AUTH.
 	Fix bug #60, part II: Default AuthservID to the name provided by the
@@ -49,7 +51,8 @@ release, and a summary of the changes in that release.
 		Problem noted by Karol Augustin.
 	LIBOPENDMARC: Added support for milter to perform own spf checks.
 		Three new files: opendmarc_spf.c, opendmard_spf_dns.c and
-		test/test_spf.c Does not require Libspf2.
+		test/test_spf.cl, allow integrated SPF support.  Support for
+		use of libspf2 is also provided.
 
 1.2.0		2014/03/14
 	Feature request #44: Allow override of the From: field on forensic
