@@ -1,7 +1,5 @@
 /*
-**  Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
-**
-**  $Id: test.c,v 1.15 2010/09/02 04:04:20 cm-msk Exp $
+**  Copyright (c) 2012, 2014, The Trusted Domain Project.  All rights reserved.
 */
 
 #include "build-config.h"

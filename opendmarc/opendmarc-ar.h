@@ -2,7 +2,8 @@
 **  Copyright (c) 2007-2009 Sendmail, Inc. and its suppliers.
 **	All rights reserved.
 **
-**  Copyright (c) 2009, 2012, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2009, 2012, 2014, The Trusted Domain Project.
+**  	All rights reserved.
 */
 
 #ifndef _OPENDMARC_AR_H_
