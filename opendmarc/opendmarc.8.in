@@ -17,7 +17,7 @@
 [\-V]
 .SH DESCRIPTION
 .B opendmarc
-implements the prooposed
+implements the proposed
 .B DMARC
 specification for authentication of message and reporting of observed
 traffic.
