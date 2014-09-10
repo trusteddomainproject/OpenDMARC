@@ -231,7 +231,7 @@
                     </list></t>
             </section>
 
-            <section title="Mail Reciever Requirements">
+            <section title="Mail Receiver Requirements">
 
                 <t>DMARC assumes that mail receivers are able to:
 			<list style="numbers">
@@ -361,12 +361,11 @@
 
             <section anchor="auth_mechs" title="Authentication Mechanisms">
                 <t> The following mechanisms for determining Authenticated Identifiers are supported
-                    in the current version of DMARC: <list style="symbols">
-                        <t>
-                            <xref target="DKIM" />, which provides a domain-level identifier in the
+                    in the current version of DMARC:
+			<list style="symbols">
+                        <t> <xref target="DKIM" />, which provides a domain-level identifier in the
                             content of the "d=" tag of a validated signature. </t>
-                        <t>
-                            <xref target="SPF" />, which can authenticate the domain found in an
+                        <t> <xref target="SPF" />, which can authenticate the domain found in an
                                 <xref target="SMTP" /> MAIL command. </t>
                     </list>
                 </t>
@@ -374,16 +373,11 @@
             <!-- Authentication Mechanisms -->
 
 
-            <section anchor="general" title="General Concepts">
+            <section anchor="concepts" title="Key Concepts">
 
-                <t> A DMARC-enabled Domain Owner creates a DNS record to specify policy. Mail sent
-                    from such a domain may or may not also be authenticated with DKIM and/or SPF.</t>
+		<t> DMARC policies are published by the Domain Owner, and retrieved by the Mail Receiver during the SMTP session, via the DNS. </t>
 
-                <t>A DMARC-enabled Mail Receiver looks for DMARC records in DNS during SMTP
-                    processing and uses them to filter mail at that time, and later to provide
-                    feedback to the Domain Owner.</t>
-
-                <t>DMARC's filtering component is based on whether SPF or DKIM can provide a
+                <t> DMARC's filtering component is based on whether SPF or DKIM can provide a
                     relevant authenticated identifier for the message under consideration. Messages
                     that purport to be from a Domain Owner's domain and arrive from servers that are
                     not authorized by SPF and do not contain an appropriate DKIM signature can be
@@ -395,7 +389,7 @@
                     later sections of this document.</t>
 
                 <t>A DMARC-enabled Mail Receiver might also generate per-message reports that
-                    contain information related to individual messages which fail SPF and/or DKIM.
+                    contain information related to individual messages that fail SPF and/or DKIM.
                     Per-message failure reports are a useful source of information when debugging deployments
                     (if messages can be determined to be legitimate even though failing
                     authentication) or in analyzing attacks. The capability for such services is
@@ -446,7 +440,8 @@
         <t> Author constructs an SPF policy and publishes it in its
             DNS database as per <xref target="SPF"/>.  Author also
             configures its system for DKIM signing as described
-            in <xref target="DKIM"/>. </t>
+            in <xref target="DKIM"/>.  Finally, Author publishes via
+            the DNS a DMARC message handling policy. </t>
 
         <t> Author generates a message and hands the message to its
             designated mail submission service. </t>
@@ -508,10 +503,10 @@
                     is not valid per <xref target="MAIL" />, particularly one with a malformed or
                     absent RFC5322.From field. Handling of such cases is left to the discretion of
                     the Mail Receiver. </t>
-        <t> Both of the underlying authentication technologies DMARC takes as input
-            yield authenticated domains as their outputs.  From the perspective
+        <t> Each of the underlying authentication technologies that DMARC takes as input
+            yield authenticated domains as their outputs when they succeed.  From the perspective
             of DMARC, each
-            can be operated in a "strict" mode or a "relaxed" mode.  An operator
+            can be operated in a "strict" mode or a "relaxed" mode.  A Domain Owner
             would normally select "strict" mode if it wanted to affect
             only messages bearing an RFC5322.From domain exactly matching
             the domains those mechanisms will verify.  Using "relaxed" mode
@@ -533,7 +528,7 @@
                         verifies with a "d=" domain of "example.com", and the RFC5322.From address is
                         "alerts@news.example.com", the DKIM "d=" domain and the RFC5322.From domain
                         are considered to be "in alignment". In strict mode, this test would
-                        fail since the "d=" domain does not match the FQDN of the address.</t>
+                        fail since the "d=" domain does not exactly match the FQDN of the address.</t>
 
                     <t>However, a DKIM signature bearing a value of "d=com" would never allow an "in
                         alignment" result as "com" should appear on all public suffix lists, and
@@ -541,12 +536,12 @@
 
                     <t>Identifier alignment is required because mail can be validly signed by an
                         unrelated domain (for instance, a bad actor can sign it with a Cousin
-                        Domain). By itself, DKIM does not make any assertions about the identity
+                        Domain).  By itself, DKIM does not make any assertions about the identity
                         visible to the end user.</t>
 
                     <t>Note that a single email can contain multiple DKIM signatures, and it is
                         considered to be a DMARC "pass" if any DKIM signature is aligned and
-                        valid.</t>
+                        verifies. </t>
                 </section>
                 <!-- DKIM Identifiers -->
 
@@ -567,7 +562,7 @@
                 <!-- SPF Identifiers -->
 
                 <section anchor="ext_id_align" title="Alignment and Extension Technologies">
-                    <t> If DMARC is extended to include the use of other authentication mechanisms,
+                    <t> If in the future DMARC is extended to include the use of other authentication mechanisms,
                         the extensions will need to allow for domain identifier extraction so that
                         alignment with the RFC5322.From domain can be verified.</t>
                 </section>
@@ -716,7 +711,7 @@
                             Owner. See <xref target="spf_id_align" /> for details. </t>
 
                         <t hangText="fo:"> Failure reporting options (plain-text; OPTIONAL, default
-                            "0")) Provides requested options for generation of failure reports.
+                            "0") Provides requested options for generation of failure reports.
                             Report generators MAY choose to adhere to the requested options. This
                             tag's content MUST be ignored if a "ruf" tag (below) is not also
                             specified. The value of this tag is a colon-separated list of characters
@@ -1151,7 +1146,7 @@
                     incongruent time periods is difficult or impossible. Report generators SHOULD,
                     wherever possible, adhere to hour boundaries for the reporting period they are
                     using. For example, starting a per-day report at 00:00; starting per-hour
-                    reports at 00:00, 01:00, 02:00; et cetera. Report Generators using a 24-hour
+                    reports at 00:00, 01:00, 02:00; et cetera.  Report Generators using a 24-hour
                     report period are strongly encouraged to begin that period at 00:00 UTC,
                     regardless of local timezone or time of report production, in order to
                     facilitate correlation. </t>
@@ -1439,8 +1434,6 @@
                         <xref target="dmarc_record" /> and <xref target="feedback_mechanism" />
                     discuss aggregate feedback.</t>
 
-                <t>See <xref target="capacity" /> for a discussion of matters regarding
-                    aggregation of such data. </t>
             </section>
             <!-- Store Results -->
         </section>
@@ -1653,36 +1646,6 @@
         </section>
         <!-- Feedback -->
 
-        <section anchor="capacity" title="Capacity Planning">
-            <t> DMARC participants will need to perform capacity planning to support their
-                implementations. Some factors to consider include: <list style="hanging">
-                    <t hangText="Storage:"> As Mail Receivers process increasing numbers of
-                        messages -- from increasingly disparate sources -- claiming to be from
-                        DMARC-enabled domains, additional storage of information will be
-                        required to support the generation of feedback reports. Similarly,
-                        Domain Owners will need to plan based on how long they wish to store the
-                        data found in received reports. When Domain Owners enter exceptional
-                        situations and are unable to accept reports, Mail Receivers, as a matter
-                        of policy, might discard undelivered reports. </t>
-
-                    <t hangText="Frequency:"> Sending reports more frequently increases
-                        processing costs at both the Mail Receiver and the Domain Owner, but can
-                        decrease Mail Receiver storage requirements as data are consumed and
-                        storage is freed through report generation and transmission. At the same
-                        time, less frequent report generation may lead to somewhat stale
-                        feedback. An appropriate balance should be sought.</t>
-
-                    <t hangText="DNS:"> DMARC imposes up to two additional DNS queries per
-                        arriving message, namely the TXT queries to try to locate a policy
-                        statement. For Mail Receivers, these are queries sent; for Domain
-                        Owners, these are queries that must be handled. Both sides will need to
-                        plan for the additional DNS load.  There were will be additional DNS
-                        load caused by the generation and sending of reports, and any
-                        external reporting records placed in the DNS.  </t>
-                </list>
-            </t>
-        </section>
-
         <section anchor="minimum" title="Minimum Implementations">
             <t> A minimum implementation of DMARC has the following characteristics: <list
                     style="symbols">
@@ -1730,6 +1693,16 @@
                 <t> Domain Owners requesting reports will also receive information about mail
                     forwarded to unexpected Mail Receivers when message forwarding
                     relationships exists. </t>
+
+                <t> Disclosure of information about the messages is being requested by the entity generating
+                    the email in the first place, i.e., the Domain Owner and not the Mail Receiver, so this may not fit
+                    squarely within existing privacy policy provisions. For some providers,
+                    aggregate and failed message reporting are viewed as a function similar to
+                    complaint reporting about spamming or phishing, and treated similarly under
+                    the privacy policy. Report generators (i.e., Mail Receivers) are encouraged
+                    to review their reporting limitations under such policies before enabling
+                    DMARC reporting. </t>
+
             </section>
 
             <section anchor="priv_rcpt" title="Report Recipients">
@@ -1742,20 +1715,6 @@
                     if their own internal policies constrain the use and transmission of DMARC
                     reporting. </t>
 
-            </section>
-
-            <section anchor="priv_gen" title="Report Generators">
-                <t> The entity (e.g., mailbox provider, Internet service provider) receiving
-                    emails is typically responsible for generating DMARC reports. Such entities
-                    are typically charged with protecting accidental disclosure of their users'
-                    data. In this case, disclosure is being requested by the entity generating
-                    the email in the first place, i.e., the Domain Owner, so this may not fit
-                    squarely within existing privacy policy provisions. For some providers,
-                    aggregate and failed message reporting are viewed as a function similar to
-                    complaint reporting about spamming or phishing, and treated similarly under
-                    the privacy policy. Report generators (i.e., Mail Receivers) are encouraged
-                    to review their reporting limitations under such policies before enabling
-                    DMARC reporting. </t>
             </section>
 
             <section anchor="priv_tls" title="Secure Protocols">
@@ -1776,7 +1735,7 @@
 
             <section anchor="disc_from" title="Use of RFC5322.From">
                 <t> One of the most obvious points of security scrutiny for DMARC is the choice to
-                    focus on an identifier, namely the RFC5322.From address, which is part of a body of data
+                    focus on an identifier, namely the RFC5322.From address, which is part of a body of data that has been
                     trivially forged throughout the history of email. </t>
 
                 <t> Several points suggest it is the most correct and safest thing to do in this
