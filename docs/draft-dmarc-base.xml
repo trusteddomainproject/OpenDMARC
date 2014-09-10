@@ -53,10 +53,11 @@
         <keyword>conformance</keyword>
 
         <abstract>
-            <t>This memo presents a proposal for a scalable mechanism by which a mail sending
+            <t>This document presents a proposal for a scalable mechanism by which a mail sending
                 organization can express, using the Domain Name System, domain-level policies and
                 preferences for message validation, disposition, and reporting, and a mail receiving
                 organization can use those policies and preferences to improve mail handling.</t>
+
             <t> The email ecosystem currently lacks a cohesive mechanism through which email senders
                 and receivers can make use of multiple authentication protocols to establish
                 reliable domain identifiers, communicate policies about those identifiers, and
@@ -65,8 +66,6 @@
                 authentication, senders therefore have difficulty evaluating their authentication
                 deployments, and as a result neither is able to make effective use of existing
                 authentication technology.</t>
-
-
 
             <t> The enclosed proposal is not intended to introduce mechanisms that provide elevated
                 delivery privilege of authenticated email. The proposal presents a mechanism for
@@ -112,12 +111,11 @@
             <t>The basic outline of DMARC is: <list style="numbers">
                     <t>Domain owners publish policy assertions about domains via the DNS.</t>
                     <t>SMTP receivers compare the RFC5322 From: address in the mail to the SPF and
-                        DKIM results if present and the policy in DNS. <list style="numbers">
-                            <t>These receivers can use these results to determine how the mail should be
-                                handled.</t>
-                            <t>The receiver reports to the domain owner about mail claiming to be
-                                from their domain.</t>
-                        </list></t>
+                       DKIM results, if present, and the policy in DNS.
+                    <t>These receivers can use these results to determine how the mail should be
+                       handled.</t>
+                    <t>The receiver reports to the domain owner about mail claiming to be
+                       from their domain.</t>
                 </list></t>
 
             <t>For the purposes of discussion, this document defines the word
@@ -125,35 +123,34 @@
                 and/or sending-entity authorization. </t>
 
             <t>DMARC differs from previous approaches to policy advertisement (e.g., <xref
-                    target="SPF" /> and <xref target="ADSP" />) in that: <list style="symbols">
-                    <t>Authentication technologies are: <list style="numbers">
-                            <t>decoupled from any technology-specific policy mechanisms; and</t>
-                            <t>used solely to establish reliable per-message domain-level
-                                identifiers.</t>
-                        </list>
-                    </t>
+               target="SPF" /> and <xref target="ADSP" />) in that:
+               <list style="symbols">
+                    <t>Authentication technologies are:
+		       <list style="numbers">
+                           <t>decoupled from any technology-specific policy mechanisms; and</t>
+                           <t>used solely to establish reliable per-message domain-level
+                              identifiers.</t>
+                       </list> </t>
 
-                    <t>Multiple authentication technologies are used to: <list style="numbers">
+                    <t>Multiple authentication technologies are used to:
+                       <list style="numbers">
                             <t>reduce the impact of transient authentication errors</t>
-
                             <t>reduce the impact of site-specific configuration errors and
-                                deployment gaps</t>
+                               deployment gaps</t>
 
                             <t>enable more use cases than any individual technology supports
-                                alone</t>
-                        </list>
-                    </t>
+                               alone</t>
+                       </list> </t>
 
-                    <t>Receiver-generated feedback is required, allowing senders to establish
-                        confidence in authentication practices.</t>
+                    <t>Receiver-generated feedback is supported, allowing senders to establish
+                       confidence in authentication practices.</t>
 
                     <t>The domain name extracted from a message's RFC5322.From field is the primary
-                        identifier in the DMARC mechanism. This identifier is used in conjunction
-                        with the results of the underlying authentication technologies to evaluate
-                        results under DMARC.</t>
+                       identifier in the DMARC mechanism. This identifier is used in conjunction
+                       with the results of the underlying authentication technologies to evaluate
+                       results under DMARC.</t>
 
-                </list>
-            </t>
+                </list> </t>
 
             <section title="Scalability">
                 <t> Scalability is a major issue for systems that need to operate in a system as
@@ -169,19 +166,19 @@
             <!-- Scalability -->
 
             <section title="Anti-Phishing">
-                <t>DMARC is designed to prevent bad actors from sending mail which claims to come
-                    from legitimate senders, particularly senders of transactional email.
-                    (official mail that is about business transactions), One of the
+                <t>DMARC is designed to prevent bad actors from sending mail that claims to come
+                    from legitimate senders, particularly senders of transactional email
+                    (official mail that is about business transactions).  One of the
                     primary uses of this kind of spoofed mail is phishing (enticing users to provide
                     information by pretending to be the legitimate service requesting the information).
                     Thus, DMARC is significantly informed by ongoing efforts to enact large-scale,
                     Internet-wide, anti-phishing measures. </t>
                 <t>Although DMARC can only be used to combat specific forms of exact-domain spoofing
-                    directly, the DMARC mechanism is a substantial step towards the creation of
+                    directly, the DMARC mechanism has been found to be useful in the creation of
                     reliable and defensible message streams.</t>
 
                 <t>DMARC does not attempt to solve all problems with spoofed or otherwise fraudulent email.  In particular, it
-                    does not address the use of visually similar domain names (cousin domains) or
+                    does not address the use of visually similar domain names ("cousin domains") or
                     abuse of the <xref target="MAIL">RFC5322</xref>.From human readable
                     &quot;display name&quot;.</t>
             </section>
@@ -197,42 +194,19 @@
 
             <section title="High-Level Goals">
 
-                <t> One common attack on Internet users involves imitating mail from a reputable
-                    mail sender while including malicious content of some kind. The most damaging
-                    version of this attack, both to end-users and to organizations, uses the RFC5322
-                    From: address of the reputable sender. This kind of attack is more damaging to
-                    end-users than attacks using other addresses because it is more believable and
-                    for several reasons, more likely to be delivered to the inbox. (For instance,
-                    many MUAs (Mail User Agents) support whitelisting of From: domains by end-users.) It is more
-                    damaging to the organizations being spoofed because the
-                    email, being indistinguishable to the user from legitimate
-                    email, severely damages the reputation of the organization. </t>
-
-                <t>Current email authentication systems appear sufficient to prevent these attacks,
-                    since both SPF and DKIM should allow receiving systems or users to distinguish
-                    between forged and genuine email from a domain. In practice, however, these
-                    technologies are difficult to implement correctly as a sender and therefore
-                    difficult to use safely as a receiver. DMARC aims to bridge these gaps with
-                    minimal interference to existing systems.</t>
-
-                <t>DMARC is intended to reduce the success of attackers sending mail pretending to
-                    be from a domain they do not control, with minimal changes to existing mail
-                    handling at both senders and receivers. It is particularly intended to protect
-                    transactional email, as
-                    opposed to mail between individuals.</t>
-                <t> That has resulted in the following goals: <list style="symbols">
+                <t> DMARC has the following high-level goals:
+                    <list style="symbols">
                         <t>Allow Domain Owners to assert policy about domain authentication for
                             consumption by Mail Receivers.</t>
 
-                        <t>Allow mail senders to verify their authentication deployment.</t>
+                        <t>Allow Domain Owners to verify their authentication deployment.</t>
 
-                        <t>Minimize the effect on handling and delivery of legitimate messages.</t>
+                        <t>Minimize implementation complexity for both senders and receivers, and in particular, the impact on handling and delivery of legitimate messages.</t>
 
                         <t>Reduce the amount of successfully delivered spoofed email.</t>
 
                         <t>Work at Internet scale.</t>
 
-                        <t>Minimize implementation complexity for both senders and receivers.</t>
                     </list></t>
             </section>
 
@@ -241,7 +215,8 @@
             <section title="Sender/Domain Owner Requirements">
 
                 <t>DMARC assumes that entities who send messages with their domains in the RFC5322.From field and wish to protect those messages with
-                    DMARC can <list style="numbers">
+                    DMARC can:
+                   <list style="numbers">
                         <t>Control DNS entries for the domains to be protected, including adding
                             arbitrary new subdomains with TXT records.</t>
 
@@ -255,10 +230,10 @@
                     </list></t>
             </section>
 
-
             <section title="Mail Reciever Requirements">
 
-                <t>DMARC assumes that mail receivers are able to <list style="numbers">
+                <t>DMARC assumes that mail receivers are able to:
+			<list style="numbers">
                         <t>Do additional DNS lookups, beyond those normally associated with the
                             receipt of a message, to look for DMARC policy and reporting records. (This
                             is a worst-case maximum of 3 additional lookups per message, in addition to those required for DKIM and SPF.)</t>
@@ -273,7 +248,8 @@
 
 
             <section title="Out Of Scope">
-                <t>Several topics and issues are specifically out of scope for this work.  This includes the following: <list style="symbols">
+                <t>Several topics and issues are specifically out of scope for this work.  This includes the following:
+			<list style="symbols">
                         <t> DMARC shall not be required to protect against any attacks against
                             components that are essential dependencies (e.g. DNS attacks, bugs in
                             DKIM verification, malware on the end-user machine or in the sender's
