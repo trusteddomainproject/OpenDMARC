@@ -108,10 +108,11 @@
                 </list>
             </t>
 
-            <t>The basic outline of DMARC is: <list style="numbers">
+            <t>The basic outline of DMARC is:
+                    <list style="numbers">
                     <t>Domain owners publish policy assertions about domains via the DNS.</t>
                     <t>SMTP receivers compare the RFC5322 From: address in the mail to the SPF and
-                       DKIM results, if present, and the policy in DNS.
+                       DKIM results, if present, and the policy in DNS. </t>
                     <t>These receivers can use these results to determine how the mail should be
                        handled.</t>
                     <t>The receiver reports to the domain owner about mail claiming to be
