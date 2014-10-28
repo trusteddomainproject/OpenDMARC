@@ -182,7 +182,7 @@
             <section title="Out Of Scope">
                 <t>Several topics and issues are specifically out of scope for the initial version of this work.  This includes the following:
 			<list style="symbols">
-			<t> special treatment of messages that are not authenticated or have failed authentication; </t>
+			<t> different treatment of messages that are not authenticated versus those that fail authentication; </t>
 			<t> evaluation of anything other than RFC5322.From; </t>
 			<t> multiple reporting formats; </t>
 			<t> publishing policy other than via the DNS; </t>
