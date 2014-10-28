@@ -153,6 +153,48 @@
 
                 </list> </t>
 
+        </section>
+        <!-- Introduction -->
+
+        <section title="Requirements">
+            <t>Specification of DMARC is guided by the following high-level goals, security
+                dependencies, detailed requirements, and items that are documented as
+                out-of-scope.</t>
+
+
+            <section title="High-Level Goals">
+
+                <t> DMARC has the following high-level goals:
+                    <list style="symbols">
+                        <t>Allow Domain Owners to assert policy about domain authentication for
+                            consumption by Mail Receivers.</t>
+
+                        <t>Allow Domain Owners to verify their authentication deployment.</t>
+
+                        <t>Minimize implementation complexity for both senders and receivers, and in particular, the impact on handling and delivery of legitimate messages.</t>
+
+                        <t>Reduce the amount of successfully delivered spoofed email.</t>
+
+                        <t>Work at Internet scale.</t>
+
+                    </list></t>
+            </section>
+
+            <section title="Out Of Scope">
+                <t>Several topics and issues are specifically out of scope for the initial version of this work.  This includes the following:
+			<list style="symbols">
+			<t> special treatment of messages that are not authenticated or failed authentication; </t>
+			<t> evaluation of anythinhg other than RFC5322.From; </t>
+			<t> multiple reporting formats; </t>
+			<t> publishing policy other than via the DNS; </t>
+			<t> reporting or otherwise evaluating other than the last-hop IP address; </t>
+			<t> "display-name" attacks; </t>
+                        <t> authentication of entities other than domains, since DMARC is built upon SPF and DKIM which authenticate domains; and </t>
+                        <t> content analysis. </t>
+                    </list>
+                </t>
+            </section>
+
             <section title="Scalability">
                 <t> Scalability is a major issue for systems that need to operate in a system as
                     widely deployed as current SMTP email. For this reason, DMARC seeks to avoid the
@@ -184,105 +226,6 @@
                     &quot;display name&quot;.</t>
             </section>
             <!-- Anti-Phishing -->
-        </section>
-        <!-- Introduction -->
-
-        <section title="Requirements">
-            <t>Specification of DMARC is guided by the following high-level goals, security
-                dependencies, detailed requirements, and items that are documented as
-                out-of-scope.</t>
-
-
-            <section title="High-Level Goals">
-
-                <t> DMARC has the following high-level goals:
-                    <list style="symbols">
-                        <t>Allow Domain Owners to assert policy about domain authentication for
-                            consumption by Mail Receivers.</t>
-
-                        <t>Allow Domain Owners to verify their authentication deployment.</t>
-
-                        <t>Minimize implementation complexity for both senders and receivers, and in particular, the impact on handling and delivery of legitimate messages.</t>
-
-                        <t>Reduce the amount of successfully delivered spoofed email.</t>
-
-                        <t>Work at Internet scale.</t>
-
-                    </list></t>
-            </section>
-
-
-
-            <section title="Sender/Domain Owner Requirements">
-
-                <t>DMARC assumes that entities who send messages with their domains in the RFC5322.From field and wish to protect those messages with
-                    DMARC can:
-                   <list style="numbers">
-                        <t>Control DNS entries for the domains to be protected, including adding
-                            arbitrary new subdomains with TXT records.</t>
-
-                        <t>Receive and evaluate reports of significant size via SMTP at some
-                            address, not necessarily associated with the domains to be
-                            protected.</t>
-
-                        <t>If they wish full protection, and valid mail streams exist, control those
-                            mail streams and associated machines and DNS servers sufficiently to
-                            make messages pass DKIM and/or SPF.</t>
-                    </list></t>
-            </section>
-
-            <section title="Mail Receiver Requirements">
-
-                <t>DMARC assumes that mail receivers are able to:
-			<list style="numbers">
-                        <t>Do additional DNS lookups, beyond those normally associated with the
-                            receipt of a message, to look for DMARC policy and reporting records. (This
-                            is a worst-case maximum of 3 additional lookups per message, in addition to those required for DKIM and SPF.)</t>
-
-                        <t>Log details required to generate forensic and aggregate reports about received messages for 
-                            a minimum of 24 hours.</t>
-
-                        <t>Send outgoing aggregate reports from some DMARC-compliant sending system
-                            (not necessarily the same as the system(s) receiving the mail).</t>
-                    </list></t>
-            </section>
-
-
-            <section title="Out Of Scope">
-                <t>Several topics and issues are specifically out of scope for this work.  This includes the following:
-			<list style="symbols">
-                        <t> DMARC shall not be required to protect against any attacks against
-                            components that are essential dependencies (e.g. DNS attacks, bugs in
-                            DKIM verification, malware on the end-user machine or in the sender's
-                            system).  Compromised components at or near the sender can cause passing
-                            results for mail which the sender did not intend to be authenticated,
-                            while compromised components at the receiver can cause either passing
-                            result for unauthenticated mail, or failing results for authenticated
-                            mail. </t>
-                        <t> DMARC will not make a distinction between absent authentication and
-                            failed authentication. </t>
-                        <t> DMARC will not allow for use of header fields other than the
-                            RFC5322.From to field perform identifier alignment checks (see <xref target="id_alignment_element"/>). </t>
-                        <t> DMARC has no "short-circuit" provision, such as specifying that a pass
-                            from one authentication test allows one to skip the other(s). All are
-                            required for reporting. </t>
-                        <t> This first version of DMARC supports only a single reporting format. </t>
-                        <t> DMARC makes no attempt to accommodate discovery of policy outside of the
-                            DNS. </t>
-                        <t> DMARC provides no advice about handling of malformed messages that might
-                            seek to exploit message processing weaknesses. There are other
-                            specifications and operational documents that cover these issues. </t>
-                        <t> DMARC reports only on the last-hop IP address, and does not provide for
-                            reporting of the originating IP. </t>
-                        <t> DMARC does not address attacks that provide false information in the
-                            display-name portion of the RFC5322.From field. </t>
-                        <t>Authentication of individuals rather than domains.</t>
-
-                        <t>Handling of undesirable or malicious mail that is coming from the domain
-                            from which it claims to be sent.</t>
-                    </list>
-                </t>
-            </section>
         </section>
 
         <section anchor="terms_and_defs" title="Terminology and Definitions">
