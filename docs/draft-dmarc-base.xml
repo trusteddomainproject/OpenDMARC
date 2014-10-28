@@ -182,8 +182,8 @@
             <section title="Out Of Scope">
                 <t>Several topics and issues are specifically out of scope for the initial version of this work.  This includes the following:
 			<list style="symbols">
-			<t> special treatment of messages that are not authenticated or failed authentication; </t>
-			<t> evaluation of anythinhg other than RFC5322.From; </t>
+			<t> special treatment of messages that are not authenticated or have failed authentication; </t>
+			<t> evaluation of anything other than RFC5322.From; </t>
 			<t> multiple reporting formats; </t>
 			<t> publishing policy other than via the DNS; </t>
 			<t> reporting or otherwise evaluating other than the last-hop IP address; </t>
@@ -239,7 +239,7 @@
                 various roles in the messaging infrastructure that can appear the same or separate
                 in various contexts. For example, a Domain Owner could, via the messaging security
                 mechanisms on which DMARC is based, delegate the ability to send mail as the Domain
-                Owner to a third party with anothe rrole.  This document does not address the distinctions among such
+                Owner to a third party with another role.  This document does not address the distinctions among such
                 roles; the reader is encouraged to become familiar with that material before
                 continuing. </t>
 
@@ -919,7 +919,7 @@
                     to an A-label for further processing. </t>
 
                 <t>In order to be processed by DMARC, a message must contain exactly one RFC5322 From: domain (a single From: field with a single domain in it).
-                    Not all messages meet this requirement. They may <list
+                    Not all messages meet this requirement. They may: <list
                         style="symbols">
                         <t>Have multiple RFC5322.From fields (which is also forbidden under <xref
                                 target="MAIL">RFC 5322</xref>)</t>
@@ -1225,7 +1225,7 @@
             <!-- Verifying External Destinations -->
 
             <section anchor="fb_aggregate" title="Aggregate Reports">
-            <t>The DMARC aggregate feedback report is designed to provide Domain Owners with precise insight into <list style="symbols">
+            <t>The DMARC aggregate feedback report is designed to provide Domain Owners with precise insight into: <list style="symbols">
                     <t>authentication results</t>
 
                     <t>corrective action that needs to be taken by Domain Owners, and</t>
@@ -1511,7 +1511,7 @@
                 <t> When a Domain Owner requests failure reports for the purpose of forensic
                     analysis, and the Mail Receiver is willing to provide such reports, the Mail
                     Receiver generates and sends a message using the format described in <xref
-                        target="AFRF" />. This document proposes updates the AFRF format as described in
+                        target="AFRF" />. This document updates the AFRF format as described in
                         <xref target="afrf_update" />. </t>
 
                 <t> The format for failure reports is defined in <xref target="AFRF" />. </t>
@@ -2599,7 +2599,7 @@
                     on evolution to DKIM, this property was removed. </t>
 
                 <t> The DMARC development team considered this and decided not to include support
-                    for doing so, for two primary reasons: <list style="numbers">
+                    for doing so, for the following reasons: <list style="numbers">
                         <t> The main user protection approach is to be concerned with what the user
                             sees when a message is rendered. There is no consistent behavior among
                             MUAs regarding what to do with the content of the Sender field, if
