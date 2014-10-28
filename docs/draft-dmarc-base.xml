@@ -59,7 +59,7 @@
                 organization can use those policies and preferences to improve mail handling.</t>
 
             <t> The email ecosystem currently lacks a cohesive mechanism through which email senders
-                and receivers can make use of multiple authentication protocols to establish
+                and receivers can make use of authentication protocols to establish
                 reliable domain identifiers, communicate policies about those identifiers, and
                 report about mail using those identifiers. This lack of cohesion has several
                 effects: receivers have difficulty providing feedback to senders about
@@ -69,8 +69,8 @@
 
             <t> The enclosed proposal is not intended to introduce mechanisms that provide elevated
                 delivery privilege of authenticated email. The proposal presents a mechanism for
-                policy distribution that enables a continuum of increasingly strict handling of
-                messages that fail multiple authentication checks, from no action, through altered
+                policy distribution that enables increasingly strict handling of
+                messages that fail authentication checks, from no action, through altered
                 delivery, up to message rejection.</t>
         </abstract>
     </front>
@@ -86,9 +86,8 @@
                 publicly available mechanism to communicate domain-specific message authentication
                 policies, or to request reporting of authentication and disposition of received
                 mail. As a result, senders who have implemented email authentication have had
-                difficulty determining how effective their authentication is, and receivers have
-                been unable to use authentication failures to reject mail or mark it as less
-                desirable.</t>
+                difficulty determining how effective their authentication is, and 
+                use of authentication failures to filter mail has not been a success. </t>
 
             <t>Over time, one-on-one relationships were established between select senders and
                 receivers with privately communicated means to assert policy and receive message
@@ -235,12 +234,12 @@
                 NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as
                 described in <xref target="KEYWORDS" />.</t>
 
-            <t>For the purpose of establishing context, readers are encouraged to be familiar with
+            <t>Readers are encouraged to be familiar with
                 the contents of <xref target="EMAIL-ARCH" />. In particular, that document defines
                 various roles in the messaging infrastructure that can appear the same or separate
                 in various contexts. For example, a Domain Owner could, via the messaging security
                 mechanisms on which DMARC is based, delegate the ability to send mail as the Domain
-                Owner to some third party. This memo does not address the distinctions among such
+                Owner to a third party with anothe rrole.  This document does not address the distinctions among such
                 roles; the reader is encouraged to become familiar with that material before
                 continuing. </t>
 
@@ -255,21 +254,14 @@
 
                     <t hangText="Cousin Domain:"> A registered domain name that
                         is deceptively similar to a target domain name or other
-                        name of a known entity.  The target name is familiar to
-                        many users, and therefore imparts a degree of trust.
-                        The deception is enacted by embedding the essential
-                        parts of the target name in a new string (such as,
-                        "companysecurity.example" to attack "company.example"),
-                        or it can use some variant of the target name, such as
-                        replacing 'i' with '1', which is known as a
-                        "homograph attack". </t>
+                        name of a familiar, trusted entity.  </t>
 
-                    <t hangText="Domain Owner:"> An entity or organization that "owns" a DNS domain.
+                    <t hangText="Domain Owner:"> An entity or organization that owns a DNS domain.
                         The term "owns" here indicates that the entity or organization being
-                        referenced holds the registration of that DNS domain.  Entities that are
+                        referenced holds the registration of that DNS domain.
                         Domain Owners range from complex, globally-distributed organizations, to
                         service providers working on behalf of non-technical clients, to individuals
-                        responsible for maintaining personal domains. This specification uses this
+                        responsible for maintaining personal domains.  This specification uses this
                         term as analogous to an Administrative Management Domain as defined in <xref
                             target="EMAIL-ARCH" />. </t>
 
@@ -304,12 +296,12 @@
 
             <section anchor="auth_mechs" title="Authentication Mechanisms">
                 <t> The following mechanisms for determining Authenticated Identifiers are supported
-                    in the current version of DMARC:
+                    in this version of DMARC:
 			<list style="symbols">
                         <t> <xref target="DKIM" />, which provides a domain-level identifier in the
                             content of the "d=" tag of a validated signature. </t>
-                        <t> <xref target="SPF" />, which can authenticate the domain found in an
-                                <xref target="SMTP" /> MAIL command. </t>
+                        <t> <xref target="SPF" />, which authenticates the domain found in an
+                                <xref target="SMTP" /> MAIL command when it is the authorized domain. </t>
                     </list>
                 </t>
             </section>
@@ -320,11 +312,16 @@
 
 		<t> DMARC policies are published by the Domain Owner, and retrieved by the Mail Receiver during the SMTP session, via the DNS. </t>
 
-                <t> DMARC's filtering component is based on whether SPF or DKIM can provide a
-                    relevant authenticated identifier for the message under consideration. Messages
+                <t> DMARC's filtering component is based on whether SPF or DKIM can provide an authenticated,
+                    aligned identifier for the message under consideration. Messages
                     that purport to be from a Domain Owner's domain and arrive from servers that are
                     not authorized by SPF and do not contain an appropriate DKIM signature can be
                     affected by DMARC policies.</t>
+
+		<t> It is important to note that the authentication mechanisms
+		    employed by DMARC authenticate only a DNS domain, and do
+		    not authenticate the local-part of any email address
+		    identifier found in a message. </t>
 
                 <t>DMARC's feedback component involves the collection of information about received
                     messages claiming to be from the Organizational Domain for periodic aggregate reports to
@@ -337,17 +334,13 @@
                     (if messages can be determined to be legitimate even though failing
                     authentication) or in analyzing attacks. The capability for such services is
                     enabled by DMARC but defined in other referenced material.</t>
-
-                <t>It is important to note that the authentication mechanisms employed by DMARC
-                    authenticate only a DNS domain, and do not authenticate the local-part of any
-                    email address identifier found in a message.</t>
             </section>
 
             <section anchor="ascii_art" title="Flow Diagram">
               <t> <figure> <artwork>
- +--------+
- | Author |&lt;. . . . . . . . . . . . . . . . . . . . . . . . . . .
- +--------+                           .               .         .
+ +---------------+
+ | Author Domain |&lt; . . . . . . . . . . . . . . . . . . . . . . .
+ +---------------+                    .               .         .
      |                                .               .         .
      V                                V               V         .
  +------------+     +--------+       +----------+ +----------+  .
@@ -380,13 +373,13 @@
     <t> In essence the steps are as follows:
         <list style="numbers">
 
-        <t> Author constructs an SPF policy and publishes it in its
-            DNS database as per <xref target="SPF"/>.  Author also
+        <t> Author Domain constructs an SPF policy and publishes it in its
+            DNS database as per <xref target="SPF"/>.  Author Domain also
             configures its system for DKIM signing as described
-            in <xref target="DKIM"/>.  Finally, Author publishes via
+            in <xref target="DKIM"/>.  Finally, Author Domain publishes via
             the DNS a DMARC message handling policy. </t>
 
-        <t> Author generates a message and hands the message to its
+        <t> Author generates a message and hands the message to Author Domain's
             designated mail submission service. </t>
 
         <t> Submission service passes relevant details to the DKIM
@@ -403,7 +396,7 @@
         <t> Recipient transport service conducts SPF and DKIM
             authentication checks by passing the necessary data to
             their respective modules, each of which require queries
-            to the author's DNS data (when identifiers are
+            to the Author Domain's DNS data (when identifiers are
             aligned; see below). </t>
 
         <t> The results of these are passed to the DMARC module
@@ -668,8 +661,8 @@
 
                 <t>
                     <xref target="iana_considerations" /> creates a registry for known DMARC tags
-                    and registers the initial set defined in this memo. Only tags defined in this
-                    memo or in later extensions, and thus added to that registry, are to be
+                    and registers the initial set defined in this document. Only tags defined in this
+                    document or in later extensions, and thus added to that registry, are to be
                     processed; unknown tags MUST be ignored. </t>
 
                 <t> The following tags are introduced as the initial valid DMARC tags: <list
@@ -1783,7 +1776,7 @@
                     Registry: <list style="hanging">
                         <t hangText="Method:"> dmarc </t>
 
-                        <t hangText="Defined In:"> [this memo] </t>
+                        <t hangText="Defined In:"> [this document] </t>
 
                         <t hangText="ptype:"> header </t>
 
@@ -3219,7 +3212,7 @@
 
         <section anchor="xml_schema" title="DMARC XML Schema">
             <t> The following is the proposed initial schema for producing XML formatted aggregate
-                reports as described in this memo. </t>
+                reports as described in this document. </t>
 
             <t> NOTE: Per the definition of XML, unless otherwise specified in the schema below, the
                 minOccurs and maxOccurs values for each element is set to 1. <figure>
@@ -3538,8 +3531,8 @@
                 contributors would also like to recognize the invaluable input and guidance that was
                 provided by J.D. Falk.</t>
 
-            <t> Additional contributions within the IETF context were made by Jim Fenton, J. Gomez, Eliot Lear, John Levine, S. Moonesamy, and Henry
-                Timmes. </t>
+            <t> Additional contributions within the IETF context were made by Jim Fenton, J. Gomez, Eliot Lear, John Levine, S. Moonesamy, Henry
+                Timmes, and Stephen J. Turnbull. </t>
         </section>
     </back>
 </rfc>
