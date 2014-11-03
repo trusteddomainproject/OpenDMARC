@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="info" docName="draft-kucherawy-dmarc-base-05" ipr="trust200902">
+<rfc category="info" docName="draft-kucherawy-dmarc-base-06" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -77,11 +77,12 @@
 
     <middle>
         <section title="Introduction">
-            <t> For years, senders have leveraged SPF-authorized and DKIM-signed messages to achieve
-                domain-level email authentication. Based on that authentication, various mail
-                receivers have tried to protect senders by using <xref target="DKIM" /> and/or <xref
-                    target="SPF" /> results to detect and block unauthorized email. (A detailed
-                discussion of the threats these systems attempt to address can be found in <xref
+            <t> For years, senders have leveraged the Sender Policy Framework
+		(<xref target="SPF"/>) and DomainKeys Identified Mail
+		(<xref target="DKIM"/>), which provide domain-level email
+		authentication, to detect and block unauthorized email.
+                (A detailed discussion of the threats these systems attempt
+		to address can be found in <xref
                     target="DKIM-THREATS" />.) However, there has been no single widely accepted or
                 publicly available mechanism to communicate domain-specific message authentication
                 policies, or to request reporting of authentication and disposition of received
@@ -279,7 +280,7 @@
                         determine this, since it is not always the case that the registered domain
                         name is simply a top-level DNS domain plus one component (e.g.,
                         "example.com", where "com" is a top-level domain).  The Organizational Domain
-                        is determined by applying algorithm found in <xref target="od"/>. </t>
+                        is determined by applying the algorithm found in <xref target="od"/>. </t>
                 <t hangText="Report Receiver:"> An operator that receives reports from another operator
                         implementing the reporting mechanism described in this document.
                         Such an operator might be receiving reports about its own messages,
@@ -391,7 +392,7 @@
             intended recipient(s). </t>
 
         <t> Message may pass through other relays, but eventually
-            arrives at a recipient's transport service </t>
+            arrives at a recipient's transport service. </t>
 
         <t> Recipient transport service conducts SPF and DKIM
             authentication checks by passing the necessary data to
@@ -421,7 +422,7 @@
                     authenticates either the domain that appears in the RFC5321.MailFrom portion of
                         <xref target="SMTP" /> or the RFC5321.EHLO/HELO domain if the
                     RFC5321.MailFrom is null (in the case of Delivery Status Notifications). These
-                    may be different domains, and none of these domains are guaranteed to be visible
+                    may be different domains, and they are typically not visible
                     to the end user.</t>
 
                 <t>DMARC uses the <xref target="MAIL">RFC5322</xref>.From domain to evaluate the
@@ -431,6 +432,15 @@
                     present in compliant messages, and most MUAs represent the <xref target="MAIL"
                         >RFC5322</xref>.From field as the originator of the message and render some
                     or all of this header field's content to end users.</t>
+
+		<t> Thus, this field is the one used by end users to identify the source
+		    of the message, and therefore is a prime target for abuse.
+		    Many high-profile email sources, such as email service providers,
+		    require that the sending agent have authenticated before email
+		    can be generated.  Thus, for these mailboxes, the mechanism described
+		    in this document provides recipient end users with strong evidence
+		    that the message was indeed originated by the agent they
+		    associate with that mailbox. </t>
 
                 <t>Domain names in this context are to be compared in a case-insensitive manner, per
                         <xref target="DNS-CASE" />. </t>
@@ -443,8 +453,8 @@
             yield authenticated domains as their outputs when they succeed.  From the perspective
             of DMARC, each
             can be operated in a "strict" mode or a "relaxed" mode.  A Domain Owner
-            would normally select "strict" mode if it wanted to affect
-            only messages bearing an RFC5322.From domain exactly matching
+            would normally select "strict" mode if it wanted Mail Receivers
+            to apply DMARC processing only to messages bearing an RFC5322.From domain exactly matching
             the domains those mechanisms will verify.  Using "relaxed" mode
             can be used when the operator also wishes to affect message flows bearing
             subdomains of the verified domains. </t>
@@ -470,10 +480,10 @@
                         alignment" result as "com" should appear on all public suffix lists, and
                         therefore cannot be an Organizational Domain.</t>
 
-                    <t>Identifier alignment is required because mail can be validly signed by an
-                        unrelated domain (for instance, a bad actor can sign it with a Cousin
-                        Domain).  By itself, DKIM does not make any assertions about the identity
-                        visible to the end user.</t>
+                    <t>Identifier alignment is required because a message can bear a valid
+			signature from any domain, including domains used by a mailing
+			list or even a bad actor.  Therefore, merely bearing a valid signature
+			is not enough to infer authenticity of the Author Domain. </t>
 
                     <t>Note that a single email can contain multiple DKIM signatures, and it is
                         considered to be a DMARC "pass" if any DKIM signature is aligned and
@@ -567,6 +577,11 @@
                     suggest that the message ought to be disposed of by the Mail Receiver's
                     infrastructure in a safe manner that recognizes and possibly even highlights the
                     malformation. </t>
+
+		<t> Since the sorts of mail typically protected by DMARC participants
+		    tend to only have single Authors, DMARC participants generally operate under a slightly restricted profile
+		    of RFC5322 with respect to the expected syntax of this field.
+		    See <xref target="mail_receiver_actions"/> for details. </t>
             </section>
 
         <section anchor="policy_element" title="Policy">
@@ -634,9 +649,10 @@
                     destination for the two report types (RUA and RUF) that are supported. </t>
 
                 <t> The place such URIs are specified (see <xref target="dmarc_format" />) allows a
-                    list of these to be provided. A report is to be sent to each listed URI. Mail
-                    Receivers MAY impose a limit on the number of URIs that receive reports, but
-                    MUST support at least two. The list of URIs is separated by commas (ASCII 0x2C). </t>
+                    list of these to be provided.  A report is normally sent to each listed URI in the order
+		    provided by the Domain Owner.
+                    Receivers MAY impose a limit on the number of URIs to which they will send reports, but
+                    MUST support the ability to send to at least two.  The list of URIs is separated by commas (ASCII 0x2C). </t>
 
                 <t> Each URI can have associated with it a maximum report size that may be sent to
                     it. This is accomplished by appending an exclamation point (ASCII 0x21),
@@ -688,8 +704,8 @@
                                     result. </t>
 
                                 <t hangText="1:"> Generate a DMARC failure report if any underlying
-                                    authentication mechanism failed to produce an aligned "pass"
-                                    result. </t>
+                                    authentication mechanism produced something other than
+				    an aligned "pass" result. </t>
 
                                 <t hangText="d:"> Generate a DKIM failure report if the message had
                                     a signature that failed evaluation, regardless of its alignment.
@@ -752,8 +768,9 @@
                             reporting formats defined in <xref target="iana_considerations" />; a
                             Mail Receiver observing a different value SHOULD ignore it, or MAY
                             ignore the entire DMARC record. For this version, only "afrf"
-                            (defined in <xref target="AFRF" />) is supported.
-                            See <xref target="forensic" /> for details. </t>
+                            (defined in <xref target="AFRF" />) is presently supported.
+                            See <xref target="forensic" /> for details.  For interoperability, the AFRF
+			    format MUST be supported. </t>
 
                         <t hangText="ri:"> Interval requested between aggregate reports (plain-text,
                             32-bit unsigned integer; OPTIONAL; default 86400). Indicates a request
@@ -849,7 +866,7 @@
                     ; components other than dmarc-version and
                     ; dmarc-request may appear in any order
 
-  dmarc-version   = "v" *WSP "=" %x44 %x4d %x41 %x52 %x43 %x31
+  dmarc-version   = "v" *WSP "=" *WSP %x44 %x4d %x41 %x52 %x43 %x31
 
   dmarc-sep       = *WSP %3b *WSP
 
@@ -916,7 +933,8 @@
             <section anchor="receiver_domain" title="Extract Author Domain">
                 <t>The domain in the RFC5322.From field is extracted as the domain to be evaluated
                     by DMARC. If the domain is encoded with UTF-8, the domain name must be converted
-                    to an A-label for further processing. </t>
+                    to an A-label, as described in Section 2.3 of
+                    <xref target="IDNA" />, for further processing. </t>
 
                 <t>In order to be processed by DMARC, a message must contain exactly one RFC5322 From: domain (a single From: field with a single domain in it).
                     Not all messages meet this requirement. They may: <list
@@ -924,7 +942,7 @@
                         <t>Have multiple RFC5322.From fields (which is also forbidden under <xref
                                 target="MAIL">RFC 5322</xref>)</t>
 
-                        <t>Have a single RFC5322.From field containing multiple entities</t>
+                        <t>Have a single RFC5322.From field containing multiple addresses (and, thus, domain names to be evaluated)</t>
 
                         <t>Have no RFC5322.From field (which is also forbidden under <xref
                                 target="MAIL">RFC 5322</xref>)</t>
@@ -934,11 +952,6 @@
                     </list> Such messages SHOULD be rejected. If they are not, the Mail Receiver can
                     either ignore the message entirely with respect to DMARC processing, or (if
                     there are multiple identifiers) evaluate DMARC against all identifiers. </t>
-
-                <t>If multiple identifiers are evaluated, the Mail Receiver should prioritize
-                    identifiers visible to the end user. This requires an understanding of the end
-                    user environment, the specification of which is outside of the scope of this
-                    document. </t>
             </section>
             <!-- Extract Author Domain -->
 
@@ -957,7 +970,7 @@
                         <t> Perform DKIM signature verification checks. A single email may contain
                             multiple DKIM signatures. The results of this step are passed to the
                             remainder of the algorithm and MUST include the value of the "d=" tag
-                            from all checked DKIM signatures. </t>
+                            from each checked DKIM signature. </t>
 
                         <t> Perform SPF validation checks. The results of this step are passed to
                             the remainder of the algorithm and MUST include the domain name used to
@@ -1013,8 +1026,7 @@
                     <t> Records that do not start with a "v=" tag that identifies the current version
                         of DMARC are discarded. </t>
 
-                    <t> If the remaining set contains multiple records or no records, processing
-                        terminates and the Mail Receiver takes no action. </t>
+                    <t> If the remaining set contains multiple records or no records, policy discovery terminates and DMARC processing is not applied to this message. </t>
 
                     <t> If a retrieved policy record does not contain a valid "p" tag, or contains
                         an "sp" tag that is not valid, then: <list style="numbers">
@@ -1022,7 +1034,7 @@
                                 valid reporting URI, the Mail Receiver SHOULD act as if a record
                                 containing a valid "v" tag and "p=none" was retrieved, and continue
                                 processing; </t>
-                            <t> otherwise, the Mail Receiver SHOULD take no action. </t>
+                            <t> otherwise, the Mail Receiver applies no DMARC processing to this message. </t>
                         </list>
                     </t>
                 </list>
@@ -1065,9 +1077,8 @@
                     senders to experiment with progressively stronger policies without relaxing
                     existing policy.</t>
 
-                <t>Mail receivers MAY implement "pct" via statistical mechanisms that achieve a close
-                    approximation to the requested percentage. Mail receivers SHOULD make a
-                    best-effort attempt to make the sampling even across a reporting period. </t>
+                <t>Mail receivers implement "pct" via statistical mechanisms that achieve a close
+                    approximation to the requested percentage and provide a representative sample across a reporting period. </t>
             </section>
             <!-- Message Sampling -->
 
@@ -1094,8 +1105,7 @@
                 not to comply with a Domain Owner's reject, against policy. At a minimum, addition
                 of the Authentication-Results header field (see <xref target="AUTH-RESULTS" />) is
                 RECOMMENDED when delivery of failing mail is done. When this is done, the DNS domain
-                name thus recorded MUST be encoded as an A-label, as described in Section 2.3 of
-                    <xref target="IDNA" />. </t>
+                name thus recorded MUST be encoded as an A-label. </t>
 
             <t> Mail Receivers are only obligated to report reject or quarantine policy actions in
                 aggregate feedback reports that are due to DMARC policy. They are not required to
@@ -2761,7 +2771,7 @@
                         <figure>
                             <preamble> Example 3: SPF not in alignment: </preamble>
                             <artwork>
-     MAIL FROM: &lt;sender@sample.net&gt;
+     MAIL FROM: &lt;sender@example.net&gt;
 
      From: sender@child.example.com
      Date: Fri, Feb 15 2002 16:54:30 -0800
@@ -3068,7 +3078,7 @@
                         identifier alignment checking during the <xref target="SMTP" />
                         conversation. </t>
 
-                    <t> Prior to returning a reply to the DATA command, the Mail Receiver's MTA has
+                    <t> Prior to returning a final reply to the DATA command, the Mail Receiver's MTA has
                         performed: <list style="numbers">
                             <t> An SPF check to determine an SPF-authenticated Identifier. </t>
                             <t> DKIM checks that yield one or more DKIM-authenticated Identifiers. </t>
@@ -3531,7 +3541,7 @@
                 contributors would also like to recognize the invaluable input and guidance that was
                 provided by J.D. Falk.</t>
 
-            <t> Additional contributions within the IETF context were made by Les Barstow, Jim Fenton, J. Gomez, Mike Jones, Eliot Lear, John Levine, S. Moonesamy, Henry
+            <t> Additional contributions within the IETF context were made by Les Barstow, Jim Fenton, J. Gomez, Mike Jones, Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy, Henry
                 Timmes, and Stephen J. Turnbull. </t>
         </section>
     </back>
