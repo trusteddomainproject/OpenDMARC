@@ -3532,6 +3532,8 @@
             <t> Public discussion of the DMARC proposal documents is taking place on the
                 dmarc-discuss@dmarc.org mailing list. Subscription is available at
                 http://www.dmarc.org/mailman/listinfo/dmarc-discuss. </t>
+
+	    <t> [RFC Editor: Please remove this section prior to publication.] </t>
         </section>
 
         <section anchor="acks" title="Acknowledgements">
@@ -3542,10 +3544,10 @@
                 JPMorgan Chase &amp; Company, LinkedIn, Microsoft, Netease, Paypal, ReturnPath,
                 Trusted Domain Project, and Yahoo!. Although the number of contributors and
                 supporters are too numerous to mention, notable individual contributions were made
-                by J. Trent Adams, Michael Adkins, Monica Chew, Dave Crocker, Tim Draegen, Murray
-                Kucherawy, Steve Jones, Franck Martin, Brett McDowell, and Paul Midgen. The
+                by J. Trent Adams, Michael Adkins, Monica Chew, Dave Crocker, Tim Draegen,
+	 	Steve Jones, Franck Martin, Brett McDowell, and Paul Midgen.  The
                 contributors would also like to recognize the invaluable input and guidance that was
-                provided by J.D. Falk.</t>
+                provided early on by J.D. Falk.</t>
 
             <t> Additional contributions within the IETF context were made by Les Barstow, Jim Fenton, J. Gomez, Mike Jones, Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy, Henry
                 Timmes, and Stephen J. Turnbull. </t>
