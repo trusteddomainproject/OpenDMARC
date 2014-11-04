@@ -80,7 +80,8 @@
             <t> For years, senders have leveraged the Sender Policy Framework
 		(<xref target="SPF"/>) and DomainKeys Identified Mail
 		(<xref target="DKIM"/>), which provide domain-level email
-		authentication, to detect and block unauthorized email.
+		authentication, enabling cooperating email receivers
+		to detect and block unauthorized email.
                 (A detailed discussion of the threats these systems attempt
 		to address can be found in <xref
                     target="DKIM-THREATS" />.) However, there has been no single widely accepted or
@@ -2821,7 +2822,7 @@
 
                     <t> In this case, the DKIM signature's "d=" parameter includes a DNS domain that
                         is a parent of the RFC5322.From domain. Thus, the identifiers are in
-                        alignment. </t>
+                        alignment for "relaxed" mode, but not for "strict" mode. </t>
 
                     <t>
                         <figure>
