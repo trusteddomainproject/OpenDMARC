@@ -1897,10 +1897,13 @@
 
             <section anchor="iana_dmarc_tags" title="DMARC Tag Registry">
                 <t>Names of DMARC tags must be registered with IANA. New entries are assigned only
-                    for values that have been documented in a published RFC that has had IETF
-                    Review, per <xref target="IANA-CONSIDERATIONS" />. Each registration must
+                    for values that have been documented in a manner that satisfies the terms of
+                    Specification Required, per <xref target="IANA-CONSIDERATIONS" />. Each registration must
                     include the tag name, the specification that defines it, a brief description,
-                    and its status which must be one of "current", "experimental" or "historic". </t>
+                    and its status which must be one of "current", "experimental" or "historic".
+                    The Designated Expert needs to confirm that the provided specification
+		    adequately describes the report format and clearly presents how it would
+		    be used within the DMARC context by Domain Owners and Mail Receivers.  </t>
                 <t> To avoid version compatibility issues,
                     tags added to the DMARC specification are to avoid changing the semantics of
                     existing records when processed by implementations conforming to prior
@@ -1941,11 +1944,13 @@
 
             <section anchor="iana_dmarc_formats" title="DMARC Report Format Registry">
                 <t>Names of DMARC failure reporting formats must be registered with IANA. New
-                    entries are assigned only for values that have been documented in a published
-                    RFC that has had IETF Review, per <xref target="IANA-CONSIDERATIONS" />. Each
+                    entries are assigned only for values that satisfy the definition of
+                    Specification Required, per <xref target="IANA-CONSIDERATIONS" />.  In addition to a reference to a permanent specification, each
                     registration must include the tag name, the specification that defines it, a
                     brief description, and its status which must be one of "current", "experimental"
-                    or "historic". </t>
+                    or "historic".  The Designated Expert needs to confirm that the provided specification
+		    adequately describes the report format and clearly presents how it would
+		    be used within the DMARC context by Domain Owners and Mail Receivers.  </t>
 
                 <t>The initial set of entries in this registry is as follows: <figure>
                         <artwork>
