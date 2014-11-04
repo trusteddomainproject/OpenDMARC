@@ -1902,7 +1902,7 @@
                     include the tag name, the specification that defines it, a brief description,
                     and its status which must be one of "current", "experimental" or "historic".
                     The Designated Expert needs to confirm that the provided specification
-		    adequately describes the report format and clearly presents how it would
+		    adequately describes the new tag and clearly presents how it would
 		    be used within the DMARC context by Domain Owners and Mail Receivers.  </t>
                 <t> To avoid version compatibility issues,
                     tags added to the DMARC specification are to avoid changing the semantics of
