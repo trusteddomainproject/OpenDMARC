@@ -1876,7 +1876,7 @@
                 </t>
             </section>
 
-            <section anchor="iana_afrf" title="Feedback Report Header Fields Registry">
+            <section anchor="iana_afrf" title="Feedback Report Header Fields Registry Update">
                 <t> The following is added to the Feedback Report Header Fields Registry:
                     <list style="hanging">
                         <t hangText="Field Name:"> Identity-Alignment </t>
