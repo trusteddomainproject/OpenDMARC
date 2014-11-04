@@ -102,7 +102,7 @@
                 policy advertisement technologies to enable both message-stream feedback and
                 enforcement of policies against unauthenticated email.</t>
 
-            <t>DMARC allows domain owners and receivers to collaborate by <list style="numbers">
+            <t>DMARC allows domain owners and receivers to collaborate by: <list style="numbers">
                     <t>Providing receivers with assertions about domain owners' policies</t>
                     <t>Providing feedback to senders so they can monitor authentication and judge
                         threats</t>
