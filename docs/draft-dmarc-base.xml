@@ -254,10 +254,6 @@
                     <t hangText="Author Domain:"> The domain name of the apparent author,
                         as extracted from the RFC5322.From field. </t>
 
-                    <t hangText="Cousin Domain:"> A registered domain name that
-                        is deceptively similar to a target domain name or other
-                        name of a familiar, trusted entity.  </t>
-
                     <t hangText="Domain Owner:"> An entity or organization that owns a DNS domain.
                         The term "owns" here indicates that the entity or organization being
                         referenced holds the registration of that DNS domain.
@@ -336,6 +332,15 @@
                     (if messages can be determined to be legitimate even though failing
                     authentication) or in analyzing attacks. The capability for such services is
                     enabled by DMARC but defined in other referenced material.</t>
+
+		<t>A message satisfied the DMARC checks if at least one of the supported
+		   authentication mechanisms:
+		   <list style="numbers">
+			<t> produces a "pass" result; and </t>
+			<t> produces that result based on an identifier that is
+			    in alignment, as defined in
+			    <xref target="terms_and_defs"/>. </t>
+		   </list> </t>
             </section>
 
             <section anchor="ascii_art" title="Flow Diagram">
@@ -402,13 +407,17 @@
             aligned; see below). </t>
 
         <t> The results of these are passed to the DMARC module
-            along with the Author domain.  The DMARC module does a small
-            number of further DNS queries to the Organizational Domain to
-            extract DMARC-specific policy details.  These, in
-            combination, produce a DMARC policy result (e.g., a
-            "pass" or "fail"), and can
-            optionally cause one of two kinds of reports to be
-            generated (not shown). </t>
+            along with the Author domain.  The DMARC module attempts to
+	    retrieve a policy from the DNS for that domain.  If none is
+	    found, the DMARC module determines the Organizational Domain
+	    and repeats the attempt to retrieve a policy from the DNS.  (This
+	    is described in further detail in
+	    <xref target="policy_discovery"/>.) </t>
+
+	<t> If a policy is found, it is combined with the Author Domain
+	    and the SPF and DKIM results to produce a DMARC policy result (e.g.,
+	    a "pass" or "fail"), and can optionally cause one of two kinds of
+	    reports to be generated (not shown). </t>
 
         <t> Recipient transport service either delivers the message
             to the recipient inbox, or takes other local policy action
@@ -447,9 +456,11 @@
                         <xref target="DNS-CASE" />. </t>
 
                 <t>It is important to note that identifier alignment cannot occur with a message that
-                    is not valid per <xref target="MAIL" />, particularly one with a malformed or
-                    absent RFC5322.From field. Handling of such cases is left to the discretion of
-                    the Mail Receiver. </t>
+                    is not valid per <xref target="MAIL" />, particularly one with a malformed, absent, or
+                    repeated RFC5322.From field, since in that case there is no reliable way to determine
+		    a DMARC policy that applies to the message.  Handling of such cases is left to the discretion of
+                    the Mail Receiver.  Further discussion of this can be found in
+		    <xref target="receiver_domain"/>. </t>
         <t> Each of the underlying authentication technologies that DMARC takes as input
             yield authenticated domains as their outputs when they succeed.  From the perspective
             of DMARC, each
@@ -913,7 +924,7 @@
 
         <section anchor="domain_owner_actions" title="Domain Owner Actions">
             <t> To implement the DMARC mechanism, the only action required of a Domain Owner is the
-                creation of the DMARC policy record in the DNS. However, in order to make meaningful
+                creation of the DMARC policy record in the DNS.  However, in order to make meaningful
                 use of DMARC, a Domain Owner must at minimum either establish an address to receive
                 reports, or deploy authentication technologies and ensure identifier alignment.  Most Domain Owners will want to do both. </t>
             <t>DMARC reports will be of significant size and the addresses that receive them are
@@ -937,22 +948,47 @@
                     to an A-label, as described in Section 2.3 of
                     <xref target="IDNA" />, for further processing. </t>
 
-                <t>In order to be processed by DMARC, a message must contain exactly one RFC5322 From: domain (a single From: field with a single domain in it).
-                    Not all messages meet this requirement. They may: <list
-                        style="symbols">
-                        <t>Have multiple RFC5322.From fields (which is also forbidden under <xref
-                                target="MAIL">RFC 5322</xref>)</t>
+                <t>In order to be processed by DMARC, a message typically needs
+		   to contain exactly one RFC5322 From: domain (a single From:
+		   field with a single domain in it).  Not all messages meet
+		   this requirement.  Typical exceptions, and they way they
+		   have been historically handled by DMARC participants, are as
+		   follows:
 
-                        <t>Have a single RFC5322.From field containing multiple addresses (and, thus, domain names to be evaluated)</t>
+		<list style="symbols">
+			<t>Messages with multiple RFC5322.From fields are
+			   typically rejected since that form is
+			   forbidden under
+			   <xref target="MAIL">RFC 5322</xref>; </t>
 
-                        <t>Have no RFC5322.From field (which is also forbidden under <xref
-                                target="MAIL">RFC 5322</xref>)</t>
+                        <t>Messages bearing a single RFC5322.From field
+			   containing multiple addresses (and, thus, multiple
+			   domain names to be evaluated) are typically
+			   rejected because the sorts of mail normally
+			   protected by DMARC do not use this format; </t>
 
-                        <t>Have a RFC5322.From field that contains no meaningful values, such as
-                                <xref target="MAIL">RFC 5322</xref>'s &quot;group&quot; syntax.</t>
-                    </list> Such messages SHOULD be rejected. If they are not, the Mail Receiver can
-                    either ignore the message entirely with respect to DMARC processing, or (if
-                    there are multiple identifiers) evaluate DMARC against all identifiers. </t>
+                        <t>Messages that have no RFC5322.From field at all
+			   are typically rejected since that form is
+			   forbidden under
+                           <xref target="MAIL">RFC 5322</xref>; </t>
+
+                        <t>Messages with an RFC5322.From field that contains
+			   no meaningful domains, such as
+			   <xref target="MAIL">RFC 5322</xref>'s
+			   &quot;group&quot; syntax are typically ignored. </t>
+                    </list> </t>
+
+		<t> The case of a syntactically valid multi-valued
+		    RFC5322.From field presents a particular challenge.
+		    The process in this case is to apply the DMARC check using
+		    each of those domains found in the RFC5322.From field as the
+		    Author Domain, and apply the most strict policy selected
+		    among the checks that fail.  However, in order for the
+		    message as a whole to pass, all of the domains thus
+		    evaluated have to match at least one identifier-aligned
+		    authentication result.  This creates a logistical burden
+		    for generators of messages that wish to be covered by
+		    DMARC. </t>
             </section>
             <!-- Extract Author Domain -->
 
