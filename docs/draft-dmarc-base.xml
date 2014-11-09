@@ -333,7 +333,7 @@
                     authentication) or in analyzing attacks. The capability for such services is
                     enabled by DMARC but defined in other referenced material.</t>
 
-		<t>A message satisfied the DMARC checks if at least one of the supported
+		<t>A message satisfies the DMARC checks if at least one of the supported
 		   authentication mechanisms:
 		   <list style="numbers">
 			<t> produces a "pass" result; and </t>
@@ -985,7 +985,7 @@
 		    Author Domain, and apply the most strict policy selected
 		    among the checks that fail.  However, in order for the
 		    message as a whole to pass, all of the domains thus
-		    evaluated have to match at least one identifier-aligned
+		    evaluated would have to match at least one identifier-aligned
 		    authentication result.  This creates a logistical burden
 		    for generators of messages that wish to be covered by
 		    DMARC. </t>
