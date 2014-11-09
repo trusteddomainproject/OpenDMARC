@@ -1752,7 +1752,11 @@
 
             <section anchor="disc_rejection" title="Rejecting Messages">
                 <t> This proposal calls for rejection of a message during the SMTP session under
-                    certain circumstances. This is typically done in one of two ways: <list
+                    certain circumstances.  This is preferable to generation of a Delivery Status
+		    notification (<xref target="DSN"/>) since fraudulent messages caught
+		    and rejected using DMARC would then result in annoying generation
+		    of such failure reports that go back to the RFC5321.MailFrom address. </t>
+		<t> This synchronous rejection is typically done in one of two ways: <list
                         style="symbols">
                         <t> Full rejection, wherein the SMTP server issues a 5xy reply code as an
                             indication to the SMTP client that the transaction failed; the SMTP
@@ -1766,10 +1770,8 @@
                     </list>
                 </t>
 
-                <t> Each of these has a cost. For instance, a silent discard may prevent
-                    "backscatter" (the annoying generation of delivery failure reports, which go
-                    back to the RFC5321.MailFrom address, about messages that were fraudulently
-                    generated), but effectively means the SMTP server has to be programmed to give a
+                <t> Each of these has a cost.  For instance, a silent discard can help to prevent
+                    backscatter, but it also effectively means the SMTP server has to be programmed to give a
                     false result, which can confound external debugging efforts. </t>
 
                 <t> Similarly, the text portion of the SMTP reply may be important to consider. For
