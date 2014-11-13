@@ -1789,7 +1789,7 @@
                     Alignment option if appropriate. </t>
             </section>
 
-            <section anchor="disc_" title="Considerations">
+            <section anchor="disc_interop" title="Interoperability Issues">
 		<t> DMARC limits which end-to-end scenarios can achieve a
 		    "pass" result. </t>
 
