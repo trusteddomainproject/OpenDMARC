@@ -1801,13 +1801,13 @@
 		    processed by some Mediators, such as mailing lists.
 		    Transiting a Mediator often causes either the
 		    authentication to fail or identity alignment to be lost.
-		    While this is legal, in terms of basic
-		    Internet Mail standards, it nonetheless prevents a 
-		    DMARC "pass". </t>
+		    These transformations may conform to standards but will
+		    still prevent a DMARC "pass". </t>
 
 		<t> In addition to Mediators, mail that is sent by
 		    authorized, independent third-parties might not be sent
-		    with author alignment, also preventing a "pass" result. </t>
+		    with Identifier Alignment, also preventing a "pass"
+		    result. </t>
 
 		<t> Issues specific to the use of policy mechanisms alongside
 		    DKIM are further discussed in
