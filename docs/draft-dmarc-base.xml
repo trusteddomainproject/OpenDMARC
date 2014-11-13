@@ -1788,6 +1788,31 @@
                     sub-domains if this is an issue, and to consider using the "strict" Identifier
                     Alignment option if appropriate. </t>
             </section>
+
+            <section anchor="disc_" title="Considerations">
+		<t> DMARC limits which end-to-end scenarios can achieve a
+		    "pass" result. </t>
+
+		<t> Because DMARC relies on <xref target="SPF"/> and/or
+		    <xref target="DKIM"/> to achieve a "pass",
+		    their limitations also apply. </t>
+
+		<t> Additional DMARC constraints occur when a message is
+		    processed by some Mediators, such as mailing lists.
+		    Transiting a Mediator often causes either the
+		    authentication to fail or identity alignment to be lost.
+		    While this is legal, in terms of basic
+		    Internet Mail standards, it nonetheless prevents a 
+		    DMARC "pass". </t>
+
+		<t> In addition to Mediators, mail that is sent by
+		    authorized, independent third-parties might not be sent
+		    with author alignment, also preventing a "pass" result. </t>
+
+		<t> Issues specific to the use of policy mechanisms alongside
+		    DKIM are further discussed in
+		    <xref target="DKIM-LISTS"/>, particularly Section 5.2. </t>
+            </section>
         </section> <!-- Other Topics -->
 
         <section anchor="iana_considerations" title="IANA Considerations">
@@ -2431,6 +2456,19 @@
                     <date month="May" year="2010" />
                 </front>
                 <seriesInfo name="RFC" value="5863" />
+            </reference>
+
+            <reference anchor="DKIM-LISTS">
+                <front>
+                    <title> DomainKeys Identified Mail (DKIM) and Mailing Lists </title>
+
+                    <author fullname="M. Kucherawy" initials="M." surname="Kucherawy">
+                        <organization> Cloudmark </organization>
+                    </author>
+
+                    <date month="September" year="2011" />
+                </front>
+                <seriesInfo name="RFC" value="6377" />
             </reference>
 
             <reference anchor="DKIM-OVERVIEW">
