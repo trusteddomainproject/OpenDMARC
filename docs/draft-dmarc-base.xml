@@ -680,12 +680,22 @@
 
                         <t hangText="adkim:"> (plain-text; OPTIONAL, default is "r".) Indicates
                             whether strict or relaxed DKIM identifier alignment mode is required by the
-                            Domain Owner. See <xref target="dkim_id_align" /> for details. </t>
+                            Domain Owner. See <xref target="dkim_id_align" /> for details. 
+			    Valid values are as follows:
+			    <list style="hanging">
+                                <t hangText="r:"> relaxed mode </t>
+                                <t hangText="s:"> strict mode </t>
+			    </list> </t>
 
                         <t hangText="aspf:"> (plain-text; OPTIONAL, default is "r".) Indicates
                             whether strict or relaxed SPF identifier alignment mode is required by the Domain
-                            Owner. See <xref target="spf_id_align" /> for details. </t>
+                            Owner. See <xref target="spf_id_align" /> for details.
 
+			    Valid values are as follows:
+			    <list style="hanging">
+                                <t hangText="r:"> relaxed mode </t>
+                                <t hangText="s:"> strict mode </t>
+			    </list> </t>
                         <t hangText="fo:"> Failure reporting options (plain-text; OPTIONAL, default
                             "0") Provides requested options for generation of failure reports.
                             Report generators MAY choose to adhere to the requested options. This
