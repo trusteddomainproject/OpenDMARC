@@ -1945,11 +1945,12 @@
             <section anchor="iana_dmarc_tags" title="DMARC Tag Registry">
 		<t> A new registry tree called "Domain-based Message
 		    Authentication, Reporting and Conformance (DMARC)
-		    Parameters" is to be created.  Within it is a new registry
-		    called the "DMARC Tag Registry". </t>
+		    Parameters" is to be created.  Within it, a new
+		    sub-registry called the "DMARC Tag Registry" is also
+		    to be created. </t>
 
                 <t>Names of DMARC tags must be registered with IANA in this new
-		   registry. New entries are assigned only
+		   sub-registry. New entries are assigned only
                     for values that have been documented in a manner that satisfies the terms of
                     Specification Required, per <xref target="IANA-CONSIDERATIONS" />. Each registration must
                     include the tag name, the specification that defines it, a brief description,
@@ -1998,7 +1999,7 @@
             <section anchor="iana_dmarc_formats" title="DMARC Report Format Registry">
 		<t> Also within "Domain-based Message
 		    Authentication, Reporting and Conformance (DMARC)
-		    Parameters", a new registry called "DMARC Report
+		    Parameters", a new sub-registry called "DMARC Report
 		    Format Registry" is to be created. </t>
 
                 <t>Names of DMARC failure reporting formats must be registered with IANA in this registry. New
