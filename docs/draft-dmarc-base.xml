@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="info" docName="draft-kucherawy-dmarc-base-08" ipr="trust200902">
+<rfc category="info" docName="draft-kucherawy-dmarc-base-09" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -117,7 +117,7 @@
                        DKIM results, if present, and the DMARC policy in DNS. </t>
                     <t>These receivers can use these results to determine how the mail should be
                        handled.</t>
-                    <t>The receiver reports to the domain owner about mail claiming to be
+                    <t>The receiver sends reports to the domain owner or its designee about mail claiming to be
                        from their domain.</t>
                 </list></t>
 
@@ -489,7 +489,7 @@
                         fail since the "d=" domain does not exactly match the FQDN of the address.</t>
 
                     <t>However, a DKIM signature bearing a value of "d=com" would never allow an "in
-                        alignment" result as "com" should appear on all public suffix lists, and
+                        alignment" result as "com" should appear on all public suffix lists (see <xref target="suffixes"/>), and
                         therefore cannot be an Organizational Domain.</t>
 
                     <t>Identifier alignment is required because a message can bear a valid
@@ -898,13 +898,16 @@
                     ( "0" / "1" / "d" / "s" )
                     *(*WSP ":" *WSP ( "0" / "1" / "d" / "s" ))
 
-  dmarc-rfmt      = "rf"  *WSP "=" *WSP
-                    ( "afrf" / "iodef" )
+  dmarc-rfmt      = "rf"  *WSP "=" *WSP Keyword *(*WSP ":" Keyword)
+                  ; registered reporting formats only
 
   dmarc-percent   = "pct" *WSP "=" *WSP
                      1*3DIGIT
                     </artwork>
                 </figure>
+
+		<t> "Keyword" is imported from Section 4.1.2 of
+		    <xref target="SMTP"/>. </t>
 
                 <t> A size limitation in a dmarc-uri, if provided, is interpreted as a count of
                     units followed by an OPTIONAL unit size ("k" for kilobytes, "m" for megabytes,
@@ -1787,7 +1790,7 @@
                 <t> The DMARC mechanism allows both DKIM and SPF-authenticated identifiers to
                     authenticate email on behalf of a Domain Owner and, possibly, on
                     behalf of different subdomains. If malicious or unaware users can gain control
-                    of the SPF record or DKIM signing practices for a subdomain, the subdomain can be
+                    of the SPF record or DKIM selector records for a subdomain, the subdomain can be
                     used to generate DMARC-passing email on behalf of the Organizational Domain. </t>
 
                 <t> For example, an attacker who controls the SPF record for "evil.example.com" can
