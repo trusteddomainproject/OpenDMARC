@@ -632,7 +632,7 @@
                         service has the benefit of re-using an extremely
                         well-established operations, administration and managem
 ent infrastructurea
-                        rather than creating a new one. </t>h
+                        rather than creating a new one. </t>
             <t> Per <xref target="DNS" />, a TXT record can comprise several "character-string"
                 objects. Where this is the case, the module performing DMARC evaluation MUST
                 concatenate these strings by joining together the objects in order and parsing the
@@ -1612,7 +1612,6 @@ ent infrastructurea
                         </list>
                     </t>
                 </section>
-            </section>
             <!-- Failure Reports -->
         </section>
 
