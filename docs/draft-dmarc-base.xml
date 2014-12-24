@@ -630,8 +630,7 @@
                         information, associated with the target domain name, namely an isolated TXT
                         record that is restricted to the DMARC context. Use of the DNS as the query
                         service has the benefit of re-using an extremely
-                        well-established operations, administration and managem
-ent infrastructurea
+                        well-established operations, administration and management infrastructure,
                         rather than creating a new one. </t>
             <t> Per <xref target="DNS" />, a TXT record can comprise several "character-string"
                 objects. Where this is the case, the module performing DMARC evaluation MUST
@@ -1349,7 +1348,6 @@ ent infrastructurea
                 <t>A Mail Receiver discovers reporting requests when it looks up a DMARC policy
                     record that corresponds to a RFC5322 From: domain on received mail. The
                     presence of the &quot;rua&quot; tag specifies where to send feedback. </t>
-            </section>
 
             <section anchor="transport_fb_mech" title="Transport">
                 <t>Where the URI specified in an "rua" tag does not specify otherwise, a Mail
@@ -1476,6 +1474,7 @@ ent infrastructurea
                     </t>
                 </section>
                 <!-- Other Transport -->
+            </section>
 
                 <section anchor="error_reports" title="Error Reports">
                     <t> When a Mail Receiver is unable to complete delivery of a report via any of
@@ -1518,8 +1517,6 @@ ent infrastructurea
                 </section>
                 <!-- Error Reports -->
             </section>
-            <!-- Transport -->
-        </section>
 
             <section anchor="forensic" title="Failure Reports">
 		<t> Failure reports are normally generated and sent almost
@@ -1614,6 +1611,7 @@ ent infrastructurea
                 </section>
             <!-- Failure Reports -->
         </section>
+	</section>
 
         <section anchor="minimum" title="Minimum Implementations">
             <t> A minimum implementation of DMARC has the following characteristics: <list
