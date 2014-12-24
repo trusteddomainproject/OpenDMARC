@@ -55,8 +55,8 @@
         <abstract>
             <t>Domain-based Message Authentication, Reporting and Conformance (DMARC) is a scalable mechanism by which a mail-originating
                 organization can express domain-level policies and
-                preferences for message validation, disposition, and reporting, and a mail receiving
-                organization can use those policies and preferences to improve mail handling.</t>
+                preferences for message validation, disposition, and reporting, that a mail receiving
+                organization can use to improve mail handling.</t>
 
             <t> Originators of Internet Mail need to be able to associate reliable
 		and authenticated domain identifiers with messages, communicate policies
@@ -198,7 +198,7 @@
             <section title="Scalability">
                 <t> Scalability is a major issue for systems that need to operate in a system as
                     widely deployed as current SMTP email. For this reason, DMARC seeks to avoid the
-                    introduction of third parties or pre-sending agreements between senders and
+                    need for third parties or pre-sending agreements between senders and
                     receivers.  This preserves the positive aspects of the current email
                     infrastructure.</t>
 
@@ -483,7 +483,7 @@
                          />-authenticated signing domain (taken from the value of the "d=" tag in
                         the signature) and that of the RFC5322.From domain must be equal if the identifiers
                         are to be considered aligned. In strict
-                        mode, only an exact match between both of the Fully Qualified Domain Names (FQDN) considered to produce identifier alignment. </t>
+                        mode, only an exact match between both of the Fully Qualified Domain Names (FQDN) is considered to produce identifier alignment. </t>
 
                     <t>To illustrate, in relaxed mode, if a validated DKIM signature successfully
                         verifies with a "d=" domain of "example.com", and the RFC5322.From address is
@@ -669,7 +669,7 @@
 
             <section anchor="dmarc_format" title="General Record Format">
                 <t> DMARC records follow the extensible "tag-value" syntax for DNS-based key records
-                    defined in <xref target="DKIM">DKIM</xref>]. </t>
+                    defined in <xref target="DKIM">DKIM</xref>. </t>
 
                 <t>
                     <xref target="iana_considerations" /> creates a registry for known DMARC tags
@@ -706,7 +706,7 @@
                             that indicate failure reporting options as follows: <list
                                 style="hanging">
                                 <t hangText="0:"> Generate a DMARC failure report if all underlying
-                                    authentication mechanisms failed to produce an aligned "pass"
+                                    authentication mechanisms fail to produce an aligned "pass"
                                     result. </t>
 
                                 <t hangText="1:"> Generate a DMARC failure report if any underlying
@@ -750,7 +750,7 @@
 
                         <t hangText="pct:"> (plain-text integer between 0 and 100, inclusive;
                             OPTIONAL; default is 100). Percentage of messages from the Domain Owner's
-                            mail stream to which the DMARC mechanism is to be applied. However, this
+                            mail stream to which the DMARC policy is to be applied. However, this
                             MUST NOT be applied to the DMARC-generated reports, all of which must be
                             sent and received unhindered. The purpose of the "pct" tag is to allow
                             Domain Owners to enact a slow rollout enforcement of the DMARC
@@ -1178,7 +1178,7 @@
 
             <section anchor="fb_verify" title="Verifying External Destinations">
                 <t> It is possible to specify destinations for the different reports that are
-                    outside the authority of the Domain Owner making the request. This is enabled to allow domains that do
+                    outside the authority of the Domain Owner making the request. This allows domains that do
                     not operate mail servers to request reports and have them go someplace that is able
                     to receive and process them. </t>
 
@@ -1351,7 +1351,7 @@
 
             <section anchor="transport_fb_mech" title="Transport">
                 <t>Where the URI specified in an "rua" tag does not specify otherwise, a Mail
-                    Receiver generating a feedback report SHOULD apply a secure transport
+                    Receiver generating a feedback report SHOULD employ a secure transport
                     mechanism.</t>
 
                 <t>The Mail Receiver, after preparing a report, MUST evaluate the provided reporting
@@ -1707,7 +1707,7 @@
                 <t> Some receiver architectures might implement SPF in advance of any DMARC
                     operations.  This means a "-" prefix on a Sender's SPF mechanism, such as "-all",
                     could cause that rejection go into effect early in handling, causing message
-                    rejection, before any DMARC processing takes place.  Operators choosing to use
+                    rejection before any DMARC processing takes place.  Operators choosing to use
                     "-all" should be aware of this. </t>
 
             </section>
@@ -2055,7 +2055,7 @@
                 <t> The DMARC mechanism and its underlying technologies (SPF, DKIM) depend on the
                     security of the DNS.  To reduce the risk of subversion of the DMARC mechanism due
                     to DNS-based exploits, serious consideration should be given to the deployment
-                    of DNSSEC in parallel to the deployment of DMARC by both Domain Owners
+                    of DNSSEC in parallel with the deployment of DMARC by both Domain Owners
                     and Mail Receivers. </t>
 
 		<t> Publication of data using DNSSEC is relevant to Domain Owners and
