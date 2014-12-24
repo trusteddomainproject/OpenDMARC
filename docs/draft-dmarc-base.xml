@@ -260,7 +260,9 @@
                         service providers working on behalf of non-technical clients, to individuals
                         responsible for maintaining personal domains.  This specification uses this
                         term as analogous to an Administrative Management Domain as defined in <xref
-                            target="EMAIL-ARCH" />. </t>
+                            target="EMAIL-ARCH" />.  It can also refer to delegates, such as
+			Report Receivers, when those are outside of their immediate
+			management domain. </t>
 
                     <t hangText="Identifier Alignment:"> When the domain in the RFC5322.From address
 			matches a domain validated by SPF or DKIM (or both), it has Identifier Alignment. </t>
@@ -309,7 +311,7 @@
                 <t> DMARC's filtering function is based on whether SPF or DKIM can provide an authenticated,
                     aligned identifier for the message under consideration. Messages
                     that purport to be from a Domain Owner's domain and arrive from servers that are
-                    not authorized by SPF and do not contain an appropriate DKIM signature can be
+                    not authorized by that domain's SPF record and do not contain an appropriate DKIM signature can be
                     affected by DMARC policies.</t>
 
 		<t> It is important to note that the authentication mechanisms
@@ -328,7 +330,8 @@
                     Per-message failure reports are a useful source of information when debugging deployments
                     (if messages can be determined to be legitimate even though failing
                     authentication) or in analyzing attacks. The capability for such services is
-                    enabled by DMARC but defined in other referenced material.</t>
+                    enabled by DMARC but defined in other referenced material such
+		    as <xref target="AFRF"/>.</t>
 
 		<t>A message satisfies the DMARC checks if at least one of the supported
 		   authentication mechanisms:
@@ -378,13 +381,13 @@
     <t> In essence the steps are as follows:
         <list style="numbers">
 
-        <t> Author Domain constructs an SPF policy and publishes it in its
-            DNS database as per <xref target="SPF"/>.  Author Domain also
+        <t> Domain Owner constructs an SPF policy and publishes it in its
+            DNS database as per <xref target="SPF"/>.  Domain Owner also
             configures its system for DKIM signing as described
-            in <xref target="DKIM"/>.  Finally, Author Domain publishes via
+            in <xref target="DKIM"/>.  Finally, Domain Owner publishes via
             the DNS a DMARC message handling policy. </t>
 
-        <t> Author generates a message and hands the message to Author Domain's
+        <t> Author generates a message and hands the message to Domain Owner's
             designated mail submission service. </t>
 
         <t> Submission service passes relevant details to the DKIM
@@ -405,16 +408,16 @@
             aligned; see below). </t>
 
         <t> The results of these are passed to the DMARC module
-            along with the Author domain.  The DMARC module attempts to
+            along with the Author's domain.  The DMARC module attempts to
 	    retrieve a policy from the DNS for that domain.  If none is
 	    found, the DMARC module determines the Organizational Domain
 	    and repeats the attempt to retrieve a policy from the DNS.  (This
 	    is described in further detail in
 	    <xref target="policy_discovery"/>.) </t>
 
-	<t> If a policy is found, it is combined with the Author Domain
-	    and the SPF and DKIM results to produce a DMARC policy result (e.g.,
-	    a "pass" or "fail"), and can optionally cause one of two kinds of
+	<t> If a policy is found, it is combined with the Author's domain
+	    and the SPF and DKIM results to produce a DMARC policy result
+	    (a "pass" or "fail"), and can optionally cause one of two kinds of
 	    reports to be generated (not shown). </t>
 
         <t> Recipient transport service either delivers the message
@@ -622,14 +625,14 @@
 
             <t> DMARC's use of the Domain Name Service is driven
                         by DMARC's use of domain names and the nature of the query it performs. The
-                        query requirement matches perfectly with the DNS, for obtaining simple
+                        query requirement matches with the DNS, for obtaining simple
                         parametric information. It uses an established method of storing the
                         information, associated with the target domain name, namely an isolated TXT
                         record that is restricted to the DMARC context. Use of the DNS as the query
-                        service has the considerable benefit of re-using an extremely
-                        well-established operations, administration and management infrastructure,
-                        rather than creating a new one. </t>
-
+                        service has the benefit of re-using an extremely
+                        well-established operations, administration and managem
+ent infrastructurea
+                        rather than creating a new one. </t>h
             <t> Per <xref target="DNS" />, a TXT record can comprise several "character-string"
                 objects. Where this is the case, the module performing DMARC evaluation MUST
                 concatenate these strings by joining together the objects in order and parsing the
@@ -1025,8 +1028,8 @@
                     of that underlying authentication protocol at all. </t>
 
                 <t> Handling of messages for which SPF and/or DKIM evaluation encounters a DNS error
-                    is left to the discretion of the Mail Receiver. Further discussion is available
-                    in <xref target="policy_discovery" />. </t>
+                    is left to the discretion of the Mail Receiver.  Suggestions for safe handling of
+		    that condition can be found in <xref target="policy_discovery" />. </t>
             </section>
 
         <section anchor="policy_discovery" title="Policy Discovery">
@@ -1078,7 +1081,7 @@
                 <xref target="disc_rejection" />. </t>
 
             <t> Handling of DNS errors when querying for the DMARC policy record is left to the
-                discretion of the Mail Receiver. For example, to ensure minimal disruption of mail
+                discretion of the Mail Receiver.  For example, to ensure minimal disruption of mail
                 flow, transient errors could result in delivery of the message ("fail open"), or
                 they could result in the message being temporarily rejected (i.e., an SMTP 4yx
                 reply) which invites the sending MTA to try again after the condition has possibly
@@ -1189,11 +1192,11 @@
                 <t> When a Mail Receiver discovers a DMARC policy in the DNS, and the Organizational
                     Domain at which that record was discovered is not identical to the Organizational
                     Domain of the host part of the authority component of a <xref target="URI" />
-                    specified in the "rua" or "ruf" tag, the following verification steps SHOULD be
+                    specified in the "rua" or "ruf" tag, the following verification steps are to be
                     taken:
                     <list style="numbers">
                         <t> Extract the host portion of the authority component of the URI. Call
-                            this the "destination host", and refers to a Report Receiver. </t>
+                            this the "destination host", as it refers to a Report Receiver. </t>
 
                         <t> Prepend the string "_report._dmarc". </t>
 
@@ -1232,7 +1235,7 @@
                     ("red.example.net") does not match "blue.example.com", so this procedure is
                     enacted. A TXT query for "blue.example.com._report._dmarc.red.example.net" is
                     issued. If a single reply comes back containing a tag of "v=DMARC1", then the
-                    relationship between the two is confirmed. Moreover, red.example.net has the
+                    relationship between the two is confirmed. Moreover, "red.example.net" has the
                     opportunity to override the report destination requested by "blue.example.com"
                     if needed. </t>
 
@@ -1343,15 +1346,10 @@
                     regardless of local timezone or time of report production, in order to
                     facilitate correlation. </t>
 
-            <section anchor="discovery_fb_mech" title="Discovery">
                 <t>A Mail Receiver discovers reporting requests when it looks up a DMARC policy
                     record that corresponds to a RFC5322 From: domain on received mail. The
                     presence of the &quot;rua&quot; tag specifies where to send feedback. </t>
-
-                <t>For more on the considerations given to DMARC discovery, see <xref
-                        target="policy_discovery"/>. </t>
             </section>
-            <!-- Discovery -->
 
             <section anchor="transport_fb_mech" title="Transport">
                 <t>Where the URI specified in an "rua" tag does not specify otherwise, a Mail
@@ -1525,8 +1523,8 @@
 
             <section anchor="forensic" title="Failure Reports">
 		<t> Failure reports are normally generated and sent almost
-		    immediately after the Mail Receiver detects an
-		    authentication failure.  Rather than waiting for an
+		    immediately after the Mail Receiver detects a
+		    DMARC failure.  Rather than waiting for an
 		    aggregate report, these reports are useful for quickly
 		    notifying the Domain Owners when there is an
 		    authentication failure.  Whether the failure is due to an
@@ -1662,9 +1660,10 @@
                     otherwise be obscured by intermediate systems will therefore be exposed.
                 </t>
 
-                <t> Domain Owners requesting reports will also receive information about mail
-                    forwarded to unexpected Mail Receivers when message forwarding
-                    relationships exists. </t>
+                <t> When message forwarding arrangements exist, Domain Owners requesting reports
+		    will also receive information about mail forwarded to domains that were not
+		    originally part of their messages' recipient lists.  This means destination
+		    domains previously unknown to the Domain Owner may now become visible. </t>
 
                 <t> Disclosure of information about the messages is being requested by the entity generating
                     the email in the first place, i.e., the Domain Owner and not the Mail Receiver, so this may not fit
@@ -1687,16 +1686,10 @@
                     if their own internal policies constrain the use and transmission of DMARC
                     reporting. </t>
 
-            </section>
-
-            <section anchor="priv_tls" title="Secure Protocols">
-                <t> This document encourages use of secure transport mechanisms to prevent loss
-                    of private data to third parties that may be able to monitor such
-                    transmissions.  Unencrypted mechanisms should be avoided. </t>
-
-                <t> In particular, a message that was originally encrypted or otherwise
-                    secured might appear in a report that is not sent securely, which
-                    could reveal private information. </t>
+		<t> Some potential exists for report recipients to perform traffic analysis,
+		    making it possible to obtain metadata about the receiver's traffic. In addition to
+		    verifying compliance with policies, receivers need to consider that 
+		    before sending reports to a third party. </t>
             </section>
         </section>
 
@@ -2067,6 +2060,10 @@
                     to DNS-based exploits, serious consideration should be given to the deployment
                     of DNSSEC in parallel to the deployment of DMARC by both Domain Owners
                     and Mail Receivers. </t>
+
+		<t> Publication of data using DNSSEC is relevant to Domain Owners and
+		    third-party Report Receivers.  DNSSEC-aware resolution is relevant
+		    to Mail Receivers and Report Receivers. </t>
             </section>
 
             <section anchor="sec_display" title="Display Name Attacks">
@@ -2136,6 +2133,16 @@
                 <t>The verification mechanism presented in <xref target="fb_verify" /> is currently
                     not mandatory ("MUST") but strongly recommended ("SHOULD"). It is possible that
                     it would be elevated to a "MUST" by later security review. </t>
+            </section>
+
+            <section anchor="sec_tls" title="Secure Protocols">
+                <t> This document encourages use of secure transport mechanisms to prevent loss
+                    of private data to third parties that may be able to monitor such
+                    transmissions.  Unencrypted mechanisms should be avoided. </t>
+
+                <t> In particular, a message that was originally encrypted or otherwise
+                    secured might appear in a report that is not sent securely, which
+                    could reveal private information. </t>
             </section>
         </section> <!-- Security Considerations -->
     </middle>
@@ -2783,7 +2790,7 @@
                     constitutes an amplified denial-of-service attack. </t>
 
                 <t> The Organizational Domain mechanism is a necessary component to the goals of
-                    DMARC. The method described in <xref target="terms_and_defs" /> is far from perfect,
+                    DMARC. The method described in <xref target="od" /> is far from perfect,
                     but serves this purpose reasonably well without adding undue burden or semantics
                     to the DNS.  If a method is created to do so that is more reliable and secure than
                     the use of a public suffix list, DMARC should be amended to use that method as soon
@@ -3154,7 +3161,8 @@
             <section anchor="ex_receiver" title="Mail Receiver Example">
                 <t> A Mail Receiver that wants to use DMARC should already be checking SPF and DKIM,
                     and possess the ability to collect relevant information from various email
-                    processing stages to provide feedback to Domain Owners. </t>
+                    processing stages to provide feedback to Domain Owners (possibly
+		    via Report Receivers). </t>
 
                 <section anchor="ex_smtp" title="SMTP-time Processing">
                     <t> An optimal DMARC-enabled Mail Receiver performs authentication and
@@ -3626,7 +3634,7 @@
                 contributors would also like to recognize the invaluable input and guidance that was
                 provided early on by J.D. Falk.</t>
 
-            <t> Additional contributions within the IETF context were made by Les Barstow, Jim Fenton, J. Gomez, Mike Jones, Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy, Henry
+            <t> Additional contributions within the IETF context were made by Les Barstow, Jim Fenton, J. Gomez, Mike Jones, Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy, Rolf Sonneveld, Henry
                 Timmes, and Stephen J. Turnbull. </t>
         </section>
     </back>
