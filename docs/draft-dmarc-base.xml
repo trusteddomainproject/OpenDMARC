@@ -1089,11 +1089,6 @@
                 any indication that there is no such record as opposed to a transient DNS error),
                 Mail Receivers SHOULD NOT apply the DMARC mechanism to the message. </t>
 
-            <t> If the RFC5322.From domain does not exist in the DNS, Mail Receivers SHOULD direct
-                the receiving SMTP server to reject the message. The choice of mechanism for such
-                rejection and the implications of those choices are discussed in
-                <xref target="disc_rejection" />. </t>
-
             <t> Handling of DNS errors when querying for the DMARC policy record is left to the
                 discretion of the Mail Receiver.  For example, to ensure minimal disruption of mail
                 flow, transient errors could result in delivery of the message ("fail open"), or
