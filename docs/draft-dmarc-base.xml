@@ -1026,9 +1026,24 @@
                     case that the Domain Owner wishes a Message Receiver not to consider the results
                     of that underlying authentication protocol at all. </t>
 
-                <t> Handling of messages for which SPF and/or DKIM evaluation encounters a DNS error
-                    is left to the discretion of the Mail Receiver.  Suggestions for safe handling of
-		    that condition can be found in <xref target="policy_discovery" />. </t>
+		<t> Messages for which SPF and/or DKIM evaluation encounters
+		    a temporary DNS error have not received a definitive
+		    result for steps 3 and/or 4 above.  When such an evaluation
+		    is done in conjunction with an aligned identifier,
+		    completion of the DMARC algorithm is not possible.
+		    In this case, receivers can either skip DMARC for this
+		    message due to incomplete evaluation, or they can arrange
+		    to defer handling of the message in the hope that the
+		    temporary error will be resolved when the message is
+		    retried.  In any case, Receivers cannot apply DMARC
+		    policy and reject or quarantine the message because the
+		    DMARC evaluation is incomplete.  When otherwise
+		    appropriate due to DMARC policy, receivers MAY send
+		    feedback reports regarding temporary errors. </t>
+
+		<t> Handling of messages for which SPF and/or DKIM evaluation
+		    encounters a permanent DNS error is left to the discretion
+		    of the Mail Receiver. </t>
             </section>
 
         <section anchor="policy_discovery" title="Policy Discovery">
