@@ -1026,18 +1026,18 @@
                     case that the Domain Owner wishes a Message Receiver not to consider the results
                     of that underlying authentication protocol at all. </t>
 
-		<t> Messages for which SPF and/or DKIM evaluation encounters
-		    a temporary DNS error have not received a definitive
-		    result for steps 3 and/or 4 above.  When such an evaluation
-		    is done in conjunction with an aligned identifier,
-		    completion of the DMARC algorithm is not possible.
-		    In this case, receivers can either skip DMARC for this
-		    message due to incomplete evaluation, or they can arrange
-		    to defer handling of the message in the hope that the
-		    temporary error will be resolved when the message is
-		    retried.  In any case, Receivers cannot apply DMARC
-		    policy and reject or quarantine the message because the
-		    DMARC evaluation is incomplete.  When otherwise
+		<t> DMARC evaluation can only complete and yield a "pass"
+		    result when one of the underlying authentication
+		    mechanisms passes for an aligned identifier.  If this
+		    is not the case and either or both of them suffered some
+		    kind of temporary error (such as a transient DNS problem),
+		    the Receiver evaluating the message is also unable to
+		    conclude that the DMARC mechanism failed and thereby
+		    apply the advertised DMARC policy.  Rather, the Receiver
+		    can either skip DMARC processing for this message due to
+		    incomplete evaluation, or it can arrange to defer handling
+		    of the message in the hope that the temporary error will
+		    be resolved when the message is retried.  When otherwise
 		    appropriate due to DMARC policy, receivers MAY send
 		    feedback reports regarding temporary errors. </t>
 
