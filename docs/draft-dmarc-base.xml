@@ -1036,7 +1036,9 @@
 		    of them fails due to a temporary error, the Receiver
 		    evaluating the message is unable to conclude that the
 		    DMARC mechanism had a permanent failure; they therefore
-		    cannot apply the advertised DMARC policy. </t>
+		    cannot apply the advertised DMARC policy.  When
+		    otherwise appropriate, Receivers MAY send feedback
+		    reports regarding temporary errors. </t>
 
 		<t> Handling of messages for which SPF and/or DKIM evaluation
 		    encounters a permanent DNS error is left to the discretion
@@ -3625,20 +3627,25 @@
         </section>
 
         <section anchor="acks" title="Acknowledgements">
-            <t> DMARC and the version of this document submitted to the IETF were the result of
-                lengthy efforts by an informal industry consortium: <eref target="http://dmarc.org"
-                    >DMARC.org</eref>. Participating companies included: Agari, American Greetings,
-                AOL, Bank of America, Cloudmark, Comcast, Facebook, Fidelity Investments, Google,
-                JPMorgan Chase &amp; Company, LinkedIn, Microsoft, Netease, Paypal, ReturnPath,
-                Trusted Domain Project, and Yahoo!. Although the number of contributors and
-                supporters are too numerous to mention, notable individual contributions were made
-                by J. Trent Adams, Michael Adkins, Monica Chew, Dave Crocker, Tim Draegen,
-	 	Steve Jones, Franck Martin, Brett McDowell, and Paul Midgen.  The
-                contributors would also like to recognize the invaluable input and guidance that was
-                provided early on by J.D. Falk.</t>
+            <t> DMARC and the version of this document submitted to the IETF
+		were the result of lengthy efforts by an informal industry
+		consortium: <eref target="http://dmarc.org">DMARC.org</eref>.
+		Participating companies included: Agari, American Greetings,
+                AOL, Bank of America, Cloudmark, Comcast, Facebook, Fidelity
+		Investments, Google, JPMorgan Chase &amp; Company, LinkedIn,
+		Microsoft, Netease, PayPal, ReturnPath, The Trusted Domain
+		Project, and Yahoo!.  Although the number of contributors and
+                supporters are too numerous to mention, notable individual
+		contributions were made by J. Trent Adams, Michael Adkins,
+		Monica Chew, Dave Crocker, Tim Draegen, Steve Jones, Franck
+		Martin, Brett McDowell, and Paul Midgen.  The contributors
+		would also like to recognize the invaluable input and guidance
+		that was provided early on by J.D. Falk.</t>
 
-            <t> Additional contributions within the IETF context were made by Les Barstow, Jim Fenton, J. Gomez, Mike Jones, Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy, Rolf Sonneveld, Henry
-                Timmes, and Stephen J. Turnbull. </t>
+            <t> Additional contributions within the IETF context were made
+		by Kurt Anderson, Les Barstow, Jim Fenton, J. Gomez, Mike
+		Jones, Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy,
+		Rolf Sonneveld, Henry Timmes, and Stephen J. Turnbull. </t>
         </section>
     </back>
 </rfc>
