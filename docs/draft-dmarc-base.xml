@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="info" docName="draft-kucherawy-dmarc-base-09" ipr="trust200902">
+<rfc category="info" docName="draft-kucherawy-dmarc-base-10" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -358,7 +358,7 @@
      |                                    **************        .
      V                                                 *        .
   +------+        (~~~~~~~~~~~~)      +------+         *        .
-  | oMTA |-------&gt;( other MTAs )-----&gt;| rMTA |         *        .
+  | sMTA |-------&gt;( other MTAs )-----&gt;| rMTA |         *        .
   +------+        (~~~~~~~~~~~~)      +------+         *        .
                                          |             * ........
                                          |             * .
@@ -423,6 +423,10 @@
         <t> Recipient transport service either delivers the message
             to the recipient inbox, or takes other local policy action
             based on the DMARC result (not shown). </t>
+
+	<t> When requested, Recipient transport service collects data from
+	    the message delivery session to be used in providing feedback (see 
+	    <xref target="feedback"/>). </t>
         </list> </t>
         </section>
 
@@ -1026,20 +1030,13 @@
                     case that the Domain Owner wishes a Message Receiver not to consider the results
                     of that underlying authentication protocol at all. </t>
 
-		<t> DMARC evaluation can only complete and yield a "pass"
-		    result when one of the underlying authentication
-		    mechanisms passes for an aligned identifier.  If this
-		    is not the case and either or both of them suffered some
-		    kind of temporary error (such as a transient DNS problem),
-		    the Receiver evaluating the message is also unable to
-		    conclude that the DMARC mechanism failed and thereby
-		    apply the advertised DMARC policy.  Rather, the Receiver
-		    can either skip DMARC processing for this message due to
-		    incomplete evaluation, or it can arrange to defer handling
-		    of the message in the hope that the temporary error will
-		    be resolved when the message is retried.  When otherwise
-		    appropriate due to DMARC policy, receivers MAY send
-		    feedback reports regarding temporary errors. </t>
+		<t> DMARC evaluation can only yield a "pass" result after one
+		    of the underlying authentication mechanisms passes for
+		    an aligned identifier. If neither passes and one or both
+		    of them fails due to a temporary error, the Receiver
+		    evaluating the message is unable to conclude that the
+		    DMARC mechanism had a permanent failure; they therefore
+		    cannot apply the advertised DMARC policy. </t>
 
 		<t> Handling of messages for which SPF and/or DKIM evaluation
 		    encounters a permanent DNS error is left to the discretion
@@ -1171,8 +1168,7 @@
                 receive DMARC feedback without impacting existing mail processing, discovered
                 policies of "p=none" SHOULD NOT modify existing mail disposition processing. </t>
 
-            <t> Mail Receivers SHOULD also implement reporting instructions of DMARC in place of any
-                extensions to SPF or DKIM that might enable such reporting. </t>
+            <t> Mail Receivers SHOULD also implement reporting instructions of DMARC, even in the absence of a request for DKIM reporting <xref target="AFRF-DKIM"/> or SPF reporting <xref target="AFRF-SPF"/>.  Furthermore, the presence of such requests SHOULD NOT affect DMARC reporting. </t>
 
         </section>
         <!-- Policy Enforcement -->
