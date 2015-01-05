@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="info" docName="draft-kucherawy-dmarc-base-10" ipr="trust200902">
+<rfc category="info" docName="draft-kucherawy-dmarc-base-11" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -279,156 +279,12 @@
                 <t hangText="Report Receiver:"> An operator that receives reports from another operator
                         implementing the reporting mechanism described in this document.
                         Such an operator might be receiving reports about its own messages,
-                        or reports about the messages claiming to be from a third party.
+                        or reports about messages related to another operator.
                         This term applies collectively to the system components that
                         receive and process these reports and the organizations that
                         operate them. </t>
                 </list>
             </t>
-
-            <section anchor="overview" title="Overview">
-                <t> This section provides a general overview of the design and operation
-                    of the DMARC environment. </t>
-
-            <section anchor="auth_mechs" title="Authentication Mechanisms">
-                <t> The following mechanisms for determining Authenticated Identifiers are supported
-                    in this version of DMARC:
-			<list style="symbols">
-                        <t> <xref target="DKIM" />, which provides a domain-level identifier in the
-                            content of the "d=" tag of a validated DKIM-Signature header field. </t>
-                        <t> <xref target="SPF" />, which authenticates the domain found in an
-                                <xref target="SMTP" /> MAIL command when it is the authorized domain. </t>
-                    </list>
-                </t>
-            </section>
-            <!-- Authentication Mechanisms -->
-
-
-            <section anchor="concepts" title="Key Concepts">
-
-		<t> DMARC policies are published by the Domain Owner, and retrieved by the Mail Receiver during the SMTP session, via the DNS. </t>
-
-                <t> DMARC's filtering function is based on whether SPF or DKIM can provide an authenticated,
-                    aligned identifier for the message under consideration. Messages
-                    that purport to be from a Domain Owner's domain and arrive from servers that are
-                    not authorized by that domain's SPF record and do not contain an appropriate DKIM signature can be
-                    affected by DMARC policies.</t>
-
-		<t> It is important to note that the authentication mechanisms
-		    employed by DMARC authenticate only a DNS domain, and do
-		    not authenticate the local-part of any email address
-		    identifier found in a message, nor does it validate
-		    the legitimacy of message content. </t>
-
-                <t>DMARC's feedback component involves the collection of information about received
-                    messages claiming to be from the Organizational Domain for periodic aggregate reports to
-                    the Domain Owner. The parameters and format for such reports are discussed in
-                    later sections of this document.</t>
-
-                <t>A DMARC-enabled Mail Receiver might also generate per-message reports that
-                    contain information related to individual messages that fail SPF and/or DKIM.
-                    Per-message failure reports are a useful source of information when debugging deployments
-                    (if messages can be determined to be legitimate even though failing
-                    authentication) or in analyzing attacks. The capability for such services is
-                    enabled by DMARC but defined in other referenced material such
-		    as <xref target="AFRF"/>.</t>
-
-		<t>A message satisfies the DMARC checks if at least one of the supported
-		   authentication mechanisms:
-		   <list style="numbers">
-			<t> produces a "pass" result; and </t>
-			<t> produces that result based on an identifier that is
-			    in alignment, as defined in
-			    <xref target="terms_and_defs"/>. </t>
-		   </list> </t>
-            </section>
-
-            <section anchor="ascii_art" title="Flow Diagram">
-              <t> <figure> <artwork>
- +---------------+
- | Author Domain |&lt; . . . . . . . . . . . . . . . . . . . . . . .
- +---------------+                        .           .         .
-     |                                    .           .         .
-     V                                    V           V         .
- +-----------+     +--------+       +----------+ +----------+   .
- |   MSA     |&lt;***&gt;|  DKIM  |       |   DKIM   | |    SPF   |   .
- |  Service  |     | Signer |       | Verifier | | Verifier |   .
- +-----------+     +--------+       +----------+ +----------+   .
-     |                                    ^            ^        .
-     |                                    **************        .
-     V                                                 *        .
-  +------+        (~~~~~~~~~~~~)      +------+         *        .
-  | sMTA |-------&gt;( other MTAs )-----&gt;| rMTA |         *        .
-  +------+        (~~~~~~~~~~~~)      +------+         *        .
-                                         |             * ........
-                                         |             * .
-                                         V             * .
-                                  +-----------+        V V
-                    +---------+   |    MDA    |     +----------+
-                    |  User   |&lt;--| Filtering |&lt;***&gt;|  DMARC   |
-                    | Mailbox |   |  Engine   |     | Verifier |
-                    +---------+   +-----------+     +----------+
-    </artwork> </figure> </t>
-
-    <t> The above diagram shows a simple flow of messages through a DMARC-aware
-        system.  Solid lines denote the actual message flow, dotted lines
-        involve Domain Name System queries used to retrieve message policy
-        related to the supported message authentication schemes, and asterisk
-        lines indicate data exchange between message handling modules
-        and message authentication modules.  "sMTA" is the sending MTA, and
-	"rMTA" is the receiving MTA. </t>
-
-    <t> In essence the steps are as follows:
-        <list style="numbers">
-
-        <t> Domain Owner constructs an SPF policy and publishes it in its
-            DNS database as per <xref target="SPF"/>.  Domain Owner also
-            configures its system for DKIM signing as described
-            in <xref target="DKIM"/>.  Finally, Domain Owner publishes via
-            the DNS a DMARC message handling policy. </t>
-
-        <t> Author generates a message and hands the message to Domain Owner's
-            designated mail submission service. </t>
-
-        <t> Submission service passes relevant details to the DKIM
-            signing module in order to generate a DKIM signature to be
-            applied to the message. </t>
-
-        <t> Submission service relays the now-signed message to
-            its designated transport service for routing to its
-            intended recipient(s). </t>
-
-        <t> Message may pass through other relays, but eventually
-            arrives at a recipient's transport service. </t>
-
-        <t> Recipient delivery service conducts SPF and DKIM
-            authentication checks by passing the necessary data to
-            their respective modules, each of which require queries
-            to the Author Domain's DNS data (when identifiers are
-            aligned; see below). </t>
-
-        <t> The results of these are passed to the DMARC module
-            along with the Author's domain.  The DMARC module attempts to
-	    retrieve a policy from the DNS for that domain.  If none is
-	    found, the DMARC module determines the Organizational Domain
-	    and repeats the attempt to retrieve a policy from the DNS.  (This
-	    is described in further detail in
-	    <xref target="policy_discovery"/>.) </t>
-
-	<t> If a policy is found, it is combined with the Author's domain
-	    and the SPF and DKIM results to produce a DMARC policy result
-	    (a "pass" or "fail"), and can optionally cause one of two kinds of
-	    reports to be generated (not shown). </t>
-
-        <t> Recipient transport service either delivers the message
-            to the recipient inbox, or takes other local policy action
-            based on the DMARC result (not shown). </t>
-
-	<t> When requested, Recipient transport service collects data from
-	    the message delivery session to be used in providing feedback (see 
-	    <xref target="feedback"/>). </t>
-        </list> </t>
-        </section>
 
             <section anchor="id_alignment_element" title="Identifier Alignment">
                 <t>Email authentication technologies authenticate various (and disparate) aspects of
@@ -534,8 +390,6 @@
                 <!-- Alignment and Extension Technologies -->
             </section>
             <!-- Identifier Alignment -->
-        </section>
-        <!-- Definitions -->
 
         <section anchor="od" title="Organizational Domain">
         <t> The Organizational Domain is determined using the following algorithm: <list style="numbers">
@@ -565,7 +419,152 @@
                     <t> The process of determining a suffix is currently a heuristic one. No list is
                         guaranteed to be accurate or current. </t>
             </section>
-        </section>
+            </section>
+
+            <section anchor="overview" title="Overview">
+                <t> This section provides a general overview of the design and operation
+                    of the DMARC environment. </t>
+
+            <section anchor="auth_mechs" title="Authentication Mechanisms">
+                <t> The following mechanisms for determining Authenticated Identifiers are supported
+                    in this version of DMARC:
+			<list style="symbols">
+                        <t> <xref target="DKIM" />, which provides a domain-level identifier in the
+                            content of the "d=" tag of a validated DKIM-Signature header field. </t>
+                        <t> <xref target="SPF" />, which authenticates the domain found in an
+                                <xref target="SMTP" /> MAIL command when it is the authorized domain. </t>
+                    </list>
+                </t>
+            </section>
+            <!-- Authentication Mechanisms -->
+
+
+            <section anchor="concepts" title="Key Concepts">
+
+		<t> DMARC policies are published by the Domain Owner, and retrieved by the Mail Receiver during the SMTP session, via the DNS. </t>
+
+                <t> DMARC's filtering function is based on whether SPF or DKIM can provide an authenticated,
+                    aligned identifier for the message under consideration. Messages
+                    that purport to be from a Domain Owner's domain and arrive from servers that are
+                    not authorized by that domain's SPF record and do not contain an appropriate DKIM signature can be
+                    affected by DMARC policies.</t>
+
+		<t> It is important to note that the authentication mechanisms
+		    employed by DMARC authenticate only a DNS domain, and do
+		    not authenticate the local-part of any email address
+		    identifier found in a message, nor does it validate
+		    the legitimacy of message content. </t>
+
+                <t>DMARC's feedback component involves the collection of information about received
+                    messages claiming to be from the Organizational Domain for periodic aggregate reports to
+                    the Domain Owner. The parameters and format for such reports are discussed in
+                    later sections of this document.</t>
+
+                <t>A DMARC-enabled Mail Receiver might also generate per-message reports that
+                    contain information related to individual messages that fail SPF and/or DKIM.
+                    Per-message failure reports are a useful source of information when debugging deployments
+                    (if messages can be determined to be legitimate even though failing
+                    authentication) or in analyzing attacks. The capability for such services is
+                    enabled by DMARC but defined in other referenced material such
+		    as <xref target="AFRF"/>.</t>
+
+		<t>A message satisfies the DMARC checks if at least one of the supported
+		   authentication mechanisms:
+		   <list style="numbers">
+			<t> produces a "pass" result; and </t>
+			<t> produces that result based on an identifier that is
+			    in alignment, as defined in
+			    <xref target="terms_and_defs"/>. </t>
+		   </list> </t>
+            </section>  <!-- Key Concepts -->
+
+            <section anchor="ascii_art" title="Flow Diagram">
+              <t> <figure> <artwork>
+ +---------------+
+ | Author Domain |&lt; . . . . . . . . . . . . . . . . . . . . . . .
+ +---------------+                        .           .         .
+     |                                    .           .         .
+     V                                    V           V         .
+ +-----------+     +--------+       +----------+ +----------+   .
+ |   MSA     |&lt;***&gt;|  DKIM  |       |   DKIM   | |    SPF   |   .
+ |  Service  |     | Signer |       | Verifier | | Verifier |   .
+ +-----------+     +--------+       +----------+ +----------+   .
+     |                                    ^            ^        .
+     |                                    **************        .
+     V                                                 *        .
+  +------+        (~~~~~~~~~~~~)      +------+         *        .
+  | sMTA |-------&gt;( other MTAs )-----&gt;| rMTA |         *        .
+  +------+        (~~~~~~~~~~~~)      +------+         *        .
+                                         |             * ........
+                                         |             * .
+                                         V             * .
+                                  +-----------+        V V
+                    +---------+   |    MDA    |     +----------+
+                    |  User   |&lt;--| Filtering |&lt;***&gt;|  DMARC   |
+                    | Mailbox |   |  Engine   |     | Verifier |
+                    +---------+   +-----------+     +----------+
+    </artwork> </figure> </t>
+
+    <t> The above diagram shows a simple flow of messages through a DMARC-aware
+        system.  Solid lines denote the actual message flow, dotted lines
+        involve Domain Name System queries used to retrieve message policy
+        related to the supported message authentication schemes, and asterisk
+        lines indicate data exchange between message handling modules
+        and message authentication modules.  "sMTA" is the sending MTA, and
+	"rMTA" is the receiving MTA. </t>
+
+    <t> In essence the steps are as follows:
+        <list style="numbers">
+
+        <t> Domain Owner constructs an SPF policy and publishes it in its
+            DNS database as per <xref target="SPF"/>.  Domain Owner also
+            configures its system for DKIM signing as described
+            in <xref target="DKIM"/>.  Finally, Domain Owner publishes via
+            the DNS a DMARC message handling policy. </t>
+
+        <t> Author generates a message and hands the message to Domain Owner's
+            designated mail submission service. </t>
+
+        <t> Submission service passes relevant details to the DKIM
+            signing module in order to generate a DKIM signature to be
+            applied to the message. </t>
+
+        <t> Submission service relays the now-signed message to
+            its designated transport service for routing to its
+            intended recipient(s). </t>
+
+        <t> Message may pass through other relays, but eventually
+            arrives at a recipient's transport service. </t>
+
+        <t> Recipient delivery service conducts SPF and DKIM
+            authentication checks by passing the necessary data to
+            their respective modules, each of which require queries
+            to the Author Domain's DNS data (when identifiers are
+            aligned; see below). </t>
+
+        <t> The results of these are passed to the DMARC module
+            along with the Author's domain.  The DMARC module attempts to
+	    retrieve a policy from the DNS for that domain.  If none is
+	    found, the DMARC module determines the Organizational Domain
+	    and repeats the attempt to retrieve a policy from the DNS.  (This
+	    is described in further detail in
+	    <xref target="policy_discovery"/>.) </t>
+
+	<t> If a policy is found, it is combined with the Author's domain
+	    and the SPF and DKIM results to produce a DMARC policy result
+	    (a "pass" or "fail"), and can optionally cause one of two kinds of
+	    reports to be generated (not shown). </t>
+
+        <t> Recipient transport service either delivers the message
+            to the recipient inbox, or takes other local policy action
+            based on the DMARC result (not shown). </t>
+
+	<t> When requested, Recipient transport service collects data from
+	    the message delivery session to be used in providing feedback (see 
+	    <xref target="feedback"/>). </t>
+        </list> </t>
+        </section> <!-- Flow Diagram -->
+	</section> <!-- Overview -->
 
             <section anchor="disc_from" title="Use of RFC5322.From">
                 <t> One of the most obvious points of security scrutiny for DMARC is the choice to
@@ -1550,8 +1549,6 @@
                     Receiver generates and sends a message using the format described in <xref
                         target="AFRF" />. This document updates the AFRF format as described in
                         <xref target="afrf_update" />. </t>
-
-                <t> The format for failure reports is defined in <xref target="AFRF" />. </t>
 
                 <t> The destination(s) and nature of the reports are defined by the "ruf" and "fo"
                     tags as defined in <xref target="dmarc_format" />. </t>
