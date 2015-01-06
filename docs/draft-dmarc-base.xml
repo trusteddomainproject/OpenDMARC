@@ -2371,15 +2371,12 @@
                 <front>
                     <title> Sender Policy Framework (SPF) for Authorizing Use of Domains in E-Mail,
                         Version 1 </title>
-                    <author fullname="M. Wong" initials="M." surname="Wong">
+                    <author fullname="S. Kitterman" initials="S." surname="Kitterman">
                         <organization />
                     </author>
-                    <author fullname="W. Schlitt" initials="W." surname="Schlitt">
-                        <organization />
-                    </author>
-                    <date month="April" year="2006" />
+                    <date month="April" year="2014" />
                 </front>
-                <seriesInfo name="RFC" value="4408" />
+                <seriesInfo name="RFC" value="7208" />
             </reference>
 
             <reference anchor="URI">
