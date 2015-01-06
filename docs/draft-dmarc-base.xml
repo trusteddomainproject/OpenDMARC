@@ -202,9 +202,11 @@
                     receivers.  This preserves the positive aspects of the current email
                     infrastructure.</t>
 
-                <t> Although DMARC does not introduce third parties to the email
-                    handling flow, it also does not preclude them.  Third parties
-                    are free to provide services in conjunction with DMARC. </t>
+                <t> Although DMARC does not introduce third party senders
+		    (namely external agents authorized to send on behalf of
+		    an operator) to the email handling flow, it also does not
+		    preclude them.  Such third parties are free to provide
+		    services in conjunction with DMARC. </t>
             </section>
             <!-- Scalability -->
 
