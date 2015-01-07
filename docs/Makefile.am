@@ -1,3 +1,3 @@
 # Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
 
-dist_doc_DATA = draft-dmarc-base-10.txt
+dist_doc_DATA = draft-dmarc-base-11.txt
