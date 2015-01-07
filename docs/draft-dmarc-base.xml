@@ -155,8 +155,9 @@
 
 		<t> Experience with DMARC has revealed some issues of
 		    interoperability with email in general that require due
-		    consideration before deployment.  These are discussed in
-		    <xref target="discuss"/>. </t>
+		    consideration before deployment, particularly with
+		    configurations that can cause mail to be rejected.  These
+		    are discussed in <xref target="discuss"/>. </t>
         </section>
         <!-- Introduction -->
 
