@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="info" docName="draft-kucherawy-dmarc-base-11" ipr="trust200902">
+<rfc category="info" docName="draft-kucherawy-dmarc-base-12" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -1845,7 +1845,10 @@
 
                         <t hangText="property:"> from </t>
 
-                        <t hangText="value:"> the domain portion of the RFC5322.From field </t>
+                        <t hangText="Value:"> the domain portion of the RFC5322.From field </t>
+                        <t hangText="Status:"> active </t>
+
+                        <t hangText="Version:"> 1 </t>
                     </list>
                 </t>
             </section>
@@ -1866,6 +1869,8 @@
 
                         <t hangText="Meaning:"> No DMARC policy record was published for the aligned
                             identifier, or no aligned identifier could be extracted. </t>
+
+                        <t hangText="Status:"> active </t>
                     </list>
                     <list style="hanging">
                         <t hangText="Code:"> pass </t>
@@ -1881,6 +1886,8 @@
                         <t hangText="Meaning:"> A DMARC policy record was published for the aligned
                             identifier, and at least one of the authentication mechanisms passed.
                         </t>
+
+                        <t hangText="Status:"> active </t>
                     </list>
                     <list style="hanging">
                         <t hangText="Code:"> fail </t>
@@ -1895,6 +1902,8 @@
 
                         <t hangText="Meaning:"> A DMARC policy record was published for the aligned
                             identifier, and none of the authentication mechanisms passed. </t>
+
+                        <t hangText="Status:"> active </t>
                     </list>
                     <list style="hanging">
                         <t hangText="Code:"> temperror </t>
@@ -1909,6 +1918,8 @@
 
                         <t hangText="Meaning:"> A temporary error occurred during DMARC evaluation.
                             A later attempt might produce a final result. </t>
+
+                        <t hangText="Status:"> active </t>
                     </list>
                     <list style="hanging">
                         <t hangText="Code:"> permerror </t>
@@ -1924,6 +1935,8 @@
                         <t hangText="Meaning:"> A permanent error occurred during DMARC evaluation,
                             such as encountering a syntactically incorrect DMARC record. A later
                             attempt is unlikely to produce a final result. </t>
+
+                        <t hangText="Status:"> active </t>
                     </list>
                 </t>
             </section>
