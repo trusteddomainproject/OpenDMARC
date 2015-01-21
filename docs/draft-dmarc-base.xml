@@ -18,7 +18,7 @@
 <?rfc topblock="yes" ?>
 <?rfc autobreaks="yes" ?>
 
-<rfc category="info" docName="draft-kucherawy-dmarc-base-12" ipr="trust200902">
+<rfc category="info" docName="draft-kucherawy-dmarc-base-13" ipr="trust200902">
     <front>
 
         <title abbrev="DMARC"> Domain-based Message Authentication, Reporting and Conformance
@@ -297,9 +297,8 @@
                 <t>Email authentication technologies authenticate various (and disparate) aspects of
                     an individual message. For example, <xref target="DKIM" /> authenticates the
                     domain that affixed a signature to the message, while <xref target="SPF" />
-                    authenticates either the domain that appears in the RFC5321.MailFrom portion of
-                        <xref target="SMTP" /> or the RFC5321.EHLO/HELO domain if the
-                    RFC5321.MailFrom is null (in the case of Delivery Status Notifications). These
+                    can authenticate either the domain that appears in the RFC5321.MailFrom portion of
+                        <xref target="SMTP" /> or the RFC5321.EHLO/HELO domain, or both.  These
                     may be different domains, and they are typically not visible
                     to the end user.</t>
 
@@ -381,6 +380,11 @@
                         mode, only an exact DNS domain match is considered to produce identifier
                         alignment.</t>
 
+		    <t> Note that the RFC5321.HELO identity is not typically used in the context
+			of DMARC (except when required to "fake" an otherwise null
+		 	reverse-path), even though a "pure SPF" implementation according to
+			<xref target="SPF"/> would check that identifier. </t>
+
                     <t>For example, if a message passes an SPF check with an RFC5321.MailFrom domain
                         of "cbg.bounces.example.com", and the address portion of the RFC5322.From
                         field contains "payments@example.com", the Authenticated RFC5321.MailFrom
@@ -439,7 +443,11 @@
                         <t> <xref target="DKIM" />, which provides a domain-level identifier in the
                             content of the "d=" tag of a validated DKIM-Signature header field. </t>
                         <t> <xref target="SPF" />, which authenticates the domain found in an
-                                <xref target="SMTP" /> MAIL command when it is the authorized domain. </t>
+                                <xref target="SMTP" /> MAIL command, or the domain found in the
+				HELO/EHLO command if the MAIL command has a null path.
+				Note that in contradiction to <xref target="SPF"/>,
+				in the context of DMARC, this latter identity is typically
+				only used in the case of a MAIL null path. </t>
                     </list>
                 </t>
             </section>
@@ -3657,9 +3665,10 @@
 		that was provided early on by J.D. Falk.</t>
 
             <t> Additional contributions within the IETF context were made
-		by Kurt Anderson, Les Barstow, Jim Fenton, J. Gomez, Mike
-		Jones, Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy,
-		Rolf Sonneveld, Henry Timmes, and Stephen J. Turnbull. </t>
+		by Kurt Anderson, Les Barstow, Anne Bennett, Jim Fenton,
+		J. Gomez, Mike Jones, Scott Kitterman, Eliot Lear,
+		John Levine, S. Moonesamy, Rolf Sonneveld, Henry Timmes,
+		and Stephen J. Turnbull. </t>
         </section>
     </back>
 </rfc>
