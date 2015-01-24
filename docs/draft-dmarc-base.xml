@@ -437,25 +437,29 @@
                     of the DMARC environment. </t>
 
             <section anchor="auth_mechs" title="Authentication Mechanisms">
-                <t> The following mechanisms for determining Authenticated Identifiers are supported
-                    in this version of DMARC:
+                <t> The following mechanisms for determining Authenticated
+		    Identifiers are supported in this version of DMARC:
 			<list style="symbols">
-                        <t> <xref target="DKIM" />, which provides a domain-level identifier in the
-                            content of the "d=" tag of a validated DKIM-Signature header field. </t>
-                        <t> <xref target="SPF" />, which authenticates the domain found in an
-                                <xref target="SMTP" /> MAIL command, or the domain found in the
-				HELO/EHLO command if the MAIL command has a null path.
-				Note that in contrast to <xref target="SPF"/>,
-				in the context of DMARC, this latter identity is typically
-				only used in the case of a MAIL null path. </t>
+                        <t> <xref target="DKIM" />, which provides a
+			    domain-level identifier in the content of the
+			    "d=" tag of a validated DKIM-Signature header
+			    field. </t>
+
+                        <t> <xref target="SPF" />, which can authenticate 
+			    both the domain found in an <xref target="SMTP"/>
+			    HELO/EHLO command (the HELO identity) and the
+			    domain found in an SMTP MAIL command (the MAIL FROM
+			    identity).  DMARC uses the result of SPF
+			    authentication of the MAIL FROM identity.
+			    Section 2.4 of <xref target="SPF"/> describes
+			    MAIL FROM processing for cases in which the MAIL
+			    command has a null path. </t>
                     </list>
                 </t>
             </section>
             <!-- Authentication Mechanisms -->
 
-
             <section anchor="concepts" title="Key Concepts">
-
 		<t> DMARC policies are published by the Domain Owner, and retrieved by the Mail Receiver during the SMTP session, via the DNS. </t>
 
                 <t> DMARC's filtering function is based on whether SPF or DKIM can provide an authenticated,
