@@ -445,7 +445,7 @@
                         <t> <xref target="SPF" />, which authenticates the domain found in an
                                 <xref target="SMTP" /> MAIL command, or the domain found in the
 				HELO/EHLO command if the MAIL command has a null path.
-				Note that in contradiction to <xref target="SPF"/>,
+				Note that in contrast to <xref target="SPF"/>,
 				in the context of DMARC, this latter identity is typically
 				only used in the case of a MAIL null path. </t>
                     </list>
@@ -3665,10 +3665,10 @@
 		that was provided early on by J.D. Falk.</t>
 
             <t> Additional contributions within the IETF context were made
-		by Kurt Anderson, Les Barstow, Anne Bennett, Jim Fenton,
-		J. Gomez, Mike Jones, Scott Kitterman, Eliot Lear,
-		John Levine, S. Moonesamy, Rolf Sonneveld, Henry Timmes,
-		and Stephen J. Turnbull. </t>
+		by Kurt Anderson, Michael Jack Assels, Les Barstow,
+		Anne Bennett, Jim Fenton, J. Gomez, Mike Jones,
+		Scott Kitterman, Eliot Lear, John Levine, S. Moonesamy,
+		Rolf Sonneveld, Henry Timmes, and Stephen J. Turnbull. </t>
         </section>
     </back>
 </rfc>
