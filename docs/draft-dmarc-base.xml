@@ -302,13 +302,17 @@
                     may be different domains, and they are typically not visible
                     to the end user.</t>
 
-                <t>DMARC uses the <xref target="MAIL">RFC5322</xref>.From domain to evaluate the
-                    applicability of Authenticated Identifiers. The <xref target="MAIL"
-                        >RFC5322</xref>.From domain was selected as the central identity of the
-                    DMARC mechanism because it is a required message header field and therefore guaranteed to be
-                    present in compliant messages, and most MUAs represent the <xref target="MAIL"
-                        >RFC5322</xref>.From field as the originator of the message and render some
-                    or all of this header field's content to end users.</t>
+                <t>DMARC authenticates use of the
+		   <xref target="MAIL">RFC5322</xref>.From domain by requiring
+		   that it matches (is aligned with) an Authenticated
+		   Identifier. The <xref target="MAIL">RFC5322</xref>.From
+		   domain was selected as the central identity of the
+                   DMARC mechanism because it is a required message header
+		   field and therefore guaranteed to be present in compliant
+		   messages, and most MUAs represent the
+		   <xref target="MAIL">RFC5322</xref>.From field as the
+		   originator of the message and render some
+                   or all of this header field's content to end users.</t>
 
 		<t> Thus, this field is the one used by end users to identify the source
 		    of the message, and therefore is a prime target for abuse.
@@ -341,9 +345,10 @@
             subdomains of the verified domains. </t>
 
                 <section anchor="dkim_id_align" title="DKIM-authenticated Identifiers">
-                    <t>DMARC provides the option of applying DKIM in a strict or relaxed
-                        identifier alignment mode.  (Note that these are not related to DKIM's "simple" and "relaxed"
-                        canonicalization modes.) </t>
+                    <t>DMARC permits identifier alignment, based on the
+		       result of a DKIM authentication, to be strict or
+		       relaxed.  (Note that these are not related to DKIM's
+		       "simple" and "relaxed" canonicalization modes.) </t>
 
                     <t>In relaxed mode, the Organizational Domains of both the <xref target="DKIM"
                          />-authenticated signing domain (taken from the value of the "d=" tag in
@@ -373,7 +378,8 @@
                 <!-- DKIM Identifiers -->
 
                 <section anchor="spf_id_align" title="SPF-authenticated Identifiers">
-                    <t>DMARC provides the option of applying SPF in a strict or relaxed identifier alignment mode. </t>
+                    <t>DMARC permits identifier alignment, based on the result
+		       of an SPF authentication, to be strict or relaxed. </t>
 
                     <t>In relaxed mode, the <xref target="SPF" />-authenticated domain and
                         RFC5322.From domain must have the same Organizational Domain. In strict
