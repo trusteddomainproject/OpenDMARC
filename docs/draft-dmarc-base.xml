@@ -462,11 +462,14 @@
             <section anchor="concepts" title="Key Concepts">
 		<t> DMARC policies are published by the Domain Owner, and retrieved by the Mail Receiver during the SMTP session, via the DNS. </t>
 
-                <t> DMARC's filtering function is based on whether SPF or DKIM can provide an authenticated,
-                    aligned identifier for the message under consideration. Messages
-                    that purport to be from a Domain Owner's domain and arrive from servers that are
-                    not authorized by that domain's SPF record and do not contain an appropriate DKIM signature can be
-                    affected by DMARC policies.</t>
+                <t> DMARC's filtering function is based on whether the
+		    RFC5322.From field domain is aligned with (matches) an
+		    authenticated domain name from SPF or DKIM.  When a 
+		    DMARC policy is published for the domain name found in
+		    the RFC5322.From field, and that domain name is not
+		    validated through SPF or DKIM, the disposition of that
+		    message can be affected by that DMARC policy when
+		    delivered to a participating receiver. </t>
 
 		<t> It is important to note that the authentication mechanisms
 		    employed by DMARC authenticate only a DNS domain, and do
