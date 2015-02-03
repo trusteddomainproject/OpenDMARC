@@ -98,7 +98,7 @@
                 have been generally successful, they require significant manual coordination between
                 parties, and this model does not scale for general use on the Internet.</t>
 
-            <t>This document defines Domain-based Message Authentication, Reporting and Compliance
+            <t>This document defines Domain-based Message Authentication, Reporting and Conformance
                 (DMARC), a mechanism by which email operators leverage existing authentication and
                 policy advertisement technologies to enable both message-stream feedback and
                 enforcement of policies against unauthenticated email.</t>
