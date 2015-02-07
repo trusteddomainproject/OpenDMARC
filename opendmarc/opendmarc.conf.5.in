@@ -294,12 +294,6 @@ allowed in
 The default is "mail".
 
 .TP
-.I TemporaryDirectory (string)
-Specifies the directory in which temporary files should
-be written.  The default is
-.I /var/tmp.
-
-.TP
 .I TrustedAuthservIDs (string)
 Provides a list of authserv-ids that are to be used to identify
 Authentication-Results header fields whose contents are to be assumed as valid

@@ -163,7 +163,6 @@ struct dmarcf_config
 	char *			conf_afrfbcc;
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
-	char *			conf_tmpdir;
 	char *			conf_authservid;
 	char *			conf_historyfile;
 	char *			conf_pslist;
@@ -1289,10 +1288,6 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "IgnoreAuthenticatedClients",
 		                  &conf->conf_ignoreauthclients,
 		                  sizeof conf->conf_ignoreauthclients);
-
-		(void) config_get(data, "TemporaryDirectory",
-		                  &conf->conf_tmpdir,
-		                  sizeof conf->conf_tmpdir);
 
 		(void) config_get(data, "ReportCommand",
 		                  &conf->conf_reportcmd,

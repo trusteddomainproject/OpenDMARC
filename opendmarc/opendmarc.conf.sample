@@ -322,13 +322,6 @@
 #
 # SyslogFacility mail
 
-##  TemporaryDirectory path
-##  	default /var/tmp
-##
-##  Specifies the directory in which temporary files should be written.
-#
-# TemporaryDirectory /var/tmp
-
 ##  TrustedAuthservIDs string
 ##  	default HOSTNAME
 ##
@@ -339,7 +332,6 @@
 ##  the host running the filter as reported by the gethostname(3) function.
 #
 # TrustedAuthservIDs HOSTNAME
-
 
 ##  UMask mask
 ##  	default (none)

@@ -48,7 +48,6 @@ struct configdef dmarcf_config[] =
 	{ "SPFSelfValidate",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "Syslog",			CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "SyslogFacility",		CONFIG_TYPE_STRING,	FALSE },
-	{ "TemporaryDirectory",		CONFIG_TYPE_STRING,	FALSE },
 	{ "TestDNSData",		CONFIG_TYPE_STRING,	FALSE },
 	{ "TrustedAuthservIDs",		CONFIG_TYPE_STRING,	FALSE },
 	{ "UMask",			CONFIG_TYPE_INTEGER,	FALSE },
