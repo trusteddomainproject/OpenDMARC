@@ -7,9 +7,11 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <resolv.h>
 
 #define	OPENDMARC_LIB_VERSION	0x00000000
 

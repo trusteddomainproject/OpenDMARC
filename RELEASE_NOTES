@@ -6,6 +6,9 @@ release, and a summary of the changes in that release.
 1.3.1		2015/02/??
 	Fix bug #113: Remove "TemporaryDirectory" (unused).  Patch from
 		Andreas Schulze.
+	LIBOPENDMARC: Fix bug #104: Include <sys/param.h> and <resolv.h>
+		in <opendmarc/dmarc.h> so that MAXPATHLEN and MAXNS get
+		defined consistently.  Reported by Frank J. Lhota.
 	LIBOPENDMARC: Fix bug #105: Get the h_errno definition from
 		<netdb.h> rather than declaring it.  Problem noted
 		by Frank J. Lhota.
