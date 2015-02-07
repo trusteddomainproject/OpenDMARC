@@ -339,7 +339,7 @@ This man page covers version @VERSION@ of
 .I opendmarc.
 
 .SH COPYRIGHT
-Copyright (c) 2012-2014, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
 .SH SEE ALSO
 .I opendmarc(8), sendmail(8)
 .P
