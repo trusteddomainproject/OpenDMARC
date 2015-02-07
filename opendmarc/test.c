@@ -59,12 +59,6 @@ char *milter_status[] =
 	"SMFIS_TEMPFAIL"
 };
 
-char *envfrom[] =
-{
-	"<sender@example.org>",
-	NULL
-};
-
 #define	FCLOSE(x)		if ((x) != stdin) \
 					fclose((x));
 #define	MLFI_OUTPUT(x,y)	((y) > 1 || ((y) == 1 && (x) != SMFIS_CONTINUE))
@@ -72,6 +66,26 @@ char *envfrom[] =
 
 /* globals */
 static int tverbose = 0;
+
+/*
+**  DMARCF_TEST_ENVCHECK -- get environment variable or use default
+**
+**  Parameters:
+**  	evname -- environment variable name
+**  	dflt -- default to apply
+**
+**  Return value:
+**  	Value of "evname" if set, otherwise "default".
+*/
+
+static char *
+dmarcf_test_envcheck(char *evname, char *dflt)
+{
+	char *v;
+
+	v = getenv(evname);
+	return (v == NULL ? dflt : v);
+}
 
 /*
 **  DMARCF_TEST_SETPRIV -- store private pointer
@@ -377,12 +391,17 @@ dmarcf_testfile(struct test_context *tctx, FILE *f, char *file,
 	sfsistat ms;
 	char buf[BUFRSZ];
 	char line[BUFRSZ];
+	char *envfrom[2];
 
 	assert(tctx != NULL);
 	assert(f != NULL);
 
 	memset(buf, '\0', sizeof buf);
 	memset(line, '\0', sizeof buf);
+
+	envfrom[0] = dmarcf_test_envcheck("OPENDMARC_TEST_ENVFROM",
+	                                  "<sender@example.org>");
+	envfrom[1] = NULL;
 
 	ms = mlfi_envfrom((SMFICTX *) tctx, envfrom);
 	if (MLFI_OUTPUT(ms, tverbose))
@@ -594,6 +613,7 @@ dmarcf_testfiles(char *flist, bool strict, int verbose)
 {
 	char *file;
 	char *ctx;
+	char *addr;
 	FILE *f;
 	int status;
 	sfsistat ms;
@@ -615,11 +635,18 @@ dmarcf_testfiles(char *flist, bool strict, int verbose)
 	tctx->tc_priv = NULL;
 
 	(void) memset(&sin, '\0', sizeof sin);
+
+	addr = dmarcf_test_envcheck("OPENDMARC_TEST_CLIENTIP", NULL);
+
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(time(NULL) % 65536);
-	sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	sin.sin_addr.s_addr = (addr == NULL ? htonl(INADDR_LOOPBACK)
+                                            : inet_addr(addr));
 
-	ms = mlfi_connect((SMFICTX *) tctx, "localhost", (_SOCK_ADDR *) &sin);
+	ms = mlfi_connect((SMFICTX *) tctx,
+	                  dmarcf_test_envcheck("OPENDMARC_TEST_CLIENTHOST",
+                                               "localhost"),
+                          (_SOCK_ADDR *) &sin);
 	if (MLFI_OUTPUT(ms, tverbose))
 	{
 		fprintf(stderr, "%s: mlfi_connect() returned %s\n",
@@ -627,6 +654,19 @@ dmarcf_testfiles(char *flist, bool strict, int verbose)
 	}
 	if (ms != SMFIS_CONTINUE)
 		return EX_SOFTWARE;
+
+#ifdef WITH_SPF
+	ms = mlfi_helo((SMFICTX *) tctx,
+	               dmarcf_test_envcheck("OPENDMARC_TEST_HELOHOST",
+                                            "localhost"));
+	if (MLFI_OUTPUT(ms, tverbose))
+	{
+		fprintf(stderr, "%s: mlfi_helo() returned %s\n",
+		        progname, milter_status[ms]);
+	}
+	if (ms != SMFIS_CONTINUE)
+		return EX_SOFTWARE;
+#endif /* WITH_SPF */
 
 	/* loop through inputs */
 	for (file = strtok_r(flist, ",", &ctx);

@@ -56,6 +56,9 @@
 extern char *progname;
 
 extern sfsistat mlfi_connect __P((SMFICTX *, char *, _SOCK_ADDR *));
+#ifdef WITH_SPF
+extern sfsistat mlfi_helo __P((SMFICTX *, char *));
+#endif /* WITH_SPF */
 extern sfsistat mlfi_envfrom __P((SMFICTX *, char **));
 extern sfsistat mlfi_header __P((SMFICTX *, char *, char *));
 extern sfsistat mlfi_eoh __P((SMFICTX *));
