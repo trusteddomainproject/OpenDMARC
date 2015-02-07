@@ -1843,7 +1843,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 		dmarcf_cleanup(ctx);
 
 	if (conf->conf_ignoreauthclients &&
-	    dmarcf_getsymval(ctx, "auth_authen") != NULL)
+	    dmarcf_getsymval(ctx, "{auth_authen}") != NULL)
 		return SMFIS_ACCEPT;
 
 	dfc = (DMARCF_MSGCTX) malloc(sizeof(struct dmarcf_msgctx));
