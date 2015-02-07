@@ -22,6 +22,9 @@ release, and a summary of the changes in that release.
 	LIBOPENDMARC: Fix bug #106: Clean up issues with the types passed
 		to opendmarc_policy_library_dns_hook().  Noted by
 		Frank J. Lhota.
+	DOCS: Fix bug #99: Update list of constraints on
+		opendmarc_policy_fetch_alignment().  Reported by
+		Frank J. Lhota.
 	REPORTS: Fix bug #108: Handle malformed mailto URIs in DMARC
 		records (e.g., just "mailto:").  Reported by Andreas Schulze.
 	REPORTS: Fix bug #110: Support SQL backend selection in
