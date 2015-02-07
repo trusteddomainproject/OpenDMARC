@@ -17,10 +17,11 @@ of reporting URIs, which this script uses to make reports available to those
 that request them.
 .SH OPTIONS
 .TP
-.I --daybound
+.I --day
 Generate reports on day boundaries.  Overrides the value of
 .I --interval
 (see below).
+.TP
 .I --dbhost=hostname
 Specifies the hostname on which the SQL server is running.  Defaults to
 the value of the environment variable OPENDMARC_DBHOST, or "localhost" if
