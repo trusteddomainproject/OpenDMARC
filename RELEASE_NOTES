@@ -3,6 +3,11 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.3.1		2015/02/??
+	LIBOPENDMARC: Fix bug #105: Get the h_errno definition from
+		<netdb.h> rather than declaring it.  Problem noted
+		by Frank J. Lhota.
+
 1.3.0		2014/07/31
 	Integrated SPF checking is now available through the new
 		SPFSelfValidate and SPFIgnoreResults settings.

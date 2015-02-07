@@ -23,7 +23,7 @@ AC_PREREQ(2.61)
 #
 m4_define([VERSION_RELEASE], 1)
 m4_define([VERSION_MAJOR_REV], 3)
-m4_define([VERSION_MINOR_REV], 0)
+m4_define([VERSION_MINOR_REV], 1)
 m4_define([VERSION_PATCH], 0)
 
 #
@@ -33,7 +33,7 @@ m4_define([VERSION_PATCH], 0)
 #
 
 m4_define([LIBVERSION_CURRENT], 2)
-m4_define([LIBVERSION_REVISION], 0)
+m4_define([LIBVERSION_REVISION], 1)
 m4_define([LIBVERSION_AGE], 0)
 
 #
@@ -284,8 +284,10 @@ AC_ARG_WITH([spf2-lib],
 	AC_HELP_STRING([--with-spf2-lib], [path to libspf2 libraries]),
 	SPF2_LIB="$withval",
 	[])
+use_spf="no"
 if test "x$SPF2_INCLUDE" != "x" -a "x$SPF2_LIB" != "x"
 then
+	use_spf="yes"
 	if test -f ${SPF2_INCLUDE}/spf.h
 	then
 		AC_DEFINE(HAVE_SPF2_H, 1,
@@ -299,6 +301,8 @@ then
 	AC_SEARCH_LIBS(SPF_record_new, spf2)
 	AC_SEARCH_LIBS(SPF_server_new, spf2)
 fi
+
+AM_CONDITIONAL([USE_SPF], [test x"$use_spf" = x"yes"])
 
 #
 # opendmarc

@@ -11,6 +11,8 @@
 
 #include "opendmarc_internal.h"
 
+#include <netdb.h>
+
 #ifndef MAXPACKET
 # define MAXPACKET        (8192)
 #endif
@@ -121,7 +123,6 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	int 		answer_len;
 	char		hbuf[MAXDNSHOSTNAME];
 	char		namebuf[MAXDNSHOSTNAME + 1];
-	extern int	h_errno;
 #if HAVE_RES_NINIT
 	struct __res_state resp;
 #endif /* HAVE_RES_NINIT */     

@@ -2,14 +2,18 @@ SUBDIRS=testfiles
 LDADD = ../libopendmarc.la $(LIBRESOLV)
 AM_CPPFLAGS = -I.. -I../..
 
-check_PROGRAMS		 = test_tld test_finddomain \
+check_PROGRAMS		 = test_tld \
+			   test_finddomain \
 			   test_dmarc_parse \
 			   test_dmarc_fetch \
 			   test_xml_parse \
 			   test_parse_to_buf \
 			   test_alignment
 if LIVE_TESTS
-check_PROGRAMS           += test_dns_lookup test_spf
+#check_PROGRAMS           += test_dns_lookup
+if USE_SPF
+check_PROGRAMS           += test_spf
+endif
 endif
 
 test_dns_lookup_SOURCES  = test_dns_lookup.c

@@ -11,15 +11,16 @@ typedef struct {
 	char *ip;
 	int  outcome;
 } SPF2_T;
+
 int
 opendmarc_spf2_run_test()
 {
 	SPF2_T tests[] = {
-		{"bcx.com",   "root@bcx.com",   "204.14.152.228",    DMARC_POLICY_SPF_OUTCOME_PASS},
+		/* {"bcx.com",   "root@bcx.com",   "204.14.152.228",    DMARC_POLICY_SPF_OUTCOME_PASS}, */
 		{"agari.com", "root@agari.com", "2001:a60:901e::22", DMARC_POLICY_SPF_OUTCOME_FAIL},
 		{"agari.com", "root@agari.com", "1.2.3.4",           DMARC_POLICY_SPF_OUTCOME_FAIL},
 		{"agari.com", "root@agari.com", "185.28.196.1",      DMARC_POLICY_SPF_OUTCOME_PASS},
-		{"bcx.com",    "<>",             "204.14.152.227",   DMARC_POLICY_SPF_OUTCOME_FAIL},
+		/* {"bcx.com",    "<>",             "204.14.152.227",   DMARC_POLICY_SPF_OUTCOME_FAIL}, */
 		{NULL, NULL, NULL, 0}
 	};
 	int		status;

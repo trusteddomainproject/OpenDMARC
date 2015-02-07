@@ -15,6 +15,8 @@
 # include <opendmarc_strl.h>
 #endif /* USE_DMARCSTRL_H */
 
+#include <netdb.h>
+
 #include "dmarc.h"
 
 #if WITH_SPF && ! HAVE_SPF2_H
@@ -238,7 +240,6 @@ opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt)
 	u_short pref;
 	u_short type;
 	u_long ttl;
-	extern int h_errno;
 #if HAVE_RES_NINIT
 	struct __res_state resp;
 #endif /* HAVE_RES_NINIT */
@@ -328,7 +329,6 @@ opendmarc_spf_dns_lookup_ptr(char *ip, char **ary, int *cnt)
 	u_short type;
 	u_long ttl;
 	char *icp;
-	extern int h_errno;
 #if HAVE_RES_NINIT
 	struct __res_state resp;
 #endif /* HAVE_RES_NINIT */
@@ -532,7 +532,6 @@ opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen,
 	u_char		txt_buf[MAXPACKET];
 	char		hbuf[MAXDNSHOSTNAME];
 	char		namebuf[MAXDNSHOSTNAME + 1];
-	extern int	h_errno;
 #if HAVE_RES_NINIT
 	struct __res_state resp;
 #endif /* HAVE_RES_NINIT */
