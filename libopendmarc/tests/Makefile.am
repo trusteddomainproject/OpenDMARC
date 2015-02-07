@@ -11,12 +11,12 @@ check_PROGRAMS		 = test_tld \
 			   test_alignment
 if LIVE_TESTS
 #check_PROGRAMS           += test_dns_lookup
+#test_dns_lookup_SOURCES  = test_dns_lookup.c
 if USE_SPF
 check_PROGRAMS           += test_spf
+test_spf_SOURCES         = test_spf.c
 endif
 endif
-
-test_dns_lookup_SOURCES  = test_dns_lookup.c
 
 test_tld_SOURCES         = test_tld.c
 
@@ -30,7 +30,6 @@ test_dmarc_fetch_SOURCES = test_dmarc_fetch.c
 
 test_xml_parse_SOURCES   = test_xml_parse.c
 
-test_spf_SOURCES         = test_spf.c
 
 test_alignment_SOURCES   = test_alignment.c
 
