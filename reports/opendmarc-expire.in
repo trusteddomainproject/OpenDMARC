@@ -18,7 +18,7 @@ use Getopt::Long;
 use IO::Handle;
 use POSIX;
 
-require DBD::mysql;
+require DBD::@SQL_BACKEND@;
 
 # general
 my $progname      = basename($0);
@@ -47,7 +47,7 @@ my $dbuser;
 my $dbpasswd;
 my $dbport;
 
-my $dbscheme      = "mysql";
+my $dbscheme      = "@SQL_BACKEND@";
 
 my $def_maxage    = 180;
 
