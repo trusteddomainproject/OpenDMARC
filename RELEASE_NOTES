@@ -9,6 +9,8 @@ release, and a summary of the changes in that release.
 	LIBOPENDMARC: Fix bug #105: Get the h_errno definition from
 		<netdb.h> rather than declaring it.  Problem noted
 		by Frank J. Lhota.
+	REPORTS: Fix bug #108: Handle malformed mailto URIs in DMARC
+		records (e.g., just "mailto:").  Reported by Andreas Schulze.
 	REPORTS: Fix bug #110: Support SQL backend selection in
 		opendmarc-expire.  Reported by Mark Reidenbach.
 

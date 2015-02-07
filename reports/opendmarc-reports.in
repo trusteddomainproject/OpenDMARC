@@ -801,7 +801,9 @@ foreach (@$domainset)
 	for $repuri (@repuris)
 	{
 		$uri = URI->new($repuri);
-		if (!defined($uri) || !defined($uri->scheme))
+		if (!defined($uri) ||
+		    !defined($uri->scheme) ||
+		    $uri->opaque eq "")
 		{
 			print STDERR "$progname: can't parse reporting URI for domain $domain\n";
 			unlink($zipfile);
