@@ -1470,9 +1470,11 @@ opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t
 ** OPENDMARC_POLICY_LIBRARY_DNS_HOOK -- Internal hook for dmarc_dns_get_record
 *******************************************************************************/
 void
-opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *(nsaddr_list[]))
+opendmarc_policy_library_dns_hook(int *nscountp,
+                                  struct sockaddr_in *nsaddr_list)
 {
 	int i;
+	struct sockaddr_in *ol = Opendmarc_Libp->nsaddr_list;
 
 	if (nscountp == NULL || nsaddr_list == NULL)
 		return;
@@ -1482,7 +1484,9 @@ opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *(nsaddr_lis
 		return;
 	for (i = 0; i < Opendmarc_Libp->nscount; i++)
 	{
-		(void) memcpy(&(Opendmarc_Libp->nsaddr_list)[i], &(*nsaddr_list)[i], sizeof(struct sockaddr_in));
+		(void) memcpy(&ol[i],
+		              &nsaddr_list[i],
+                              sizeof(struct sockaddr_in));
 	}
 	*nscountp = i;
 	return;

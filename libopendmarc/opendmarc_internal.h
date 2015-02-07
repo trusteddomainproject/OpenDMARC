@@ -230,7 +230,7 @@ char **   opendmarc_util_pushnargv(char *str, char **ary, int *num);
 char *    opendmarc_util_ultoa(unsigned long val, char *buffer, size_t bufferlen);
 
 /* opendmarc_policy.c */
-void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in **nsaddr_list);
+void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *nsaddr_list);
 
 #if WITH_SPF
 
