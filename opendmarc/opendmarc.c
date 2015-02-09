@@ -2070,6 +2070,12 @@ mlfi_eom(SMFICTX *ctx)
 	if (authservid == NULL)
 		authservid = hostname;
 
+	if (conf->conf_dolog)
+	{
+		syslog(LOG_INFO, "implicit authentication service: %s",
+		       authservid);
+	}
+
 	/* ensure there was a From field */
 	from = dmarcf_findheader(dfc, "From", 0);
 
@@ -4530,7 +4536,8 @@ main(int argc, char **argv)
 			}
 		}
 
-		syslog(LOG_INFO, "trusted authentication services: %s",
+		syslog(LOG_INFO,
+		       "additional trusted authentication services: %s",
 		       argstr);
 	}
 
