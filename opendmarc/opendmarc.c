@@ -2435,6 +2435,11 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
+	/* 
+	**  If we didn't get Authentication-Results for SPF, parse any
+	**  Received-SPF we might have.
+	*/
+
 	if (!wspf
 #if WITH_SPF
 	    && !conf->conf_spfignoreresults
@@ -2567,13 +2572,11 @@ mlfi_eom(SMFICTX *ctx)
 					       AUTHRESULTSHDR);
 				}
 			}
-
-			dmarcf_dstring_printf(dfc->mctx_histbuf, "spf %d\n",
-			                      dfc->mctx_spfresult);
 		}
-		else
 #endif /* WITH_SPF */
-			dmarcf_dstring_printf(dfc->mctx_histbuf, "spf -1\n");
+
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf %d\n",
+		                      dfc->mctx_spfresult);
 	}
 
 	ostatus = opendmarc_policy_query_dmarc(cc->cctx_dmarc,
