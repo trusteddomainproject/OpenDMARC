@@ -1460,7 +1460,7 @@ dmarcf_config_reload(void)
 			err = TRUE;
 		}
 
-		if (new->conf_pslist != NULL)
+		if (!err && new->conf_pslist != NULL)
 		{
 			if (opendmarc_tld_read_file(new->conf_pslist, "#",
 			                            NULL, NULL) != 0)
@@ -1470,6 +1470,10 @@ dmarcf_config_reload(void)
 					syslog(LOG_ERR, "%s: read/parse error",
 					       new->conf_pslist);
 				}
+
+				config_free(cfg);
+				dmarcf_config_free(new);
+				err = TRUE;
 			}
 		}
  
