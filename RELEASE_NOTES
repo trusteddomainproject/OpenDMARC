@@ -9,6 +9,8 @@ release, and a summary of the changes in that release.
 		mode, via environment variables.  This can be turned
 		into something more formal in a later release.  Suggested
 		by Andreas Schulze.
+	Fix bug #102: Don't lose SPF results and output the "-1" default.
+		Reported by Kurt Roeckx.
 	Fix bug #103: Fix IgnoreAuthenticatedClients by requesting the
 		right macro value from the MTA.
 	Fix bug #113: Remove "TemporaryDirectory" (unused).  Patch from
