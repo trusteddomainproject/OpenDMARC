@@ -1,9 +1,9 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v1.3.0 released
+Subject: OpenDMARC v1.3.1 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v1.3.0, now available for download from SourceForge.
+OpenDMARC v1.3.1, now available for download from SourceForge.
 
 This is mainly a bug fix release, but it does contain one important new
 feature.  Upgrade is recommended.
@@ -11,56 +11,34 @@ feature.  Upgrade is recommended.
 The full RELEASE_NOTES for this version, showing changes since the last
 release:
 
-1.3.0		2014/07/31
-	Integrated SPF checking is now available through the new
-		SPFSelfValidate and SPFIgnoreResults settings.
-	Feature request #79: Optionally ignore clients that authenticated
-		using SMTP AUTH.
-	Fix bug #60, part II: Default AuthservID to the name provided by the
-		MTA, not the local host name, which is consistent with what
-		OpenDKIM does.  Suggested by Robbert Klarenbeek.
-	Fix bug #72: Don't crash when From fields are absent.  Patch from
+1.3.1		2015/02/23
+	Fix bug #97: Add ability to change envelope sender, client IP
+		address, client hostname, and HELO value used in test
+		mode, via environment variables.  This can be turned
+		into something more formal in a later release.  Suggested
+		by Andreas Schulze.
+	Fix bug #102: Don't lose SPF results and output the "-1" default.
+		Reported by Kurt Roeckx.
+	Fix bug #103: Fix IgnoreAuthenticatedClients by requesting the
+		right macro value from the MTA.
+	Fix bug #113: Remove "TemporaryDirectory" (unused).  Patch from
 		Andreas Schulze.
-	Fix bug #74: Change "Forensic" to "Failure" just about everywhere
-		to match the language now being used in the base DMARC
-		draft.  Note that this also changes some names in the
-		configuration file.
-	Fix bug #75: Correct typo in MIME of forensic reports.  Reported by
-		Julian Mehnle.
-	Fix bug #76: Repair damage with respect to Authentication-Results
-		header field selection.  Reported by Todd Lyons.
-	Fix bug #77: Request quarantine from the MTA during option
-		negotiation.  Reported by Richard Platel.
-	Fix bug #78: Add missing newline in forensic report header.
-	Fix bug #90: Make "--with-sql-backend" without any value do the
-		right thing.  Reported by Scott Kitterman.
-	Fix bug #93: Honor size limits in URIs.  Patch from Tomki Camp.
-	Make "smime" and "rrvs" legal Authentication-Results methods.
-	Provide better logging when pclose() for a forensic report returns
-		non-zero.  Problem noted by Michael Nausch.
-	Add configuration support for internal SPF checks.  Includes hooks in
-		the milter to check that SPF is configured to do so.
-		This can use a private SPF implementation or libspf2.
-	Fix strlcat() and strlcpy() support for Debian.  Patch from Scott
-		Kitterman.
-	REPORTS: Feature request #80: Generate aggregate reports on UTC
-		day boundaries.  Requested by Tomki Camp.
-	REPORTS: Feature request #84: Optionally expire old data from
-		lower-growth tables.  Requested by Christoph Steindl.
-	REPORTS: Fix bug #70: Fix date range generation in reports.  Patch
-		from Karol Augustin.
-	REPORTS: Fix bug #82: Fix recording of report timestamp to avoid lost
-		records.  Reported by Christoph Steindl.
-	REPORTS: Fix bug #83: When expiring data, truncate the signatures table
-		if all messages were expired.  Reported by Christoph Steindl.
-	REPORTS: Fix bug #85: Report subdomain policy.  Patch from
-		Christoph Steindl.
-	LIBOPENDMARC: Fix bug #71: Fix "rua" extraction from DMARC records
-		Problem noted by Karol Augustin.
-	LIBOPENDMARC: Added support for milter to perform own spf checks.
-		Three new files: opendmarc_spf.c, opendmard_spf_dns.c and
-		test/test_spf.cl, allow integrated SPF support.  Support for
-		use of libspf2 is also provided.
+	LIBOPENDMARC: Fix bug #104: Include <sys/param.h> and <resolv.h>
+		in <opendmarc/dmarc.h> so that MAXPATHLEN and MAXNS get
+		defined consistently.  Reported by Frank J. Lhota.
+	LIBOPENDMARC: Fix bug #105: Get the h_errno definition from
+		<netdb.h> rather than declaring it.  Problem noted
+		by Frank J. Lhota.
+	LIBOPENDMARC: Fix bug #106: Clean up issues with the types passed
+		to opendmarc_policy_library_dns_hook().  Noted by
+		Frank J. Lhota.
+	DOCS: Fix bug #99: Update list of constraints on
+		opendmarc_policy_fetch_alignment().  Reported by
+		Frank J. Lhota.
+	REPORTS: Fix bug #108: Handle malformed mailto URIs in DMARC
+		records (e.g., just "mailto:").  Reported by Andreas Schulze.
+	REPORTS: Fix bug #110: Support SQL backend selection in
+		opendmarc-expire.  Reported by Mark Reidenbach.
 
 Please use the mailing lists at http://www.trusteddomain.org/ to report
 problems, make suggestions, or ask questions.  The ticketing system at
