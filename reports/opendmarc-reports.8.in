@@ -69,6 +69,17 @@ Suppresses marking the time of the transmission of the report in the database.
 Normally this would be done to prevent reports from being sent too close
 together.
 .TP
+.I --report-email=addr
+Generates reports using the specified address, which is used in the report
+content and in the SMTP transaction.  The default is "postmaster@HOSTNAME"
+where HOSTNAME is replaced by the hostname of the host generating the report.
+.TP
+.I --report-org=domain
+Generates reports using the specified domain name as the organization
+responsible for the report.  This is used to create the archive filename
+and is included in the report content.  The default is the hostname of
+the host generating the report.
+.TP
 .I --smtp-host=host
 Causes reports to be sent by transmitting them using SMTP to the named
 .I host
