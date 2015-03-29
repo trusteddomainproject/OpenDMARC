@@ -1,0 +1,16 @@
+[Unit]
+Description=Domain-based Message Authentication, Reporting & Conformance (DMARC) Milter
+Documentation=man:opendmarc(8) man:opendmarc.conf(5) man:opendmarc-import(8) man:opendmarc-reports(8) http://www.trusteddomain.org/opendmarc/
+After=network.target nss-lookup.target syslog.target
+
+[Service]
+Type=forking
+PIDFile=@localstatedir@/run/opendmarc/opendmarc.pid
+EnvironmentFile=-@sysconfdir@/sysconfig/opendmarc
+ExecStart=@sbindir@/opendmarc $OPTIONS
+ExecReload=/bin/kill -USR1 $MAINPID
+User=opendmarc
+Group=opendmarc
+
+[Install]
+WantedBy=multi-user.target

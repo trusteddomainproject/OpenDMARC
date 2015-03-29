@@ -472,6 +472,8 @@ AC_OUTPUT([ Makefile
 	contrib/init/redhat/Makefile
 		contrib/init/redhat/opendmarc
 	contrib/rddmarc/Makefile
+	contrib/service/Makefile
+		contrib/service/opendmarc.service
 	contrib/spec/Makefile
 		contrib/spec/opendmarc.spec
 	db/Makefile
