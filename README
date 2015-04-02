@@ -30,14 +30,12 @@ has also been adapted to other MTAs.
 
 To compile and operate, this package requires the following:
 
-o OpenDBX (http://www.linuxnetworks.de/doc/index.php/OpenDBX) which
-  acts as a middleware layer between OpenDMARC and your SQL backend
-  of choice
-
 o sendmail v8.13.0 (or later), or Postfix 2.3, (or later) and libmilter.
   (These are only required if you are building the filter.)
 
 o Access to a working nameserver (required only for signature verification).
+
+o A perl interpreter.
 
 o If you are interested in tinkering with the build and packaging structure,
   you may need to upgrade to these versions of GNU's "autotools" components:
