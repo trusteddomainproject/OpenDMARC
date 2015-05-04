@@ -33,9 +33,6 @@
 # include <opendmarc_strl.h>
 #endif /* USE_DMARCSTRL_H */
 
-/* libopendkim includes */
-#include "build-config.h"
-
 /* libmilter includes */
 #include <libmilter/mfapi.h>
 
