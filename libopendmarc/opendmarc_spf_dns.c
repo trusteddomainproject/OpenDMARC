@@ -204,9 +204,9 @@ opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 	char **retp;
 
 	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
-#ifdef T_AAA
-	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAA, ary, cnt);
-#endif /* T_AAA */
+#ifdef T_AAAA
+	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAAA, ary, cnt);
+#endif /* T_AAAA */
 	return retp;
 }
 

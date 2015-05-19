@@ -1474,7 +1474,6 @@ opendmarc_policy_library_dns_hook(int *nscountp,
                                   struct sockaddr_in *nsaddr_list)
 {
 	int i;
-	struct sockaddr_in *ol = Opendmarc_Libp->nsaddr_list;
 
 	if (nscountp == NULL || nsaddr_list == NULL)
 		return;
@@ -1484,9 +1483,7 @@ opendmarc_policy_library_dns_hook(int *nscountp,
 		return;
 	for (i = 0; i < Opendmarc_Libp->nscount; i++)
 	{
-		(void) memcpy(&ol[i],
-		              &nsaddr_list[i],
-                              sizeof(struct sockaddr_in));
+		nsaddr_list[i] = Opendmarc_Libp->nsaddr_list[i];
 	}
 	*nscountp = i;
 	return;

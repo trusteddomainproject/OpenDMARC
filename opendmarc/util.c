@@ -72,6 +72,10 @@ static char *optlist[] =
 	"WITH_SPF",
 #endif /* WITH_SPF */
 
+#if HAVE_SPF2_H
+	"WITH_SPF2",
+#endif /* HAVE_SPF2_H */
+
 	NULL
 };
 
