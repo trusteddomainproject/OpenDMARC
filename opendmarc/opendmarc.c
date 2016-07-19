@@ -1685,7 +1685,11 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 
 	if (dmarcf_checkhost(host, ignore) ||
 	    (ip != NULL && dmarcf_checkip(ip, ignore)))
+	{
+		if (conf->conf_dolog)
+			syslog(LOG_INFO, "ignoring connection from %s", host);
 		return SMFIS_ACCEPT;
+	}
 
 	/* copy hostname and IP information to a connection context */
 	cc = dmarcf_getpriv(ctx);
