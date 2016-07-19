@@ -21,6 +21,8 @@ release, and a summary of the changes in that release.
 		Andreas Schulze.
 	REPORTS: Fix bug #134: Handle SMTP errors correctly.  Patch form
 		Andreas Schulze.
+	REPORTS: Fix bug #141: Set the HELO parameter correctly.
+		Reported by Alan Smith; patch from Andreas Schulze.
 
 1.3.1		2015/02/23
 	Fix bug #97: Add ability to change envelope sender, client IP

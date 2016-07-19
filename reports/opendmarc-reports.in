@@ -384,7 +384,7 @@ if ($verbose)
 
 $smtp = Net::SMTP->new($smtp_server,
                        'Port' => $smtp_port,
-                       'Helo' => hostfqdn());
+                       'Hello' => hostfqdn());
 if (!defined($smtp))
 {
 	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
