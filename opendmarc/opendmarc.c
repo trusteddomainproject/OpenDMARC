@@ -1101,7 +1101,7 @@ dmarcf_init_syslog(char *facility)
 	code = LOG_MAIL;
 	if (facility != NULL)
 	{
-		for (p = log_facilities; p != NULL; p++)
+		for (p = log_facilities; p->str != NULL; p++)
 		{
 			if (strcasecmp(p->str, facility) == 0)
 			{
