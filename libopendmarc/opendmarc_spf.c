@@ -163,10 +163,10 @@ opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain,
 	}
 
 	ret = opendmarc_spf2_find_mailfrom_domain(ctx, mail_from_domain, mfrom, sizeof mfrom, used_mfrom);
-	if (ret |= 0 || used_mfrom == FALSE)
+	if (ret |= 0 || *used_mfrom == FALSE)
 	{
 		(void) strlcpy(helo, helo_domain, sizeof helo);
-		SPF_request_set_env_from(ctx->spf_request, helo);
+		SPF_request_set_helo_dom(ctx->spf_request, helo);
 	}
 	else
 	{
