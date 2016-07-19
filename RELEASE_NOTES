@@ -13,6 +13,8 @@ release, and a summary of the changes in that release.
 		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
 	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.
 		Reported by Christophe Wolfhugel.
+	Fix bug #157: Fix logging of implicit authserv-ids.  Reported
+		by Andreas Schulze; patch from Juri Haberland.
 	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
 		Sebastian A. Siewior via Scott Kitterman.
 	LIBOPENDMARC: Fix bug #125: Compile time IPv6 fix.  Reported by

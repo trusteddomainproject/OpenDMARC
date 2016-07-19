@@ -2074,12 +2074,14 @@ mlfi_eom(SMFICTX *ctx)
 	/* select authserv-id to use when generating result headers */
 	authservid = conf->conf_authservid;
 	if (authservid == NULL)
+	{
 		authservid = hostname;
 
-	if (conf->conf_dolog)
-	{
-		syslog(LOG_INFO, "implicit authentication service: %s",
-		       authservid);
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_INFO, "implicit authentication service: %s",
+			       authservid);
+		}
 	}
 
 	/* ensure there was a From field */
