@@ -2024,7 +2024,9 @@ mlfi_eom(SMFICTX *ctx)
 	int result;
 	sfsistat ret = SMFIS_CONTINUE;
 	OPENDMARC_STATUS_T ostatus;
+	char *apolicy = NULL;
 	char *aresult = NULL;
+	char *adisposition = NULL;
 	char *hostname = NULL;
 	char *authservid = NULL;
 	char *spfaddr;
@@ -2698,6 +2700,25 @@ mlfi_eom(SMFICTX *ctx)
 	                      align_dkim);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf %d\n", align_spf);
 
+	/* prepare human readable policy string for later processing */
+	ostatus = opendmarc_get_policy_source_taken(cc->cctx_dmarc);
+	switch (ostatus == DMARC_USED_POLICY_IS_SP ? sp : p)
+	{
+	  case DMARC_RECORD_P_QUARANTINE:
+		apolicy = "quarantine";
+		break;
+
+	  case DMARC_RECORD_P_REJECT:
+		apolicy = "reject";
+		break;
+
+	  case DMARC_RECORD_P_UNSPECIFIED:
+	  case DMARC_RECORD_P_NONE:
+	  default:
+		apolicy = "none";
+		break;
+	}
+
 	/*
 	**  Generate a failure report.
 	*/
@@ -3033,6 +3054,22 @@ mlfi_eom(SMFICTX *ctx)
 		break;
 	}
 
+	/* prepare human readable dispositon string for later processing */
+	switch (result)
+	{
+	  case DMARC_RESULT_REJECT:
+		adisposition = "reject";
+		break;
+
+	  case DMARC_RESULT_QUARANTINE:
+		adisposition = "quarantine";
+		break;
+
+	  default:
+		adisposition = "none";
+		break;
+	}
+
 	if (conf->conf_dolog)
 	{
 		syslog(LOG_INFO, "%s: %s %s", dfc->mctx_jobid,
@@ -3043,11 +3080,11 @@ mlfi_eom(SMFICTX *ctx)
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
 		snprintf(header, sizeof header,
-		         "%s%s%s; dmarc=%s header.from=%s",
+		         "%s%s%s; dmarc=%s (p=%s dis=%s) header.from=%s",
 		         authservid,
 		         conf->conf_authservidwithjobid ? "/" : "",
 		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",
-		         aresult, dfc->mctx_fromdomain);
+		         aresult, apolicy, adisposition, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)

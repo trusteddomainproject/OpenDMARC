@@ -75,6 +75,9 @@ extern "C" {
 #define DMARC_POLICY_QUARANTINE			(17)	/* Policy says to quarantine message */
 #define DMARC_POLICY_NONE			(18)	/* Policy says to monitor and report */
 
+#define DMARC_USED_POLICY_IS_P			(19)	/* Domain policy taken (aka 'p')*/
+#define DMARC_USED_POLICY_IS_SP			(20)	/* Sub-domain policy taken (aka 'sp')*/
+
 #ifndef OPENDMARC_POLICY_C
  typedef struct dmarc_policy_t DMARC_POLICY_T;
 #endif
@@ -140,6 +143,7 @@ u_char **	   opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, 
 u_char **	   opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen);
 OPENDMARC_STATUS_T opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri);
+OPENDMARC_STATUS_T opendmarc_policy_token_used(DMARC_POLICY_T *pctx);
 
 /*
  * TLD processing
