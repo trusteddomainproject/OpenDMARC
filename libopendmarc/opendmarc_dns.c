@@ -217,7 +217,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	_res.options |= RES_USE_DNSSEC;
 #endif
 	(void) opendmarc_policy_library_dns_hook(&_res.nscount,
-                                                 &_res.nsaddr_list);
+                                                 _res.nsaddr_list);
 	answer_len = res_query(bp, C_IN, T_TXT, answer_buf, sizeof answer_buf);
 #endif /* HAVE_RES_NINIT */
 	if (answer_len < 0)
