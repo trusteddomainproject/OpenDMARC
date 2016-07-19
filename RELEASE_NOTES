@@ -37,8 +37,8 @@ release, and a summary of the changes in that release.
 		Reported by Wayne Andersen; patch from Juri Haberland.
 	TOOLS: Fix bug #161: "Forensic" reports were renamed "Failure"
 		reports.  Patch from Andreas Schulze.
-	TOOLS: Fix bug #164: Handle IPv6 test addresses.  Patch from
-		Andreas Schulze.
+	TOOLS: Fix bug #164: Handle IPv6 test addresses.  Reported by
+		Andreas Schulze; patch from Juri Haberland.
 
 1.3.1		2015/02/23
 	Fix bug #97: Add ability to change envelope sender, client IP
