@@ -9,6 +9,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <errno.h>
@@ -17,6 +18,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <assert.h>
+#include <netdb.h>
 
 /* libbsd if found */
 #ifdef USE_BSD_H
@@ -614,9 +616,11 @@ dmarcf_testfiles(char *flist, bool strict, int verbose)
 	char *addr;
 	FILE *f;
 	int status;
+	int retval;
 	sfsistat ms;
 	struct test_context *tctx;
 	struct sockaddr_in sin;
+	struct addrinfo *ain;
 
 	assert(flist != NULL);
 
@@ -636,15 +640,26 @@ dmarcf_testfiles(char *flist, bool strict, int verbose)
 
 	addr = dmarcf_test_envcheck("OPENDMARC_TEST_CLIENTIP", NULL);
 
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons(time(NULL) % 65536);
-	sin.sin_addr.s_addr = (addr == NULL ? htonl(INADDR_LOOPBACK)
-                                            : inet_addr(addr));
+	if (addr == NULL)
+	{
+		retval = getaddrinfo("127.0.0.1", NULL, NULL, &ain);
+	}
+	else
+	{
+		retval = getaddrinfo(addr, NULL, NULL, &ain);
+	}
+
+	if (retval != 0)
+	{
+		fprintf(stderr, "%s: getaddrinfo: %s\n", progname,
+			gai_strerror(retval));
+		return EX_NOHOST;
+	}
 
 	ms = mlfi_connect((SMFICTX *) tctx,
 	                  dmarcf_test_envcheck("OPENDMARC_TEST_CLIENTHOST",
                                                "localhost"),
-                          (_SOCK_ADDR *) &sin);
+                          ain->ai_addr);
 	if (MLFI_OUTPUT(ms, tverbose))
 	{
 		fprintf(stderr, "%s: mlfi_connect() returned %s\n",
