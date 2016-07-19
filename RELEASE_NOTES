@@ -7,9 +7,11 @@ release, and a summary of the changes in that release.
 	Fix bug #120: Fix control logic around the SPF result.
 		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
 	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.
-		Reported by Christophe Wolfhuge.
+		Reported by Christophe Wolfhugel.
 	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
 		Sebastian A. Siewior via Scott Kitterman.
+	LIBOPENDMARC: Fix bug #125: Compile time IPv6 fix.  Reported by
+		Christophe Wolfhugel.
 
 1.3.1		2015/02/23
 	Fix bug #97: Add ability to change envelope sender, client IP
