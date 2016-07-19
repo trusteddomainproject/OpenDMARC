@@ -2697,7 +2697,7 @@ mlfi_eom(SMFICTX *ctx)
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf %d\n", align_spf);
 
 	/* prepare human readable policy string for later processing */
-	ostatus = opendmarc_get_policy_source_taken(cc->cctx_dmarc);
+	ostatus = opendmarc_get_policy_token_used(cc->cctx_dmarc);
 	switch (ostatus == DMARC_USED_POLICY_IS_SP ? sp : p)
 	{
 	  case DMARC_RECORD_P_QUARANTINE:
