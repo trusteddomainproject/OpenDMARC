@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.3.2		2016/07/??
+	Feature request #127: Log SPF results when rejecting.  Requested
+		by Patrick Wagner; patch from Andreas Schulze.
 	Fix bug #120: Fix control logic around the SPF result.
 		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
 	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.
