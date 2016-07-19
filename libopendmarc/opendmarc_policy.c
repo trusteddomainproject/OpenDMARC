@@ -111,7 +111,8 @@ opendmarc_policy_connect_init(u_char *ip_addr, int is_ipv6)
 		return NULL;
 	}
 	(void) memset(pctx, '\0', sizeof(DMARC_POLICY_T));
-	pctx->p   = DMARC_RECORD_P_UNSPECIFIED;
+	pctx->p = DMARC_RECORD_P_UNSPECIFIED;
+	pctx->sp = DMARC_RECORD_P_UNSPECIFIED;
 	pctx->ip_addr = (u_char *)strdup((char *)ip_addr);
 	if (pctx->ip_addr == NULL)
 	{
@@ -833,6 +834,21 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 	if (pctx->spf_alignment == DMARC_POLICY_SPF_ALIGNMENT_PASS ||
 	    pctx->dkim_alignment == DMARC_POLICY_DKIM_ALIGNMENT_PASS)
 		return DMARC_POLICY_PASS;
+
+	if (pctx-organizational_domain != NULL)
+	{
+		switch (pctx->sp)
+		{
+		  case DMARC_RECORD_P_REJECT:
+			return DMARC_POLICY_REJECT;
+
+		  case DMARC_RECORD_P_QUARANTINE:
+			return DMARC_POLICY_QUARANTINE;
+
+		  case DMARC_RECORD_P_NONE:
+			return DMARC_POLICY_NONE;
+		}
+	}
 
 	switch (pctx->p)
 	{
