@@ -25,6 +25,8 @@ release, and a summary of the changes in that release.
 		Based on a patch from Andreas Schulze.
 	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
 		Sebastian A. Siewior via Scott Kitterman.
+	LIBOPENDMARC: Fix bug #121: Fix IPv6 CIDR matching in SPF code.
+		Patch from Christophe Wolfhugel.
 	LIBOPENDMARC: Fix bug #125: Compile time IPv6 fix.  Reported by
 		Christophe Wolfhugel.
 	LIBOPENDMARC: Fix bug #131: Fix alignment bug.  Patch from

@@ -826,6 +826,13 @@ opendmarc_spf_ipv6_cidr_check(char *ipv6_str, char *cidr_string)
 	{
 		int twobyte_mask, tmp_mask;
 
+		if (cidr_bits >= 16)
+		{
+			low_iary.values[i] = 0;
+			hi_iary.values[i] = 0xFFFF;
+			cidr_bits = cidr_bits - 16;
+			continue;
+		}
 		twobyte_mask = cidr_bits % 16;
 		tmp_mask = (0xFFFF << twobyte_mask);
 		low_iary.values[i] = low_iary.values[i] & tmp_mask;
@@ -834,9 +841,8 @@ opendmarc_spf_ipv6_cidr_check(char *ipv6_str, char *cidr_string)
 		hi_iary.values[i]  = hi_iary.values[i] | tmp_mask;
 		if (cidr_bits < 16)
 			break;
-		cidr_bits = cidr_bits / 16;
+		cidr_bits = cidr_bits - 16;
 	}
-
 
 	taghi = FALSE;
 	taglo = FALSE;
