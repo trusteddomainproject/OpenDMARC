@@ -524,9 +524,11 @@ foreach (@$domainset)
 
  	switch ($spolicy)
  	{
+ 		case 0		{ $spolicystr = $policystr; }
  		case ord("n")	{ $spolicystr = "none"; }
  		case ord("q")	{ $spolicystr = "quarantine"; }
  		case ord("r")	{ $spolicystr = "reject"; }
+ 		else		{ $spolicystr = "unknown"; }
  	}
 
 	if ($daybound)
@@ -581,10 +583,7 @@ foreach (@$domainset)
 	print $tmpout "  <adkim>$adkimstr</adkim>\n";
 	print $tmpout "  <aspf>$aspfstr</aspf>\n";
 	print $tmpout "  <p>$policystr</p>\n";
-	if (defined($spolicystr))
-	{
-		print $tmpout "  <sp>$spolicystr</sp>\n";
-	}
+	print $tmpout "  <sp>$spolicystr</sp>\n";
 	print $tmpout "  <pct>$pct</pct>\n";
 	print $tmpout " </policy_published>\n";
 

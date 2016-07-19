@@ -43,6 +43,8 @@ release, and a summary of the changes in that release.
 		Reported by Alan Smith; patch from Andreas Schulze.
 	REPORTS: Fix bug #143: Fix logic in table truncation.
 		Reported by Wayne Andersen; patch from Juri Haberland.
+	REPORTS: Fix bug #162: Always report "sp" in aggregate reports.
+		Patch from Juri Haberland.
 	TOOLS: Fix bug #161: "Forensic" reports were renamed "Failure"
 		reports.  Patch from Andreas Schulze.
 	TOOLS: Fix bug #164: Handle IPv6 test addresses.  Reported by
