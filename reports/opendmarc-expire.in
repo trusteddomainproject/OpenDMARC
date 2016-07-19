@@ -286,7 +286,7 @@ if (!defined($minmsg))
 	if (defined($rowcount) && $rowcount == 0)
 	{
 		$dbi_s = $dbi_h->prepare("TRUNCATE TABLE signatures");
-		if ($dbi_s->execute)
+		if (!$dbi_s->execute)
 		{
 			print STDERR "$progname: TRUNCATE failed: " . $dbi_h->errstr;
 			$dbi_s->finish;
