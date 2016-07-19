@@ -1818,15 +1818,16 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 	{
 		if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
 	}
-	if ((pctx->rf|DMARC_RECORD_RF_AFRF) != 0)
+	if ((pctx->rf&DMARC_RECORD_RF_AFRF) != 0)
 	{
 		if (strlcat(buf, "AFRF", buflen) >= buflen) return E2BIG;
 	}
-	if ((pctx->rf|DMARC_RECORD_RF_IODEF) != 0 && (pctx->rf|DMARC_RECORD_RF_AFRF) != 0)
+	if ((pctx->rf&DMARC_RECORD_RF_IODEF) != 0 &&
+	    (pctx->rf&DMARC_RECORD_RF_AFRF) != 0)
 	{
 		if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
 	}
-	if ((pctx->rf|DMARC_RECORD_RF_IODEF) != 0)
+	if ((pctx->rf&DMARC_RECORD_RF_IODEF) != 0)
 	{
 		if (strlcat(buf, "IODEF", buflen) >= buflen) return E2BIG;
 	}
@@ -1864,19 +1865,19 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 	{
 		if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
 	}
-	if ((pctx->fo|DMARC_RECORD_FO_0) != 0)
+	if ((pctx->fo&DMARC_RECORD_FO_0) != 0)
 	{
 		if (strlcat(buf, "0:", buflen) >= buflen) return E2BIG;
 	}
-	if ((pctx->fo|DMARC_RECORD_FO_1) != 0)
+	if ((pctx->fo&DMARC_RECORD_FO_1) != 0)
 	{
 		if (strlcat(buf, "1:", buflen) >= buflen) return E2BIG;
 	}
-	if ((pctx->fo|DMARC_RECORD_FO_D) != 0)
+	if ((pctx->fo&DMARC_RECORD_FO_D) != 0)
 	{
 		if (strlcat(buf, "d:", buflen) >= buflen) return E2BIG;
 	}
-	if ((pctx->fo|DMARC_RECORD_FO_S) != 0)
+	if ((pctx->fo&DMARC_RECORD_FO_S) != 0)
 	{
 		if (strlcat(buf, "s:", buflen) >= buflen) return E2BIG;
 	}
