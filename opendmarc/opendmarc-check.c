@@ -233,7 +233,7 @@ main(int argc, char **argv)
 			fprintf(stdout, "\t\t%s\n", rua[n]);
 		if (n == 0)
 			fprintf(stdout, "\t\t(none)\n");
-		fprintf(stdout, "\tForensic report URIs:\n");
+		fprintf(stdout, "\tFailure report URIs:\n");
 		for (n = 0; ruf != NULL && ruf[n] != NULL; n++)
 			fprintf(stdout, "\t\t%s\n", ruf[n]);
 		if (n == 0)
