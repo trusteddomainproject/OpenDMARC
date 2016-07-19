@@ -2526,7 +2526,7 @@ mlfi_eom(SMFICTX *ctx)
 				                                     spf_result,
 				                                     spf_mode,
 				                                     human);
-			switch (spf_mode)
+			switch (spf_result)
 			{
 			    case DMARC_POLICY_SPF_OUTCOME_PASS:
 				pass_fail = "pass";

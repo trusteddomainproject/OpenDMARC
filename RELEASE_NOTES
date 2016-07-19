@@ -4,8 +4,10 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.3.2		2016/07/??
-	Fix bug #115: Fix type mismatch.  Patch from Sebastian A. Siewior
-		via Scott Kitterman.
+	Fix bug #120: Fix control logic around the SPF result.
+		Reported by Christophe Wolfhugel, patch from Andreas Schulze.
+	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
+		Sebastian A. Siewior via Scott Kitterman.
 
 1.3.1		2015/02/23
 	Fix bug #97: Add ability to change envelope sender, client IP
