@@ -934,7 +934,7 @@ foreach (@$domainset)
 				if ($verbose || $smtpfail)
 				{
 					# now perl voodoo:
-					$answer = ${${*$smtp}{'net_cmd_resp'}}[1];
+					$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
 					chomp($answer);
 					print STDERR "$progname: $smtpstatus report for $domain to $repdest ($answer)\n";
 				}
