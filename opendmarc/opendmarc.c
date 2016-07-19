@@ -2035,6 +2035,7 @@ mlfi_eom(SMFICTX *ctx)
 	struct dmarcf_config *conf;
 	struct dmarcf_header *hdr;
 	struct dmarcf_header *from;
+	u_char *reqhdrs_error = NULL;
 	u_char *user;
 	u_char *domain;
 	u_char **ruv;
@@ -2093,54 +2094,49 @@ mlfi_eom(SMFICTX *ctx)
 	/* ensure there was a From field */
 	from = dmarcf_findheader(dfc, "From", 0);
 
-	/* if requested, verify RFC5322-required headers (RFC5322 3.6) */
-	if (conf->conf_reqhdrs)
+	/* verify RFC5322-required headers (RFC5322 3.6) */
+	if (from == NULL ||
+	    dmarcf_findheader(dfc, "From", 1) != NULL)
+		reqhdrs_error = "not exactly one From field";
+
+	if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
+	    dmarcf_findheader(dfc, "Date", 1) != NULL)
+		reqhdrs_error = "not exactly one Date field";
+
+	if (dmarcf_findheader(dfc, "Reply-To", 1) != NULL)
+		reqhdrs_error = "multiple Reply-To fields";
+
+	if (dmarcf_findheader(dfc, "To", 1) != NULL)
+		reqhdrs_error = "multiple To fields";
+
+	if (dmarcf_findheader(dfc, "Cc", 1) != NULL)
+		reqhdrs_error = "multiple Cc fields";
+
+	if (dmarcf_findheader(dfc, "Bcc", 1) != NULL)
+		reqhdrs_error = "multiple Bcc fields";
+
+	if (dmarcf_findheader(dfc, "Message-Id", 1) != NULL)
+		reqhdrs_error = "multiple Message-Id fields";
+
+	if (dmarcf_findheader(dfc, "In-Reply-To", 1) != NULL)
+		reqhdrs_error = "multiple In-Reply-To fields";
+
+	if (dmarcf_findheader(dfc, "References", 1) != NULL)
+		reqhdrs_error = "multiple References fields";
+
+	if (dmarcf_findheader(dfc, "Subject", 1) != NULL)
+		reqhdrs_error = "multiple Subject fields";
+
+	if (conf->conf_reqhdrs && reqhdrs_error != NULL)
 	{
-		unsigned char* reqhdrs_error = NULL; /* no error */
-
-		if (from == NULL ||
-		    dmarcf_findheader(dfc, "From", 1) != NULL)
-			reqhdrs_error = "not exactly one From field";
-
-		if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
-		    dmarcf_findheader(dfc, "Date", 1) != NULL)
-			reqhdrs_error = "not exactly one Date field";
-
-		if (dmarcf_findheader(dfc, "Reply-To", 1) != NULL)
-			reqhdrs_error = "multiple Reply-To fields";
-
-		if (dmarcf_findheader(dfc, "To", 1) != NULL)
-			reqhdrs_error = "multiple To fields";
-
-		if (dmarcf_findheader(dfc, "Cc", 1) != NULL)
-			reqhdrs_error = "multiple Cc fields";
-
-		if (dmarcf_findheader(dfc, "Bcc", 1) != NULL)
-			reqhdrs_error = "multiple Bcc fields";
-
-		if (dmarcf_findheader(dfc, "Message-Id", 1) != NULL)
-			reqhdrs_error = "multiple Message-Id fields";
-
-		if (dmarcf_findheader(dfc, "In-Reply-To", 1) != NULL)
-			reqhdrs_error = "multiple In-Reply-To fields";
-
-		if (dmarcf_findheader(dfc, "References", 1) != NULL)
-			reqhdrs_error = "multiple References fields";
-
-		if (dmarcf_findheader(dfc, "Subject", 1) != NULL)
-			reqhdrs_error = "multiple Subject fields";
-
-		if (reqhdrs_error != NULL)
+		if (conf->conf_dolog)
 		{
-			if (conf->conf_dolog)
-			{
-				syslog(LOG_INFO,
-				       "%s: RFC5322 requirement error: %s",
-				       dfc->mctx_jobid, reqhdrs_error);
-			}
-
-			return SMFIS_REJECT;
+			syslog(LOG_INFO,
+			       "%s: RFC5322 requirement error: %s",
+			       dfc->mctx_jobid, reqhdrs_error);
 		}
+
+		return SMFIS_REJECT;
 	}
 
 	/* if there was no From:, there's nothing to process past here */
