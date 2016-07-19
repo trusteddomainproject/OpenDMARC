@@ -18,6 +18,8 @@ release, and a summary of the changes in that release.
 	Fix bug #158: Log ignored connections.  Patch from Andreas Schulze.
 	Fix bug #160: Fix "SyslogFacility" handling.  Patch from
 		Juri Haberland.
+	Fix bug #163: Use a larger buffer for the raw MAIL FROM value.
+		Based on a patch from Andreas Schulze.
 	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
 		Sebastian A. Siewior via Scott Kitterman.
 	LIBOPENDMARC: Fix bug #125: Compile time IPv6 fix.  Reported by

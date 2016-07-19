@@ -133,7 +133,7 @@ struct dmarcf_connctx
 	char			cctx_host[MAXHOSTNAMELEN + 1];
 #if WITH_SPF
 	char			cctx_helo[MAXHOSTNAMELEN + 1];
-	char			cctx_rawmfrom[MAXHOSTNAMELEN + 1];
+	char			cctx_rawmfrom[BUFRSZ + 1];
 #endif
 };
 typedef struct dmarcf_connctx * DMARCF_CONNCTX;
