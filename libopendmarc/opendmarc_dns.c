@@ -316,8 +316,8 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 #ifdef T_RRSIG
 		else if (type == T_RRSIG)
 		{
-			GETSHORT(answerlen, cur_ptr);
-			cur_ptr += answerlen;
+			GETSHORT(answer_len, cur_ptr);
+			cur_ptr += answer_len;
 		}
 #endif /* T_RRSIG */
 		else if (type != T_TXT)

@@ -19,6 +19,8 @@ release, and a summary of the changes in that release.
 		Christophe Wolfhugel.
 	LIBOPENDMARC: Fix bug #131: Fix alignment bug.  Patch from
 		Andreas Schulze.
+	LIBOPENDMARC: Fix bug #156: Fix variable name.  Patch by
+		Andreas Schulze.
 	REPORTS: Fix bug #134: Handle SMTP errors correctly.  Patch form
 		Andreas Schulze.
 	REPORTS: Fix bug #141: Set the HELO parameter correctly.
