@@ -31,6 +31,8 @@ release, and a summary of the changes in that release.
 		Andreas Schulze.
 	LIBOPENDMARC: Fix bug #165: Fix logic in checking which SPF
 		identifier was used.  Patch from Marco Favero.
+	LIBOPENDMARC: Fix bug #167: Don't return "fail" when we should
+		return "none".  Patch from Marco Favero.
 	REPORTS: Fix bug #134: Handle SMTP errors correctly.  Patch from
 		Andreas Schulze.
 	REPORTS: Fix bug #141: Set the HELO parameter correctly.

@@ -185,8 +185,10 @@ opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain,
 	{
 		switch (ret)
 		{
-		    case SPF_RESULT_NEUTRAL:
 		    case SPF_RESULT_NONE:
+			return DMARC_POLICY_SPF_OUTCOME_NONE;
+
+		    case SPF_RESULT_NEUTRAL:
 		    case SPF_RESULT_SOFTFAIL:
 			if (softfail_okay_flag == TRUE)
 				return DMARC_POLICY_SPF_OUTCOME_PASS;
