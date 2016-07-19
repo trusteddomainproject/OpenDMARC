@@ -26,6 +26,8 @@ release, and a summary of the changes in that release.
 		Christophe Wolfhugel.
 	LIBOPENDMARC: Fix bug #131: Fix alignment bug.  Patch from
 		Andreas Schulze.
+	LIBOPENDMARC: Fix bug #147: Fix stripping of whitespace from
+		DMARC DNS records.  Based on a patch from Job Noorman.
 	LIBOPENDMARC: Fix bug #149: Apply "sp" setting, if present and
 		applicable.  Patch from Petr Novak.
 	LIBOPENDMARC: Fix bug #154: Fix "rf" and "fo" processing logic.

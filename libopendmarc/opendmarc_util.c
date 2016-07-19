@@ -157,34 +157,22 @@ opendmarc_util_dupe_argv(u_char **ary)
 u_char *
 opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen)
 {
-	char *sp, *bp;
+	char *sp, *ep;
 
-	if (str == NULL || buf == NULL)
+	if (str == NULL || buf == NULL || strlen((char *)str) > buflen
 	{
 		errno = EINVAL;
 		return NULL;
 	}
-	if (strlen((char *)str) > buflen)
-	{
-		errno = EINVAL;
-		return NULL;
-	}
+
 	(void) memset(buf, '\0', buflen);
 
-	for (sp = str; *sp != '\0'; ++sp)
+	for (sp = str, ep = buf; *sp != '\0'; sp++)
 	{
-		if (! isspace((int)*sp))
-			break;
+		if (!isascii(*sp) || !isspace(*sp))
+			*ep++ = *sp;
 	}
-	if (*sp == '\0')
-		return buf;
-	for (bp = buf; *sp != '\0'; ++sp)
-	{
-		if (isspace((int)*sp))
-			break;
-		*bp++ = *sp;
-	}
-	*bp = '\0';
+
 	return buf;
 }
 
