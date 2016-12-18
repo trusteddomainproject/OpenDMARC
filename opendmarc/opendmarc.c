@@ -3000,8 +3000,13 @@ mlfi_eom(SMFICTX *ctx)
 	{
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
-	  case DMARC_POLICY_NONE:		/* Accept and report */
 		aresult = "none";
+		ret = SMFIS_ACCEPT;
+		result = DMARC_RESULT_ACCEPT;
+		break;
+
+	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
+		aresult = "fail";		/* Accept and report */
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
 		break;
