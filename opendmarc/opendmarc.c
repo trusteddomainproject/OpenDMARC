@@ -2044,6 +2044,7 @@ mlfi_eom(SMFICTX *ctx)
 	u_char *reqhdrs_error = NULL;
 	u_char *user;
 	u_char *domain;
+	u_char *p;
 	u_char **ruv;
 	unsigned char header[MAXHEADER + 1];
 	unsigned char addrbuf[BUFRSZ + 1];
@@ -2799,6 +2800,13 @@ mlfi_eom(SMFICTX *ctx)
 		for (c = 0; ruv != NULL && ruv[c] != NULL; c++)
 		{
 			if (strncasecmp(ruv[c], "mailto:", 7) != 0)
+				continue;
+
+			p = strchr(ruv[c], '!');
+			if (p != NULL)
+				*p = '\0';
+
+			if (ruv[c][7] == '\0')
 				continue;
 
 			if (first)
