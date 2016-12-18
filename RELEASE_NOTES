@@ -28,6 +28,8 @@ release, and a summary of the changes in that release.
 		Juri Haberland.
 	Fix bug #163: Use a larger buffer for the raw MAIL FROM value.
 		Based on a patch from Andreas Schulze.
+	Fix bug #174: Trim "!" suffixes from reporting addresses.  Problem
+		noted by Juri Haberland.
 	Fix bug #186: When reloading the configuration file, the public
 		suffix list was read in with the wrong comment indicator.
 		Patch from Federico Omoto.
