@@ -129,7 +129,7 @@ as follows:
 					sending the message, as a string
 					(default is "127.0.0.1")
 
-	OPENDMARC_TEST_HELONAME		parameter passed by the SMTP client
+	OPENDMARC_TEST_HELOHOST		parameter passed by the SMTP client
 					with the HELO/EHLO command
 					(default is "localhost")
 
