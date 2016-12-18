@@ -2024,6 +2024,7 @@ mlfi_eom(SMFICTX *ctx)
 	int result;
 	sfsistat ret = SMFIS_CONTINUE;
 	OPENDMARC_STATUS_T ostatus;
+	OPENDMARC_STATUS_T apused;
 	char *apolicy = NULL;
 	char *aresult = NULL;
 	char *adisposition = NULL;
@@ -2697,8 +2698,8 @@ mlfi_eom(SMFICTX *ctx)
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_spf %d\n", align_spf);
 
 	/* prepare human readable policy string for later processing */
-	ostatus = opendmarc_get_policy_token_used(cc->cctx_dmarc);
-	switch (ostatus == DMARC_USED_POLICY_IS_SP ? sp : p)
+	apused = opendmarc_get_policy_token_used(cc->cctx_dmarc);
+	switch (apused == DMARC_USED_POLICY_IS_SP ? sp : p)
 	{
 	  case DMARC_RECORD_P_QUARANTINE:
 		apolicy = "quarantine";
