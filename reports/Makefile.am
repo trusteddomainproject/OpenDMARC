@@ -2,7 +2,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-dist_doc_DATA = README mkdb.mysql
+dist_doc_DATA = README
 
 dist_sbin_SCRIPTS = opendmarc-expire opendmarc-import opendmarc-importstats \
 	opendmarc-params opendmarc-reports
