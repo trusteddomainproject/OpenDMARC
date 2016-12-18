@@ -3,7 +3,7 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.3.2		2016/07/??
+1.3.2		2016/12/19
 	Feature request #86: Change meaning of "RequiredHeaders" such that
 		header validity is always checked, but messages are only
 		rejected on that basis when the flag is set.  Based
@@ -54,10 +54,16 @@ release, and a summary of the changes in that release.
 		Reported by Wayne Andersen; patch from Juri Haberland.
 	REPORTS: Fix bug #162: Always report "sp" in aggregate reports.
 		Patch from Juri Haberland.
+	REPORTS: Fix bug #188: Don't delete inputs too early in
+		opendmarc-reports.  Patch from Juri Haberland.
 	TOOLS: Fix bug #161: "Forensic" reports were renamed "Failure"
 		reports.  Patch from Andreas Schulze.
 	TOOLS: Fix bug #164: Handle IPv6 test addresses.  Reported by
 		Andreas Schulze; patch from Juri Haberland.
+	DOCS: Patch #189: Replace the DMARC RFC with an HTML page
+		referencing the relevant specs, since Debian doesn't
+		consider RFCs to be "free".  Patch from Scott Kitterman
+		via Juri Haberland.
 
 1.3.1		2015/02/23
 	Fix bug #97: Add ability to change envelope sender, client IP
