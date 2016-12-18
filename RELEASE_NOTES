@@ -9,7 +9,8 @@ release, and a summary of the changes in that release.
 		rejected on that basis when the flag is set.  Based
 		on a patch from Andreas Schulze.
 	Feature request #127: Log SPF results when rejecting.  Requested
-		by Patrick Wagner; patch from Andreas Schulze.
+		by Patrick Wagner; patch from Andreas Schulze, follow-up
+		patch from Juri Haberland.
 	Feature request #138: Inculde policy and disposition information
 		in an Authentication-Results comment.  Based on a patch
 		from Juri Haberland.

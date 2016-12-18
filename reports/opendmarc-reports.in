@@ -162,8 +162,8 @@ sub usage
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
 	print STDERR "\t--test             don't send reports\n";
-	print STDERR "\t--utc              operate in UTC\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
+	print STDERR "\t--utc              operate in UTC\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t                   (repeat for increased output)\n";
 	print STDERR "\t--version          print version and exit\n";
