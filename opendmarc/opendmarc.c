@@ -1466,8 +1466,8 @@ dmarcf_config_reload(void)
 
 		if (!err && new->conf_pslist != NULL)
 		{
-			if (opendmarc_tld_read_file(new->conf_pslist, "#",
-			                            NULL, NULL) != 0)
+			if (opendmarc_tld_read_file(new->conf_pslist, "//",
+			                            "*.", "!") != 0)
 			{
 				if (curconf->conf_dolog)
 				{
