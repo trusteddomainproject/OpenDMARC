@@ -1,3 +1,3 @@
-# Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+# Copyright (c) 2012-2016, The Trusted Domain Project.  All rights reserved.
 
-dist_doc_DATA = rfc7489.txt
+dist_doc_DATA = README.specs.html

@@ -1,6 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
 
-dist_doc_DATA = README.specs.html
 libdir=@LIBDMARC_DIR@/lib
 includedir=@LIBDMARC_DIR@/include
 
