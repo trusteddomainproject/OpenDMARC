@@ -394,7 +394,7 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 **  	str -- the value of the Received-SPF field to analyze
 **  	
 **  Return value:
-**  	A DMARC_POLICY_SPF_* constant.
+**  	A ARES_RESULT_* constant.
 */
 
 int
@@ -472,14 +472,19 @@ dmarcf_parse_received_spf(char *str)
 	}
 
 	if (strcasecmp(result, "pass") == 0)
-		return DMARC_POLICY_SPF_OUTCOME_PASS;
-	else if (strcasecmp(result, "fail") == 0 ||
-	         strcasecmp(result, "softfail") == 0)
-		return DMARC_POLICY_SPF_OUTCOME_FAIL;
+		return ARES_RESULT_PASS;
+	else if (strcasecmp(result, "fail") == 0)
+		return ARES_RESULT_FAIL;
+	else if (strcasecmp(result, "softfail") == 0)
+		return ARES_RESULT_SOFTFAIL;
+	else if (strcasecmp(result, "neutral") == 0)
+		return ARES_RESULT_NEUTRAL;
 	else if (strcasecmp(result, "temperror") == 0)
-		return DMARC_POLICY_SPF_OUTCOME_TMPFAIL;
+		return ARES_RESULT_TEMPERROR;
+	else if (strcasecmp(result, "none") == 0)
+		return ARES_RESULT_NONE;
 	else
-		return DMARC_POLICY_SPF_OUTCOME_NONE;
+		return ARES_RESULT_PERMERROR;
 }
 
 /*
@@ -2475,6 +2480,33 @@ mlfi_eom(SMFICTX *ctx)
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n", spfres);
+
+				dfc->mctx_spfresult = spfres;
+
+				switch (dfc->mctx_spfresult)
+				{
+				    case ARES_RESULT_PASS:
+					spfres = DMARC_POLICY_SPF_OUTCOME_PASS;
+					break;
+
+				    case ARES_RESULT_NONE:
+					spfres = DMARC_POLICY_SPF_OUTCOME_NONE;
+					break;
+
+				    case ARES_RESULT_TEMPERROR:
+					spfres = DMARC_POLICY_SPF_OUTCOME_TMPFAIL;
+					break;
+
+				    case ARES_RESULT_FAIL:
+				    case ARES_RESULT_NEUTRAL:
+				    case ARES_RESULT_SOFTFAIL:
+					spfres = DMARC_POLICY_SPF_OUTCOME_FAIL;
+					break;
+
+				    default: /* e.g. ARES_RESULT_PERMERROR */
+					spfres = DMARC_POLICY_SPF_OUTCOME_NONE;
+					break;
+				}
 
 				/* use the MAIL FROM domain */
 				ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc,
