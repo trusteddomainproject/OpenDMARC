@@ -17,6 +17,7 @@ release, and a summary of the changes in that release.
 	Feature request #139: Include the client host name if known
 		in failure reports.  Suggested by Roland Turner;
 		patch by Andreas Schulze.
+	Fix bug #95: Assume IPv6 for SPF operations.  Patch from Juri Haberland.
 	Fix bug #120: Fix control logic around the SPF result.
 		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
 	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.
@@ -49,7 +50,8 @@ release, and a summary of the changes in that release.
 	LIBOPENDMARC: Fix bug #156: Fix variable name.  Patch by
 		Andreas Schulze.
 	LIBOPENDMARC: Fix bug #165: Fix logic in checking which SPF
-		identifier was used.  Patch from Marco Favero.
+		identifier was used.  Patches from Marco Favero and
+		Juri Haberland.
 	LIBOPENDMARC: Fix bug #167: Don't return "fail" when we should
 		return "none".  Patch from Marco Favero.
 	REPORTS: Fix bug #134: Handle SMTP errors correctly.  Patch from
