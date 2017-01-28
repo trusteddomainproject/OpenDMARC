@@ -62,6 +62,8 @@ release, and a summary of the changes in that release.
 		Reported by Wayne Andersen; patch from Juri Haberland.
 	REPORTS: Fix bug #162: Always report "sp" in aggregate reports.
 		Patch from Juri Haberland.
+	REPORTS: Fix bug #166: Fix report start/end time logic.
+		Patch from Juri Haberland.
 	REPORTS: Fix bug #188: Don't delete inputs too early in
 		opendmarc-reports.  Patch from Juri Haberland.
 	TOOLS: Fix bug #161: "Forensic" reports were renamed "Failure"
