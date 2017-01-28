@@ -112,7 +112,7 @@ opendmarc_spf2_specify_ip_address(SPF_CTX_T *spfctx, char *ip_address, size_t ip
 	/*
 	 * we don't care at this point if it is ipv6 or ipv4
 	 */
-	SPF_request_set_ipv4_str(spfctx->spf_request, ip_address);
+	SPF_request_set_ipv6_str(spfctx->spf_request, ip_address);
 	return 0;
 }
 
