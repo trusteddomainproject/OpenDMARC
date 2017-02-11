@@ -36,7 +36,7 @@ database in which you want to create the required tables, and type
 SETUP
 =====
 
-1) From within the MySQL command line environment, "source mkdb.mysql" to
+1) From within the MySQL command line environment, "source schema.mysql" to
    create the required database and tables.  You may also wish to set up
    users and access grants for users that will access this data.
 
