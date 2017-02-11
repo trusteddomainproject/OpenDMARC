@@ -2622,7 +2622,7 @@ mlfi_eom(SMFICTX *ctx)
 				char *mode;
 
 				if (spf_mode == DMARC_POLICY_SPF_ORIGIN_HELO)
-					mode = "helo:
+					mode = "helo";
 				else
 					mode = "mailfrom";
 
