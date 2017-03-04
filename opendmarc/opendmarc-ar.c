@@ -602,7 +602,19 @@ ares_parse(u_char *hdr, struct authres *ar)
 			ar->ares_result[n - 1].result_props = r;
 
 			prevstate = state;
-			state = 9;
+			if (c < ntoks - 1 && tokens[c + 1][1] == '\0')
+			{
+				if (tokens[c + 1][0] == ';')
+					state = 2;
+				else if (tokens[c + 1][0] == '=')
+					r--;
+				else
+					state = 9;
+			}
+			else
+			{
+				state = 9;
+			}
 
 			break;
 		}
