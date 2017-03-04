@@ -1,47 +1,92 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC v1.3.1 released
+Subject: OpenDMARC v1.3.2 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v1.3.1, now available for download from SourceForge.
+OpenDMARC v1.3.2, now available for download from SourceForge.
 
-This is mainly a bug fix release, but it does contain one important new
-feature.  Upgrade is recommended.
+This is mainly a bug fix release.  Upgrade is recommended.
+
+This release was almost entirely driven by contributions from the user
+community.  We thank those contributors for their ongoing support.
 
 The full RELEASE_NOTES for this version, showing changes since the last
 release:
 
-1.3.1		2015/02/23
-	Fix bug #97: Add ability to change envelope sender, client IP
-		address, client hostname, and HELO value used in test
-		mode, via environment variables.  This can be turned
-		into something more formal in a later release.  Suggested
-		by Andreas Schulze.
-	Fix bug #102: Don't lose SPF results and output the "-1" default.
-		Reported by Kurt Roeckx.
-	Fix bug #103: Fix IgnoreAuthenticatedClients by requesting the
-		right macro value from the MTA.
-	Fix bug #113: Remove "TemporaryDirectory" (unused).  Patch from
+1.3.2		2017/03/04
+	Feature request #86: Change meaning of "RequiredHeaders" such that
+		header validity is always checked, but messages are only
+		rejected on that basis when the flag is set.  Based
+		on a patch from Andreas Schulze.
+	Feature request #127: Log SPF results when rejecting.  Requested
+		by Patrick Wagner; patch from Andreas Schulze, follow-up
+		patch from Juri Haberland.
+	Feature request #138: Inculde policy and disposition information
+		in an Authentication-Results comment.  Based on a patch
+		from Juri Haberland.
+	Feature request #139: Include the client host name if known
+		in failure reports.  Suggested by Roland Turner;
+		patch by Andreas Schulze.
+	Fix bug #95: Assume IPv6 for SPF operations.  Patch from Juri Haberland.
+	Fix bug #120: Fix control logic around the SPF result.
+		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
+	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.
+		Reported by Christophe Wolfhugel.
+	Fix bug #157: Fix logging of implicit authserv-ids.  Reported
+		by Andreas Schulze; patch from Juri Haberland.
+	Fix bug #158: Log ignored connections.  Patch from Andreas Schulze.
+	Fix bug #160: Fix "SyslogFacility" handling.  Patch from
+		Juri Haberland.
+	Fix bug #163: Use a larger buffer for the raw MAIL FROM value.
+		Based on a patch from Andreas Schulze.
+	Fix bug #174: Trim "!" suffixes from reporting addresses.  Problem
+		noted by Juri Haberland.
+	Fix bug #186: When reloading the configuration file, the public
+		suffix list was read in with the wrong comment indicator.
+		Patch from Federico Omoto.
+	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
+		Sebastian A. Siewior via Scott Kitterman.
+	LIBOPENDMARC: Fix bug #121: Fix IPv6 CIDR matching in SPF code.
+		Patch from Christophe Wolfhugel.
+	LIBOPENDMARC: Fix bug #125: Compile time IPv6 fix.  Reported by
+		Christophe Wolfhugel.
+	LIBOPENDMARC: Fix bug #131: Fix alignment bug.  Patch from
 		Andreas Schulze.
-	LIBOPENDMARC: Fix bug #104: Include <sys/param.h> and <resolv.h>
-		in <opendmarc/dmarc.h> so that MAXPATHLEN and MAXNS get
-		defined consistently.  Reported by Frank J. Lhota.
-	LIBOPENDMARC: Fix bug #105: Get the h_errno definition from
-		<netdb.h> rather than declaring it.  Problem noted
-		by Frank J. Lhota.
-	LIBOPENDMARC: Fix bug #106: Clean up issues with the types passed
-		to opendmarc_policy_library_dns_hook().  Noted by
-		Frank J. Lhota.
-	DOCS: Fix bug #99: Update list of constraints on
-		opendmarc_policy_fetch_alignment().  Reported by
-		Frank J. Lhota.
-	REPORTS: Fix bug #108: Handle malformed mailto URIs in DMARC
-		records (e.g., just "mailto:").  Reported by Andreas Schulze.
-	REPORTS: Fix bug #110: Support SQL backend selection in
-		opendmarc-expire.  Reported by Mark Reidenbach.
+	LIBOPENDMARC: Fix bug #147: Fix stripping of whitespace from
+		DMARC DNS records.  Based on a patch from Job Noorman.
+	LIBOPENDMARC: Fix bug #149: Apply "sp" setting, if present and
+		applicable.  Patch from Petr Novak.
+	LIBOPENDMARC: Fix bug #154: Fix "rf" and "fo" processing logic.
+	LIBOPENDMARC: Fix bug #156: Fix variable name.  Patch by
+		Andreas Schulze.
+	LIBOPENDMARC: Fix bug #165: Fix logic in checking which SPF
+		identifier was used.  Patches from Marco Favero and
+		Juri Haberland.
+	LIBOPENDMARC: Fix bug #167: Don't return "fail" when we should
+		return "none".  Patch from Marco Favero.
+	REPORTS: Fix bug #134: Handle SMTP errors correctly.  Patch from
+		Andreas Schulze.
+	REPORTS: Fix bug #141: Set the HELO parameter correctly.
+		Reported by Alan Smith; patch from Andreas Schulze.
+	REPORTS: Fix bug #143: Fix logic in table truncation.
+		Reported by Wayne Andersen; patch from Juri Haberland.
+	REPORTS: Fix bug #162: Always report "sp" in aggregate reports.
+		Patch from Juri Haberland.
+	REPORTS: Fix bug #166: Fix report start/end time logic.
+		Patch from Juri Haberland.
+	REPORTS: Fix bug #188: Don't delete inputs too early in
+		opendmarc-reports.  Patch from Juri Haberland.
+	TOOLS: Fix bug #161: "Forensic" reports were renamed "Failure"
+		reports.  Patch from Andreas Schulze.
+	TOOLS: Fix bug #164: Handle IPv6 test addresses.  Reported by
+		Andreas Schulze; patch from Juri Haberland.
+	DOCS: Patch #189: Replace the DMARC RFC with an HTML page
+		referencing the relevant specs, since Debian doesn't
+		consider RFCs to be "free".  Patch from Scott Kitterman
+		via Juri Haberland.
 
-Please use the mailing lists at http://www.trusteddomain.org/ to report
-problems, make suggestions, or ask questions.  The ticketing system at
-SourceForge is not yet available for general use by the community.
+Please use the trackers on SourceForge at
+https://sourceforge.net/p/opendmarc/tickets/ to file problem reports,
+or the mailing lists for more general discussion and questions.
 
 The Trusted Domain Project
