@@ -35,11 +35,14 @@ my $def_dbuser    = "opendmarc";
 my $def_dbpasswd  = "opendmarc";
 my $def_dbport    = "3306";
 my $def_interval  = "86400";
+my $def_inputfh   = *STDIN;
 my $dbhost;
 my $dbname;
 my $dbuser;
 my $dbpasswd;
 my $dbport;
+my $inputfile;
+my $inputfh;
 
 my $dbscheme     = "@SQL_BACKEND@";
 
@@ -326,6 +329,7 @@ sub usage
 	print STDERR "\t--dbpasswd=passwd  database password [$def_dbpasswd]\n";
 	print STDERR "\t--dbport=port      database port [$def_dbport]\n";
 	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
+	print STDERR "\t--input=file       input file [STDIN]\n";
 	print STDERR "\t--help             print help and exit\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t--version          print version and exit\n";
@@ -337,6 +341,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('dbhost=s' => \$dbhost,
                                             'dbpasswd=s' => \$dbpasswd,
                                             'dbport=s' => \$dbport,
                                             'dbuser=s' => \$dbuser,
+                                            'input=s' => \$inputfile,
                                             'help!' => \$helponly,
                                             'verbose!' => \$verbose,
                                             'version!' => \$showversion,
@@ -428,6 +433,24 @@ if ($verbose)
 	print STDERR "$progname: started at " . localtime() . "\n";
 }
 
+
+if (!defined($inputfile))
+{
+	$inputfh = $def_inputfh;
+}
+else
+{
+	open($inputfh, "<", $inputfile) or die "$progname: unable to open $inputfile: $!\n";
+	if ($verbose)
+	{
+		print STDERR "$progname: opened file $inputfile\n"
+	}
+}
+if (!flock($inputfh, LOCK_SH))
+{
+	print STDERR "$progname: warning: unable to establish read lock\n";
+}
+
 my $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
               ";host=" . $dbhost . ";port=" . $dbport;
 
@@ -447,13 +470,10 @@ if ($verbose)
 # Read history file from stdin.
 #
 
+	
 $lineno = 0;
-if (!flock(STDIN, LOCK_SH))
-{
-	print STDERR "$progname: warning: unable to establish read lock\n";
-}
 
-while (<STDIN>)
+while (<$inputfh>)
 {
 	$lineno++;
 
@@ -592,6 +612,10 @@ if (defined($jobid))
 	update_db();
 }
 
+if (defined($inputfile))
+{
+	close($inputfh);
+}
 #
 # all done!
 #

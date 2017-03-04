@@ -6,6 +6,7 @@ release, and a summary of the changes in that release.
 1.4.0		2017/??/??
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
+	REPORTS: Feature request #146: Add option to pull input from a file.
 
 1.3.2		2017/03/04
 	Feature request #86: Change meaning of "RequiredHeaders" such that
