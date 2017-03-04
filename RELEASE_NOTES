@@ -34,6 +34,10 @@ release, and a summary of the changes in that release.
 	Fix bug #186: When reloading the configuration file, the public
 		suffix list was read in with the wrong comment indicator.
 		Patch from Federico Omoto.
+	Fix bug #194: Fix inappropriate DMARC status when "p=none" is
+		discovered.  Patch from Juri Haberland.
+	Fix bug #195: When parsing Received-SPF, use the correct constants
+		in the history file entries.  Patch from Juri Haberland.
 	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
 		Sebastian A. Siewior via Scott Kitterman.
 	LIBOPENDMARC: Fix bug #121: Fix IPv6 CIDR matching in SPF code.
