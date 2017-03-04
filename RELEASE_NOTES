@@ -7,6 +7,8 @@ release, and a summary of the changes in that release.
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
 	REPORTS: Feature request #146: Add option to pull input from a file.
+	REPORTS: Fix bug #153: Suppress duplicate results from the same
+		domain.  Patch from Tomki Camp.
 
 1.3.2		2017/03/04
 	Feature request #86: Change meaning of "RequiredHeaders" such that

@@ -703,6 +703,7 @@ foreach (@$domainset)
 			exit(1);
 		}
 
+		my %dkim_domain_result_cache = ();
 		while ($dbi_a = $dbi_d->fetchrow_arrayref())
 		{
 			undef $dkimdomain;
@@ -716,11 +717,15 @@ foreach (@$domainset)
 				$dkimresult = $dbi_a->[1];
 			}
 
-
 			if (!defined($dkimdomain))
 			{
 				next;
 			}
+			if (!defined($dkim_domain_result_cache{$dkimdomain}{$dkimresult}))
+			{
+				next; # no duplicate per-record auth_result dkim sections
+			}
+			$dkim_domain_result_cache{$dkimdomain}{$dkimresult}++;
 
 			switch ($dkimresult)
 			{
