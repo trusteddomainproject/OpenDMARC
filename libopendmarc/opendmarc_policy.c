@@ -1087,6 +1087,10 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			/*
 			 * A possibly comma delimited list of URI of where to send reports.
 			 */
+
+			if (pctx->rua_list != NULL)
+				return DMARC_PARSE_ERROR_BAD_VALUE;
+
 			for (xp = vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];
@@ -1115,6 +1119,10 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			 * A possibly comma delimited list of URI of where to send 
 			 * MARF reports.
 			 */
+
+			if (pctx->rua_list != NULL)
+				return DMARC_PARSE_ERROR_BAD_VALUE;
+
 			for (xp = vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];

@@ -6,6 +6,8 @@ release, and a summary of the changes in that release.
 1.4.0		2017/??/??
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
+	LIBOPENDMARC: Fix bug #203: Reject DMARC records that have duplicate
+		tags in them.  Reported by Dirk Stoecker.
 	REPORTS: Feature request #146: Add option to pull input from a file.
 	REPORTS: Fix bug #153: Suppress duplicate results from the same
 		domain.  Patch from Tomki Camp.
