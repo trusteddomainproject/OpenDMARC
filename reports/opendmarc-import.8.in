@@ -12,8 +12,6 @@ reads per-message data recorded by an instance of
 and inserts it into an SQL database, for later use by
 .B opendmarc-reports(8)
 to generate aggregate reports.
-
-Records are read from standard input.
 .SH OPTIONS
 .TP
 .I --dbhost=hostname
@@ -43,6 +41,9 @@ the environment variable is not set.
 .TP
 .I --help
 Prints a help message and terminates.
+.TP
+.I --input=file
+Reads from the named file instead of from standard input (the default).
 .TP
 .I --verbose
 Increase the amount of verbosity written to standard output.
