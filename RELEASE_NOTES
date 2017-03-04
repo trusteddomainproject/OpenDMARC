@@ -1,7 +1,9 @@
-			OPENDMARC RELEASE NOTES
+			 OPENDMARC RELEASE NOTES
 
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
+
+1.4.0		2017/??/??
 
 1.3.2		2017/03/04
 	Feature request #86: Change meaning of "RequiredHeaders" such that
