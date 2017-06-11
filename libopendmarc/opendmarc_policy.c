@@ -1120,7 +1120,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			 * MARF reports.
 			 */
 
-			if (pctx->rua_list != NULL)
+			if (pctx->ruf_list != NULL)
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 
 			for (xp = vp; *xp != '\0'; )
@@ -1564,10 +1564,10 @@ opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status)
 		msg  ="Function called with NULL Context";
 		break;
 	    case DMARC_PARSE_ERROR_BAD_VERSION: 
-		msg = "Found DMARC record containd a bad v= value";
+		msg = "Found DMARC record contained a bad v= value";
 		break;
 	    case DMARC_PARSE_ERROR_BAD_VALUE: 
-		msg = "Found DMARC record containd a bad token value";
+		msg = "Found DMARC record contained a bad token value";
 		break;
 	    case DMARC_PARSE_ERROR_NO_REQUIRED_P: 
 		msg = "Found DMARC record lacked a required p= entry";
