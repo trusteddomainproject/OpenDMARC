@@ -109,6 +109,7 @@ struct dmarcf_header
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {
+	_Bool			mctx_arcpass;
 	int			mctx_spfresult;
 	char *			mctx_jobid;
 	struct dmarcf_header *	mctx_hqhead;
@@ -2449,6 +2450,11 @@ mlfi_eom(SMFICTX *ctx)
 					return SMFIS_TEMPFAIL;
 				}
 			}
+			else if (ar.ares_result[c].result_method == ARES_METHOD_ARC)
+			{
+				if (ar.ares_result[c].result_result == ARES_RESULT_PASS)
+					dfc->mctx_arcpass = TRUE;
+			}
 		}
 	}
 
@@ -3094,6 +3100,19 @@ mlfi_eom(SMFICTX *ctx)
 		ret = SMFIS_TEMPFAIL;
 		result = DMARC_RESULT_TEMPFAIL;
 		break;
+	}
+
+	/* ARC override */
+	if (dfc->mctx_arcpass && result == DMARC_RESULT_REJECT)
+	{
+		ret = SMFIS_ACCEPT;
+		result = DMARC_RESULT_ACCEPT;
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_NOTICE,
+			       "%s: overriding DMARC fail due to ARC pass",
+			       dfc->mctx_jobid);
+		}
 	}
 
 	/* prepare human readable dispositon string for later processing */

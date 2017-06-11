@@ -56,6 +56,7 @@ struct lookup
 
 struct lookup methods[] =
 {
+	{ "arc",		ARES_METHOD_ARC },
 	{ "auth",		ARES_METHOD_AUTH },
 	{ "dkim",		ARES_METHOD_DKIM },
 	{ "dkim-adsp",		ARES_METHOD_DKIMADSP },
