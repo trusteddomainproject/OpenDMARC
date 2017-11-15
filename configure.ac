@@ -123,9 +123,22 @@ AC_CHECK_HEADERS([resolv.h], [], [],
 AC_CHECK_LIB(socket, connect)
 AC_CHECK_LIB(resolv, hstrerror, , , [-lnsl -lsocket])
 AC_CHECK_LIB(resolv, inet_aton, , , [-lnsl -lsocket])
+# You might find res_ninit() in system libraries or in libresolv or not
+# at all. The way AC_LANG_CALL finds out is it declares res_ninit() so
+# it can call it, then it sees if linking fails because of unresolved
+# symbols. Great, except glibc doesn't export res_ninit() -- it exports
+# __res_ninit() -- res_ninit() is a macro in resolv.h. So unless we
+# include resolv.h, we won't find res_ninit(), but when we do include
+# it, it conflicts with AC_LANG_CALL's redeclaration. Hmm. I guess the
+# only thing for it is to include resolv.h, don't redeclare res_ninit(),
+# and use the proper type signature when calling it.
+m4_rename([AC_LANG_CALL], [saved_AC_LANG_CALL])
+m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
+                                           [return res_ninit(NULL);])])
 AC_SEARCH_LIBS(res_ninit, resolv,
 	AC_DEFINE(HAVE_RES_NINIT, 1,
 	[Define to 1 if you have the `res_ninit()' function.]))
+m4_rename_force([saved_AC_LANG_CALL], [AC_LANG_CALL])
 AC_CHECK_LIB(idn, idn_free)
 AC_CHECK_LIB(rt, nanosleep)
 AC_SEARCH_LIBS(inet_addr, nsl)
