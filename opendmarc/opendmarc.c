@@ -2407,7 +2407,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
-				domain = NULL;
+				u_char *dkim_selector = NULL;
+				u_char *dkim_domain = NULL;
 
 				for (pc = 0;
 				     pc < ar.ares_result[c].result_props;
@@ -2417,24 +2418,31 @@ mlfi_eom(SMFICTX *ctx)
 					{
 						if (ar.ares_result[c].result_property[pc][0] == 'd')
 						{
-							domain = ar.ares_result[c].result_value[pc];
+							dkim_domain = ar.ares_result[c].result_value[pc];
+						}
+						if (ar.ares_result[c].result_property[pc][0] == 's')
+						{
+							dkim_selector = ar.ares_result[c].result_value[pc];
 						}
 					}
 				}
 
-				if (domain == NULL)
+				if (dkim_domain == NULL)
 					continue;
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "dkim %s %d\n", domain,
+				                      "dkim %s %s %d\n",
+									  dkim_domain,
+									  (dkim_selector != NULL) ? dkim_selector : (u_char *)"-",
 				                      ar.ares_result[c].result_result);
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
 
-		                                     
+
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
-				                                      domain,
+				                                      dkim_domain,
+													  dkim_selector,
 				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
 				                                      NULL);
 
