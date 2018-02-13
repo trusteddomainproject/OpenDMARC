@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2012, 2014, The Trusted Domain Project.  All rights reserved.
+# Copyright (c) 2012, 2014, 2018, The Trusted Domain Project.  All rights reserved.
 #
 # Script to import per-message DMARC data.
 
@@ -65,6 +65,7 @@ my $dkim_align;
 my @dkim_data;
 my $dkim_domain;
 my @dkim_entry;
+my $dkim_selector;
 my $dkim_result;
 my $envdomain;
 my $fdomain;
@@ -112,28 +113,40 @@ sub get_value
 
 	return $out;
 }
-	
+
 sub get_table_id
 {
 	my $name;
 	my $table;
 	my $column;
+	my $fkey_column;
+	my $fkey_value;
 	my $out;
+	my $query;
+	my @query_params;
 
-	($name, $table, $column) = @_;
+	($name, $table, $column, $fkey_column, $fkey_value) = @_;
 
-	if (!defined($name) || !defined($table))
+	if ((!defined($name) || $name eq '-') || !defined($table))
 	{
 		return undef;
 	}
 
-	if (!defined($column))
+	if (!defined($column) || length($column) == 0)
 	{
 		$column = "name";
 	}
 
-	$dbi_t = $dbi_h->prepare("SELECT id FROM $table WHERE $column = ?");
-	if (!$dbi_t->execute($name))
+	@query_params = ($name);
+	$query = "SELECT id FROM $table WHERE $column = ?";
+	if (defined($fkey_column) && defined($fkey_value))
+	{
+		$query = $query . " AND $fkey_column = ?";
+		push(@query_params, $fkey_value);
+	}
+
+	$dbi_t = $dbi_h->prepare($query);
+	if (!$dbi_t->execute(@query_params))
 	{
 		print STDERR "$progname: failed to retrieve table ID: " . $dbi_h->errstr . "\n";
 		return undef;
@@ -152,8 +165,16 @@ sub get_table_id
 
 	if (!defined($out))
 	{
-		$dbi_t = $dbi_h->prepare("INSERT INTO $table ($column) VALUES(?)");
-		if (!$dbi_t->execute($name))
+		@query_params = ($name);
+		$query = "INSERT INTO $table ($column) VALUES(?)";
+		if (defined($fkey_column) && defined($fkey_value))
+		{
+			$query = "INSERT INTO $table ($column, $fkey_column) VALUES(?, ?)";
+			push(@query_params, $fkey_value);
+		}
+
+		$dbi_t = $dbi_h->prepare($query);
+		if (!$dbi_t->execute(@query_params))
 		{
 			print STDERR "$progname: failed to create table ID: " . $dbi_h->errstr . "\n";
 			return undef;
@@ -195,6 +216,7 @@ sub update_db
 	my $ipaddr_id;
 	my $msg_id;
 	my $sdomain_id;
+	my $selector_id;
 	my $request_id;
 
 	if ($verbose)
@@ -219,8 +241,8 @@ sub update_db
 		return;
 	}
 
-	$dbi_s = $dbi_h->prepare("INSERT INTO messages (date, jobid, reporter, policy, disp, ip, env_domain, from_domain, spf, align_spf, align_dkim, sigcount) VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-	if (!$dbi_s->execute($received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id, $spf, $align_spf, $align_dkim, $sigcount))
+	$dbi_s = $dbi_h->prepare("INSERT INTO messages (date, jobid, reporter, policy, disp, ip, env_domain, from_domain, policy_domain, spf, align_spf, align_dkim, sigcount) VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+	if (!$dbi_s->execute($received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id, $pdomain_id, $spf, $align_spf, $align_dkim, $sigcount))
 	{
 		print STDERR "$progname: failed to insert message: " . $dbi_h->errstr . "\n";
 		return;
@@ -252,16 +274,18 @@ sub update_db
 		return;
 	}
 
-	$dbi_s = $dbi_h->prepare("INSERT INTO signatures (message, domain, pass, error) VALUES(?, ?, ?, ?)");
+	$dbi_s = $dbi_h->prepare("INSERT INTO signatures (message, domain, selector, pass, error) VALUES(?, ?, ?, ?, ?)");
 	foreach $dd (0 .. $#dkim_data)
 	{
 		my $sdomain;
+		my $selector;
 		my $pass;
 		my $error;
 
 		$sdomain = $dkim_data[$dd][0];
-		$pass = $dkim_data[$dd][1];
-		$error = $dkim_data[$dd][2];
+		$selector = $dkim_data[$dd][1];
+		$pass = $dkim_data[$dd][2];
+		$error = $dkim_data[$dd][3];
 
 		$sdomain_id = get_table_id($sdomain, "domains");
 		if (!defined($sdomain_id))
@@ -269,7 +293,9 @@ sub update_db
 			next;
 		}
 
-		if (!$dbi_s->execute($msg_id, $sdomain_id, $pass, $error))
+		# fetch selector_id or insert into table
+		$selector_id = get_table_id($selector, "selectors", "", "domain", $sdomain_id) || 0;
+		if (!$dbi_s->execute($msg_id, $sdomain_id, $selector_id, $pass, $error))
 		{
 			print STDERR "$progname: failed to insert DKIM data: " . $dbi_h->errstr . "\n";
 			$dbi_s->finish;
@@ -478,7 +504,7 @@ while (<$inputfh>)
 	$lineno++;
 
 	chomp;
-	($key, $value, $dkim_result) = split;
+	($key, $value, $dkim_selector, $dkim_result) = split;
 
 	switch ($key)
 	{
@@ -505,6 +531,7 @@ while (<$inputfh>)
 	  case "dkim"		{
 					undef @dkim_entry;
 					push(@dkim_entry, $value);
+					push(@dkim_entry, $dkim_selector);
 					push(@dkim_entry, $dkim_result);
 					if ($dkim_result eq "4" ||
 					    $dkim_result eq "5")

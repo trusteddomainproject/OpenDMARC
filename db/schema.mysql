@@ -16,6 +16,17 @@ CREATE TABLE IF NOT EXISTS domains (
 	UNIQUE KEY(name)
 );
 
+CREATE TABLE IF NOT EXISTS selectors (
+	id INT NOT NULL AUTO_INCREMENT,
+	domain INT NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	firstseen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	PRIMARY KEY(id),
+	KEY(name),
+	UNIQUE KEY(name, domain)
+);
+
 -- A table for logging reporting requests
 CREATE TABLE IF NOT EXISTS requests (
 	id INT NOT NULL AUTO_INCREMENT,
@@ -82,6 +93,7 @@ CREATE TABLE IF NOT EXISTS signatures (
 	id INT NOT NULL AUTO_INCREMENT,
 	message INT NOT NULL,
 	domain INT NOT NULL,
+	selector INT NOT NULL,
 	pass TINYINT NOT NULL,
 	error TINYINT NOT NULL,
 
