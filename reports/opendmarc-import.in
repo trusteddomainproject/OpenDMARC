@@ -296,7 +296,7 @@ sub update_db
 		}
 		else
 		{
-			$dbi_s = $dbi_h->prepare("UPDATE requests SET repuri = NULL WHERE id = ?");
+			$dbi_s = $dbi_h->prepare("UPDATE requests SET repuri = '' WHERE id = ?");
 
 			if (!$dbi_s->execute($request_id))
 			{
