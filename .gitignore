@@ -21,3 +21,4 @@ opendmarc*.gz.asc
 *.rej
 HOURS
 tags
+.vscode
