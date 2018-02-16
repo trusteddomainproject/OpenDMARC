@@ -26,6 +26,7 @@ struct configdef dmarcf_config[] =
 	{ "ChangeRootDirectory",	CONFIG_TYPE_STRING,	FALSE },
 	{ "CopyFailuresTo",		CONFIG_TYPE_STRING,	FALSE },
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
+	{ "DomainWhitelist",	CONFIG_TYPE_STRING,	FALSE },
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReports",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReportsBcc",		CONFIG_TYPE_STRING,	FALSE },
