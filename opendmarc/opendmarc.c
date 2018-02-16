@@ -54,6 +54,9 @@
 # include <strl.h>
 #endif /* USE_STRL_H */
 
+/* glib for hash support */
+#include <glib-2.0/glib.h>
+
 /* opendmarc_strl if needed */
 #ifdef USE_DMARCSTRL_H
 # include <opendmarc_strl.h>
@@ -164,6 +167,7 @@ struct dmarcf_config
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_authservid;
+	char **			conf_domainwhitelist;
 	char *			conf_historyfile;
 	char *			conf_pslist;
 	char *			conf_ignorelist;
@@ -245,6 +249,7 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+GHashTable *domain_whitelist_hash;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -1248,6 +1253,25 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			                  sizeof conf->conf_dnstimeout);
 		}
 
+		str = NULL;
+		(void) config_get(data, "DomainWhitelist", &str, sizeof str);
+		if (str != NULL)
+		{
+			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
+			/* add domains to hash */
+			for(int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
+			{
+				u_char *domain = conf->conf_domainwhitelist[i];
+				u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
+				g_hash_table_replace(domain_whitelist_hash, key, key);
+			}
+		}
+
+		// @FIXME: cleanup debug code
+		// uint key_list_len;
+		// u_char **key_list = (u_char **)g_hash_table_get_keys_as_array(domain_whitelist_hash, &key_list_len);
+		// _Bool found_it = g_hash_table_lookup(domain_whitelist_hash, k1);
+
 		(void) config_get(data, "EnableCoredumps",
 		                  &conf->conf_enablecores,
 		                  sizeof conf->conf_enablecores);
@@ -2028,7 +2052,7 @@ mlfi_eom(SMFICTX *ctx)
 	int align_dkim;
 	int align_spf;
 	int result;
-	sfsistat ret = SMFIS_CONTINUE;
+	sfsistat ret;
 	OPENDMARC_STATUS_T ostatus;
 	OPENDMARC_STATUS_T apused;
 	char *apolicy = NULL;
@@ -3017,30 +3041,32 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	result = DMARC_RESULT_ACCEPT;
+	ret = SMFIS_ACCEPT;
 
 	switch (policy)
 	{
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
 		aresult = "none";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
+		// ret = SMFIS_ACCEPT;
+		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
 		aresult = "fail";		/* Accept and report */
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
+		// ret = SMFIS_ACCEPT;
+		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
+		// ret = SMFIS_ACCEPT;
+		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3073,6 +3099,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3573,6 +3600,9 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_trustedauthservids != NULL)
 		dmarcf_freearray(conf->conf_trustedauthservids);
 
+	if (conf->conf_domainwhitelist != NULL)
+		dmarcf_freearray(conf->conf_domainwhitelist);
+
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
@@ -3669,6 +3699,13 @@ main(int argc, char **argv)
 	no_i_whine = TRUE;
 	conffile = NULL;
 	ignore = NULL;
+
+	/* init g_hash_table, only specify a destructor for the key as we use the
+	** same key in both places and call g_hash_table_replace() to update values
+	** instead of g_hash_table_insert().
+	*/
+	domain_whitelist_hash = g_hash_table_new_full(g_str_hash, g_str_equal,
+	                                              g_free, NULL);
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);

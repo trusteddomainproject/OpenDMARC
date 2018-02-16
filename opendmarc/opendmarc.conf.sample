@@ -104,6 +104,18 @@
 #
 # CopyFailuresTo postmaster@localhost
 
+## DomainWhitelist (string)
+##      default (none)
+##
+##  Require that all domains that appear in the OpenARC Authenticated-Results
+##  "arc.chain" field (appended by OpenARC "FinalReceiver" mode) also appear in
+##  this comma-separated list. Matching is case-insensitive. The default list
+##  is an empty list, meaning no matching is performed.
+##
+##  This list will be concatenated with DomainWhitelistFile (if provided).
+##
+# DomainWhiteList example.com
+
 ##  DNSTimeout (integer)
 ##  	default 5
 ## 
