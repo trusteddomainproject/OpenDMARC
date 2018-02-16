@@ -1267,11 +1267,6 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			}
 		}
 
-		// @FIXME: cleanup debug code
-		// uint key_list_len;
-		// u_char **key_list = (u_char **)g_hash_table_get_keys_as_array(domain_whitelist_hash, &key_list_len);
-		// _Bool found_it = g_hash_table_lookup(domain_whitelist_hash, k1);
-
 		(void) config_get(data, "EnableCoredumps",
 		                  &conf->conf_enablecores,
 		                  sizeof conf->conf_enablecores);
@@ -3681,6 +3676,7 @@ main(int argc, char **argv)
 	struct group *gr = NULL;
 	char *become = NULL;
 	char *chrootdir = NULL;
+	char *whitelistfile = NULL;
 	char *extract = NULL;
 	char *ignorefile = NULL;
 	char *p;
@@ -4009,8 +4005,37 @@ main(int argc, char **argv)
 		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
 		                  sizeof chrootdir);
 
+		(void) config_get(cfg, "DomainWhitelistFile", &whitelistfile, 
+		                  sizeof whitelistfile);
+
 		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
 		                  sizeof ignorefile);
+	}
+
+	/*
+	** @TODO: Optimize so that whitelist is loaded from file into hash directly.
+	*/
+	if (whitelistfile != NULL)
+	{
+		struct list *tmplist;
+		struct list *cur;
+
+		if (!dmarcf_loadlist(whitelistfile, &tmplist))
+		{
+			fprintf(stderr,
+			        "%s: can't load domain whitelist file from %s: %s\n",
+			        progname, whitelistfile, strerror(errno));
+			return EX_DATAERR;
+		}
+
+		for (cur = tmplist; cur != NULL; cur = cur->list_next)
+		{
+			u_char *domain = (u_char *)cur->list_str;
+			u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
+			g_hash_table_replace(domain_whitelist_hash, key, key);
+		}
+
+		dmarcf_freelist(tmplist);
 	}
 
 	if (ignorefile != NULL)
@@ -4751,6 +4776,9 @@ main(int argc, char **argv)
 	dmarcf_config_free(curconf);
 	if (ignore != NULL)
 		dmarcf_freelist(ignore);
+
+	/* free domain whitelist hast */
+	g_hash_table_destroy(domain_whitelist_hash);
 
 	/* tell the reloader thread to die */
 	die = TRUE;
