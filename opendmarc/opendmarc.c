@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <signal.h>
 #include <pthread.h>
 #include <syslog.h>
@@ -113,8 +114,10 @@ struct dmarcf_header
 struct dmarcf_msgctx
 {
 	_Bool			mctx_arcpass;
-	int			mctx_spfresult;
+	_Bool			mctx_arcpolicypass;
+	int				mctx_spfresult;
 	char *			mctx_jobid;
+	char **			mctx_arcchain;
 	struct dmarcf_header *	mctx_hqhead;
 	struct dmarcf_header *	mctx_hqtail;
 	struct dmarcf_dstring *	mctx_histbuf;
@@ -759,18 +762,18 @@ dmarcf_freearray(char **a)
 }
 
 /*
-**  DMARCF_MKARRAY -- convert a comma-separated string into an array
+**  DMARCF_MKARRAY -- convert a delimiter-separated string into an array
 **
 **  Parameters:
 **  	str -- input string
-**  	array -- output array
+**		delim -- delimeter string
 **
 **  Return value:
 **  	Array length, or -1 on error.
 */
 
 int
-dmarcf_mkarray(char *str, char ***array)
+dmarcf_mkarray(char *str, char *delim, char ***array)
 {
 	int n = 0;
 	int a = 0;
@@ -779,9 +782,12 @@ dmarcf_mkarray(char *str, char ***array)
 	char *ctx;
 	char **out = NULL;
 
-	for (p = strtok_r(str, ",", &ctx);
+	assert(str != NULL);
+	assert(delim != NULL);
+
+	for (p = strtok_r(str, delim, &ctx);
 	     p != NULL;
-	     p = strtok_r(NULL, ",", &ctx))
+	     p = strtok_r(NULL, delim, &ctx))
 	{
 		dmarcf_eatspaces(p);
 
@@ -1225,12 +1231,12 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		str = NULL;
 		(void) config_get(data, "TrustedAuthservIDs", &str, sizeof str);
 		if (str != NULL)
-			dmarcf_mkarray(str, &conf->conf_trustedauthservids);
+			dmarcf_mkarray(str, ",", &conf->conf_trustedauthservids);
 
 		str = NULL;
 		(void) config_get(data, "IgnoreMailFrom", &str, sizeof str);
 		if (str != NULL)
-			dmarcf_mkarray(str, &conf->conf_ignoredomains);
+			dmarcf_mkarray(str, ",", &conf->conf_ignoredomains);
 
 		(void) config_get(data, "AuthservIDWithJobID",
 		                  &conf->conf_authservidwithjobid,
@@ -1257,7 +1263,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "DomainWhitelist", &str, sizeof str);
 		if (str != NULL)
 		{
-			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
+			dmarcf_mkarray(str, ",", &conf->conf_domainwhitelist);
 			/* add domains to hash */
 			for(int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
 			{
@@ -1355,7 +1361,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	if (conf->conf_trustedauthservids == NULL &&
 	    conf->conf_authservid != NULL)
 	{
-		dmarcf_mkarray(conf->conf_authservid,
+		dmarcf_mkarray(conf->conf_authservid, ",",
 		               &conf->conf_trustedauthservids);
 	}
 
@@ -2046,6 +2052,7 @@ mlfi_eom(SMFICTX *ctx)
 	int sp;
 	int align_dkim;
 	int align_spf;
+	int limit_arc = 0;
 	int result;
 	sfsistat ret;
 	OPENDMARC_STATUS_T ostatus;
@@ -2079,6 +2086,9 @@ mlfi_eom(SMFICTX *ctx)
 	dfc = cc->cctx_msg;
 	assert(dfc != NULL);
 	conf = cc->cctx_config;
+
+	dfc->mctx_arcpass = FALSE;
+	dfc->mctx_arcpolicypass = FALSE;
 
 	/*
 	**  If necessary, try again to get the job ID in case it came down
@@ -2479,8 +2489,54 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_ARC)
 			{
-				if (ar.ares_result[c].result_result == ARES_RESULT_PASS)
+				limit_arc++;
+				/*
+				** If we already came across a trusted A-R header with arc=pass
+				** we need to fail.
+				*/
+				if (ar.ares_result[c].result_result == ARES_RESULT_PASS && limit_arc == 1)
+				{
 					dfc->mctx_arcpass = TRUE;
+				}
+				else
+				{
+					dfc->mctx_arcpass = FALSE;
+				}
+
+				/*
+				** Check arc status against whitelist policy
+				*/
+				if (dfc->mctx_arcpass && g_hash_table_size(domain_whitelist_hash) > 0)
+				{
+					u_char *arcchain = NULL, *arcdomain;
+					int arcchainlen = 0, arcchainitempass = 0;
+
+					for (pc = 0;
+						pc < ar.ares_result[c].result_props;
+						pc++)
+					{
+						if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_ARCCHAIN)
+						{
+							arcchain = ar.ares_result[c].result_value[pc];
+						}
+					}
+					if (arcchain != NULL)
+					{
+						arcchainlen = dmarcf_mkarray(arcchain, ":",
+						                                     &dfc->mctx_arcchain);
+						for (pc = 0; dfc->mctx_arcchain[pc] != NULL; pc++)
+						{
+							arcdomain = (u_char *)g_utf8_strdown(dfc->mctx_arcchain[pc],
+							                                     strlen(dfc->mctx_arcchain[pc]));
+							g_hash_table_contains(domain_whitelist_hash,
+							                      arcdomain) && arcchainitempass++;
+						}
+						if (arcchainlen == arcchainitempass)
+						{
+							dfc->mctx_arcpolicypass = TRUE;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -3043,20 +3099,14 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
 		aresult = "none";
-		// ret = SMFIS_ACCEPT;
-		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
 		aresult = "fail";		/* Accept and report */
-		// ret = SMFIS_ACCEPT;
-		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
-		// ret = SMFIS_ACCEPT;
-		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
@@ -3132,16 +3182,25 @@ mlfi_eom(SMFICTX *ctx)
 		break;
 	}
 
-	/* ARC override */
-	if (dfc->mctx_arcpass && result == DMARC_RESULT_REJECT)
+	/* ARC override
+	** If DMARC is in failure mode, we will allow the message provided that arc
+	** information is valid: arc=pass without a whitelist, or arc=pass and all
+	** domains in the arc.chain appear in the whitelist. This means that if no
+	** arc.chain is available but whitelist functionality has been enabled, the
+	** message will not authenticate despite arc=pass appearing in the A-R.
+	*/
+	if (result == DMARC_RESULT_REJECT &&
+		(dfc->mctx_arcpass && g_hash_table_size(domain_whitelist_hash) == 0) ||
+		dfc->mctx_arcpolicypass)
 	{
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
 		if (conf->conf_dolog)
 		{
 			syslog(LOG_NOTICE,
-			       "%s: overriding DMARC fail due to ARC pass",
-			       dfc->mctx_jobid);
+				"%s: overriding DMARC fail due to %s",
+				(dfc->mctx_arcpolicypass) ? "ARC policy pass" : "ARC pass",
+				dfc->mctx_jobid);
 		}
 	}
 

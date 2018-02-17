@@ -93,6 +93,7 @@ struct lookup ptypes[] =
 	{ "header",		ARES_PTYPE_HEADER },
 	{ "body",		ARES_PTYPE_BODY },
 	{ "policy",		ARES_PTYPE_POLICY },
+	{ "arc",		ARES_PTYPE_ARCCHAIN },
 	{ NULL,			ARES_PTYPE_UNKNOWN }
 };
 
