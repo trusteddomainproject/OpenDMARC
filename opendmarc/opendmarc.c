@@ -3184,23 +3184,30 @@ mlfi_eom(SMFICTX *ctx)
 
 	/* ARC override
 	** If DMARC is in failure mode, we will allow the message provided that arc
-	** information is valid: arc=pass without a whitelist, or arc=pass and all
-	** domains in the arc.chain appear in the whitelist. This means that if no
-	** arc.chain is available but whitelist functionality has been enabled, the
-	** message will not authenticate despite arc=pass appearing in the A-R.
+	** information is valid: arc=pass, arc.chain is present, and all listed
+	** domains in the chain are whitelisted.
+	**
+	** Additional logging is provided when DMARC is in failure mode and arc=pass
+	** but authentication still fails because of an invalid arc.chain to assist
+	** with administrative debugging.
 	*/
-	if (result == DMARC_RESULT_REJECT &&
-		(dfc->mctx_arcpass && g_hash_table_size(domain_whitelist_hash) == 0) ||
-		dfc->mctx_arcpolicypass)
+	if (result == DMARC_RESULT_REJECT
+	    && dfc->mctx_arcpass && !dfc->mctx_arcpolicypass && conf->conf_dolog)
+	{
+		syslog(LOG_NOTICE,
+				"%s: ARC pass, policy fail > continuing DMARC eval",
+				dfc->mctx_jobid);
+	}
+
+	if (result == DMARC_RESULT_REJECT && dfc->mctx_arcpolicypass)
 	{
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
 		if (conf->conf_dolog)
 		{
 			syslog(LOG_NOTICE,
-				"%s: overriding DMARC fail due to %s",
-				(dfc->mctx_arcpolicypass) ? "ARC policy pass" : "ARC pass",
-				dfc->mctx_jobid);
+			       "%s: ARC pass, policy pass > overriding DMARC fail",
+			       dfc->mctx_jobid);
 		}
 	}
 
