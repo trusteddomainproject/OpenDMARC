@@ -1,6 +1,7 @@
 ## opendmarc.conf -- configuration file for OpenDMARC filter
 ##
-## Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+## Copyright (c) 2012-2015, 2018, The Trusted Domain Project.
+##   All rights reserved.
 
 ## DEPRECATED CONFIGURATION OPTIONS
 ## 
@@ -107,10 +108,9 @@
 ## DomainWhitelist (string)
 ##      default (none)
 ##
-##  Require that all domains that appear in the OpenARC Authenticated-Results
-##  "arc.chain" field (appended by OpenARC "FinalReceiver" mode) also appear in
-##  this comma-separated list. Matching is case-insensitive. The default list
-##  is an empty list, meaning no matching is performed.
+##  A brief list of whitelisted domains for which ARC signature headers are
+##  trusted as determined by evaluating entries in the "arc.chain" field found
+##  in a locally generated Authentication-Results header.
 ##
 ##  This list will be concatenated with DomainWhitelistFile (if provided).
 ##
@@ -119,11 +119,9 @@
 ## DomainWhitelistFile path
 ##      default (none)
 ##
-##  Require that all domains that appear in the OpenARC Authenticated-Results
-##  "arc.chain" field (appended by OpenARC "FinalReceiver" mode) also appear in
-##  this file that contains a list of domain names. Entries are separated by a
-##  newline characters; whitespace is ignored. The default list is an empty
-##  list, meaning no matching is performed.
+##  A comprehensive list of whitelisted domains for which ARC signature headers
+##  are trusted as determined by evaluating entries in the "arc.chain" field
+##  found in a locally generated Authentication-Results header.
 ##
 ##  This list will be concatenated with DomainWhitelist (if provided).
 ##
