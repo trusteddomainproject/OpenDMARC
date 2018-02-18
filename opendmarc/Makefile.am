@@ -1,4 +1,4 @@
-# Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+# Copyright (c) 2012, 2018, The Trusted Domain Project.  All rights reserved.
 #
 # $Id: Makefile.am,v 1.85 2010/10/28 04:12:55 cm-msk Exp $
 

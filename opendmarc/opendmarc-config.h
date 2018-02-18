@@ -1,5 +1,6 @@
 /*
-**  Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2015, 2018, The Trusted Domain Project.
+**		All rights reserved.
 */
 
 #ifndef _OPENDMARC_CONFIG_H_
