@@ -76,6 +76,7 @@
 #include "test.h"
 #include "util.h"
 #include "opendmarc-ar.h"
+#include "opendmarc-arcseal.h"
 #include "opendmarc-config.h"
 #include "opendmarc-dstring.h"
 
@@ -84,6 +85,9 @@
 #define	DEFTIMEOUT	5
 #define	MAXSPFRESULT	16
 #define	RECEIVEDSPF	"Received-SPF"
+#define HIST_MAX_ARCSEAL_LIST_LEN 2048
+#define HIST_MAX_ARCSEAL_LEN 256
+
 
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
@@ -110,6 +114,14 @@ struct dmarcf_header
 	struct dmarcf_header *	hdr_prev;
 };
 
+/* ARCSEAL_HEADER -- a linked list of arcseal structs */
+struct arcseal_header
+{
+	struct arcseal arcseal;
+	struct arcseal_header * arcseal_next;
+	struct arcseal_header * arcseal_prev;
+};
+
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {
@@ -118,6 +130,8 @@ struct dmarcf_msgctx
 	int				mctx_spfresult;
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
+	struct arcseal_header * mctx_ashead;
+	struct arcseal_header * mctx_astail;
 	struct dmarcf_header *	mctx_hqhead;
 	struct dmarcf_header *	mctx_hqtail;
 	struct dmarcf_dstring *	mctx_histbuf;
@@ -1581,6 +1595,20 @@ dmarcf_cleanup(SMFICTX *ctx)
 			}
 		}
 
+		if (dfc->mctx_astail != NULL)
+		{
+			struct arcseal_header *as;
+			struct arcseal_header *prev;
+
+			as = dfc->mctx_astail;
+			while(as != NULL)
+			{
+				prev = as;
+				as = as->arcseal_prev;
+				TRYFREE(prev);
+			}
+		}
+
 		free(dfc);
 		cc->cctx_msg = NULL;
 	}
@@ -2068,6 +2096,7 @@ mlfi_eom(SMFICTX *ctx)
 	struct dmarcf_config *conf;
 	struct dmarcf_header *hdr;
 	struct dmarcf_header *from;
+	struct arcseal_header *as_hdr;
 	u_char *reqhdrs_error = NULL;
 	u_char *user;
 	u_char *domain;
@@ -2089,6 +2118,9 @@ mlfi_eom(SMFICTX *ctx)
 
 	dfc->mctx_arcpass = FALSE;
 	dfc->mctx_arcpolicypass = FALSE;
+
+	dfc->mctx_ashead = NULL;
+	dfc->mctx_astail = NULL;
 
 	/*
 	**  If necessary, try again to get the job ID in case it came down
@@ -2245,6 +2277,48 @@ mlfi_eom(SMFICTX *ctx)
 	                      dfc->mctx_fromdomain);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "mfrom %s\n",
 	                      dfc->mctx_envdomain);
+
+	/*
+	** Walk through ARC-Seal fields and pull out data.
+	*/
+
+	for (hdr = dfc->mctx_hqhead, c = 0;
+	     hdr != NULL;
+	     hdr = hdr->hdr_next, c++)
+	{
+		/* skip if it's not ARC-Seal header */
+		if (strcasecmp(hdr->hdr_name, ARC_SEAL_HDRNAME) != 0)
+			continue;
+
+		/* allocate one */
+		struct arcseal_header *as_hdr_new =
+		    (struct arcseal_header *)malloc(sizeof(struct arcseal_header));
+		if (as_hdr_new == NULL)
+		{
+			if (conf->conf_dolog)
+				syslog(LOG_ERR, "malloc(): %s", strerror(errno));
+
+			dmarcf_cleanup(ctx);
+			return SMFIS_TEMPFAIL;
+		}
+		(void) memset(as_hdr_new, '\0', sizeof(struct arcseal_header));
+
+		/* parse it */
+		if (arc_seal_parse(hdr->hdr_value, &as_hdr_new->arcseal) != 0)
+			continue;
+
+		if (dfc->mctx_ashead == NULL)
+		{
+			dfc->mctx_ashead = as_hdr_new;
+		}
+
+		if (dfc->mctx_astail != NULL)
+		{
+			dfc->mctx_astail->arcseal_next = as_hdr_new;
+		}
+
+		dfc->mctx_astail = as_hdr_new;
+	}
 
 	/*
 	**  Walk through Authentication-Results fields and pull out data.
@@ -3210,6 +3284,44 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid);
 		}
 	}
+
+	/* append arc override to historyfile
+	**
+	**  <reason>
+    **    <type>local_policy</type>
+    **	  <comment>
+	**	    arc=[status] as[N].d=dN.example.com as[N].s=sN .. as[1].d=d1.example.com as[1].s=s1
+	**	  </comment>
+   	**  </reason>
+	**
+	** Where:
+	**   arc_policy 1 json:[ { i=2, d = d2.example, s = s2 }, { i=1, d = d1.example, s = s1 } ]
+	*/
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "arc %d\n",
+	                      dfc->mctx_arcpass);
+
+	/*
+	** iterate through arcseal headers and add results to report
+	*/
+	u_char arc_seal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
+	u_char arc_seal_buf[HIST_MAX_ARCSEAL_LEN + 1];
+	for (as_hdr = dfc->mctx_ashead, c = 0;
+	     as_hdr != NULL;
+	     as_hdr = as_hdr->arcseal_next, c++)
+	{
+		snprintf(arc_seal_buf, sizeof arc_seal_str,
+		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\" }",
+				 (c > 0) ? ", " : "",
+				 as_hdr->arcseal.instance,
+		         as_hdr->arcseal.signature_domain,
+				 as_hdr->arcseal.signature_selector);
+		strlcat(arc_seal_str, (const char *)arc_seal_buf, sizeof arc_seal_str);
+	}
+
+	dmarcf_dstring_printf(dfc->mctx_histbuf,
+							"arc_policy %d json:[%s]\n",
+							dfc->mctx_arcpolicypass,
+							arc_seal_str);
 
 	/* prepare human readable dispositon string for later processing */
 	switch (result)
