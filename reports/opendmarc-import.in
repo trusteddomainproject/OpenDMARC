@@ -245,8 +245,20 @@ sub update_db
 		return;
 	}
 
-	$dbi_s = $dbi_h->prepare("INSERT INTO messages (date, jobid, reporter, policy, disp, ip, env_domain, from_domain, policy_domain, spf, align_spf, align_dkim, sigcount) VALUES(FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-	if (!$dbi_s->execute($received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id, $pdomain_id, $spf, $align_spf, $align_dkim, $sigcount))
+	$dbi_s = $dbi_h->prepare(q{
+		INSERT INTO messages(
+			date, jobid, reporter, policy, disp, ip, env_domain, from_domain,
+		 	policy_domain, spf, align_spf, align_dkim, sigcount, arc, arc_policy
+			)
+		VALUES(
+			FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			)
+		});
+
+	if (!$dbi_s->execute(
+			$received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id,
+			$pdomain_id, $spf, $align_spf, $align_dkim, $sigcount, $arc, $arc_policy
+		))
 	{
 		print STDERR "$progname: failed to insert message: " . $dbi_h->errstr . "\n";
 		return;
@@ -626,6 +638,8 @@ while (<$inputfh>)
 						undef $adkim;
 						undef $align_dkim;
 						undef $align_spf;
+						undef $arc;
+						undef $arc_policy;
 						undef $aspf;
 						undef @serialized_data;
 						undef @dkim_data;
