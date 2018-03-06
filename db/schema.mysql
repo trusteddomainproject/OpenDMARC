@@ -27,6 +27,19 @@ CREATE TABLE IF NOT EXISTS selectors (
 	UNIQUE KEY(name, domain)
 );
 
+CREATE TABLE IF NOT EXISTS arcseals (
+	id INT NOT NULL AUTO_INCREMENT,
+	message INT UNSIGNED NOT NULL,
+	domain INT UNSIGNED NOT NULL,
+	selector INT UNSIGNED NOT NULL,
+	instance INT UNSIGNED NOT NULL,
+	firstseen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	PRIMARY KEY(id),
+	KEY(message),
+	UNIQUE KEY(message, domain, selector)
+);
+
 -- A table for logging reporting requests
 CREATE TABLE IF NOT EXISTS requests (
 	id INT NOT NULL AUTO_INCREMENT,
@@ -91,7 +104,7 @@ CREATE TABLE IF NOT EXISTS messages (
 -- A table for signatures
 CREATE TABLE IF NOT EXISTS signatures (
 	id INT NOT NULL AUTO_INCREMENT,
-	message INT NOT NULL,
+	message INT UNSIGNED NOT NULL,
 	domain INT NOT NULL,
 	selector INT NOT NULL,
 	pass TINYINT NOT NULL,

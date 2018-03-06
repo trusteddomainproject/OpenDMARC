@@ -33,6 +33,19 @@ To use schema.mysql, enter the MySQL command line tool, connect to the
 database in which you want to create the required tables, and type
 "source schema.mysql".
 
+DEPENDENCIES
+============
+
+The OpenDMARC reports package requires a recent installation of Perl (>= 5) and
+also the JSON module. The latter can be installed, in most cases, with the
+following command:
+
+	sudo perl -MCPAN -e 'install JSON'
+
+On debian:
+
+	sudo apt-get install libjson-perl
+
 SETUP
 =====
 
