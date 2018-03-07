@@ -56,7 +56,7 @@ This man page covers the version of
 that shipped with version @VERSION@ of
 .I OpenDMARC.
 .SH COPYRIGHT
-Copyright (c) 2012, 2014, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012, 2014, 2018, The Trusted Domain Project.  All rights reserved.
 .SH SEE ALSO
 .I opendmarc(8),
 .I opendmarc-import(8)

@@ -1,5 +1,5 @@
 /*
-**  Copyright (c) 2012-2017, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2018, The Trusted Domain Project.  All rights reserved.
 */
 
 #include "build-config.h"
@@ -53,6 +53,9 @@
 #ifdef USE_STRL_H
 # include <strl.h>
 #endif /* USE_STRL_H */
+
+/* glib for hash support */
+#include <glib-2.0/glib.h>
 
 /* opendmarc_strl if needed */
 #ifdef USE_DMARCSTRL_H
@@ -164,6 +167,7 @@ struct dmarcf_config
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_authservid;
+	char **			conf_domainwhitelist;
 	char *			conf_historyfile;
 	char *			conf_pslist;
 	char *			conf_ignorelist;
@@ -245,6 +249,7 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+GHashTable *domain_whitelist_hash;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -1248,6 +1253,20 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			                  sizeof conf->conf_dnstimeout);
 		}
 
+		str = NULL;
+		(void) config_get(data, "DomainWhitelist", &str, sizeof str);
+		if (str != NULL)
+		{
+			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
+			/* add domains to hash */
+			for(int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
+			{
+				u_char *domain = conf->conf_domainwhitelist[i];
+				u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
+				g_hash_table_replace(domain_whitelist_hash, key, key);
+			}
+		}
+
 		(void) config_get(data, "EnableCoredumps",
 		                  &conf->conf_enablecores,
 		                  sizeof conf->conf_enablecores);
@@ -2028,7 +2047,7 @@ mlfi_eom(SMFICTX *ctx)
 	int align_dkim;
 	int align_spf;
 	int result;
-	sfsistat ret = SMFIS_CONTINUE;
+	sfsistat ret;
 	OPENDMARC_STATUS_T ostatus;
 	OPENDMARC_STATUS_T apused;
 	char *apolicy = NULL;
@@ -2407,7 +2426,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
-				domain = NULL;
+				u_char *dkim_selector = NULL;
+				u_char *dkim_domain = NULL;
 
 				for (pc = 0;
 				     pc < ar.ares_result[c].result_props;
@@ -2417,24 +2437,31 @@ mlfi_eom(SMFICTX *ctx)
 					{
 						if (ar.ares_result[c].result_property[pc][0] == 'd')
 						{
-							domain = ar.ares_result[c].result_value[pc];
+							dkim_domain = ar.ares_result[c].result_value[pc];
+						}
+						if (ar.ares_result[c].result_property[pc][0] == 's')
+						{
+							dkim_selector = ar.ares_result[c].result_value[pc];
 						}
 					}
 				}
 
-				if (domain == NULL)
+				if (dkim_domain == NULL)
 					continue;
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "dkim %s %d\n", domain,
+				                      "dkim %s %s %d\n",
+									  dkim_domain,
+									  (dkim_selector != NULL) ? dkim_selector : (u_char *)"-",
 				                      ar.ares_result[c].result_result);
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
 
-		                                     
+
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
-				                                      domain,
+				                                      dkim_domain,
+													  dkim_selector,
 				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
 				                                      NULL);
 
@@ -3009,30 +3036,32 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	result = DMARC_RESULT_ACCEPT;
+	ret = SMFIS_ACCEPT;
 
 	switch (policy)
 	{
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
 		aresult = "none";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
+		// ret = SMFIS_ACCEPT;
+		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
 		aresult = "fail";		/* Accept and report */
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
+		// ret = SMFIS_ACCEPT;
+		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
+		// ret = SMFIS_ACCEPT;
+		// result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3065,6 +3094,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3565,6 +3595,9 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_trustedauthservids != NULL)
 		dmarcf_freearray(conf->conf_trustedauthservids);
 
+	if (conf->conf_domainwhitelist != NULL)
+		dmarcf_freearray(conf->conf_domainwhitelist);
+
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
@@ -3643,6 +3676,7 @@ main(int argc, char **argv)
 	struct group *gr = NULL;
 	char *become = NULL;
 	char *chrootdir = NULL;
+	char *whitelistfile = NULL;
 	char *extract = NULL;
 	char *ignorefile = NULL;
 	char *p;
@@ -3661,6 +3695,13 @@ main(int argc, char **argv)
 	no_i_whine = TRUE;
 	conffile = NULL;
 	ignore = NULL;
+
+	/* init g_hash_table, only specify a destructor for the key as we use the
+	** same key in both places and call g_hash_table_replace() to update values
+	** instead of g_hash_table_insert().
+	*/
+	domain_whitelist_hash = g_hash_table_new_full(g_str_hash, g_str_equal,
+	                                              g_free, NULL);
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);
@@ -3964,8 +4005,37 @@ main(int argc, char **argv)
 		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
 		                  sizeof chrootdir);
 
+		(void) config_get(cfg, "DomainWhitelistFile", &whitelistfile, 
+		                  sizeof whitelistfile);
+
 		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
 		                  sizeof ignorefile);
+	}
+
+	/*
+	** @TODO: Optimize so that whitelist is loaded from file into hash directly.
+	*/
+	if (whitelistfile != NULL)
+	{
+		struct list *tmplist;
+		struct list *cur;
+
+		if (!dmarcf_loadlist(whitelistfile, &tmplist))
+		{
+			fprintf(stderr,
+			        "%s: can't load domain whitelist file from %s: %s\n",
+			        progname, whitelistfile, strerror(errno));
+			return EX_DATAERR;
+		}
+
+		for (cur = tmplist; cur != NULL; cur = cur->list_next)
+		{
+			u_char *domain = (u_char *)cur->list_str;
+			u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
+			g_hash_table_replace(domain_whitelist_hash, key, key);
+		}
+
+		dmarcf_freelist(tmplist);
 	}
 
 	if (ignorefile != NULL)
@@ -4706,6 +4776,9 @@ main(int argc, char **argv)
 	dmarcf_config_free(curconf);
 	if (ignore != NULL)
 		dmarcf_freelist(ignore);
+
+	/* free domain whitelist hast */
+	g_hash_table_destroy(domain_whitelist_hash);
 
 	/* tell the reloader thread to die */
 	die = TRUE;

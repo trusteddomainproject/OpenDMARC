@@ -120,6 +120,25 @@ Adds the specified recipient to the message's envelope if it fails the DMARC
 evaluation.
 
 .TP
+.I DomainWhitelist (string)
+Require that all domains that appear in the OpenARC Authenticated-Results
+"arc.chain" field (appended by OpenARC "FinalReceiver" mode) also appear in
+this comma-separated list. Matching is case-insensitive. The default list
+is an empty list, meaning no matching is performed.
+
+This list will be concatenated with DomainWhitelistFile (if provided).
+
+.TP
+.I DomainWhitelistFile (string)
+Require that all domains that appear in the OpenARC Authenticated-Results
+"arc.chain" field (appended by OpenARC "FinalReceiver" mode) also appear in
+this file that contains a list of domain names. Entries are separated by a
+newline characters; whitespace is ignored. The default list is an empty
+list, meaning no matching is performed.
+
+This list will be concatenated with DomainWhitelist (if provided).
+
+.TP
 .I DNSTimeout (integer)
 Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
 The default is 5.  Ignored if not using an asynchronous resolver package.
