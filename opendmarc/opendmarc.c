@@ -1,5 +1,5 @@
 /*
-**  Copyright (c) 2012-2017, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2018, The Trusted Domain Project.  All rights reserved.
 */
 
 #include "build-config.h"
@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <signal.h>
 #include <pthread.h>
 #include <syslog.h>
@@ -53,6 +54,9 @@
 #ifdef USE_STRL_H
 # include <strl.h>
 #endif /* USE_STRL_H */
+
+/* glib for hash support */
+#include <glib-2.0/glib.h>
 
 /* opendmarc_strl if needed */
 #ifdef USE_DMARCSTRL_H
@@ -109,9 +113,11 @@ struct dmarcf_header
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {
-	_Bool			mctx_arcpass;
-	int			mctx_spfresult;
+	int				mctx_arcpass;
+	int				mctx_arcpolicypass;
+	int				mctx_spfresult;
 	char *			mctx_jobid;
+	char **			mctx_arcchain;
 	struct dmarcf_header *	mctx_hqhead;
 	struct dmarcf_header *	mctx_hqtail;
 	struct dmarcf_dstring *	mctx_histbuf;
@@ -164,6 +170,7 @@ struct dmarcf_config
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_authservid;
+	char **			conf_domainwhitelist;
 	char *			conf_historyfile;
 	char *			conf_pslist;
 	char *			conf_ignorelist;
@@ -245,6 +252,7 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+GHashTable *domain_whitelist_hash;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -754,18 +762,18 @@ dmarcf_freearray(char **a)
 }
 
 /*
-**  DMARCF_MKARRAY -- convert a comma-separated string into an array
+**  DMARCF_MKARRAY -- convert a delimiter-separated string into an array
 **
 **  Parameters:
 **  	str -- input string
-**  	array -- output array
+**		delim -- delimeter string
 **
 **  Return value:
 **  	Array length, or -1 on error.
 */
 
 int
-dmarcf_mkarray(char *str, char ***array)
+dmarcf_mkarray(char *str, char *delim, char ***array)
 {
 	int n = 0;
 	int a = 0;
@@ -774,9 +782,12 @@ dmarcf_mkarray(char *str, char ***array)
 	char *ctx;
 	char **out = NULL;
 
-	for (p = strtok_r(str, ",", &ctx);
+	assert(str != NULL);
+	assert(delim != NULL);
+
+	for (p = strtok_r(str, delim, &ctx);
 	     p != NULL;
-	     p = strtok_r(NULL, ",", &ctx))
+	     p = strtok_r(NULL, delim, &ctx))
 	{
 		dmarcf_eatspaces(p);
 
@@ -1220,12 +1231,12 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		str = NULL;
 		(void) config_get(data, "TrustedAuthservIDs", &str, sizeof str);
 		if (str != NULL)
-			dmarcf_mkarray(str, &conf->conf_trustedauthservids);
+			dmarcf_mkarray(str, ",", &conf->conf_trustedauthservids);
 
 		str = NULL;
 		(void) config_get(data, "IgnoreMailFrom", &str, sizeof str);
 		if (str != NULL)
-			dmarcf_mkarray(str, &conf->conf_ignoredomains);
+			dmarcf_mkarray(str, ",", &conf->conf_ignoredomains);
 
 		(void) config_get(data, "AuthservIDWithJobID",
 		                  &conf->conf_authservidwithjobid,
@@ -1246,6 +1257,20 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			(void) config_get(data, "DNSTimeout",
 			                  &conf->conf_dnstimeout,
 			                  sizeof conf->conf_dnstimeout);
+		}
+
+		str = NULL;
+		(void) config_get(data, "DomainWhitelist", &str, sizeof str);
+		if (str != NULL)
+		{
+			dmarcf_mkarray(str, ",", &conf->conf_domainwhitelist);
+			/* add domains to hash */
+			for(int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
+			{
+				u_char *domain = conf->conf_domainwhitelist[i];
+				u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
+				g_hash_table_replace(domain_whitelist_hash, key, key);
+			}
 		}
 
 		(void) config_get(data, "EnableCoredumps",
@@ -1336,7 +1361,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	if (conf->conf_trustedauthservids == NULL &&
 	    conf->conf_authservid != NULL)
 	{
-		dmarcf_mkarray(conf->conf_authservid,
+		dmarcf_mkarray(conf->conf_authservid, ",",
 		               &conf->conf_trustedauthservids);
 	}
 
@@ -2027,8 +2052,9 @@ mlfi_eom(SMFICTX *ctx)
 	int sp;
 	int align_dkim;
 	int align_spf;
+	int limit_arc = 0;
 	int result;
-	sfsistat ret = SMFIS_CONTINUE;
+	sfsistat ret;
 	OPENDMARC_STATUS_T ostatus;
 	OPENDMARC_STATUS_T apused;
 	char *apolicy = NULL;
@@ -2060,6 +2086,9 @@ mlfi_eom(SMFICTX *ctx)
 	dfc = cc->cctx_msg;
 	assert(dfc != NULL);
 	conf = cc->cctx_config;
+
+	dfc->mctx_arcpass = ARES_RESULT_FAIL;
+	dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_FAIL;
 
 	/*
 	**  If necessary, try again to get the job ID in case it came down
@@ -2407,7 +2436,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
-				domain = NULL;
+				u_char *dkim_selector = NULL;
+				u_char *dkim_domain = NULL;
 
 				for (pc = 0;
 				     pc < ar.ares_result[c].result_props;
@@ -2417,24 +2447,31 @@ mlfi_eom(SMFICTX *ctx)
 					{
 						if (ar.ares_result[c].result_property[pc][0] == 'd')
 						{
-							domain = ar.ares_result[c].result_value[pc];
+							dkim_domain = ar.ares_result[c].result_value[pc];
+						}
+						if (ar.ares_result[c].result_property[pc][0] == 's')
+						{
+							dkim_selector = ar.ares_result[c].result_value[pc];
 						}
 					}
 				}
 
-				if (domain == NULL)
+				if (dkim_domain == NULL)
 					continue;
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
-				                      "dkim %s %d\n", domain,
+				                      "dkim %s %s %d\n",
+									  dkim_domain,
+									  (dkim_selector != NULL) ? dkim_selector : (u_char *)"-",
 				                      ar.ares_result[c].result_result);
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
 
-		                                     
+
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
-				                                      domain,
+				                                      dkim_domain,
+													  dkim_selector,
 				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
 				                                      NULL);
 
@@ -2452,8 +2489,54 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_ARC)
 			{
-				if (ar.ares_result[c].result_result == ARES_RESULT_PASS)
-					dfc->mctx_arcpass = TRUE;
+				limit_arc++;
+				/*
+				** If we already came across a trusted A-R header with arc=pass
+				** we need to fail.
+				*/
+				if (ar.ares_result[c].result_result == ARES_RESULT_PASS && limit_arc == 1)
+				{
+					dfc->mctx_arcpass = ARES_RESULT_PASS;
+				}
+				else
+				{
+					dfc->mctx_arcpass = ARES_RESULT_FAIL;
+				}
+
+				/*
+				** Check arc status against whitelist policy
+				*/
+				if (dfc->mctx_arcpass == ARES_RESULT_PASS && g_hash_table_size(domain_whitelist_hash) > 0)
+				{
+					u_char *arcchain = NULL, *arcdomain;
+					int arcchainlen = 0, arcchainitempass = 0;
+
+					for (pc = 0;
+						pc < ar.ares_result[c].result_props;
+						pc++)
+					{
+						if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_ARCCHAIN)
+						{
+							arcchain = ar.ares_result[c].result_value[pc];
+						}
+					}
+					if (arcchain != NULL)
+					{
+						arcchainlen = dmarcf_mkarray(arcchain, ":",
+						                                     &dfc->mctx_arcchain);
+						for (pc = 0; dfc->mctx_arcchain[pc] != NULL; pc++)
+						{
+							arcdomain = (u_char *)g_utf8_strdown(dfc->mctx_arcchain[pc],
+							                                     strlen(dfc->mctx_arcchain[pc]));
+							g_hash_table_contains(domain_whitelist_hash,
+							                      arcdomain) && arcchainitempass++;
+						}
+						if (arcchainlen == arcchainitempass)
+						{
+							dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_PASS;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -3009,30 +3092,26 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	result = DMARC_RESULT_ACCEPT;
+	ret = SMFIS_ACCEPT;
 
 	switch (policy)
 	{
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
 		aresult = "none";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
 		aresult = "fail";		/* Accept and report */
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3065,6 +3144,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3102,15 +3182,33 @@ mlfi_eom(SMFICTX *ctx)
 		break;
 	}
 
-	/* ARC override */
-	if (dfc->mctx_arcpass && result == DMARC_RESULT_REJECT)
+	/* ARC override
+	** If DMARC is in failure mode, we will allow the message provided that arc
+	** information is valid: arc=pass, arc.chain is present, and all listed
+	** domains in the chain are whitelisted.
+	**
+	** Additional logging is provided when DMARC is in failure mode and arc=pass
+	** but authentication still fails because of an invalid arc.chain to assist
+	** with administrative debugging.
+	*/
+	if (result == DMARC_RESULT_REJECT
+	    && dfc->mctx_arcpass == ARES_RESULT_PASS
+		&& dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS
+		&& conf->conf_dolog)
+	{
+		syslog(LOG_NOTICE,
+				"%s: ARC pass, policy fail > continuing DMARC eval",
+				dfc->mctx_jobid);
+	}
+
+	if (result == DMARC_RESULT_REJECT && dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
 	{
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
 		if (conf->conf_dolog)
 		{
 			syslog(LOG_NOTICE,
-			       "%s: overriding DMARC fail due to ARC pass",
+			       "%s: ARC pass, policy pass > overriding DMARC fail",
 			       dfc->mctx_jobid);
 		}
 	}
@@ -3565,6 +3663,9 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_trustedauthservids != NULL)
 		dmarcf_freearray(conf->conf_trustedauthservids);
 
+	if (conf->conf_domainwhitelist != NULL)
+		dmarcf_freearray(conf->conf_domainwhitelist);
+
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
@@ -3643,6 +3744,7 @@ main(int argc, char **argv)
 	struct group *gr = NULL;
 	char *become = NULL;
 	char *chrootdir = NULL;
+	char *whitelistfile = NULL;
 	char *extract = NULL;
 	char *ignorefile = NULL;
 	char *p;
@@ -3661,6 +3763,13 @@ main(int argc, char **argv)
 	no_i_whine = TRUE;
 	conffile = NULL;
 	ignore = NULL;
+
+	/* init g_hash_table, only specify a destructor for the key as we use the
+	** same key in both places and call g_hash_table_replace() to update values
+	** instead of g_hash_table_insert().
+	*/
+	domain_whitelist_hash = g_hash_table_new_full(g_str_hash, g_str_equal,
+	                                              g_free, NULL);
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);
@@ -3964,8 +4073,37 @@ main(int argc, char **argv)
 		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
 		                  sizeof chrootdir);
 
+		(void) config_get(cfg, "DomainWhitelistFile", &whitelistfile, 
+		                  sizeof whitelistfile);
+
 		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
 		                  sizeof ignorefile);
+	}
+
+	/*
+	** @TODO: Optimize so that whitelist is loaded from file into hash directly.
+	*/
+	if (whitelistfile != NULL)
+	{
+		struct list *tmplist;
+		struct list *cur;
+
+		if (!dmarcf_loadlist(whitelistfile, &tmplist))
+		{
+			fprintf(stderr,
+			        "%s: can't load domain whitelist file from %s: %s\n",
+			        progname, whitelistfile, strerror(errno));
+			return EX_DATAERR;
+		}
+
+		for (cur = tmplist; cur != NULL; cur = cur->list_next)
+		{
+			u_char *domain = (u_char *)cur->list_str;
+			u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
+			g_hash_table_replace(domain_whitelist_hash, key, key);
+		}
+
+		dmarcf_freelist(tmplist);
 	}
 
 	if (ignorefile != NULL)
@@ -4706,6 +4844,9 @@ main(int argc, char **argv)
 	dmarcf_config_free(curconf);
 	if (ignore != NULL)
 		dmarcf_freelist(ignore);
+
+	/* free domain whitelist hast */
+	g_hash_table_destroy(domain_whitelist_hash);
 
 	/* tell the reloader thread to die */
 	die = TRUE;

@@ -1,4 +1,4 @@
-# Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+# Copyright (c) 2012, 2018, The Trusted Domain Project.  All rights reserved.
 #
 # $Id: Makefile.am,v 1.85 2010/10/28 04:12:55 cm-msk Exp $
 
@@ -15,10 +15,10 @@ opendmarc_SOURCES = config.c config.h opendmarc.c opendmarc.h \
 	opendmarc-dstring.c opendmarc-dstring.h \
 	parse.c parse.h test.c test.h util.c util.h
 opendmarc_CC = $(PTHREAD_CC)
-opendmarc_CFLAGS = $(PTHREAD_CFLAGS) 
-opendmarc_CPPFLAGS = $(LIBMILTER_INCDIRS) -I$(srcdir)/../libopendmarc
+opendmarc_CFLAGS = $(PTHREAD_CFLAGS) $(GLIB_CFLAGS)
+opendmarc_CPPFLAGS = $(LIBMILTER_INCDIRS) -I$(srcdir)/../libopendmarc $(GLIB_CFLAGS)
 opendmarc_LDFLAGS = $(LIBMILTER_LIBDIRS) $(PTHREAD_CFLAGS)
-opendmarc_LDADD = ../libopendmarc/libopendmarc.la $(LIBMILTER_LIBS) $(PTHREAD_LIBS) $(LIBRESOLV)
+opendmarc_LDADD = ../libopendmarc/libopendmarc.la $(LIBMILTER_LIBS) $(PTHREAD_LIBS) $(LIBRESOLV) $(GLIB_LIBS)
 
 opendmarc_check_SOURCES = opendmarc-check.c
 opendmarc_check_CPPFLAGS = -I$(srcdir)/../libopendmarc
