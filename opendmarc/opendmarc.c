@@ -125,8 +125,8 @@ struct arcseal_header
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {
-	_Bool			mctx_arcpass;
-	_Bool			mctx_arcpolicypass;
+	int				mctx_arcpass;
+	int				mctx_arcpolicypass;
 	int				mctx_spfresult;
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
@@ -2116,8 +2116,8 @@ mlfi_eom(SMFICTX *ctx)
 	assert(dfc != NULL);
 	conf = cc->cctx_config;
 
-	dfc->mctx_arcpass = FALSE;
-	dfc->mctx_arcpolicypass = FALSE;
+	dfc->mctx_arcpass = ARES_RESULT_FAIL;
+	dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_FAIL;
 
 	dfc->mctx_ashead = NULL;
 	dfc->mctx_astail = NULL;
@@ -2570,17 +2570,17 @@ mlfi_eom(SMFICTX *ctx)
 				*/
 				if (ar.ares_result[c].result_result == ARES_RESULT_PASS && limit_arc == 1)
 				{
-					dfc->mctx_arcpass = TRUE;
+					dfc->mctx_arcpass = ARES_RESULT_PASS;
 				}
 				else
 				{
-					dfc->mctx_arcpass = FALSE;
+					dfc->mctx_arcpass = ARES_RESULT_FAIL;
 				}
 
 				/*
 				** Check arc status against whitelist policy
 				*/
-				if (dfc->mctx_arcpass && g_hash_table_size(domain_whitelist_hash) > 0)
+				if (dfc->mctx_arcpass == ARES_RESULT_PASS && g_hash_table_size(domain_whitelist_hash) > 0)
 				{
 					u_char *arcchain = NULL, *arcdomain;
 					int arcchainlen = 0, arcchainitempass = 0;
@@ -2607,7 +2607,7 @@ mlfi_eom(SMFICTX *ctx)
 						}
 						if (arcchainlen == arcchainitempass)
 						{
-							dfc->mctx_arcpolicypass = TRUE;
+							dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_PASS;
 						}
 					}
 				}
@@ -3266,14 +3266,16 @@ mlfi_eom(SMFICTX *ctx)
 	** with administrative debugging.
 	*/
 	if (result == DMARC_RESULT_REJECT
-	    && dfc->mctx_arcpass && !dfc->mctx_arcpolicypass && conf->conf_dolog)
+	    && dfc->mctx_arcpass == ARES_RESULT_PASS
+		&& dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS
+		&& conf->conf_dolog)
 	{
 		syslog(LOG_NOTICE,
 				"%s: ARC pass, policy fail > continuing DMARC eval",
 				dfc->mctx_jobid);
 	}
 
-	if (result == DMARC_RESULT_REJECT && dfc->mctx_arcpolicypass)
+	if (result == DMARC_RESULT_REJECT && dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
 	{
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
