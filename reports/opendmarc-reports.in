@@ -623,8 +623,6 @@ foreach (@$domainset)
 	{
 		undef $msgid;
 
-		dd $dbi_a;
-
 		if (defined($dbi_a->[0]))
 		{
 			$msgid = $dbi_a->[0];
@@ -720,7 +718,7 @@ foreach (@$domainset)
 
 		switch ($arcpolicy)
 		{
-			case 1	{ $arcpolicystr = "pass"; }
+			case 0	{ $arcpolicystr = "pass"; }
 			else	{ $arcpolicystr = "fail"; }
 		}
 
@@ -745,7 +743,6 @@ foreach (@$domainset)
 		my $arc_policy_output = "arc=$arcpolicystr";
 		while ($dbi_hash = $dbi_s2->fetchrow_hashref())
 		{
-			dd $dbi_hash;
 			$arc_policy_output .= " as[$dbi_hash->{instance}].d=$dbi_hash->{domain}";
 			$arc_policy_output .= " as[$dbi_hash->{instance}].s=$dbi_hash->{selector}";
 		}
