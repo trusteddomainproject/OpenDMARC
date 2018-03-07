@@ -1,6 +1,7 @@
 ## opendmarc.conf -- configuration file for OpenDMARC filter
 ##
-## Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+## Copyright (c) 2012-2015, 2018, The Trusted Domain Project.
+##   All rights reserved.
 
 ## DEPRECATED CONFIGURATION OPTIONS
 ## 
@@ -103,6 +104,28 @@
 ##  any message that fails the DMARC evaluation.
 #
 # CopyFailuresTo postmaster@localhost
+
+## DomainWhitelist (string)
+##      default (none)
+##
+##  A brief list of whitelisted domains for which ARC signature headers are
+##  trusted as determined by evaluating entries in the "arc.chain" field found
+##  in a locally generated Authentication-Results header.
+##
+##  This list will be concatenated with DomainWhitelistFile (if provided).
+##
+# DomainWhiteList example.com
+
+## DomainWhitelistFile path
+##      default (none)
+##
+##  A comprehensive list of whitelisted domains for which ARC signature headers
+##  are trusted as determined by evaluating entries in the "arc.chain" field
+##  found in a locally generated Authentication-Results header.
+##
+##  This list will be concatenated with DomainWhitelist (if provided).
+##
+# DomainWhitelistFile /usr/local/etc/opendmarc/whitelist.domains
 
 ##  DNSTimeout (integer)
 ##  	default 5

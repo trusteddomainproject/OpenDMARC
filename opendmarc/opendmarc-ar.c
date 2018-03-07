@@ -2,7 +2,7 @@
 **  Copyright (c) 2007-2009 Sendmail, Inc. and its suppliers.
 **	All rights reserved.
 **
-**  Copyright (c) 2009, 2011-2014, The Trusted Domain Project.
+**  Copyright (c) 2009, 2011-2014, 2018, The Trusted Domain Project.
 **  	All rights reserved.
 */
 
@@ -93,6 +93,7 @@ struct lookup ptypes[] =
 	{ "header",		ARES_PTYPE_HEADER },
 	{ "body",		ARES_PTYPE_BODY },
 	{ "policy",		ARES_PTYPE_POLICY },
+	{ "arc",		ARES_PTYPE_ARCCHAIN },
 	{ NULL,			ARES_PTYPE_UNKNOWN }
 };
 

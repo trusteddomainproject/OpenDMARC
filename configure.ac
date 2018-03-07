@@ -1,7 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright (c) 2012-2017, The Trusted Domain Project.  All rights reserved.
+# Copyright (c) 2012-2017, 2018, The Trusted Domain Project.
+#	All rights reserved.
 
 # Acceptable arguments to configure are:
 # 	The usual CC= etc.
@@ -306,7 +307,9 @@ AM_CONDITIONAL([USE_SPF], [test x"$use_spf" = x"yes"])
 
 #
 # opendmarc
-# 
+#
+PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.48.2])
+
 AC_ARG_ENABLE([filter],
               AS_HELP_STRING([--disable-filter],
                              [do not compile the opendmarc filter]),

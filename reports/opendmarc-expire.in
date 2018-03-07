@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2010-2012, 2014-2016, The Trusted Domain Project.
+# Copyright (c) 2010-2012, 2014-2016, 2018, The Trusted Domain Project.
 # All rights reserved.
 #
 # Script to age out OpenDMARC aggregate report data
@@ -295,6 +295,17 @@ if (!defined($minmsg))
 		}
 
 		$dbi_s->finish;
+
+		$dbi_s = $dbi_h->prepare("TRUNCATE TABLE arcseals");
+		if (!$dbi_s->execute)
+		{
+			print STDERR "$progname: TRUNCATE failed: " . $dbi_h->errstr;
+			$dbi_s->finish;
+			$dbi_h->disconnect;
+			exit(1);
+		}
+
+		$dbi_s->finish;
 	}
 
 	$dbi_h->disconnect;
@@ -329,6 +340,32 @@ else
 	}
 
 	$dbi_s->finish;
+
+	if ($verbose)
+	{
+		print STDERR "$progname: expiring arcseals on expired messages (id < $minmsg)\n";
+	}
+
+	$dbi_s = $dbi_h->prepare("DELETE FROM arcseals WHERE message < ?");
+	$rows = $dbi_s->execute($minmsg);
+	if (!$rows)
+	{
+		print STDERR "$progname: DELETE failed: " . $dbi_h->errstr;
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+	elsif ($verbose)
+	{
+		if ($rows eq "0E0")
+		{
+			print STDOUT "$progname: no rows deleted\n";
+		}
+		else
+		{
+			print STDOUT "$progname: $rows row(s) deleted\n";
+		}
+	}
 }
 
 #
@@ -367,15 +404,48 @@ if ($alltables)
 {
 	if ($verbose)
 	{
+		print STDERR "$progname: expiring unneeded selector data\n";
+	}
+
+	$dbi_s = $dbi_h->prepare(q{
+		DELETE FROM selectors
+		WHERE id NOT IN (SELECT DISTINCT selector FROM signatures)
+			AND id NOT IN (SELECT DISTINCT selector FROM arcseals)
+		});
+    $rows = $dbi_s->execute();
+	if (!$rows)
+	{
+		print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+	elsif ($verbose)
+	{
+		if ($rows eq "0E0")
+		{
+			print STDOUT "$progname: no rows deleted\n";
+		}
+		else
+		{
+			print STDOUT "$progname: $rows row(s) deleted\n";
+		}
+	}
+
+	if ($verbose)
+	{
 		print STDERR "$progname: expiring unneeded domain data\n";
 	}
 
-	$dbi_s = $dbi_h->prepare("DELETE FROM domains WHERE id NOT IN
-		(SELECT DISTINCT domain FROM requests) AND id NOT IN
-		(SELECT DISTINCT from_domain FROM messages) AND id NOT IN
-		(SELECT DISTINCT env_domain FROM messages) AND id NOT IN
-		(SELECT DISTINCT policy_domain FROM messages) AND id NOT IN
-		(SELECT DISTINCT domain FROM signatures)");
+	$dbi_s = $dbi_h->prepare(q{
+		DELETE FROM domains
+		WHERE id NOT IN (SELECT DISTINCT domain FROM requests)
+			AND id NOT IN (SELECT DISTINCT from_domain FROM messages)
+			AND id NOT IN (SELECT DISTINCT env_domain FROM messages)
+			AND id NOT IN (SELECT DISTINCT policy_domain FROM messages)
+			AND id NOT IN (SELECT DISTINCT domain FROM signatures)
+			AND id NOT IN (SELECT DISTINCT domain FROM arcseals)
+		});
 	$rows = $dbi_s->execute();
 	if (!$rows)
 	{
@@ -450,7 +520,7 @@ if ($alltables)
 		}
 	}
 }
-	
+
 #
 # All done!
 #
