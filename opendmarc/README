@@ -158,16 +158,16 @@ their encodings, but there are only a few of them:
 	spf		SPF evaluation (0 = pass, 2 = fail, 6 = none,
 			-1 = not evaluated)
 
-	dkim	DKIM evaluation (signing domain, selector, evaluation - same as SPF)
+	dkim		DKIM evaluation (signing domain, selector, evaluation - same as SPF)
 
 	pdomain		policy domain (the "organizational" domain,
 			the one asserting policy)
 
-	from	domain found in the From field
+	from		domain found in the From field
 
-	mfrom	domain found in the MAIL FROM parameter
+	mfrom		domain found in the MAIL FROM parameter
 
-	policy	policy to enforce, as follows:
+	policy		policy to enforce, as follows:
 			14 = unknown (no record found)
 			15 = pass
 			16 = reject

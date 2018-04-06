@@ -2432,8 +2432,8 @@ mlfi_eom(SMFICTX *ctx)
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %s %d\n",
-									  dkim_domain,
-									  (dkim_selector != NULL) ? dkim_selector : (u_char *)"-",
+				                      dkim_domain,
+				                      (dkim_selector != NULL) ? dkim_selector : (u_char *)"-",
 				                      ar.ares_result[c].result_result);
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
@@ -2442,7 +2442,7 @@ mlfi_eom(SMFICTX *ctx)
 
 				ostatus = opendmarc_policy_store_dkim(cc->cctx_dmarc,
 				                                      dkim_domain,
-													  dkim_selector,
+				                                      dkim_selector,
 				                                      DMARC_POLICY_DKIM_OUTCOME_PASS,
 				                                      NULL);
 
@@ -2466,7 +2466,7 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
-	/* 
+	/*
 	**  If we didn't get Authentication-Results for SPF, parse any
 	**  Received-SPF we might have.
 	*/

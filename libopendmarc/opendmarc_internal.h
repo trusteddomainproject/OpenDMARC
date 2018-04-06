@@ -132,7 +132,7 @@ typedef struct dmarc_policy_t {
 	u_char *	spf_human_outcome;	/* Input: What was the outcome of the SPF check in human readable form */
 	int		dkim_final;		/* This is the best record found */
 	u_char * 	dkim_domain;		/* Input: The d= domain */
-	u_char *	dkim_selector;	/* Input: The s= selector */
+	u_char *	dkim_selector;		/* Input: The s= selector */
 	int		dkim_outcome;		/* Input: What was the outcome of the DKIM check */
 	u_char *	dkim_human_outcome;	/* Input: What was the outcome of the DKIM check in human readable form */
 

@@ -421,14 +421,14 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 ** OPENDMARC_POLICY_STORE_DKIM -- Store dkim results
 **
 **	Parameters:
-**		pctx		-- The context to update
-**		d_equal_domain 	-- The the domain from the d= 
+**		pctx			-- The context to update
+**		d_equal_domain 		-- The the domain from the d=
 **		s_equal_selector	-- THe selector from the s=
-**		dkim_result 	-- DMARC_POLICY_DKIM_OUTCOME_NONE
-**				or DMARC_POLICY_DKIM_OUTCOME_PASS
-**				or DMARC_POLICY_DKIM_OUTCOME_FAIL
-**				or DMARC_POLICY_DKIM_OUTCOME_TMPFAIL
-**		human_result	-- A human readable reason for failure
+**		dkim_result 		-- DMARC_POLICY_DKIM_OUTCOME_NONE
+**					or DMARC_POLICY_DKIM_OUTCOME_PASS
+**					or DMARC_POLICY_DKIM_OUTCOME_FAIL
+**					or DMARC_POLICY_DKIM_OUTCOME_TMPFAIL
+**		human_result		-- A human readable reason for failure
 **	Returns:
 **		DMARC_PARSE_OKAY		-- On success
 **		DMARC_PARSE_ERROR_NULL_CTX	-- If pctx was NULL

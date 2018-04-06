@@ -260,9 +260,9 @@ while ($dbi_a = $dbi_s->fetchrow_arrayref())
 	$minmsg = $dbi_a->[0];
 }
 
-# 
+#
 # We might have emptied the messages table
-# 
+#
 $dbi_s->finish;
 
 if (!defined($minmsg))
@@ -371,8 +371,8 @@ if ($alltables)
 	}
 
 	$dbi_s = $dbi_h->prepare("DELETE FROM selectors WHERE id NOT IN
-		(SELECT DISTINCT selector FROM signatures)");
-    $rows = $dbi_s->execute();
+	                         (SELECT DISTINCT selector FROM signatures)");
+	$rows = $dbi_s->execute();
 	if (!$rows)
 	{
 		print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
