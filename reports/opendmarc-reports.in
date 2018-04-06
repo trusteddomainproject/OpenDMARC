@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2012-2016, 2017, The Trusted Domain Project.
+# Copyright (c) 2012-2016, 2017-2018, The Trusted Domain Project.
 #   All rights reserved.
 #
 # Script to generate regular DMARC reports.
@@ -93,6 +93,7 @@ my $ipaddr;
 my $fromdomain;
 my $envdomain;
 my $dkimdomain;
+my $dkimselector;
 
 my $repdest;
 
@@ -693,7 +694,12 @@ foreach (@$domainset)
 		print $tmpout "    <result>$spfresultstr</result>\n";
 		print $tmpout "   </spf>\n";
 
-		$dbi_d = $dbi_h->prepare("SELECT domains.name, pass FROM signatures JOIN domains ON signatures.domain = domains.id WHERE signatures.message = ?");
+		$dbi_d = $dbi_h->prepare(q{
+			SELECT domains.name, selectors.name, pass FROM signatures
+			JOIN domains ON signatures.domain = domains.id
+			JOIN selectors ON signatures.selector = selectors.id
+			WHERE signatures.message = ?
+			});
 		if (!$dbi_d->execute($msgid))
 		{
 			print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
@@ -714,18 +720,22 @@ foreach (@$domainset)
 			}
 			if (defined($dbi_a->[1]))
 			{
-				$dkimresult = $dbi_a->[1];
+				$dkimselector = $dbi_a->[1];
+			}
+			if (defined($dbi_a->[2]))
+			{
+				$dkimresult = $dbi_a->[2];
 			}
 
 			if (!defined($dkimdomain))
 			{
 				next;
 			}
-			if (!defined($dkim_domain_result_cache{$dkimdomain}{$dkimresult}))
+			if (defined($dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}))
 			{
 				next; # no duplicate per-record auth_result dkim sections
 			}
-			$dkim_domain_result_cache{$dkimdomain}{$dkimresult}++;
+			$dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}++;
 
 			switch ($dkimresult)
 			{
@@ -745,6 +755,7 @@ foreach (@$domainset)
 
 			print $tmpout "   <dkim>\n";
 			print $tmpout "    <domain>$dkimdomain</domain>\n";
+			print $tmpout "    <selector>$dkimselector</selector>\n";
 			print $tmpout "    <result>$dkimresultstr</result>\n";
 			print $tmpout "   </dkim>\n";
 		}
