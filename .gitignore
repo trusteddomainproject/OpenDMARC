@@ -3,7 +3,6 @@ Makefile
 Makefile.in
 autom4te.cache/
 configure
-build-aux
 build-config.h
 build-config.h.in
 build-config.h.in~
@@ -12,7 +11,6 @@ config.status
 config.cache
 stamp-h.in
 stamp-h1
-ltmain.sh
 libtool
 opendmarc-[0-9].[0-9].[0-9]
 opendmarc*.gz
