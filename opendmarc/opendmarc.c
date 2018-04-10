@@ -1,8 +1,11 @@
 /*
 **  Copyright (c) 2012-2018, The Trusted Domain Project.  All rights reserved.
 */
-
 #include "build-config.h"
+
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif /* ! _GNU_SOURCE */
 
 #ifndef _POSIX_PTHREAD_SEMANTICS
 # define _POSIX_PTHREAD_SEMANTICS
@@ -55,8 +58,8 @@
 # include <strl.h>
 #endif /* USE_STRL_H */
 
-/* glib for hash support */
-#include <glib-2.0/glib.h>
+/* hash support -- requires #define _GNU_SOURCE */
+#include <search.h>
 
 /* opendmarc_strl if needed */
 #ifdef USE_DMARCSTRL_H
@@ -81,13 +84,13 @@
 #include "opendmarc-dstring.h"
 
 /* macros */
-#define	CMDLINEOPTS	"Ac:flnp:P:t:u:vV"
-#define	DEFTIMEOUT	5
-#define	MAXSPFRESULT	16
-#define	RECEIVEDSPF	"Received-SPF"
-#define HIST_MAX_ARCSEAL_LIST_LEN 2048
-#define HIST_MAX_ARCSEAL_LEN 256
-
+#define	CMDLINEOPTS			"Ac:flnp:P:t:u:vV"
+#define	DEFTIMEOUT			5
+#define	MAXSPFRESULT			16
+#define	RECEIVEDSPF			"Received-SPF"
+#define HIST_MAX_ARCSEAL_LIST_LEN	2048
+#define HIST_MAX_ARCSEAL_LEN		256
+#define	MAXWHITELISTSIZE		4
 
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
@@ -125,9 +128,9 @@ struct arcseal_header
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {
-	int				mctx_arcpass;
-	int				mctx_arcpolicypass;
-	int				mctx_spfresult;
+	int			mctx_arcpass;
+	int			mctx_arcpolicypass;
+	int			mctx_spfresult;
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
 	struct arcseal_header * mctx_ashead;
@@ -231,6 +234,18 @@ struct lookup log_facilities[] =
 	{ NULL,			-1 }
 };
 
+#if defined(__linux__) && defined(DEBUG_WHITELIST)
+/* replicate search internal hash struct so we can iterate over the hash
+** structure for debugging.
+ */
+struct _ENTRY
+{
+	unsigned int used;
+	ENTRY entry;
+};
+typedef struct _ENTRY _ENTRY;
+#endif /* DEBUG_WHITELIST */
+
 /* prototypes */
 sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));
@@ -266,7 +281,7 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
-GHashTable *domain_whitelist_hash;
+struct hsearch_data *domain_whitelist_hash;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -780,7 +795,7 @@ dmarcf_freearray(char **a)
 **
 **  Parameters:
 **  	str -- input string
-**		delim -- delimeter string
+**  	delim -- delimeter string
 **
 **  Return value:
 **  	Array length, or -1 on error.
@@ -1238,7 +1253,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		{
 			if (strcmp(str, "HOSTNAME") == 0)
 				conf->conf_authservid = strdup(myhostname);
-			else	
+			else
 				conf->conf_authservid = strdup(str);
 		}
 
@@ -1277,13 +1292,28 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "DomainWhitelist", &str, sizeof str);
 		if (str != NULL)
 		{
+			ENTRY entry, *entryptr;
+			int result = 0;
+
 			dmarcf_mkarray(str, ",", &conf->conf_domainwhitelist);
+
 			/* add domains to hash */
 			for(int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
 			{
 				u_char *domain = conf->conf_domainwhitelist[i];
-				u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
-				g_hash_table_replace(domain_whitelist_hash, key, key);
+				u_char *key;
+
+				dmarcf_lowercase(domain);
+
+				entry.key = domain;
+				entry.data = (void *)domain;
+				result = hsearch_r(entry, ENTER, &entryptr, domain_whitelist_hash);
+				if (result == ENOMEM) {
+					fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
+				                progname, strerror(errno));
+
+					return EX_CONFIG;
+				}
 			}
 		}
 
@@ -3876,12 +3906,15 @@ main(int argc, char **argv)
 	conffile = NULL;
 	ignore = NULL;
 
-	/* init g_hash_table, only specify a destructor for the key as we use the
-	** same key in both places and call g_hash_table_replace() to update values
-	** instead of g_hash_table_insert().
-	*/
-	domain_whitelist_hash = g_hash_table_new_full(g_str_hash, g_str_equal,
-	                                              g_free, NULL);
+	/* init domain_whitelist_hash table */
+	domain_whitelist_hash = calloc(1, sizeof(struct hsearch_data));
+	if (hcreate_r(MAXWHITELISTSIZE, domain_whitelist_hash) == 0)
+	{
+		fprintf(stderr, "%s: malloc(): %s\n", progname,
+		        strerror(errno));
+
+		return EX_OSERR;
+	}
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);
@@ -4199,6 +4232,8 @@ main(int argc, char **argv)
 	{
 		struct list *tmplist;
 		struct list *cur;
+		ENTRY entry, *entryptr;
+		int result = 0;
 
 		if (!dmarcf_loadlist(whitelistfile, &tmplist))
 		{
@@ -4210,13 +4245,38 @@ main(int argc, char **argv)
 
 		for (cur = tmplist; cur != NULL; cur = cur->list_next)
 		{
-			u_char *domain = (u_char *)cur->list_str;
-			u_char *key = (u_char *)g_utf8_strdown(domain, strlen(domain));
-			g_hash_table_replace(domain_whitelist_hash, key, key);
+			u_char *domain = (u_char *)strdup(cur->list_str);
+			u_char *key;
+
+			dmarcf_lowercase(domain);
+
+			entry.key = domain;
+			entry.data = (void *)domain;
+			result = hsearch_r(entry, ENTER, &entryptr, domain_whitelist_hash);
+			if (result == ENOMEM) {
+				fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
+				        progname, strerror(errno));
+
+				return EX_CONFIG;
+			}
 		}
 
 		dmarcf_freelist(tmplist);
 	}
+
+#if defined(__linux__) && defined(DEBUG_WHITELIST)
+	/* walk through the hash and print keys and values */
+	struct hsearch_data *hdp = domain_whitelist_hash;
+
+	fprintf(stderr, "domain_whitelist_hash contents...\n");
+	for (int i = 0; i < hdp->size; i++)
+	{
+		if (hdp->table[i].used)
+		{
+			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
+		}
+	}
+#endif /* DEBUG_WHITELIST */
 
 	if (ignorefile != NULL)
 	{
@@ -4957,8 +5017,9 @@ main(int argc, char **argv)
 	if (ignore != NULL)
 		dmarcf_freelist(ignore);
 
-	/* free domain whitelist hast */
-	g_hash_table_destroy(domain_whitelist_hash);
+	/* free domain whitelist hash */
+	hdestroy_r(domain_whitelist_hash);
+	free(domain_whitelist_hash);
 
 	/* tell the reloader thread to die */
 	die = TRUE;

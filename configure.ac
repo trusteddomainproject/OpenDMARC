@@ -308,7 +308,6 @@ AM_CONDITIONAL([USE_SPF], [test x"$use_spf" = x"yes"])
 #
 # opendmarc
 #
-PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.48.2])
 
 AC_ARG_ENABLE([filter],
               AS_HELP_STRING([--disable-filter],
@@ -334,6 +333,13 @@ if test x"$enable_filter_tests" = x"yes" -a x"$miltertest" != x"yes"
 then
 	AC_MSG_ERROR([miltertest is required for filter tests])
 fi
+
+# whitelist debugging implemented on linux only
+AC_ARG_ENABLE([whitelist-debug],
+            AS_HELP_STRING([--enable-whitelist-debug],
+                           [debug DomainWhitelist (linux only)]),
+            AC_DEFINE(DEBUG_WHITELIST, 1, [Define to 1 if you want DomainWhitelist debugging.]),
+            [])
 
 #
 # libmilter

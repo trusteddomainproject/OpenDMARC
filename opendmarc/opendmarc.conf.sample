@@ -114,7 +114,7 @@
 ##
 ##  This list will be concatenated with DomainWhitelistFile (if provided).
 ##
-# DomainWhiteList example.com
+# DomainWhitelist example.com
 
 ## DomainWhitelistFile path
 ##      default (none)
