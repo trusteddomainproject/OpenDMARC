@@ -117,9 +117,9 @@ struct dmarcf_header
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {
-	int				mctx_arcpass;
-	int				mctx_arcpolicypass;
-	int				mctx_spfresult;
+	int			mctx_arcpass;
+	int			mctx_arcpolicypass;
+	int			mctx_spfresult;
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
 	struct dmarcf_header *	mctx_hqhead;
@@ -782,7 +782,7 @@ dmarcf_freearray(char **a)
 **
 **  Parameters:
 **  	str -- input string
-**		delim -- delimeter string
+**  	delim -- delimeter string
 **
 **  Return value:
 **  	Array length, or -1 on error.
