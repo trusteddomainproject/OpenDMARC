@@ -86,7 +86,7 @@
 #define	DEFTIMEOUT		5
 #define	MAXSPFRESULT		16
 #define	RECEIVEDSPF		"Received-SPF"
-#define MAXWHITELISTSIZE	4
+#define	MAXWHITELISTSIZE	4
 
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
@@ -4840,8 +4840,6 @@ main(int argc, char **argv)
 	/* free domain whitelist hash */
 	hdestroy_r(domain_whitelist_hash);
 	free(domain_whitelist_hash);
-
-	// hdestroy();
 
 	/* tell the reloader thread to die */
 	die = TRUE;
