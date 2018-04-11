@@ -21,33 +21,33 @@
 
 #include "opendmarc-arcseal.h"
 
-#define ARC_SEAL_MAX_FIELD_NAME_LEN 255
-#define ARC_SEAL_MAX_TOKEN_LEN 512
+#define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN	255
+#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN		512
 
 #define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
 #define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
 
 /* tables */
-struct arc_seal_lookup
+struct opendmarc_arcseal_lookup
 {
 	char *str;
 	int	code;
 };
 
-struct arc_seal_lookup tags[] =
+struct opendmarc_arcseal_lookup tags[] =
 {
 	{ "a",		AS_TAG_ALGORITHM },
 	{ "cv",		AS_TAG_CHAIN_VALIDATION },
 	{ "i",		AS_TAG_INSTANCE },
-    { "d",		AS_TAG_SIGNATURE_DOMAIN },
+	{ "d",		AS_TAG_SIGNATURE_DOMAIN },
 	{ "s",		AS_TAG_SIGNATURE_SELECTOR },
 	{ "t",		AS_TAG_SIGNATURE_TIME },
-    { "b",		AS_TAG_SIGNATURE_VALUE },
+	{ "b",		AS_TAG_SIGNATURE_VALUE },
 	{ NULL,		AS_TAG_UNKNOWN }
 };
 
 /*
-**  ARC_SEAL_CONVERT -- convert a string to its code
+**  OPENDMARC_ARCSEAL_CONVERT -- convert a string to its code
 **
 **  Parameters:
 **  	table -- in which table to look up
@@ -58,7 +58,7 @@ struct arc_seal_lookup tags[] =
 */
 
 static int
-arc_seal_convert(struct arc_seal_lookup *table, char *str)
+opendmarc_arcseal_convert(struct opendmarc_arcseal_lookup *table, char *str)
 {
 	int c;
 
@@ -68,7 +68,7 @@ arc_seal_convert(struct arc_seal_lookup *table, char *str)
 	for (c = 0; ; c++)
 	{
 		if (table[c].str == NULL || strcasecmp(table[c].str, str) == 0)
-        	return table[c].code;
+			return table[c].code;
 	}
 
 	/* NOTREACHED */
@@ -76,19 +76,20 @@ arc_seal_convert(struct arc_seal_lookup *table, char *str)
 
 
 /*
-**  ARC_SEAL_STRIP_WHITESPACE -- removes all whitespace from a string in-place,
-**	                  handling a maximum string of length ARC_SEAL_MAX_TOKEN_LEN
+**  OPENDMARC_ARCSEAL_STRIP_WHITESPACE -- removes all whitespace from a string
+**                              in-place, handling a maximum string of length
+**                              ARCSEAL_MAX_TOKEN_LEN
 **
 **  Parameters:
 **  	string -- NULL-terminated string to modify
 **
 **  Returns:
 **  	pointer to string on success, NULL on failure (max string length
-**		              exceeded)
+**  	exceeded)
 **/
 
 static char *
-arc_seal_strip_whitespace(u_char *string)
+opendmarc_arcseal_strip_whitespace(u_char *string)
 {
 	assert(string != NULL);
 
@@ -98,7 +99,9 @@ arc_seal_strip_whitespace(u_char *string)
 	int a, b, c;
 	_Bool space_found;
 
-	for (a = 0, b = 0; string[b] != '\0' && b < ARC_SEAL_MAX_TOKEN_LEN; b++)
+	for (a = 0, b = 0;
+	     string[b] != '\0' && b < OPENDMARC_ARCSEAL_MAX_TOKEN_LEN;
+	     b++)
 	{
 		space_found = FALSE;
 		for(c = 0; c < sizeof space_chars; c++)
@@ -119,7 +122,7 @@ arc_seal_strip_whitespace(u_char *string)
 		a++;
 	}
 
-	if (b >= ARC_SEAL_MAX_TOKEN_LEN)
+	if (b >= OPENDMARC_ARCSEAL_MAX_TOKEN_LEN)
 	{
 		return NULL;
 	}
@@ -131,13 +134,13 @@ arc_seal_strip_whitespace(u_char *string)
 }
 
 /*
-**  ARC_SEAL_STRIP_FIELD_NAME -- strip the field name from a string, skipping
-**	                  leading whitespace
+**  OPENDMARC_ARCSEAL_STRIP_FIELD_NAME -- strip the field name from a string,
+**                                        skipping leading whitespace
 **
 **  Parameters:
 **  	field -- NULL-terminated string
-**		name -- NULL-terminated string containing field to remove
-**		delim -- NULL-terminated string containing delimiter
+**  	name -- NULL-terminated string containing field to remove
+**  	delim -- NULL-terminated string containing delimiter
 **  	buf -- destination buffer
 **  	buflen -- number of bytes at buf
 **
@@ -146,51 +149,52 @@ arc_seal_strip_whitespace(u_char *string)
 **/
 
 static int
-arc_seal_strip_field_name(u_char *field, u_char *name, u_char *delim, char *buf, size_t buf_len)
+opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
+                                   char *buf, size_t buf_len)
 {
-    size_t copy_len;
+	size_t copy_len;
 
-    assert(field != NULL);
-    assert(name != NULL);
+	assert(field != NULL);
+	assert(name != NULL);
 	assert(delim != NULL);
-    assert(buf != NULL);
-    assert(buf_len > 0);
+	assert(buf != NULL);
+	assert(buf_len > 0);
 
-    size_t name_len = strlen(name);
-    size_t delim_len = strlen(delim);
+	size_t name_len = strlen(name);
+	size_t delim_len = strlen(delim);
 
-    if (name_len + delim_len > ARC_SEAL_MAX_FIELD_NAME_LEN)
-    {
-        return -1;
-    }
+	if (name_len + delim_len > OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN)
+	{
+		return -1;
+	}
 
-    /* build delimited name */
-    u_char name_delim[ARC_SEAL_MAX_FIELD_NAME_LEN + 1];
-    memcpy(name_delim, (const void *)name, name_len);
-    memcpy(name_delim + name_len, delim, delim_len);
-    memset(name_delim + name_len + delim_len, '\0', sizeof(char));
+	/* build delimited name */
+	u_char name_delim[OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN + 1];
+	memcpy(name_delim, (const void *)name, name_len);
+	memcpy(name_delim + name_len, delim, delim_len);
+	memset(name_delim + name_len + delim_len, '\0', sizeof(char));
 
-    /* count leading spaces after field_delim */
-    u_char *field_value_ptr = field + strlen(name_delim);
-    size_t leading_space_len = strspn(field_value_ptr, " ");
-    field_value_ptr += leading_space_len;
-    size_t field_value_len = strlen(field_value_ptr);
+	/* count leading spaces after field_delim */
+	u_char *field_value_ptr = field + strlen(name_delim);
+	size_t leading_space_len = strspn(field_value_ptr, " ");
+	field_value_ptr += leading_space_len;
+	size_t field_value_len = strlen(field_value_ptr);
 
-    if (field_value_len > buf_len)
-    {
-        return -1;
-    }
+	if (field_value_len > buf_len)
+	{
+		return -1;
+	}
 
-    /* copy remaining characters into buf */
-    memcpy(buf, field_value_ptr, field_value_len);
-    memset(buf + field_value_len, '\0', sizeof(char));
+	/* copy remaining characters into buf */
+	memcpy(buf, field_value_ptr, field_value_len);
+	memset(buf + field_value_len, '\0', sizeof(char));
 
-    return field_value_len;
+	return field_value_len;
 }
 
 /*
-**  ARC_SEAL_PARSE -- parse an ARC-Seal: header, return a structure containing
-**                    a parsed result
+**  OPENDMARC_ARCSEAL_PARSE -- parse an ARC-Seal: header, return a structure
+**                             containing a parsed result
 **
 **  Parameters:
 **  	hdr -- NULL-terminated contents of an ARC-Seal: header field
@@ -201,31 +205,31 @@ arc_seal_strip_field_name(u_char *field, u_char *name, u_char *delim, char *buf,
 **/
 
 int
-arc_seal_parse(u_char *hdr, struct arcseal *as)
+opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 {
-    u_char *tmp, *tmp_ptr;
-    size_t tmp_size = sizeof(u_char) * ARC_SEAL_MAXHEADER_LEN + 1;
-    tmp = tmp_ptr = (u_char *) malloc(tmp_size);
+	u_char *tmp, *tmp_ptr;
+	size_t tmp_size = sizeof(u_char) * OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1;
+	tmp = tmp_ptr = (u_char *) malloc(tmp_size);
 
-    assert(hdr != NULL);
-    assert(as != NULL);
+	assert(hdr != NULL);
+	assert(as != NULL);
 
-    memset(as, '\0', sizeof *as);
-    memset(tmp, '\0', tmp_size);
+	memset(as, '\0', sizeof *as);
+	memset(tmp, '\0', tmp_size);
 
 	// guarantee a null-terminated string
-    memcpy(tmp, hdr, MIN_OF(strlen(hdr), tmp_size - 1));
+	memcpy(tmp, hdr, MIN_OF(strlen(hdr), tmp_size - 1));
 
-    u_char *token;
-    u_char token_buf[ARC_SEAL_MAX_TOKEN_LEN + 1];
-    while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
-    {
-        size_t leading_space_len = strspn(token, " \n");
-        char *token_ptr = token + leading_space_len;
-        char *tag_label = strsep(&token_ptr, "=");
-        char *tag_value = arc_seal_strip_whitespace(token_ptr);
+	u_char *token;
+	u_char token_buf[OPENDMARC_ARCSEAL_MAX_TOKEN_LEN + 1];
+	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
+	{
+		size_t leading_space_len = strspn(token, " \n");
+		char *token_ptr = token + leading_space_len;
+		char *tag_label = strsep(&token_ptr, "=");
+		char *tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
 
-        as_tag_t tag_code = arc_seal_convert(tags, tag_label);
+		as_tag_t tag_code = opendmarc_arcseal_convert(tags, tag_label);
 		switch(tag_code)
 		{
 			case AS_TAG_ALGORITHM:
@@ -259,9 +263,9 @@ arc_seal_parse(u_char *hdr, struct arcseal *as)
 			default:
 				break;
 		}
-    }
+	}
 
-    free(tmp);
+	free(tmp);
 
-    return 0;
+	return 0;
 }

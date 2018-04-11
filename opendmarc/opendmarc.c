@@ -2317,7 +2317,7 @@ mlfi_eom(SMFICTX *ctx)
 	     hdr = hdr->hdr_next, c++)
 	{
 		/* skip if it's not ARC-Seal header */
-		if (strcasecmp(hdr->hdr_name, ARC_SEAL_HDRNAME) != 0)
+		if (strcasecmp(hdr->hdr_name, OPENDMARC_ARCSEAL_HDRNAME) != 0)
 			continue;
 
 		/* allocate one */
@@ -2334,7 +2334,7 @@ mlfi_eom(SMFICTX *ctx)
 		(void) memset(as_hdr_new, '\0', sizeof(struct arcseal_header));
 
 		/* parse it */
-		if (arc_seal_parse(hdr->hdr_value, &as_hdr_new->arcseal) != 0)
+		if (opendmarc_arcseal_parse(hdr->hdr_value, &as_hdr_new->arcseal) != 0)
 			continue;
 
 		if (dfc->mctx_ashead == NULL)
@@ -2520,7 +2520,7 @@ mlfi_eom(SMFICTX *ctx)
 				                                     DMARC_POLICY_SPF_OUTCOME_PASS,
 				                                     spfmode,
 				                                     NULL);
-				                                     
+
 				if (ostatus != DMARC_PARSE_OKAY)
 				{
 					if (conf->conf_dolog)
@@ -3335,25 +3335,25 @@ mlfi_eom(SMFICTX *ctx)
 	/*
 	** iterate through arcseal headers and add results to report
 	*/
-	u_char arc_seal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
-	u_char arc_seal_buf[HIST_MAX_ARCSEAL_LEN + 1];
+	u_char arcseal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
+	u_char arcseal_buf[HIST_MAX_ARCSEAL_LEN + 1];
 	for (as_hdr = dfc->mctx_ashead, c = 0;
 	     as_hdr != NULL;
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
-		snprintf(arc_seal_buf, sizeof arc_seal_str,
+		snprintf(arcseal_buf, sizeof arcseal_str,
 		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\" }",
-				 (c > 0) ? ", " : "",
-				 as_hdr->arcseal.instance,
+		         (c > 0) ? ", " : "",
+		         as_hdr->arcseal.instance,
 		         as_hdr->arcseal.signature_domain,
-				 as_hdr->arcseal.signature_selector);
-		strlcat(arc_seal_str, (const char *)arc_seal_buf, sizeof arc_seal_str);
+		         as_hdr->arcseal.signature_selector);
+		strlcat(arcseal_str, (const char *)arcseal_buf, sizeof arcseal_str);
 	}
 
 	dmarcf_dstring_printf(dfc->mctx_histbuf,
-							"arc_policy %d json:[%s]\n",
-							dfc->mctx_arcpolicypass,
-							arc_seal_str);
+	                      "arc_policy %d json:[%s]\n",
+	                      dfc->mctx_arcpolicypass,
+	                      arcseal_str);
 
 	/* prepare human readable dispositon string for later processing */
 	switch (result)
