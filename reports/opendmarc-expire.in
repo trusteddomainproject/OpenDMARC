@@ -408,11 +408,11 @@ if ($alltables)
 	}
 
 	$dbi_s = $dbi_h->prepare(q{
-		DELETE FROM selectors
-		WHERE id NOT IN (SELECT DISTINCT selector FROM signatures)
-			AND id NOT IN (SELECT DISTINCT selector FROM arcseals)
-		});
-    $rows = $dbi_s->execute();
+	                         DELETE FROM selectors
+	                         WHERE id NOT IN (SELECT DISTINCT selector FROM signatures)
+	                                 AND id NOT IN (SELECT DISTINCT selector FROM arcseals)
+	});
+	$rows = $dbi_s->execute();
 	if (!$rows)
 	{
 		print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
@@ -438,14 +438,14 @@ if ($alltables)
 	}
 
 	$dbi_s = $dbi_h->prepare(q{
-		DELETE FROM domains
-		WHERE id NOT IN (SELECT DISTINCT domain FROM requests)
-			AND id NOT IN (SELECT DISTINCT from_domain FROM messages)
-			AND id NOT IN (SELECT DISTINCT env_domain FROM messages)
-			AND id NOT IN (SELECT DISTINCT policy_domain FROM messages)
-			AND id NOT IN (SELECT DISTINCT domain FROM signatures)
-			AND id NOT IN (SELECT DISTINCT domain FROM arcseals)
-		});
+	                         DELETE FROM domains
+	                         WHERE id NOT IN (SELECT DISTINCT domain FROM requests)
+	                                 AND id NOT IN (SELECT DISTINCT from_domain FROM messages)
+	                                 AND id NOT IN (SELECT DISTINCT env_domain FROM messages)
+	                                 AND id NOT IN (SELECT DISTINCT policy_domain FROM messages)
+	                                 AND id NOT IN (SELECT DISTINCT domain FROM signatures)
+	                                 AND id NOT IN (SELECT DISTINCT domain FROM arcseals)
+	});
 	$rows = $dbi_s->execute();
 	if (!$rows)
 	{

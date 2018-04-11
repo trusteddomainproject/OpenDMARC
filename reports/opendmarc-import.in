@@ -246,14 +246,14 @@ sub update_db
 	}
 
 	$dbi_s = $dbi_h->prepare(q{
-		INSERT INTO messages(
-			date, jobid, reporter, policy, disp, ip, env_domain, from_domain,
-		 	policy_domain, spf, align_spf, align_dkim, sigcount, arc, arc_policy
-			)
-		VALUES(
-			FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-			)
-		});
+	                         INSERT INTO messages(
+	                                 date, jobid, reporter, policy, disp, ip, env_domain, from_domain,
+	                                 policy_domain, spf, align_spf, align_dkim, sigcount, arc, arc_policy
+	                         )
+	                         VALUES(
+	                                 FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	                         )
+	});
 
 	if (!$dbi_s->execute(
 			$received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id,
@@ -545,7 +545,7 @@ if ($verbose)
 # Read history file from stdin.
 #
 
-	
+
 $lineno = 0;
 
 while (<$inputfh>)
@@ -585,11 +585,11 @@ while (<$inputfh>)
 					$align_spf = $value;
 				}
 
-	  case "arc"	{
+	  case "arc"		{
 		  			$arc = $value;
 	  			}
 
-	  case "arc_policy" {
+	  case "arc_policy"	{
 					$arc_policy = $value;
 					# parse json data
 					if (scalar (@serialized_data) == 2)
@@ -600,7 +600,7 @@ while (<$inputfh>)
 					{
 						@arc_policy_data = [];
 					}
-	  }
+				}
 
 	  case "aspf"		{
 					$aspf = $value;
