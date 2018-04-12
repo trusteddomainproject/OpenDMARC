@@ -282,6 +282,7 @@ char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
 struct hsearch_data *domain_whitelist_hash;
+u_int domain_whitelist_hash_count;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -430,7 +431,7 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 **
 **  Parameters:
 **  	str -- the value of the Received-SPF field to analyze
-**  	
+**
 **  Return value:
 **  	A ARES_RESULT_* constant.
 */
@@ -1112,7 +1113,7 @@ dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 
 			(void) dmarcf_inet_ntoa(mask, &ipbuf[c],
 			                        sizeof ipbuf - c);
-		
+
 			if (dmarcf_checklist(ipbuf, list))
 				return FALSE;
 
@@ -1298,7 +1299,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			dmarcf_mkarray(str, ",", &conf->conf_domainwhitelist);
 
 			/* add domains to hash */
-			for(int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
+			for (int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
 			{
 				u_char *domain = conf->conf_domainwhitelist[i];
 				u_char *key;
@@ -1307,8 +1308,16 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 				entry.key = domain;
 				entry.data = (void *)domain;
+
+				/* keep track of the number of entries */
+				result = hsearch_r(entry, FIND, &entryptr, domain_whitelist_hash);
+				if (result == 0 && errno == ESRCH) {
+					domain_whitelist_hash_count++;
+				}
+
+				/* try to add or update the entry */
 				result = hsearch_r(entry, ENTER, &entryptr, domain_whitelist_hash);
-				if (result == ENOMEM) {
+				if (result == 0 && errno == ENOMEM) {
 					fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
 				                progname, strerror(errno));
 
@@ -1550,7 +1559,7 @@ dmarcf_config_reload(void)
 				err = TRUE;
 			}
 		}
- 
+
 		if (!err)
 		{
 			if (curconf->conf_refcnt == 0)
@@ -2610,10 +2619,12 @@ mlfi_eom(SMFICTX *ctx)
 				/*
 				** Check arc status against whitelist policy
 				*/
-				if (dfc->mctx_arcpass == ARES_RESULT_PASS && g_hash_table_size(domain_whitelist_hash) > 0)
+				if (dfc->mctx_arcpass == ARES_RESULT_PASS && domain_whitelist_hash_count > 0)
 				{
 					u_char *arcchain = NULL, *arcdomain;
 					int arcchainlen = 0, arcchainitempass = 0;
+					ENTRY entry, *entryptr;
+					int result = 0;
 
 					for (pc = 0;
 						pc < ar.ares_result[c].result_props;
@@ -2630,10 +2641,15 @@ mlfi_eom(SMFICTX *ctx)
 						                                     &dfc->mctx_arcchain);
 						for (pc = 0; dfc->mctx_arcchain[pc] != NULL; pc++)
 						{
-							arcdomain = (u_char *)g_utf8_strdown(dfc->mctx_arcchain[pc],
-							                                     strlen(dfc->mctx_arcchain[pc]));
-							g_hash_table_contains(domain_whitelist_hash,
-							                      arcdomain) && arcchainitempass++;
+							arcdomain = (u_char *)strdup(dfc->mctx_arcchain[pc]);
+							dmarcf_lowercase(arcdomain);
+
+							entry.key = arcdomain;
+							result = hsearch_r(entry, FIND, &entryptr, domain_whitelist_hash);
+							if (result == 0 && errno == ESRCH)
+								continue;
+
+							arcchainitempass++;
 						}
 						if (arcchainlen == arcchainitempass)
 						{
@@ -3045,7 +3061,7 @@ mlfi_eom(SMFICTX *ctx)
 				                   conf->conf_afrfbcc);
 				dmarcf_dstring_cat(dfc->mctx_afrf, "\n");
 			}
-			
+
 			/* Date: */
 			(void) time(&now);
 			tm = localtime(&now);
@@ -3320,11 +3336,11 @@ mlfi_eom(SMFICTX *ctx)
 	/* append arc override to historyfile
 	**
 	**  <reason>
-    **    <type>local_policy</type>
-    **	  <comment>
+	 **    <type>local_policy</type>
+	**	  <comment>
 	**	    arc=[status] as[N].d=dN.example.com as[N].s=sN .. as[1].d=d1.example.com as[1].s=s1
 	**	  </comment>
-   	**  </reason>
+	**  </reason>
 	**
 	** Where:
 	**   arc_policy 1 json:[ { i=2, d = d2.example, s = s2 }, { i=1, d = d1.example, s = s1 } ]
@@ -3915,6 +3931,7 @@ main(int argc, char **argv)
 
 		return EX_OSERR;
 	}
+	domain_whitelist_hash_count = 0;
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);
@@ -4218,7 +4235,7 @@ main(int argc, char **argv)
 		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
 		                  sizeof chrootdir);
 
-		(void) config_get(cfg, "DomainWhitelistFile", &whitelistfile, 
+		(void) config_get(cfg, "DomainWhitelistFile", &whitelistfile,
 		                  sizeof whitelistfile);
 
 		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
@@ -4252,8 +4269,16 @@ main(int argc, char **argv)
 
 			entry.key = domain;
 			entry.data = (void *)domain;
+
+			/* keep track of the number of entries */
+			result = hsearch_r(entry, FIND, &entryptr, domain_whitelist_hash);
+			if (result == 0 && errno == ESRCH) {
+				domain_whitelist_hash_count++;
+			}
+
+			/* try to add or update the entry */
 			result = hsearch_r(entry, ENTER, &entryptr, domain_whitelist_hash);
-			if (result == ENOMEM) {
+			if (result == 0 && errno == ENOMEM) {
 				fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
 				        progname, strerror(errno));
 
@@ -4964,7 +4989,7 @@ main(int argc, char **argv)
 		{
 			if (c == 0)
 			{
-				strlcpy(argstr, 
+				strlcpy(argstr,
 				        curconf->conf_trustedauthservids[c],
 				        n);
 			}
