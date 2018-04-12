@@ -127,6 +127,16 @@
 ##
 # DomainWhitelistFile /usr/local/etc/opendmarc/whitelist.domains
 
+##  DomainWhitelistSize
+##  	default 3000
+##
+##  The maximum number of entries in the DomainWhitelist including both entries
+##  in the DomainWhitelist configuration parameter (above) and entries in the
+##  DomainWhitelistFile. This number will be increased by approximately 20% to
+##  increase the efficiency of the hashing algorithm.
+##
+# DomainWhitelistSize 3000
+
 ##  DNSTimeout (integer)
 ##  	default 5
 ##

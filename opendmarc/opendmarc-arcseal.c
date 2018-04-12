@@ -104,7 +104,7 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 	     b++)
 	{
 		space_found = FALSE;
-		for(c = 0; c < sizeof space_chars; c++)
+		for (c = 0; c < sizeof space_chars; c++)
 		{
 			if (string[b] == space_chars[c])
 			{
