@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef HAVE_STDBOOL_H
 # include <stdbool.h>
@@ -94,38 +95,21 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 	assert(string != NULL);
 
 	char *string_ptr = string;
-	char space_chars[] = { ' ', '\t', '\r', '\n' };
-	int space_chars_count = 4;
-	int a, b, c;
-	_Bool space_found;
+	int a, b;
 
 	for (a = 0, b = 0;
 	     string[b] != '\0' && b < OPENDMARC_ARCSEAL_MAX_TOKEN_LEN;
 	     b++)
 	{
-		space_found = FALSE;
-		for (c = 0; c < sizeof space_chars; c++)
-		{
-			if (string[b] == space_chars[c])
-			{
-				space_found = TRUE;
-				break;
-			}
-		}
-
-		if (space_found)
-		{
+		if (isascii(string[b]) && isspace(string[b]))
 			continue;
-		}
 
 		string[a] = string[b];
 		a++;
 	}
 
 	if (b >= OPENDMARC_ARCSEAL_MAX_TOKEN_LEN)
-	{
 		return NULL;
-	}
 
 	/* set remaining chars to null */
 	memset(&string[a], '\0', sizeof(char) * (b - a));
