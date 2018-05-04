@@ -782,7 +782,7 @@ dmarcf_freearray(char **a)
 **
 **  Parameters:
 **  	str -- input string
-**  	delim -- delimeter string
+**  	delim -- set of delimiter characters
 **
 **  Return value:
 **  	Array length, or -1 on error.
