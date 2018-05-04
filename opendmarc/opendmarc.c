@@ -4310,9 +4310,7 @@ main(int argc, char **argv)
 	for (int i = 0; i < hdp->size; i++)
 	{
 		if (hdp->table[i].used)
-		{
 			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
-		}
 	}
 #endif /* DEBUG_WHITELIST */
 
