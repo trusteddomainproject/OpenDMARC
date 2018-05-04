@@ -1270,7 +1270,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		}
 
 		str = NULL;
-		(void) config_get(data, "DomainWhitelist", &str, sizeof str);
+		(void) config_get(data,
+		                  "DomainWhitelist",
+		                  &str,
+		                  sizeof str);
 		if (str != NULL)
 		{
 			ENTRY entry, *entryptr;
@@ -1278,7 +1281,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
 			/* add domains to hash */
-			for(int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
+			for (int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
 			{
 				u_char *domain = conf->conf_domainwhitelist[i];
 				u_char *key;
@@ -4086,9 +4089,7 @@ main(int argc, char **argv)
 	for (int i = 0; i < hdp->size; i++)
 	{
 		if (hdp->table[i].used)
-		{
 			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
-		}
 	}
 #endif /* DEBUG_WHITELIST */
 
