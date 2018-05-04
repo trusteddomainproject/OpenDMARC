@@ -187,9 +187,9 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 int
 opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 {
-	u_char *tmp, *tmp_ptr;
 	size_t tmp_size = sizeof(u_char) * OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1;
-	tmp = tmp_ptr = (u_char *) malloc(tmp_size);
+	u_char tmp[tmp_size], *tmp_ptr;
+	tmp_ptr = tmp;
 
 	assert(hdr != NULL);
 	assert(as != NULL);
@@ -244,8 +244,6 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 			break;
 		}
 	}
-
-	free(tmp);
 
 	return 0;
 }
