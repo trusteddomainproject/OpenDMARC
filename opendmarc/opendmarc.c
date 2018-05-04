@@ -4204,7 +4204,7 @@ main(int argc, char **argv)
 
 	/* init domain_whitelist_hash table */
 	domain_whitelist_hash = calloc(1, sizeof(struct hsearch_data));
-	if (hcreate_r(MAXWHITELISTSIZE, domain_whitelist_hash) == 0)
+	if (hcreate_r(whitelistsize, domain_whitelist_hash) == 0)
 	{
 		fprintf(stderr,
 		        "%s: failed to alloc memory for domain_whitelist_hash: %s\n",
