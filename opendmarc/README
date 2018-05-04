@@ -176,8 +176,8 @@ their encodings, but there are only a few of them:
 
 	arc		ARC evaluation (0 = pass, 2 = fail)
 
-	arc_policy	ARC local policy evaluation (evaluation -- same as ARC, arc seal
-			data - json-encoded array of governing arc seal fields: instance,
+	arc_policy	ARC local policy evaluation (evaluation -- same as ARC, ARC seal
+			data - JSON-encoded array of governing arc seal fields: instance,
 			domain, selector)
 
 SUPPORT

@@ -22,8 +22,8 @@
 
 #include "opendmarc-arcseal.h"
 
-#define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN	255
-#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN		512
+#define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN 255
+#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      512
 
 #define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
 #define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
@@ -72,7 +72,7 @@ opendmarc_arcseal_convert(struct opendmarc_arcseal_lookup *table, char *str)
 			return table[c].code;
 	}
 
-	/* NOTREACHED */
+	assert(0);
 }
 
 
@@ -148,9 +148,7 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 	size_t delim_len = strlen(delim);
 
 	if (name_len + delim_len > OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN)
-	{
 		return -1;
-	}
 
 	/* build delimited name */
 	u_char name_delim[OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN + 1];
@@ -165,9 +163,7 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 	size_t field_value_len = strlen(field_value_ptr);
 
 	if (field_value_len > buf_len)
-	{
 		return -1;
-	}
 
 	/* copy remaining characters into buf */
 	memcpy(buf, field_value_ptr, field_value_len);
@@ -214,38 +210,38 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		char *tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
 
 		as_tag_t tag_code = opendmarc_arcseal_convert(tags, tag_label);
-		switch(tag_code)
+		switch (tag_code)
 		{
-			case AS_TAG_ALGORITHM:
-				strlcpy(as->algorithm, tag_value, sizeof as->algorithm);
+		  case AS_TAG_ALGORITHM:
+			strlcpy(as->algorithm, tag_value, sizeof as->algorithm);
 				break;
 
-			case AS_TAG_CHAIN_VALIDATION:
-				strlcpy(as->chain_validation, tag_value, sizeof as->chain_validation);
-				break;
+		  case AS_TAG_CHAIN_VALIDATION:
+			strlcpy(as->chain_validation, tag_value, sizeof as->chain_validation);
+			break;
 
-			case AS_TAG_INSTANCE:
-				as->instance = atoi(tag_value);
-				break;
+		  case AS_TAG_INSTANCE:
+			as->instance = atoi(tag_value);
+			break;
 
-			case AS_TAG_SIGNATURE_DOMAIN:
-				strlcpy(as->signature_domain, tag_value, sizeof as->signature_domain);
-				break;
+		  case AS_TAG_SIGNATURE_DOMAIN:
+			strlcpy(as->signature_domain, tag_value, sizeof as->signature_domain);
+			break;
 
-			case AS_TAG_SIGNATURE_SELECTOR:
-				strlcpy(as->signature_selector, tag_value, sizeof as->signature_selector);
-				break;
+		  case AS_TAG_SIGNATURE_SELECTOR:
+			strlcpy(as->signature_selector, tag_value, sizeof as->signature_selector);
+			break;
 
-			case AS_TAG_SIGNATURE_TIME:
-				strlcpy(as->signature_time, tag_value, sizeof as->signature_time);
-				break;
+		  case AS_TAG_SIGNATURE_TIME:
+			strlcpy(as->signature_time, tag_value, sizeof as->signature_time);
+			break;
 
-			case AS_TAG_SIGNATURE_VALUE:
-				strlcpy(as->signature_value, tag_value, sizeof as->signature_value);
-				break;
+		  case AS_TAG_SIGNATURE_VALUE:
+			strlcpy(as->signature_value, tag_value, sizeof as->signature_value);
+			break;
 
-			default:
-				break;
+		  default:
+			break;
 		}
 	}
 
