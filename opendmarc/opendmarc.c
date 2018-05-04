@@ -2559,8 +2559,8 @@ mlfi_eom(SMFICTX *ctx)
 						{
 							arcdomain = (u_char *)g_utf8_strdown(dfc->mctx_arcchain[pc],
 							                                     strlen(dfc->mctx_arcchain[pc]));
-							g_hash_table_contains(domain_whitelist_hash,
-							                      arcdomain) && arcchainitempass++;
+							if (g_hash_table_contains(domain_whitelist_hash, arcdomain))
+								arcchainitempass++;
 						}
 						if (arcchainlen == arcchainitempass)
 							dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_PASS;
