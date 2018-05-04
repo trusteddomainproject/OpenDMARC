@@ -423,7 +423,7 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 **	Parameters:
 **		pctx			-- The context to update
 **		d_equal_domain 		-- The the domain from the d=
-**		s_equal_selector	-- THe selector from the s=
+**		s_equal_selector	-- The selector from the s=
 **		dkim_result 		-- DMARC_POLICY_DKIM_OUTCOME_NONE
 **					or DMARC_POLICY_DKIM_OUTCOME_PASS
 **					or DMARC_POLICY_DKIM_OUTCOME_FAIL
