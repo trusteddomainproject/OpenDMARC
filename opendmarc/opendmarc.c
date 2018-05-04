@@ -798,7 +798,7 @@ dmarcf_freearray(char **a)
 **
 **  Parameters:
 **  	str -- input string
-**  	delim -- delimeter string
+**  	delim -- set of delimiter characters
 **
 **  Return value:
 **  	Array length, or -1 on error.
@@ -2573,13 +2573,9 @@ mlfi_eom(SMFICTX *ctx)
 				** we need to fail.
 				*/
 				if (ar.ares_result[c].result_result == ARES_RESULT_PASS && limit_arc == 1)
-				{
 					dfc->mctx_arcpass = ARES_RESULT_PASS;
-				}
 				else
-				{
 					dfc->mctx_arcpass = ARES_RESULT_FAIL;
-				}
 
 				/*
 				** Check arc status against whitelist policy
@@ -2592,19 +2588,19 @@ mlfi_eom(SMFICTX *ctx)
 					int result = 0;
 
 					for (pc = 0;
-						pc < ar.ares_result[c].result_props;
-						pc++)
+					     pc < ar.ares_result[c].result_props;
+					     pc++)
 					{
 						if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_ARCCHAIN)
-						{
 							arcchain = ar.ares_result[c].result_value[pc];
-						}
 					}
 					if (arcchain != NULL)
 					{
 						arcchainlen = dmarcf_mkarray(arcchain, ":",
-						                                     &dfc->mctx_arcchain);
-						for (pc = 0; dfc->mctx_arcchain[pc] != NULL; pc++)
+						                             &dfc->mctx_arcchain);
+						for (pc = 0;
+						     dfc->mctx_arcchain[pc] != NULL;
+						     pc++)
 						{
 							arcdomain = (u_char *)strdup(dfc->mctx_arcchain[pc]);
 							dmarcf_lowercase(arcdomain);
@@ -2617,9 +2613,7 @@ mlfi_eom(SMFICTX *ctx)
 							arcchainitempass++;
 						}
 						if (arcchainlen == arcchainitempass)
-						{
 							dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_PASS;
-						}
 					}
 				}
 			}
@@ -3276,14 +3270,14 @@ mlfi_eom(SMFICTX *ctx)
 	** but authentication still fails because of an invalid arc.chain to assist
 	** with administrative debugging.
 	*/
-	if (result == DMARC_RESULT_REJECT
-	    && dfc->mctx_arcpass == ARES_RESULT_PASS
-		&& dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS
-		&& conf->conf_dolog)
+	if (result == DMARC_RESULT_REJECT &&
+	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
+	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
+	    conf->conf_dolog)
 	{
 		syslog(LOG_NOTICE,
-				"%s: ARC pass, policy fail > continuing DMARC eval",
-				dfc->mctx_jobid);
+		       "%s: ARC pass, policy fail > continuing DMARC eval",
+		       dfc->mctx_jobid);
 	}
 
 	if (result == DMARC_RESULT_REJECT && dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
