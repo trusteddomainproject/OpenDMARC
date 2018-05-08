@@ -2567,14 +2567,24 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_ARC)
 			{
-				limit_arc++;
 				/*
-				** If we already came across a trusted A-R header with arc=pass
+				** NOTE: If we arrive here with a trusted A-R header with
+				** arc=none, per draft-ietf-dmarc-arc-protocol there is
+				** nothing else to do because arc=none should only appear
+				** when i=1.
+				*/
+
+				/*
+				** If we already countered a trusted A-R header with arc=pass
 				** we need to fail.
 				*/
-				if (ar.ares_result[c].result_result == ARES_RESULT_PASS && limit_arc == 1)
+				if (ar.ares_result[c].result_result == ARES_RESULT_PASS)
+				{
 					dfc->mctx_arcpass = ARES_RESULT_PASS;
-				else
+					limit_arc++;
+				}
+
+				if (dfc->mctx_arcpass == ARES_RESULT_PASS && limit_arc > 1)
 					dfc->mctx_arcpass = ARES_RESULT_FAIL;
 
 				/*
