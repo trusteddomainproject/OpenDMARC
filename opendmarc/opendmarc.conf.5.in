@@ -136,6 +136,14 @@ found in a locally generated Authentication-Results header.
 This list will be concatenated with DomainWhitelist (if provided).
 
 .TP
+.I DomainWhitelistSize (integer)
+Sets the capacity of the whitelisted domains data structure. The value specifies
+the maximum number of entries including domains listed in the DomainWhitelist
+configuration parameter and the domains listed in the DomainWhiteListFile. The
+final size will be increased by approximately 20% to increase the efficiency of
+the hashing algorithm.
+
+.TP
 .I DNSTimeout (integer)
 Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
 The default is 5.  Ignored if not using an asynchronous resolver package.

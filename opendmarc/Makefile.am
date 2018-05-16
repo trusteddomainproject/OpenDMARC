@@ -11,7 +11,9 @@ dist_doc_DATA = opendmarc.conf.sample
 sbin_PROGRAMS = opendmarc opendmarc-check
 
 opendmarc_SOURCES = config.c config.h opendmarc.c opendmarc.h \
-	opendmarc-ar.c opendmarc-ar.h opendmarc-config.h \
+	opendmarc-ar.c opendmarc-ar.h \
+	opendmarc-arcseal.c opendmarc-arcseal.h \
+	opendmarc-config.h \
 	opendmarc-dstring.c opendmarc-dstring.h \
 	parse.c parse.h test.c test.h util.c util.h
 opendmarc_CC = $(PTHREAD_CC)

@@ -29,6 +29,7 @@ struct configdef dmarcf_config[] =
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
 	{ "DomainWhitelist",		CONFIG_TYPE_STRING,	FALSE },
 	{ "DomainWhitelistFile",	CONFIG_TYPE_STRING,	FALSE },
+	{ "DomainWhitelistSize",	CONFIG_TYPE_INTEGER,	FALSE },
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReports",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReportsBcc",		CONFIG_TYPE_STRING,	FALSE },
