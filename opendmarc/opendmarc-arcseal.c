@@ -94,8 +94,9 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 {
 	assert(string != NULL);
 
+	int a;
+	int b;
 	char *string_ptr = string;
-	int a, b;
 
 	for (a = 0, b = 0;
 	     string[b] != '\0' && b < OPENDMARC_ARCSEAL_MAX_TOKEN_LEN;
@@ -137,6 +138,11 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
                                    char *buf, size_t buf_len)
 {
 	size_t copy_len;
+	size_t name_len;
+	size_t delim_len;
+	size_t leading_space_len;
+	size_t field_value_len;
+	u_char *field_value_ptr;
 
 	assert(field != NULL);
 	assert(name != NULL);
@@ -144,8 +150,8 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 	assert(buf != NULL);
 	assert(buf_len > 0);
 
-	size_t name_len = strlen(name);
-	size_t delim_len = strlen(delim);
+	name_len = strlen(name);
+	delim_len = strlen(delim);
 
 	if (name_len + delim_len > OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN)
 		return -1;
@@ -157,10 +163,10 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 	memset(name_delim + name_len + delim_len, '\0', sizeof(char));
 
 	/* count leading spaces after field_delim */
-	u_char *field_value_ptr = field + strlen(name_delim);
-	size_t leading_space_len = strspn(field_value_ptr, " ");
+	field_value_ptr = field + strlen(name_delim);
+	leading_space_len = strspn(field_value_ptr, " ");
 	field_value_ptr += leading_space_len;
-	size_t field_value_len = strlen(field_value_ptr);
+	field_value_len = strlen(field_value_ptr);
 
 	if (field_value_len > buf_len)
 		return -1;
@@ -188,7 +194,11 @@ int
 opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 {
 	size_t tmp_size = sizeof(u_char) * OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1;
-	u_char tmp[tmp_size], *tmp_ptr;
+	u_char *tmp_ptr;
+	u_char *token;
+	u_char token_buf[OPENDMARC_ARCSEAL_MAX_TOKEN_LEN + 1];
+	u_char tmp[tmp_size];
+
 	tmp_ptr = tmp;
 
 	assert(hdr != NULL);
@@ -200,16 +210,21 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 	// guarantee a null-terminated string
 	memcpy(tmp, hdr, MIN_OF(strlen(hdr), tmp_size - 1));
 
-	u_char *token;
-	u_char token_buf[OPENDMARC_ARCSEAL_MAX_TOKEN_LEN + 1];
 	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
 	{
-		size_t leading_space_len = strspn(token, " \n");
-		char *token_ptr = token + leading_space_len;
-		char *tag_label = strsep(&token_ptr, "=");
-		char *tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
+		size_t leading_space_len;
+		as_tag_t tag_code;
+		char *token_ptr;
+		char *tag_label;
+		char *tag_value;
+		
+		leading_space_len = strspn(token, " \n");
+		token_ptr = token + leading_space_len;
+		tag_label = strsep(&token_ptr, "=");
+		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
 
-		as_tag_t tag_code = opendmarc_arcseal_convert(tags, tag_label);
+		tag_code = opendmarc_arcseal_convert(tags, tag_label);
+
 		switch (tag_code)
 		{
 		  case AS_TAG_ALGORITHM:
