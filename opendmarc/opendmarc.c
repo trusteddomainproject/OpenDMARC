@@ -2417,13 +2417,9 @@ mlfi_eom(SMFICTX *ctx)
 					if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_HEADER)
 					{
 						if (ar.ares_result[c].result_property[pc][0] == 'd')
-						{
 							dkim_domain = ar.ares_result[c].result_value[pc];
-						}
 						if (ar.ares_result[c].result_property[pc][0] == 's')
-						{
 							dkim_selector = ar.ares_result[c].result_value[pc];
-						}
 					}
 				}
 
