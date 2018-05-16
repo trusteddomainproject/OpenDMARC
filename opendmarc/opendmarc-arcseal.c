@@ -32,7 +32,7 @@
 struct opendmarc_arcseal_lookup
 {
 	char *str;
-	int	code;
+	int code;
 };
 
 struct opendmarc_arcseal_lookup tags[] =
@@ -96,7 +96,9 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 
 	int a;
 	int b;
-	char *string_ptr = string;
+	char *string_ptr;
+
+	string_ptr = string;
 
 	for (a = 0, b = 0;
 	     string[b] != '\0' && b < OPENDMARC_ARCSEAL_MAX_TOKEN_LEN;
@@ -193,12 +195,13 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 int
 opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 {
-	size_t tmp_size = sizeof(u_char) * OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1;
+	size_t tmp_size;
 	u_char *tmp_ptr;
 	u_char *token;
 	u_char token_buf[OPENDMARC_ARCSEAL_MAX_TOKEN_LEN + 1];
 	u_char tmp[tmp_size];
 
+	tmp_size = sizeof(u_char) * OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1;
 	tmp_ptr = tmp;
 
 	assert(hdr != NULL);
