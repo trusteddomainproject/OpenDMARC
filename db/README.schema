@@ -31,7 +31,7 @@ messages	A table tracking salient properties of all messages received.
 		RFC5322.From domain.
 
 signatures	A table tracking DKIM signatures, each of which refers to
-		a row  in the "messages" table.  Tracks the signing domain,
+		a row in the "messages" table.  Tracks the signing domain,
 		whether the signature passed, whether there was a verification
 		error other than a broken signature, and whether or not the
 		signing domain aligned with the RFC5322.From domain.
