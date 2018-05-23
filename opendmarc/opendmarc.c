@@ -177,6 +177,7 @@ struct dmarcf_config
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
+	struct hsearch_data *	conf_domain_whitelist_hash;
 };
 
 /* LIST -- basic linked list of strings */
@@ -265,7 +266,6 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
-struct hsearch_data *domain_whitelist_hash;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -1281,7 +1281,16 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			ENTRY *entryptr;
 
 			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
-			
+			conf->conf_domain_whitelist_hash = calloc(1, sizeof(struct hsearch_data));
+			if (hcreate_r(MAXWHITELISTSIZE, domain_whitelist_hash) == 0)
+			{
+				fprintf(stderr,
+				        "%s: failed to alloc memory for domain whitelist hash: %s\n",
+				        progname, strerror(errno));
+
+				return EX_CONFIG;
+			}
+
 			/* add domains to hash */
 			for (int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
 			{
@@ -1293,9 +1302,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 				entry.key = domain;
 				entry.data = (void *)domain;
-				result = hsearch_r(entry, ENTER, &entryptr, domain_whitelist_hash);
+				result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domain_whitelist_hash);
 				if (result == ENOMEM) {
-					fprintf(stderr, "%s: domain_whitelist_hash() allocation exceeded: %s\n",
+					fprintf(stderr, "%s: conf_domain_whitelist_hash allocation exceeded: %s\n",
 				                progname, strerror(errno));
 
 					return EX_CONFIG;
@@ -3631,6 +3640,13 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
+	if (conf->conf_domain_whitelist_hash != NULL)
+	{
+		/* TODO: keep the original list in config_load and purge it here so we don't leak */
+		hdestroy_r(conf->conf_domain_whitelist_hash);
+		free(conf->conf_domain_whitelist_hash);
+	}
+
 	free(conf);
 }
 
@@ -3725,18 +3741,6 @@ main(int argc, char **argv)
 	no_i_whine = TRUE;
 	conffile = NULL;
 	ignore = NULL;
-
-	/* init domain_whitelist_hash table */
-	domain_whitelist_hash = calloc(1, sizeof(struct hsearch_data));
-	if (hcreate_r(MAXWHITELISTSIZE, domain_whitelist_hash) == 0)
-	{
-		fprintf(stderr,
-		        "%s: failed to alloc memory for domain_whitelist_hash: %s\n",
-		        progname,
-		        strerror(errno));
-
-		return EX_OSERR;
-	}
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);
@@ -4046,57 +4050,6 @@ main(int argc, char **argv)
 		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
 		                  sizeof ignorefile);
 	}
-
-	/*
-	** @TODO: Optimize so that whitelist is loaded from file into hash directly.
-	*/
-	if (whitelistfile != NULL)
-	{
-		struct list *tmplist;
-		struct list *cur;
-		ENTRY entry, *entryptr;
-		int result = 0;
-
-		if (!dmarcf_loadlist(whitelistfile, &tmplist))
-		{
-			fprintf(stderr,
-			        "%s: can't load domain whitelist file from %s: %s\n",
-			        progname, whitelistfile, strerror(errno));
-			return EX_DATAERR;
-		}
-
-		for (cur = tmplist; cur != NULL; cur = cur->list_next)
-		{
-			u_char *domain = (u_char *)strdup(cur->list_str);
-			u_char *key;
-
-			dmarcf_lowercase(domain);
-
-			entry.key = domain;
-			entry.data = (void *)domain;
-			result = hsearch_r(entry, ENTER, &entryptr, domain_whitelist_hash);
-			if (result == ENOMEM) {
-				fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
-				        progname, strerror(errno));
-
-				return EX_CONFIG;
-			}
-		}
-
-		dmarcf_freelist(tmplist);
-	}
-
-#if defined(__linux__) && defined(DEBUG_WHITELIST)
-	/* walk through the hash and print keys and values */
-	struct hsearch_data *hdp = domain_whitelist_hash;
-
-	fprintf(stderr, "domain_whitelist_hash contents...\n");
-	for (int i = 0; i < hdp->size; i++)
-	{
-		if (hdp->table[i].used)
-			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
-	}
-#endif /* DEBUG_WHITELIST */
 
 	if (ignorefile != NULL)
 	{
@@ -4836,11 +4789,6 @@ main(int argc, char **argv)
 	dmarcf_config_free(curconf);
 	if (ignore != NULL)
 		dmarcf_freelist(ignore);
-
-	/* free domain whitelist hash */
-	hdestroy_r(domain_whitelist_hash);
-	free(domain_whitelist_hash);
-
 	/* tell the reloader thread to die */
 	die = TRUE;
 	(void) raise(SIGUSR1);
