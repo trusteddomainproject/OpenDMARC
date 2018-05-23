@@ -3721,7 +3721,6 @@ main(int argc, char **argv)
 	struct group *gr = NULL;
 	char *become = NULL;
 	char *chrootdir = NULL;
-	char *whitelistfile = NULL;
 	char *extract = NULL;
 	char *ignorefile = NULL;
 	char *p;
@@ -4042,9 +4041,6 @@ main(int argc, char **argv)
 
 		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
 		                  sizeof chrootdir);
-
-		(void) config_get(cfg, "DomainWhitelistFile", &whitelistfile, 
-		                  sizeof whitelistfile);
 
 		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
 		                  sizeof ignorefile);
