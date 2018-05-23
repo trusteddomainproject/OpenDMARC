@@ -4,12 +4,14 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.4.0		2018/??/??
-	Add support for recording and reporting DKIM selectors. This update
-		alters the reporting format for the dkim key in HistoryFile
-		output. Reporting functionality also requires a SQL schema
-		update (refer to the example schema.mysql file).
-	Override a DMARC "fail" if an ARC "pass" is recorded for our this
-		authserv-id.
+	Update SQL schema to support new reporting functionality for DKIM
+		selectors and ARC local policy overrides (refer to the example
+		schema.mysql file).
+	Add support for reporting of ARC local policy overrides. This is a
+		preliminary implementation as per ARC draft-10 section 9.3.
+	Add support for recording and reporting of DKIM selectors.
+	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction with
+		an ARC policy pass.
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
 	LIBOPENDMARC: Fix bug #203: Reject DMARC records that have duplicate

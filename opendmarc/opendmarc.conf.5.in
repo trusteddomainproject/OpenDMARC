@@ -121,22 +121,27 @@ evaluation.
 
 .TP
 .I DomainWhitelist (string)
-Require that all domains that appear in the OpenARC Authenticated-Results
-"arc.chain" field (appended by OpenARC "FinalReceiver" mode) also appear in
-this comma-separated list. Matching is case-insensitive. The default list
-is an empty list, meaning no matching is performed.
+A brief list of whitelisted domains for which ARC signature headers are
+trusted as determined by evaluating entries in the "arc.chain" field found
+in a locally generated Authentication-Results header.
 
 This list will be concatenated with DomainWhitelistFile (if provided).
 
 .TP
 .I DomainWhitelistFile (string)
-Require that all domains that appear in the OpenARC Authenticated-Results
-"arc.chain" field (appended by OpenARC "FinalReceiver" mode) also appear in
-this file that contains a list of domain names. Entries are separated by a
-newline characters; whitespace is ignored. The default list is an empty
-list, meaning no matching is performed.
+A comprehensive list of whitelisted domains for which ARC signature headers
+are trusted as determined by evaluating entries in the "arc.chain" field
+found in a locally generated Authentication-Results header.
 
 This list will be concatenated with DomainWhitelist (if provided).
+
+.TP
+.I DomainWhitelistSize (integer)
+Sets the capacity of the whitelisted domains data structure. The value specifies
+the maximum number of entries including domains listed in the DomainWhitelist
+configuration parameter and the domains listed in the DomainWhiteListFile. The
+final size will be increased by approximately 20% to increase the efficiency of
+the hashing algorithm.
 
 .TP
 .I DNSTimeout (integer)
@@ -359,7 +364,7 @@ This man page covers version @VERSION@ of
 .I opendmarc.
 
 .SH COPYRIGHT
-Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012-2015, 2018, The Trusted Domain Project.  All rights reserved.
 .SH SEE ALSO
 .I opendmarc(8), opendmarc-importstats(8), sendmail(8)
 .P
