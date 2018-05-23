@@ -1280,9 +1280,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			ENTRY entry;
 			ENTRY *entryptr;
 
-			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
+			dmarcf_mkarray(str, &conf->conf_domain_white_list);
 			conf->conf_domain_whitelist_hash = calloc(1, sizeof(struct hsearch_data));
-			if (hcreate_r(MAXWHITELISTSIZE, domain_whitelist_hash) == 0)
+			if (hcreate_r(MAXWHITELISTSIZE, conf->conf_domain_whitelist_hash) == 0)
 			{
 				fprintf(stderr,
 				        "%s: failed to alloc memory for domain whitelist hash: %s\n",
