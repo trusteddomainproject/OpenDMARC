@@ -1,8 +1,11 @@
 /*
 **  Copyright (c) 2012-2018, The Trusted Domain Project.  All rights reserved.
 */
-
 #include "build-config.h"
+
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif /* ! _GNU_SOURCE */
 
 #ifndef _POSIX_PTHREAD_SEMANTICS
 # define _POSIX_PTHREAD_SEMANTICS
@@ -54,6 +57,9 @@
 # include <strl.h>
 #endif /* USE_STRL_H */
 
+/* hash support -- requires #define _GNU_SOURCE */
+#include <search.h>
+
 /* opendmarc_strl if needed */
 #ifdef USE_DMARCSTRL_H
 # include <opendmarc_strl.h>
@@ -76,10 +82,11 @@
 #include "opendmarc-dstring.h"
 
 /* macros */
-#define	CMDLINEOPTS	"Ac:flnp:P:t:u:vV"
-#define	DEFTIMEOUT	5
-#define	MAXSPFRESULT	16
-#define	RECEIVEDSPF	"Received-SPF"
+#define	CMDLINEOPTS		"Ac:flnp:P:t:u:vV"
+#define	DEFTIMEOUT		5
+#define	MAXSPFRESULT		16
+#define	RECEIVEDSPF		"Received-SPF"
+#define	MAXWHITELISTSIZE	4
 
 #ifndef _PATH_DEVNULL
 # define _PATH_DEVNULL	"/dev/null"
@@ -164,11 +171,13 @@ struct dmarcf_config
 	char *			conf_copyfailsto;
 	char *			conf_reportcmd;
 	char *			conf_authservid;
+	char **			conf_domainwhitelist;
 	char *			conf_historyfile;
 	char *			conf_pslist;
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
+	struct hsearch_data *	conf_domainwhitelisthash;
 };
 
 /* LIST -- basic linked list of strings */
@@ -209,6 +218,18 @@ struct lookup log_facilities[] =
 	{ "local7",		LOG_LOCAL7 },
 	{ NULL,			-1 }
 };
+
+#if defined(__linux__) && defined(DEBUG_WHITELIST)
+/* replicate search internal hash struct so we can iterate over the hash
+** structure for debugging.
+ */
+struct _ENTRY
+{
+	unsigned int used;
+	ENTRY entry;
+};
+typedef struct _ENTRY _ENTRY;
+#endif /* DEBUG_WHITELIST */
 
 /* prototypes */
 sfsistat mlfi_abort __P((SMFICTX *));
@@ -1213,7 +1234,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		{
 			if (strcmp(str, "HOSTNAME") == 0)
 				conf->conf_authservid = strdup(myhostname);
-			else	
+			else
 				conf->conf_authservid = strdup(str);
 		}
 
@@ -1246,6 +1267,49 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			(void) config_get(data, "DNSTimeout",
 			                  &conf->conf_dnstimeout,
 			                  sizeof conf->conf_dnstimeout);
+		}
+
+		str = NULL;
+		(void) config_get(data,
+		                  "DomainWhitelist",
+		                  &str,
+		                  sizeof str);
+		if (str != NULL)
+		{
+			int result = 0;
+			ENTRY entry;
+			ENTRY *entryptr;
+
+			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
+			conf->conf_domainwhitelisthash = calloc(1, sizeof(struct hsearch_data));
+			if (hcreate_r(MAXWHITELISTSIZE, conf->conf_domainwhitelisthash) == 0)
+			{
+				fprintf(stderr,
+				        "%s: failed to alloc memory for domain whitelist hash: %s\n",
+				        progname, strerror(errno));
+
+				return EX_CONFIG;
+			}
+
+			/* add domains to hash */
+			for (int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
+			{
+				u_char *domain;
+				u_char *key;
+
+				domain = conf->conf_domainwhitelist[i];
+				dmarcf_lowercase(domain);
+
+				entry.key = domain;
+				entry.data = (void *)domain;
+				result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
+				if (result == ENOMEM) {
+					fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
+				                progname, strerror(errno));
+
+					return EX_CONFIG;
+				}
+			}
 		}
 
 		(void) config_get(data, "EnableCoredumps",
@@ -2028,7 +2092,7 @@ mlfi_eom(SMFICTX *ctx)
 	int align_dkim;
 	int align_spf;
 	int result;
-	sfsistat ret = SMFIS_CONTINUE;
+	sfsistat ret;
 	OPENDMARC_STATUS_T ostatus;
 	OPENDMARC_STATUS_T apused;
 	char *apolicy = NULL;
@@ -3017,30 +3081,26 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	result = DMARC_RESULT_ACCEPT;
+	ret = SMFIS_ACCEPT;
 
 	switch (policy)
 	{
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
 		aresult = "none";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
 		aresult = "fail";		/* Accept and report */
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3073,6 +3133,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
+		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
@@ -3575,6 +3636,15 @@ dmarcf_config_free(struct dmarcf_config *conf)
 
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
+
+	if (conf->conf_domainwhitelist != NULL)
+		dmarcf_freearray(conf->conf_domainwhitelist);
+
+	if (conf->conf_domainwhitelisthash != NULL)
+	{
+		hdestroy_r(conf->conf_domainwhitelisthash);
+		free(conf->conf_domainwhitelisthash);
+	}
 
 	free(conf);
 }
@@ -4714,7 +4784,6 @@ main(int argc, char **argv)
 	dmarcf_config_free(curconf);
 	if (ignore != NULL)
 		dmarcf_freelist(ignore);
-
 	/* tell the reloader thread to die */
 	die = TRUE;
 	(void) raise(SIGUSR1);
