@@ -177,7 +177,7 @@ struct dmarcf_config
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
-	struct hsearch_data *	conf_domain_whitelist_hash;
+	struct hsearch_data *	conf_domainwhitelisthash;
 };
 
 /* LIST -- basic linked list of strings */
@@ -1280,9 +1280,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			ENTRY entry;
 			ENTRY *entryptr;
 
-			dmarcf_mkarray(str, &conf->conf_domain_white_list);
-			conf->conf_domain_whitelist_hash = calloc(1, sizeof(struct hsearch_data));
-			if (hcreate_r(MAXWHITELISTSIZE, conf->conf_domain_whitelist_hash) == 0)
+			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
+			conf->conf_domainwhitelisthash = calloc(1, sizeof(struct hsearch_data));
+			if (hcreate_r(MAXWHITELISTSIZE, conf->conf_domainwhitelisthash) == 0)
 			{
 				fprintf(stderr,
 				        "%s: failed to alloc memory for domain whitelist hash: %s\n",
@@ -1302,9 +1302,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 				entry.key = domain;
 				entry.data = (void *)domain;
-				result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domain_whitelist_hash);
+				result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
 				if (result == ENOMEM) {
-					fprintf(stderr, "%s: conf_domain_whitelist_hash allocation exceeded: %s\n",
+					fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
 				                progname, strerror(errno));
 
 					return EX_CONFIG;
@@ -3634,17 +3634,16 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_trustedauthservids != NULL)
 		dmarcf_freearray(conf->conf_trustedauthservids);
 
-	if (conf->conf_domainwhitelist != NULL)
-		dmarcf_freearray(conf->conf_domainwhitelist);
-
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
-	if (conf->conf_domain_whitelist_hash != NULL)
+	if (conf->conf_domainwhitelist != NULL)
+		dmarcf_freearray(conf->conf_domainwhitelist);
+
+	if (conf->conf_domainwhitelisthash != NULL)
 	{
-		/* TODO: keep the original list in config_load and purge it here so we don't leak */
-		hdestroy_r(conf->conf_domain_whitelist_hash);
-		free(conf->conf_domain_whitelist_hash);
+		hdestroy_r(conf->conf_domainwhitelisthash);
+		free(conf->conf_domainwhitelisthash);
 	}
 
 	free(conf);
