@@ -1276,23 +1276,26 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  sizeof str);
 		if (str != NULL)
 		{
-			ENTRY entry, *entryptr;
 			int result = 0;
+			ENTRY entry;
+			ENTRY *entryptr;
 
 			dmarcf_mkarray(str, &conf->conf_domainwhitelist);
+			
 			/* add domains to hash */
 			for (int i = 0; conf->conf_domainwhitelist[i] != NULL; i++)
 			{
-				u_char *domain = conf->conf_domainwhitelist[i];
+				u_char *domain;
 				u_char *key;
 
+				domain = conf->conf_domainwhitelist[i];
 				dmarcf_lowercase(domain);
 
 				entry.key = domain;
 				entry.data = (void *)domain;
 				result = hsearch_r(entry, ENTER, &entryptr, domain_whitelist_hash);
 				if (result == ENOMEM) {
-					fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
+					fprintf(stderr, "%s: domain_whitelist_hash() allocation exceeded: %s\n",
 				                progname, strerror(errno));
 
 					return EX_CONFIG;
