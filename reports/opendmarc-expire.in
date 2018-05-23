@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2010-2012, 2014-2016, The Trusted Domain Project.
+# Copyright (c) 2010-2012, 2014-2016, 2018, The Trusted Domain Project.
 # All rights reserved.
 #
 # Script to age out OpenDMARC aggregate report data
@@ -260,9 +260,9 @@ while ($dbi_a = $dbi_s->fetchrow_arrayref())
 	$minmsg = $dbi_a->[0];
 }
 
-# 
+#
 # We might have emptied the messages table
-# 
+#
 $dbi_s->finish;
 
 if (!defined($minmsg))
@@ -367,6 +367,33 @@ if ($alltables)
 {
 	if ($verbose)
 	{
+		print STDERR "$progname: expiring unneeded selector data\n";
+	}
+
+	$dbi_s = $dbi_h->prepare("DELETE FROM selectors WHERE id NOT IN
+	                         (SELECT DISTINCT selector FROM signatures)");
+	$rows = $dbi_s->execute();
+	if (!$rows)
+	{
+		print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+	elsif ($verbose)
+	{
+		if ($rows eq "0E0")
+		{
+			print STDOUT "$progname: no rows deleted\n";
+		}
+		else
+		{
+			print STDOUT "$progname: $rows row(s) deleted\n";
+		}
+	}
+
+	if ($verbose)
+	{
 		print STDERR "$progname: expiring unneeded domain data\n";
 	}
 
@@ -450,7 +477,7 @@ if ($alltables)
 		}
 	}
 }
-	
+
 #
 # All done!
 #

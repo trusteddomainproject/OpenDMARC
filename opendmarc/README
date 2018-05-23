@@ -158,8 +158,7 @@ their encodings, but there are only a few of them:
 	spf		SPF evaluation (0 = pass, 2 = fail, 6 = none,
 			-1 = not evaluated)
 
-	dkim		DKIM evaluation (same as SPF, followed by the signing
-			domain name)
+	dkim		DKIM evaluation (signing domain, selector, evaluation - same as SPF)
 
 	pdomain		policy domain (the "organizational" domain,
 			the one asserting policy)
