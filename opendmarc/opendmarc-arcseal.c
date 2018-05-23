@@ -209,7 +209,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 	memset(tmp, '\0', sizeof tmp);
 
 	// guarantee a null-terminated string
-	memcpy(tmp, hdr, MIN_OF(strlen(hdr), sizeof tmp));
+	memcpy(tmp, hdr, MIN_OF(strlen(hdr), sizeof tmp - 1));
 
 	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
 	{
