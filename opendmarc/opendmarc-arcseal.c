@@ -195,19 +195,18 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 int
 opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 {
-	size_t tmp_size;
+	size_t tmp_size = sizeof(u_char) * OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1;
 	u_char *tmp_ptr;
 	u_char *token;
 	u_char token_buf[OPENDMARC_ARCSEAL_MAX_TOKEN_LEN + 1];
 	u_char tmp[tmp_size];
 
-	tmp_size = sizeof(u_char) * OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1;
 	tmp_ptr = tmp;
 
 	assert(hdr != NULL);
 	assert(as != NULL);
 
-	memset(as, '\0', sizeof *as);
+	memset(as, '\0', sizeof(*as));
 	memset(tmp, '\0', tmp_size);
 
 	// guarantee a null-terminated string
@@ -220,7 +219,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		char *token_ptr;
 		char *tag_label;
 		char *tag_value;
-		
+
 		leading_space_len = strspn(token, " \n");
 		token_ptr = token + leading_space_len;
 		tag_label = strsep(&token_ptr, "=");
