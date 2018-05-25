@@ -195,8 +195,8 @@ struct dmarcf_config
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
-	struct hsearch_data *	conf_domain_whitelist_hash;
-	unsigned int		conf_domain_whitelist_hash_count;
+	struct hsearch_data *	conf_domainwhitelisthash;
+	unsigned int		conf_domainwhitelisthashcount;
 };
 
 /* LIST -- basic linked list of strings */
@@ -1427,17 +1427,17 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	whitelistsize = floor(whitelistsize * 1.20);
 
 	/* init domain_whitelist_hash table */
-	conf->conf_domain_whitelist_hash = calloc(1, sizeof(struct hsearch_data));
-	if (hcreate_r(whitelistsize, conf->conf_domain_whitelist_hash) == 0)
+	conf->conf_domainwhitelisthash = calloc(1, sizeof(struct hsearch_data));
+	if (hcreate_r(whitelistsize, conf->conf_domainwhitelisthash) == 0)
 	{
 		fprintf(stderr,
-		        "%s: failed to alloc memory for conf_domain_whitelist_hash: %s\n",
+		        "%s: failed to alloc memory for conf_domainwhitelisthash: %s\n",
 		        progname,
 		        strerror(errno));
 
 		return EX_OSERR;
 	}
-	conf->conf_domain_whitelist_hash_count = 0;
+	conf->conf_domainwhitelisthashcount = 0;
 
 	/*
 	** Add entries from configuration file whitelist parameter
@@ -1463,13 +1463,13 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			entry.data = (void *)domain;
 
 			/* keep track of the number of entries */
-			result = hsearch_r(entry, FIND, &entryptr, conf->conf_domain_whitelist_hash);
+			result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
 			if (result == 0 && errno == ESRCH) {
-				conf->conf_domain_whitelist_hash_count++;
+				conf->conf_domainwhitelisthashcount++;
 			}
 
 			/* try to add or update the entry */
-			result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domain_whitelist_hash);
+			result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
 			if (result == 0 && errno == ENOMEM) {
 				fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
 			                progname, strerror(errno));
@@ -1514,15 +1514,15 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			entry.data = (void *)domain;
 
 			/* keep track of the number of entries */
-			result = hsearch_r(entry, FIND, &entryptr, conf->conf_domain_whitelist_hash);
+			result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
 			if (result == 0 && errno == ESRCH) {
-				conf->conf_domain_whitelist_hash_count++;
+				conf->conf_domainwhitelisthashcount++;
 			}
 
 			/* try to add or update the entry */
-			result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domain_whitelist_hash);
+			result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
 			if (result == 0 && errno == ENOMEM) {
-				fprintf(stderr, "%s: conf_domain_whitelist_hash allocation exceeded: %s\n",
+				fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
 				        progname, strerror(errno));
 
 				return EX_CONFIG;
@@ -1534,9 +1534,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 #if defined(__linux__) && defined(DEBUG_WHITELIST)
 	/* walk through the hash and print keys and values */
-	struct hsearch_data *hdp = conf->conf_domain_whitelist_hash;
+	struct hsearch_data *hdp = conf->conf_domainwhitelisthash;
 
-	fprintf(stderr, "conf_domain_whitelist_hash contents...\n");
+	fprintf(stderr, "conf_domainwhitelisthash contents...\n");
 	for (int i = 0; i < hdp->size; i++)
 	{
 		if (hdp->table[i].used)
@@ -2727,7 +2727,7 @@ mlfi_eom(SMFICTX *ctx)
 				/*
 				** Check arc status against whitelist policy
 				*/
-				if (dfc->mctx_arcpass == ARES_RESULT_PASS && conf->conf_domain_whitelist_hash_count > 0)
+				if (dfc->mctx_arcpass == ARES_RESULT_PASS && conf->conf_domainwhitelisthashcount > 0)
 				{
 					u_char *arcchain = NULL;
 					u_char *arcdomain;
@@ -2757,7 +2757,7 @@ mlfi_eom(SMFICTX *ctx)
 							dmarcf_lowercase(arcdomain);
 
 							entry.key = arcdomain;
-							result = hsearch_r(entry, FIND, &entryptr, conf->conf_domain_whitelist_hash);
+							result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
 							if (result == 0 && errno == ESRCH)
 								continue;
 
@@ -3934,11 +3934,11 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
-	if (conf->conf_domain_whitelist_hash != NULL)
+	if (conf->conf_domainwhitelisthash != NULL)
 	{
 		/* @TODO: keep the original list in config_load and purge it here so we don't leak */
-		hdestroy_r(conf->conf_domain_whitelist_hash);
-		free(conf->conf_domain_whitelist_hash);
+		hdestroy_r(conf->conf_domainwhitelisthash);
+		free(conf->conf_domainwhitelisthash);
 	}
 
 	free(conf);
