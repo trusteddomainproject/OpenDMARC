@@ -22,7 +22,7 @@ complete that process before continuing with the next section.
 CONFIGURING OPENDMARC
 =====================
 
-(1) Take a look at the opendmarc.conf.sample as an example configuration file 
+(1) Take a look at the opendmarc.conf.sample as an example configuration file
     for your domain.  If you wish to run with anything other than default
     settings, copy that file to /etc/mail/opendmarc.conf and make your changes
     there.
@@ -59,7 +59,7 @@ CONFIGURING OPENDMARC
 
     (a) Choose a socket at which the MTA and the filter will rendezvous.
         Be careful with UNIX domain sockets as on some distributions and setups
-	the smtpd process is running in a chroot environment.  A UNIX socket 
+	the smtpd process is running in a chroot environment.  A UNIX socket
 	will need to be visible to the chrooted smtpd process.
 
     (b) Add the following lines like this example to your postfix main.cf using
@@ -67,7 +67,7 @@ CONFIGURING OPENDMARC
 
 	    smtpd_milters = inet:localhost:8893
 	    non_smtpd_milters = inet:localhost:8893
-	
+
         Note that this must come after filters that do DKIM and SPF evaluation,
         as this filter relies on the addition of authentication results data
         to the header by upstream filters.
@@ -158,8 +158,7 @@ their encodings, but there are only a few of them:
 	spf		SPF evaluation (0 = pass, 2 = fail, 6 = none,
 			-1 = not evaluated)
 
-	dkim		DKIM evaluation (same as SPF, followed by the signing
-			domain name)
+	dkim		DKIM evaluation (signing domain, selector, evaluation - same as SPF)
 
 	pdomain		policy domain (the "organizational" domain,
 			the one asserting policy)
@@ -174,6 +173,12 @@ their encodings, but there are only a few of them:
 			16 = reject
 			17 = quarantine
 			18 = none
+
+	arc		ARC evaluation (0 = pass, 2 = fail)
+
+	arc_policy	ARC local policy evaluation (evaluation -- same as ARC, ARC seal
+			data - JSON-encoded array of governing arc seal fields: instance,
+			domain, selector)
 
 ARC Evaluation by OpenDMARC
 ===========================
@@ -198,7 +203,7 @@ and returned in the "local_policy" comment to the sending domain owner.
 OpenDMARC makes its limited determination about delivering around a DMARC
 failure in the following way: When DMARC fails, and there is one and only one
 ARC status in the Authentication-Results for the local TrustedAuthservID, and
-that ARC status is “pass”, and all sealers are on the DomainWhitelist, then
+that ARC status is "pass", and all sealers are on the DomainWhitelist, then
 the message will be delivered instead of being subject to the DMARC policy of
 the sending domain.
 
