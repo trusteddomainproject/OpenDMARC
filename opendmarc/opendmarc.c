@@ -2592,10 +2592,14 @@ mlfi_eom(SMFICTX *ctx)
 				*/
 				if (dfc->mctx_arcpass == ARES_RESULT_PASS && domain_whitelist_hash_count > 0)
 				{
-					u_char *arcchain = NULL, *arcdomain;
-					int arcchainlen = 0, arcchainitempass = 0;
-					ENTRY entry, *entryptr;
+					u_char *arcchain = NULL;
+					u_char *arcdomain;
+					int arcchainlen = 0;
+					int arcchainitempass = 0;
 					int result = 0;
+					ENTRY entry;
+					ENTRY *entryptr;
+
 
 					for (pc = 0;
 					     pc < ar.ares_result[c].result_props;
@@ -4231,16 +4235,18 @@ main(int argc, char **argv)
 	if (whitelist != NULL)
 	{
 		char **whitelistary;
-		ENTRY entry, *entryptr;
 		int result = 0;
+		ENTRY entry;
+		ENTRY *entryptr;
 
 		dmarcf_mkarray(whitelist, ",", &whitelistary);
 
 		/* add domains to hash */
 		for (int i = 0; whitelistary[i] != NULL; i++)
 		{
-			u_char *domain = whitelistary[i];
+			u_char *domain;
 
+ 			domain = whitelistary[i];
 			dmarcf_lowercase(domain);
 
 			entry.key = domain;
@@ -4275,8 +4281,9 @@ main(int argc, char **argv)
 		*/
 		struct list *tmplist = NULL;
 		struct list *cur;
-		ENTRY entry, *entryptr;
 		int result = 0;
+		ENTRY entry;
+		ENTRY *entryptr;
 
 		if (!dmarcf_loadlist(whitelistfile, &tmplist))
 		{
@@ -4288,8 +4295,9 @@ main(int argc, char **argv)
 
 		for (cur = tmplist; cur != NULL; cur = cur->list_next)
 		{
-			u_char *domain = (u_char *)strdup(cur->list_str);
+			u_char *domain;
 
+			domain = (u_char *)strdup(cur->list_str);
 			dmarcf_lowercase(domain);
 
 			entry.key = domain;
