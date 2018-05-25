@@ -195,6 +195,7 @@ struct dmarcf_config
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
+	struct list *		conf_domainwhitelist;
 	struct hsearch_data *	conf_domainwhitelisthash;
 	unsigned int		conf_domainwhitelisthashcount;
 };
@@ -265,8 +266,11 @@ sfsistat mlfi_negotiate __P((SMFICTX *, unsigned long, unsigned long,
                                         unsigned long *, unsigned long *,
                                         unsigned long *, unsigned long *));
 
+static int dmarcf_addlist_csv __P((char *str, char *delim, struct list **head));
 static void dmarcf_config_free __P((struct dmarcf_config *));
 static struct dmarcf_config *dmarcf_config_new __P((void));
+void dmarcf_freearray __P((char **a));
+int dmarcf_mkarray __P((char *str, char *delim, char ***array));
 sfsistat dmarcf_insheader __P((SMFICTX *, int, char *, char *));
 sfsistat dmarcf_setreply __P((SMFICTX *, char *, char *, char *));
 
@@ -554,6 +558,41 @@ dmarcf_addlist(const char *str, struct list **head)
 		new->list_str = strdup(str);
 		*head = new;
 	}
+}
+
+/*
+**  DMARCF_ADDLIST_CSV -- add values from a delimiter-separated string into a
+**                        singly-linked list
+**
+**  Parameters:
+**  	str -- input string
+**  	delim -- set of delimiter characters
+**  	head -- address of list head pointer (updated)
+**
+**  Return value:
+**  	Number of entries added, or -1 on error.
+*/
+
+static int
+dmarcf_addlist_csv(char *str, char *delim, struct list **head)
+{
+	char **array = NULL;
+	int result = 0;
+
+	assert(str != NULL);
+	assert(delim != NULL);
+	assert(head != NULL);
+
+	result = dmarcf_mkarray(str, delim, &array);
+
+	for (int i = 0; array[i] != NULL; i++)
+	{
+		dmarcf_addlist(array[i], head);
+	}
+
+	dmarcf_freearray(array);
+
+	return result;
 }
 
 /*
@@ -1444,41 +1483,13 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	 */
 	if (whitelist != NULL)
 	{
-		char **whitelistary;
-		int result = 0;
-		ENTRY entry;
-		ENTRY *entryptr;
-
-		dmarcf_mkarray(whitelist, ",", &whitelistary);
-
-		/* add domains to hash */
-		for (int i = 0; whitelistary[i] != NULL; i++)
+		if (!dmarcf_addlist_csv(whitelist, ",", &conf->conf_domainwhitelist))
 		{
-			u_char *domain;
-
- 			domain = whitelistary[i];
-			dmarcf_lowercase(domain);
-
-			entry.key = domain;
-			entry.data = (void *)domain;
-
-			/* keep track of the number of entries */
-			result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
-			if (result == 0 && errno == ESRCH) {
-				conf->conf_domainwhitelisthashcount++;
-			}
-
-			/* try to add or update the entry */
-			result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
-			if (result == 0 && errno == ENOMEM) {
-				fprintf(stderr, "%s: domain_whitelist_hash allocation exceeded: %s\n",
-			                progname, strerror(errno));
-
-				return EX_CONFIG;
-			}
+			fprintf(stderr,
+			        "%s: can't load domain whitelist from %s: %s\n",
+			        progname, conffile, strerror(errno));
+			return EX_DATAERR;
 		}
-
-		dmarcf_freearray(whitelistary);
 	}
 
 	/*
@@ -1486,50 +1497,43 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	 */
 	if (whitelistfile != NULL)
 	{
-		/*
-		** @TODO: Optimize so that whitelist is loaded from file into hash directly.
-		*/
-		struct list *tmplist = NULL;
-		struct list *cur;
-		int result = 0;
-		ENTRY entry;
-		ENTRY *entryptr;
-
-		if (!dmarcf_loadlist(whitelistfile, &tmplist))
+		if (!dmarcf_loadlist(whitelistfile, &conf->conf_domainwhitelist))
 		{
 			fprintf(stderr,
 			        "%s: can't load domain whitelist file from %s: %s\n",
 			        progname, whitelistfile, strerror(errno));
 			return EX_DATAERR;
 		}
+	}
 
-		for (cur = tmplist; cur != NULL; cur = cur->list_next)
-		{
-			u_char *domain;
+	/* load domain whitelist hash, memory is managed by list type */
+	for (struct list *cur = conf->conf_domainwhitelist; cur != NULL; cur = cur->list_next)
+	{
+		int result;
+		u_char *domain;
+		ENTRY entry;
+		ENTRY *entryptr;
 
-			domain = (u_char *)strdup(cur->list_str);
-			dmarcf_lowercase(domain);
+		domain = cur->list_str;
+		dmarcf_lowercase(domain);
 
-			entry.key = domain;
-			entry.data = (void *)domain;
+		entry.key = domain;
+		entry.data = (void *)domain;
 
-			/* keep track of the number of entries */
-			result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
-			if (result == 0 && errno == ESRCH) {
-				conf->conf_domainwhitelisthashcount++;
-			}
-
-			/* try to add or update the entry */
-			result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
-			if (result == 0 && errno == ENOMEM) {
-				fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
-				        progname, strerror(errno));
-
-				return EX_CONFIG;
-			}
+		/* keep track of the number of entries */
+		result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
+		if (result == 0 && errno == ESRCH) {
+			conf->conf_domainwhitelisthashcount++;
 		}
 
-		dmarcf_freelist(tmplist);
+		/* try to add or update the entry */
+		result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
+		if (result == 0 && errno == ENOMEM) {
+			fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
+				progname, strerror(errno));
+
+			return EX_CONFIG;
+		}
 	}
 
 #if defined(__linux__) && defined(DEBUG_WHITELIST)
@@ -3936,7 +3940,11 @@ dmarcf_config_free(struct dmarcf_config *conf)
 
 	if (conf->conf_domainwhitelisthash != NULL)
 	{
-		/* @TODO: keep the original list in config_load and purge it here so we don't leak */
+		/*
+		** conf_domainwhitelist manages memory for entries in domain
+		** whitelist hash so we just free that allocation here.
+		 */
+		dmarcf_freelist(conf->conf_domainwhitelist);
 		hdestroy_r(conf->conf_domainwhitelisthash);
 		free(conf->conf_domainwhitelisthash);
 	}
