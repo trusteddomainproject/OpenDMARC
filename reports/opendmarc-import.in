@@ -330,7 +330,6 @@ sub update_db
 		my $selector;
 		my $selector_id;
 		my $instance;
-		my $instance_id;
 
 		$instance = $arc_policy_data[$as]{'i'};
 		$sdomain = $arc_policy_data[$as]{'d'};
