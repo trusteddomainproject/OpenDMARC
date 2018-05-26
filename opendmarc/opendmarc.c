@@ -120,14 +120,6 @@ struct dmarcf_header
 	struct dmarcf_header *	hdr_prev;
 };
 
-/* ARCSEAL_HEADER -- a linked list of arcseal structs */
-struct arcseal_header
-{
-	struct arcseal arcseal;
-	struct arcseal_header * arcseal_next;
-	struct arcseal_header * arcseal_prev;
-};
-
 /* DMARCF_MSGCTX -- message-specific context */
 struct dmarcf_msgctx
 {

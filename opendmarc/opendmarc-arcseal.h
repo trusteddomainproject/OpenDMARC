@@ -62,6 +62,14 @@ struct arcseal
 	u_char signature_value[OPENDMARC_ARCSEAL_MAX_LONG_VALUE_LEN + 1];
 };
 
+/* ARCSEAL_HEADER -- a node for a linked list of arcseal structs */
+struct arcseal_header
+{
+	struct arcseal arcseal;
+	struct arcseal_header * arcseal_next;
+	struct arcseal_header * arcseal_prev;
+};
+
 /*
 **  OPENDMARC_ARC_SEAL_PARSE -- parse an ARC-Seal: header, return a structure
 **                              containing a parsed result
