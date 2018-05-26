@@ -80,6 +80,7 @@
 #include "test.h"
 #include "util.h"
 #include "opendmarc-ar.h"
+#include "opendmarc-arcares.h"
 #include "opendmarc-arcseal.h"
 #include "opendmarc-config.h"
 #include "opendmarc-dstring.h"
@@ -128,6 +129,8 @@ struct dmarcf_msgctx
 	int			mctx_spfresult;
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
+	struct arcares_header * mctx_aarhead;
+	struct arcares_header * mctx_aartail;
 	struct arcseal_header * mctx_ashead;
 	struct arcseal_header * mctx_astail;
 	struct dmarcf_header *	mctx_hqhead;
@@ -1732,6 +1735,20 @@ dmarcf_cleanup(SMFICTX *ctx)
 			}
 		}
 
+		if (dfc->mctx_aartail != NULL)
+		{
+			struct arcares_header *aar;
+			struct arcares_header *prev;
+
+			aar = dfc->mctx_aartail;
+			while(aar != NULL)
+			{
+				prev = aar;
+				aar = aar->arcares_prev;
+				TRYFREE(prev);
+			}
+		}
+
 		if (dfc->mctx_astail != NULL)
 		{
 			struct arcseal_header *as;
@@ -2414,6 +2431,48 @@ mlfi_eom(SMFICTX *ctx)
 	                      dfc->mctx_fromdomain);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "mfrom %s\n",
 	                      dfc->mctx_envdomain);
+
+	/*
+	** Walk through ARC-Authentication-Results fields and pull out data.
+	*/
+
+	for (hdr = dfc->mctx_hqhead, c = 0;
+	     hdr != NULL;
+	     hdr = hdr->hdr_next, c++)
+	{
+		/* skip if it's not ARC-Authentication-Results header */
+		if (strcasecmp(hdr->hdr_name, OPENDMARC_ARCARES_HDRNAME) != 0)
+			continue;
+
+		/* allocate one */
+		struct arcares_header *aar_hdr_new =
+		    (struct arcares_header *)malloc(sizeof(struct arcares_header));
+		if (aar_hdr_new == NULL)
+		{
+			if (conf->conf_dolog)
+				syslog(LOG_ERR, "malloc(): %s", strerror(errno));
+
+			dmarcf_cleanup(ctx);
+			return SMFIS_TEMPFAIL;
+		}
+		(void) memset(aar_hdr_new, '\0', sizeof(struct arcares_header));
+
+		/* parse it */
+		if (opendmarc_arcares_parse(hdr->hdr_value, &aar_hdr_new->arcares) != 0)
+			continue;
+
+		if (dfc->mctx_aarhead == NULL)
+		{
+			dfc->mctx_aarhead = aar_hdr_new;
+		}
+
+		if (dfc->mctx_aartail != NULL)
+		{
+			dfc->mctx_aartail->arcares_next = aar_hdr_new;
+		}
+
+		dfc->mctx_aartail = aar_hdr_new;
+	}
 
 	/*
 	** Walk through ARC-Seal fields and pull out data.
@@ -3442,14 +3501,18 @@ mlfi_eom(SMFICTX *ctx)
 	/* append arc override to historyfile
 	**
 	**  <reason>
-	 **    <type>local_policy</type>
+	**    <type>local_policy</type>
 	**	  <comment>
-	**	    arc=[status] as[N].d=dN.example.com as[N].s=sN .. as[1].d=d1.example.com as[1].s=s1
+	**	    arc=[status] as[N].d=dN.example.com as[N].s=sN
+	**          .. as[1].d=d1.example.com as[1].s=s1 client-ip[1]=10.10.10.13
 	**	  </comment>
 	**  </reason>
 	**
 	** Where:
-	**   arc_policy 1 json:[ { i=2, d = d2.example, s = s2 }, { i=1, d = d1.example, s = s1 } ]
+	**   arc_policy 1 json:[
+	**                         { i=2, d = d2.example, s = s2, ip = addr2 },
+	**                         { i=1, d = d1.example, s = s1, ip = addr1 }
+	**                     ]
 	*/
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "arc %d\n",
 	                      dfc->mctx_arcpass);
@@ -3459,16 +3522,24 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 	u_char arcseal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
 	u_char arcseal_buf[HIST_MAX_ARCSEAL_LEN + 1];
+	struct arcares arcares;
+	struct arcares_arc_field arcares_arc_field;
+
 	for (as_hdr = dfc->mctx_ashead, c = 0;
 	     as_hdr != NULL;
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
+		/* fetch smtp.client_ip from aar */
+		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance, dfc->mctx_aarhead, &arcares) == 0)
+			(void) opendmarc_arcares_arc_parse(arcares.arc, &arcares_arc_field);
+
 		snprintf(arcseal_buf, sizeof arcseal_str,
-		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\" }",
+		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\", \"ip\":\"%s\" }",
 		         (c > 0) ? ", " : "",
 		         as_hdr->arcseal.instance,
 		         as_hdr->arcseal.signature_domain,
-		         as_hdr->arcseal.signature_selector);
+		         as_hdr->arcseal.signature_selector,
+			 arcares_arc_field.smtpclientip);
 		strlcat(arcseal_str, (const char *)arcseal_buf, sizeof arcseal_str);
 	}
 

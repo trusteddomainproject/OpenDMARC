@@ -12,6 +12,7 @@ sbin_PROGRAMS = opendmarc opendmarc-check
 
 opendmarc_SOURCES = config.c config.h opendmarc.c opendmarc.h \
 	opendmarc-ar.c opendmarc-ar.h \
+	opendmarc-arcares.c opendmarc-arcares.h \
 	opendmarc-arcseal.c opendmarc-arcseal.h \
 	opendmarc-config.h \
 	opendmarc-dstring.c opendmarc-dstring.h \

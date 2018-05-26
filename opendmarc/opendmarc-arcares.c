@@ -1,0 +1,399 @@
+/*
+**  Copyright (c) 2018, The Trusted Domain Project.
+**  	All rights reserved.
+*/
+
+#include "build-config.h"
+
+/* system includes */
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#ifdef HAVE_STDBOOL_H
+# include <stdbool.h>
+#endif /* HAVE_STDBOOL_H */
+
+/* libbsd if found */
+#ifdef USE_BSD_H
+# include <bsd/string.h>
+#endif /* USE_BSD_H */
+
+#include "opendmarc-arcares.h"
+
+#define OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN 255
+#define OPENDMARC_ARCARES_MAX_TOKEN_LEN      512
+
+#define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
+#define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
+
+/* tables */
+struct opendmarc_arcares_lookup
+{
+	char *str;
+	int code;
+};
+
+struct opendmarc_arcares_lookup aar_tags[] =
+{
+	{ "arc",   AAR_TAG_ARC },
+	{ "dkim",  AAR_TAG_DKIM },
+	{ "dmarc", AAR_TAG_DMARC },
+	{ "i",     AAR_TAG_INSTANCE },
+	{ "spf",   AAR_TAG_SPF },
+	{ NULL,    AAR_TAG_UNKNOWN }
+};
+
+struct opendmarc_arcares_lookup aar_arc_tags[] =
+{
+	{ "arc",            AAR_ARC_TAG_ARC },
+	{ "arc.chain",      AAR_ARC_TAG_ARC_CHAIN },
+	{ "smtp.client-ip", AAR_ARC_TAG_SMTP_CLIENT_IP },
+	{ NULL,             AAR_ARC_TAG_UNKNOWN }
+};
+
+/*
+**  OPENDMARC_ARCARES_CONVERT -- convert a string to its code
+**
+**  Parameters:
+**  	table -- in which table to look up
+**  	str -- string to find
+**
+**  Return value:
+**  	A code translation of "str".
+*/
+
+static int
+opendmarc_arcares_convert(struct opendmarc_arcares_lookup *table, char *str)
+{
+	int c;
+
+	assert(table != NULL);
+	assert(str != NULL);
+
+	for (c = 0; ; c++)
+	{
+		if (table[c].str == NULL || strcasecmp(table[c].str, str) == 0)
+			return table[c].code;
+	}
+
+	assert(0);
+}
+
+/*
+**  OPENDMARC_ARCARES_STRIP_WHITESPACE -- removes all whitespace from a string
+**                              in-place, handling a maximum string of length
+**                              ARCARES_MAX_TOKEN_LEN
+**
+**  Parameters:
+**  	string -- NULL-terminated string to modify
+**
+**  Returns:
+**  	pointer to string on success, NULL on failure (max string length
+**  	exceeded)
+**/
+
+static char *
+opendmarc_arcares_strip_whitespace(u_char *string)
+{
+	assert(string != NULL);
+
+	int a;
+	int b;
+	char *string_ptr;
+
+	string_ptr = string;
+
+	for (a = 0, b = 0;
+	     string[b] != '\0' && b < OPENDMARC_ARCARES_MAX_TOKEN_LEN;
+	     b++)
+	{
+		if (isascii(string[b]) && isspace(string[b]))
+			continue;
+
+		string[a] = string[b];
+		a++;
+	}
+
+	if (b >= OPENDMARC_ARCARES_MAX_TOKEN_LEN)
+		return NULL;
+
+	/* set remaining chars to null */
+	memset(&string[a], '\0', sizeof(char) * (b - a));
+
+	return string;
+}
+
+/*
+**  OPENDMARC_ARCARES_STRIP_FIELD_NAME -- strip the field name from a string,
+**                                        skipping leading whitespace
+**
+**  Parameters:
+**  	field -- NULL-terminated string
+**  	name -- NULL-terminated string containing field to remove
+**  	delim -- NULL-terminated string containing delimiter
+**  	buf -- destination buffer
+**  	buflen -- number of bytes at buf
+**
+**  Returns:
+**  	0 on success, -1 on failure
+**/
+
+static int
+opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
+                                   char *buf, size_t buf_len)
+{
+	size_t copy_len;
+	size_t name_len;
+	size_t delim_len;
+	size_t leading_space_len;
+	size_t field_value_len;
+	u_char *field_value_ptr;
+
+	assert(field != NULL);
+	assert(name != NULL);
+	assert(delim != NULL);
+	assert(buf != NULL);
+	assert(buf_len > 0);
+
+	name_len = strlen(name);
+	delim_len = strlen(delim);
+
+	if (name_len + delim_len > OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN)
+		return -1;
+
+	/* build delimited name */
+	u_char name_delim[OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN + 1];
+	memcpy(name_delim, (const void *)name, name_len);
+	memcpy(name_delim + name_len, delim, delim_len);
+	memset(name_delim + name_len + delim_len, '\0', sizeof(char));
+
+	/* count leading spaces after field_delim */
+	field_value_ptr = field + strlen(name_delim);
+	leading_space_len = strspn(field_value_ptr, " ");
+	field_value_ptr += leading_space_len;
+	field_value_len = strlen(field_value_ptr);
+
+	if (field_value_len > buf_len)
+		return -1;
+
+	/* copy remaining characters into buf */
+	memcpy(buf, field_value_ptr, field_value_len);
+	memset(buf + field_value_len, '\0', sizeof(char));
+
+	return field_value_len;
+}
+
+/*
+** OPENDMARC_ARCARES_PARSE -- parse an ARC-Authentication-Results: header,
+**                             return a structure containing parse result
+**
+** Parameters:
+** 	hdr -- NULL-terminated contents of an ARC-Authentication-Results: header
+**             field
+** 	aar -- a pointer to a struct (arcaar) loaded by values after parsing
+**
+**  Returns:
+**  	0 on success, -1 on failure
+**/
+
+int
+opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
+{
+	u_char *tmp_ptr;
+	u_char *token;
+	u_char token_buf[OPENDMARC_ARCARES_MAX_TOKEN_LEN + 1];
+	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
+	int result = 0;
+
+	tmp_ptr = tmp;
+
+	assert(hdr != NULL);
+	assert(aar != NULL);
+
+	memset(aar, '\0', sizeof *aar);
+	memset(tmp, '\0', sizeof tmp);
+
+	// guarantee a null-terminated string
+	memcpy(tmp, hdr, MIN_OF(strlen(hdr), sizeof tmp - 1));
+
+	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
+	{
+		size_t leading_space_len;
+		aar_tag_t tag_code;
+		aar_tag_t tag_code_next;
+		char *token_ptr;
+		char *tag_label;
+		char *tag_value;
+		char *field;
+
+		leading_space_len = strspn(token, " \n");
+		token_ptr = token + leading_space_len;
+		tag_label = strsep(&token_ptr, "=");
+		tag_value = token_ptr;
+		tag_code = opendmarc_arcares_convert(aar_tags, tag_label);
+
+		switch (tag_code)
+		{
+		  case AAR_TAG_ARC:
+			// strlcpy(aar->arc, tag_value, sizeof aar->arc);
+			snprintf(aar->arc, sizeof aar->arc, "%s=%s", tag_label, tag_value);
+			break;
+
+		//   case AAR_TAG_AUTHSERV_ID:
+		// 	strlcpy(aar->authserv_id, tag_value, sizeof aar->authserv_id);
+		// 	break;
+
+		  case AAR_TAG_DKIM:
+			// strlcpy(aar->dkim, tag_value, sizeof aar->dkim);
+			snprintf(aar->dkim, sizeof aar->dkim, "%s=%s", tag_label, tag_value);
+			break;
+
+		  case AAR_TAG_DMARC:
+			// strlcpy(aar->dmarc, tag_value, sizeof aar->dmarc);
+			snprintf(aar->dmarc, sizeof aar->dmarc, "%s=%s", tag_label, tag_value);
+			break;
+
+		  case AAR_TAG_INSTANCE:
+			aar->instance = atoi(tag_value);
+			/* next value will be unlabeled authserv_id */
+			if (token = strsep((char **)&tmp_ptr, ";"))
+			{
+				leading_space_len = strspn(token, " \n");
+				// token_ptr = token + leading_space_len;
+				tag_value = opendmarc_arcares_strip_whitespace(token);
+				strlcpy(aar->authserv_id, tag_value, sizeof aar->authserv_id);
+			}
+			break;
+
+		  case AAR_TAG_SPF:
+			// strlcpy(aar->spf, tag_value, sizeof aar->spf);
+			snprintf(aar->spf, sizeof aar->spf, "%s=%s", tag_label, tag_value);
+			break;
+
+		  default:
+			result = -1;
+			break;
+		}
+	}
+
+	return result;
+}
+
+/*
+** OPENDMARC_ARCARES_ARC_PARSE -- parse an ARC-Authentication-Results: header
+**                                ARC field, return a structure containing parse
+**                                result
+**
+** Parameters:
+** 	hdr_arc -- NULL-terminated contents of an ARC-Authentication-Results:
+**                 header ARC field
+** 	arc -- a pointer to a struct (arcares_arc_field) loaded by values after
+**             parsing
+**
+**  Returns:
+**  	0 on success, -1 on failure
+**/
+
+int
+opendmarc_arcares_arc_parse (u_char *hdr_arc, struct arcares_arc_field *arc)
+{
+	u_char *tmp_ptr;
+	u_char *token;
+	u_char token_buf[OPENDMARC_ARCARES_MAX_TOKEN_LEN + 1];
+	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
+	int result = 0;
+
+	tmp_ptr = tmp;
+
+	assert(hdr_arc != NULL);
+	assert(arc != NULL);
+
+	memset(arc, '\0', sizeof *arc);
+	memset(tmp, '\0', sizeof tmp);
+
+	// guarantee a null-terminated string
+	memcpy(tmp, hdr_arc, MIN_OF(strlen(hdr_arc), sizeof tmp - 1));
+
+	while ((token = strsep((char **)&tmp_ptr, " ;")) != NULL)
+	{
+		size_t leading_space_len;
+		aar_tag_t tag_code;
+		aar_tag_t tag_code_next;
+		char *token_ptr;
+		char *tag_label;
+		char *tag_value;
+
+		leading_space_len = strspn(token, " \n");
+		token_ptr = token + leading_space_len;
+		tag_label = strsep(&token_ptr, "=");
+		tag_value = opendmarc_arcares_strip_whitespace(token_ptr);
+		tag_code = opendmarc_arcares_convert(aar_arc_tags, tag_label);
+
+		switch (tag_code)
+		{
+		  case AAR_ARC_TAG_ARC:
+			strlcpy(arc->arcresult, tag_value, sizeof arc->arcresult);
+			break;
+
+		  case AAR_ARC_TAG_ARC_CHAIN:
+			strlcpy(arc->arcchain, tag_value, sizeof arc->arcchain);
+			break;
+
+		  case AAR_ARC_TAG_SMTP_CLIENT_IP:
+			strlcpy(arc->smtpclientip, tag_value, sizeof arc->smtpclientip);
+			break;
+
+		  default:
+		  	result = -1;
+			break;
+		}
+	}
+
+	return result;
+}
+
+/*
+**  OPENDMARC_ARCARES_LIST_PLUCK -- retrieve a struct (arcares) from a linked
+**                                  list corresponding to a specified instance
+**
+**  Parameters:
+**  	instance -- struct with instance value to find
+**  	aar_hdr -- address of list head pointer (updated)
+**  	aar -- a pointer to a struct (arcaar) loaded by values after parsing
+**
+**  Returns:
+**  	0 on success, -1 on failure
+*/
+
+int
+opendmarc_arcares_list_pluck(u_int instance, struct arcares_header *aar_hdr,
+                             struct arcares *aar)
+{
+	assert(instance > 0);
+	assert(aar != NULL);
+	assert(aar_hdr != NULL);
+
+	memset(aar, '\0', sizeof *aar);
+
+	while (aar_hdr != NULL)
+	{
+		if (aar_hdr->arcares.instance == instance)
+		{
+			aar->instance = aar_hdr->arcares.instance;
+			strlcpy(aar->authserv_id, aar_hdr->arcares.authserv_id, sizeof aar->authserv_id);
+			strlcpy(aar->arc, aar_hdr->arcares.arc, sizeof aar->arc);
+			strlcpy(aar->dkim, aar_hdr->arcares.dkim, sizeof aar->dkim);
+			strlcpy(aar->dmarc, aar_hdr->arcares.dmarc, sizeof aar->dmarc);
+			strlcpy(aar->spf, aar_hdr->arcares.spf, sizeof aar->spf);
+
+			return 0;
+		}
+
+		aar_hdr = aar_hdr->arcares_next;
+	}
+
+	return -1;
+}
