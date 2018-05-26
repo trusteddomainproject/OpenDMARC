@@ -35,7 +35,7 @@ struct opendmarc_arcseal_lookup
 	int code;
 };
 
-struct opendmarc_arcseal_lookup tags[] =
+struct opendmarc_arcseal_lookup as_tags[] =
 {
 	{ "a",		AS_TAG_ALGORITHM },
 	{ "cv",		AS_TAG_CHAIN_VALIDATION },
@@ -199,6 +199,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 	u_char *token;
 	u_char token_buf[OPENDMARC_ARCSEAL_MAX_TOKEN_LEN + 1];
 	u_char tmp[OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1];
+	int result = 0;
 
 	tmp_ptr = tmp;
 
@@ -224,7 +225,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		tag_label = strsep(&token_ptr, "=");
 		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
 
-		tag_code = opendmarc_arcseal_convert(tags, tag_label);
+		tag_code = opendmarc_arcseal_convert(as_tags, tag_label);
 
 		switch (tag_code)
 		{
@@ -257,9 +258,10 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 			break;
 
 		  default:
+			result = -1;
 			break;
 		}
 	}
 
-	return 0;
+	return result;
 }
