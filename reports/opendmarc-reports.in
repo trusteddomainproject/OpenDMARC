@@ -722,12 +722,16 @@ foreach (@$domainset)
 			else	{ $arcpolicystr = "fail"; }
 		}
 
-		# retrieve arc_policy seals
+		# retrieve arc_policy seals, join arcauthresults.arc_client_addr (smtp.client_ip)
 		$dbi_s2 = $dbi_h->prepare(q{
-		                          SELECT arcseals.instance, domains.name AS domain, selectors.name AS selector
+		                          SELECT arcseals.instance, domains.name AS domain,
+						selectors.name AS selector,
+						arcauthresults.arc_client_addr as client_ip
 		                          FROM arcseals
 		                          JOIN domains on arcseals.domain = domains.id
 		                          JOIN selectors on arcseals.selector = selectors.id
+					  JOIN arcauthresults on arcseals.message = arcauthresults.message
+					  	AND arcseals.instance = arcauthresults.instance
 		                          WHERE arcseals.message = ?
 		                          ORDER BY arcseals.instance DESC
 		});
@@ -745,6 +749,10 @@ foreach (@$domainset)
 		{
 			$arc_policy_output .= " as[$dbi_hash->{instance}].d=$dbi_hash->{domain}";
 			$arc_policy_output .= " as[$dbi_hash->{instance}].s=$dbi_hash->{selector}";
+			if ($dbi_hash->{instance} == 1 && (defined($dbi_hash->{client_ip}) && $dbi_hash->{client_ip} ne ""))
+			{
+				$arc_policy_output .= " client-ip[$dbi_hash->{instance}]=$dbi_hash->{client_ip}";
+			}
 		}
 
 		$dbi_s2->finish;
