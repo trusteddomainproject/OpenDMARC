@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS domains (
 	UNIQUE KEY(name)
 );
 
+-- A table for logging encountered ARC selectors
 CREATE TABLE IF NOT EXISTS selectors (
 	id INT NOT NULL AUTO_INCREMENT,
 	domain INT NOT NULL,
@@ -27,6 +28,19 @@ CREATE TABLE IF NOT EXISTS selectors (
 	UNIQUE KEY(name, domain)
 );
 
+-- A table for logging ARC-Authentication-Results information
+CREATE TABLE IF NOT EXISTS arcauthresults (
+	id INT NOT NULL AUTO_INCREMENT,
+	message INT UNSIGNED NOT NULL,
+	instance INT UNSIGNED NOT NULL,
+	arc_client_addr VARCHAR(64) NOT NULL DEFAULT '',
+
+	PRIMARY KEY(id),
+	KEY(message),
+	UNIQUE KEY(message, instance)
+);
+
+-- A table for logging ARC-Seal information
 CREATE TABLE IF NOT EXISTS arcseals (
 	id INT NOT NULL AUTO_INCREMENT,
 	message INT UNSIGNED NOT NULL,
@@ -69,7 +83,7 @@ CREATE TABLE IF NOT EXISTS reporters (
 	UNIQUE KEY(name)
 );
 
--- A table for IP addresses
+-- A table for connecting client IP addresses
 CREATE TABLE IF NOT EXISTS ipaddr (
 	id INT NOT NULL AUTO_INCREMENT,
 	addr VARCHAR(64) NOT NULL,
