@@ -322,6 +322,24 @@ sub update_db
 	}
 	$dbi_s->finish;
 
+	$dbi_s = $dbi_h->prepare("INSERT INTO arcauthresults (message, instance, arc_client_addr) VALUES(?, ?, ?)");
+	foreach my $aar (0 .. $#arc_policy_data)
+	{
+		my $instance;
+		my $arc_client_addr;
+
+		$instance = $arc_policy_data[$aar]{'i'};
+		$arc_client_addr = $arc_policy_data[$aar]{'ip'} || '';
+
+		if (!$dbi_s->execute($msg_id, $instance, $arc_client_addr))
+		{
+			print STDERR "$progname: failed to insert ARC-Authentication-Results data: " . $dbi_h->errstr . "\n";
+			$dbi_s->finish;
+			return;
+		}
+	}
+	$dbi_s->finish;
+
 	$dbi_s = $dbi_h->prepare("INSERT INTO arcseals (message, domain, selector, instance) VALUES(?, ?, ?, ?)");
 	foreach my $as (0 .. $#arc_policy_data)
 	{
@@ -330,7 +348,6 @@ sub update_db
 		my $selector;
 		my $selector_id;
 		my $instance;
-		my $instance_id;
 
 		$instance = $arc_policy_data[$as]{'i'};
 		$sdomain = $arc_policy_data[$as]{'d'};
@@ -554,6 +571,12 @@ while (<$inputfh>)
 
 	chomp;
 	($key, $value, $data) = split / /, $_, 3;
+
+	# skip lines that start with a space
+	if (!defined($key))
+	{
+		next;
+	}
 
 	if (defined($data) && length($data) > 0)
 	{

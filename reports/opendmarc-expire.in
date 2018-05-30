@@ -296,6 +296,17 @@ if (!defined($minmsg))
 
 		$dbi_s->finish;
 
+		$dbi_s = $dbi_h->prepare("TRUNCATE TABLE arcauthresults");
+		if (!$dbi_s->execute)
+		{
+			print STDERR "$progname: TRUNCATE failed: " . $dbi_h->errstr;
+			$dbi_s->finish;
+			$dbi_h->disconnect;
+			exit(1);
+		}
+
+		$dbi_s->finish;
+
 		$dbi_s = $dbi_h->prepare("TRUNCATE TABLE arcseals");
 		if (!$dbi_s->execute)
 		{
@@ -340,6 +351,32 @@ else
 	}
 
 	$dbi_s->finish;
+
+	if ($verbose)
+	{
+		print STDERR "$progname: expiring arcauthresults on expired messages (id < $minmsg)\n";
+	}
+
+	$dbi_s = $dbi_h->prepare("DELETE FROM arcauthresults WHERE message < ?");
+	$rows = $dbi_s->execute($minmsg);
+	if (!$rows)
+	{
+		print STDERR "$progname: DELETE failed: " . $dbi_h->errstr;
+		$dbi_s->finish;
+		$dbi_h->disconnect;
+		exit(1);
+	}
+	elsif ($verbose)
+	{
+		if ($rows eq "0E0")
+		{
+			print STDOUT "$progname: no rows deleted\n";
+		}
+		else
+		{
+			print STDOUT "$progname: $rows row(s) deleted\n";
+		}
+	}
 
 	if ($verbose)
 	{
