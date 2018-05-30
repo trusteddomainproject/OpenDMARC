@@ -26,8 +26,10 @@
 #define OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN 255
 #define OPENDMARC_ARCARES_MAX_TOKEN_LEN      512
 
-#define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
-#define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
+#ifndef MAX
+# define MAX(x, y) ((x) >= (y)) ? (x) : (y)
+# define MIN(x, y) ((x) <= (y)) ? (x) : (y)
+#endif /* !MAX */
 
 /* tables */
 struct opendmarc_arcares_lookup
@@ -121,7 +123,7 @@ opendmarc_arcares_strip_whitespace(u_char *string)
 		return NULL;
 
 	/* set remaining chars to null */
-	memset(&string[a], '\0', sizeof(char) * (b - a));
+	memset(&string[a], '\0', b - a);
 
 	return string;
 }
@@ -166,7 +168,7 @@ opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
 
 	/* build delimited name */
 	u_char name_delim[OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN + 1];
-	memcpy(name_delim, (const void *)name, name_len);
+	memcpy(name_delim, (const void *) name, name_len);
 	memcpy(name_delim + name_len, delim, delim_len);
 	memset(name_delim + name_len + delim_len, '\0', sizeof(char));
 
@@ -181,7 +183,7 @@ opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
 
 	/* copy remaining characters into buf */
 	memcpy(buf, field_value_ptr, field_value_len);
-	memset(buf + field_value_len, '\0', sizeof(char));
+	buf[field_value_len] = '\0';
 
 	return field_value_len;
 }
@@ -202,22 +204,22 @@ opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
 int
 opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
 {
+	int result = 0;
 	u_char *tmp_ptr;
 	u_char *token;
 	u_char token_buf[OPENDMARC_ARCARES_MAX_TOKEN_LEN + 1];
 	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
-	int result = 0;
-
-	tmp_ptr = tmp;
 
 	assert(hdr != NULL);
 	assert(aar != NULL);
+
+	tmp_ptr = tmp;
 
 	memset(aar, '\0', sizeof *aar);
 	memset(tmp, '\0', sizeof tmp);
 
 	// guarantee a null-terminated string
-	memcpy(tmp, hdr, MIN_OF(strlen(hdr), sizeof tmp - 1));
+	memcpy(tmp, hdr, MIN(strlen(hdr), sizeof tmp - 1));
 
 	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
 	{
@@ -238,38 +240,29 @@ opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
 		switch (tag_code)
 		{
 		  case AAR_TAG_ARC:
-			// strlcpy(aar->arc, tag_value, sizeof aar->arc);
 			snprintf(aar->arc, sizeof aar->arc, "%s=%s", tag_label, tag_value);
 			break;
 
-		//   case AAR_TAG_AUTHSERV_ID:
-		// 	strlcpy(aar->authserv_id, tag_value, sizeof aar->authserv_id);
-		// 	break;
-
 		  case AAR_TAG_DKIM:
-			// strlcpy(aar->dkim, tag_value, sizeof aar->dkim);
 			snprintf(aar->dkim, sizeof aar->dkim, "%s=%s", tag_label, tag_value);
 			break;
 
 		  case AAR_TAG_DMARC:
-			// strlcpy(aar->dmarc, tag_value, sizeof aar->dmarc);
 			snprintf(aar->dmarc, sizeof aar->dmarc, "%s=%s", tag_label, tag_value);
 			break;
 
 		  case AAR_TAG_INSTANCE:
 			aar->instance = atoi(tag_value);
 			/* next value will be unlabeled authserv_id */
-			if (token = strsep((char **)&tmp_ptr, ";"))
+			if (token = strsep((char **) &tmp_ptr, ";"))
 			{
 				leading_space_len = strspn(token, " \n");
-				// token_ptr = token + leading_space_len;
 				tag_value = opendmarc_arcares_strip_whitespace(token);
 				strlcpy(aar->authserv_id, tag_value, sizeof aar->authserv_id);
 			}
 			break;
 
 		  case AAR_TAG_SPF:
-			// strlcpy(aar->spf, tag_value, sizeof aar->spf);
 			snprintf(aar->spf, sizeof aar->spf, "%s=%s", tag_label, tag_value);
 			break;
 
@@ -314,7 +307,6 @@ opendmarc_arcares_arc_parse (u_char *hdr_arc, struct arcares_arc_field *arc)
 	memset(arc, '\0', sizeof *arc);
 	memset(tmp, '\0', sizeof tmp);
 
-	// guarantee a null-terminated string
 	memcpy(tmp, hdr_arc, MIN_OF(strlen(hdr_arc), sizeof tmp - 1));
 
 	while ((token = strsep((char **)&tmp_ptr, " ;")) != NULL)
