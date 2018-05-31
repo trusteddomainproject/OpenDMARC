@@ -4,7 +4,7 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.4.0		2018/06/??
-	Add ARC support.
+	Add ARC support.  Extensive work contributed by ValiMail.
 	Add "DomainWhitelist" and "DomainWhitelistFile" config options.
 	Extract client IP address for ARC reports when provided via
 		Authentication-Results.
