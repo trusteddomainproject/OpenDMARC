@@ -21,12 +21,10 @@
 #endif /* USE_BSD_H */
 
 #include "opendmarc-arcseal.h"
+#include "opendmarc.h"
 
 #define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN 255
 #define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      512
-
-#define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
-#define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
 
 /* tables */
 struct opendmarc_arcseal_lookup
