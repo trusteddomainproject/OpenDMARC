@@ -3533,7 +3533,7 @@ mlfi_eom(SMFICTX *ctx)
 		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance, dfc->mctx_aarhead, &arcares) == 0)
 			(void) opendmarc_arcares_arc_parse(arcares.arc, &arcares_arc_field);
 
-		snprintf(arcseal_buf, sizeof arcseal_str,
+		snprintf(arcseal_buf, sizeof arcseal_buf,
 		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\", \"ip\":\"%s\" }",
 		         (c > 0) ? ", " : "",
 		         as_hdr->arcseal.instance,
