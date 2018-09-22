@@ -321,6 +321,8 @@ opendmarc_arcares_arc_parse (u_char *hdr_arc, struct arcares_arc_field *arc)
 
 		leading_space_len = strspn(token, " \n");
 		token_ptr = token + leading_space_len;
+                if (*token_ptr == '\0')
+                  return 0;
 		tag_label = strsep(&token_ptr, "=");
 		tag_value = opendmarc_arcares_strip_whitespace(token_ptr);
 		tag_code = opendmarc_arcares_convert(aar_arc_tags, tag_label);
