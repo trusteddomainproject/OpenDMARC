@@ -2459,7 +2459,12 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* parse it */
 		if (opendmarc_arcares_parse(hdr->hdr_value, &aar_hdr_new->arcares) != 0)
+                {
+			syslog(LOG_WARNING,
+			       "%s: ignoring invalid %s header %s",
+			       dfc->mctx_jobid, hdr->hdr_name, hdr->hdr_value);
 			continue;
+                }
 
 		if (dfc->mctx_aarhead == NULL)
 		{
@@ -3526,7 +3531,7 @@ mlfi_eom(SMFICTX *ctx)
 	struct arcares_arc_field arcares_arc_field;
 
 	for (as_hdr = dfc->mctx_ashead, c = 0;
-	     as_hdr != NULL;
+	     dfc->mctx_aarhead != NULL && as_hdr != NULL;
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
 		/* fetch smtp.client_ip from aar */
