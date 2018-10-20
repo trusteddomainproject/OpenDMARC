@@ -164,7 +164,7 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 
 	/* count leading spaces after field_delim */
 	field_value_ptr = field + strlen(name_delim);
-	leading_space_len = strspn(field_value_ptr, " ");
+	leading_space_len = strspn(field_value_ptr, " \n\t");
 	field_value_ptr += leading_space_len;
 	field_value_len = strlen(field_value_ptr);
 
@@ -218,7 +218,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		char *tag_label;
 		char *tag_value;
 
-		leading_space_len = strspn(token, " \n");
+		leading_space_len = strspn(token, " \n\t");
 		token_ptr = token + leading_space_len;
                 if (*token_ptr == '\0')
                   return 0;
