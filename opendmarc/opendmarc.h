@@ -71,4 +71,7 @@ extern sfsistat mlfi_eom __P((SMFICTX *));
 extern sfsistat mlfi_abort __P((SMFICTX *));
 extern sfsistat mlfi_close __P((SMFICTX *));
 
+#define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
+#define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
+
 #endif /* _OPENDMARC_H_ */

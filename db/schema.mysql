@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS arcseals (
 
 	PRIMARY KEY(id),
 	KEY(message),
-	UNIQUE KEY(message, domain, selector)
+	UNIQUE KEY(message, domain, selector, instance)
 );
 
 -- A table for logging reporting requests
