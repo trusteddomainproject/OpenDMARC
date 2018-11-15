@@ -220,8 +220,8 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 
 		leading_space_len = strspn(token, " \n\t");
 		token_ptr = token + leading_space_len;
-                if (*token_ptr == '\0')
-                  return 0;
+		if (*token_ptr == '\0')
+			return 0;
 		tag_label = strsep(&token_ptr, "=");
 		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
 
