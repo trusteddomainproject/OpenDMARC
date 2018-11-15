@@ -2446,7 +2446,7 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* allocate one */
 		struct arcares_header *aar_hdr_new =
-		    (struct arcares_header *)malloc(sizeof(struct arcares_header));
+		    (struct arcares_header *) malloc(sizeof(struct arcares_header));
 		if (aar_hdr_new == NULL)
 		{
 			if (conf->conf_dolog)
@@ -2459,12 +2459,12 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* parse it */
 		if (opendmarc_arcares_parse(hdr->hdr_value, &aar_hdr_new->arcares) != 0)
-                {
+		{
 			syslog(LOG_WARNING,
-			       "%s: ignoring invalid %s header %s",
+			       "%s: ignoring invalid %s header \"%s\"",
 			       dfc->mctx_jobid, hdr->hdr_name, hdr->hdr_value);
 			continue;
-                }
+		}
 
 		if (dfc->mctx_aarhead == NULL)
 		{
