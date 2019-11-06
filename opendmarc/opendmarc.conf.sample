@@ -285,6 +285,14 @@
 #
 # RejectFailures false
 
+##  RejectString string
+##      default ("rejected by DMARC policy for %s")
+##
+##  This string describes the reason of reject. The message MUST contain the
+##  word "%s" (only once), which will be replaced with the RFC5322.From domain.
+#
+# RejectString rejected by DMARC policy for %s
+
 ##  ReportCommand string
 ##  	default "/usr/sbin/sendmail -t"
 ##

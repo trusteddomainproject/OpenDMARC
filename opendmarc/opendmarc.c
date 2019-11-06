@@ -188,6 +188,7 @@ struct dmarcf_config
 	char *			conf_historyfile;
 	char *			conf_pslist;
 	char *			conf_ignorelist;
+	char *			conf_rejectstring;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
 	struct list *		conf_domainwhitelist;
@@ -1346,6 +1347,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_rejectfail,
 		                  sizeof conf->conf_rejectfail);
 
+		(void) config_get(data, "RejectString",
+						  &conf->conf_rejectstring,
+						  sizeof conf->conf_rejectstring);
+
 		(void) config_get(data, "RequiredHeaders",
 		                  &conf->conf_reqhdrs,
 		                  sizeof conf->conf_reqhdrs);
@@ -1542,6 +1547,31 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
 	}
 #endif /* DEBUG_WHITELIST */
+
+	if ( conf->conf_rejectstring == NULL ) {
+		conf->conf_rejectstring = DEFREJECTSTR;
+	} else {
+		/* Count occurrences of "%s" in RejectString */
+		int countocc = 0;
+		const char *tmp = conf->conf_rejectstring;
+		while(tmp = strstr(tmp, "%s"))
+		{
+			countocc++;
+			tmp++;
+		}
+		switch ( countocc ) {
+			case 0:
+				snprintf(err, errlen, "%s: The RejectString doesn't contain %%s!",
+					basedir);
+				return -1;
+			case 1:
+				break;
+			default:
+				snprintf(err, errlen, "%s: The RejectString contains %d occurences of %%s instead of one!",
+					basedir, countocc);
+				return -1;
+		}
+	}
 
 	return 0;
 }
@@ -3406,7 +3436,7 @@ mlfi_eom(SMFICTX *ctx)
 		if (conf->conf_rejectfail && random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
-			         "rejected by DMARC policy for %s", pdomain);
+			         conf->conf_rejectstring, pdomain);
 
 			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
 			                         DMARC_REJECT_ESC, replybuf);
