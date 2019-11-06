@@ -1554,6 +1554,11 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		/* Count occurrences of "%s" in RejectString */
 		int countocc = 0;
 		const char *tmp = conf->conf_rejectstring;
+		if (strstr(tmp, '%%')) {
+			snprintf(err, errlen, "%s: The RejectString contains a %%%% (escaped %%)!",
+				basedir);
+			return -1;
+		}
 		while(tmp = strstr(tmp, "%s"))
 		{
 			countocc++;
