@@ -247,7 +247,7 @@ The default is "false".
 .I RejectString (string)
 This string describes the reason of reject at SMTP level.
 The message MUST contain the word "%s" once, which will be replaced by the
-RFC5322.From domain.
+RFC5322.From domain. Escaped "%" ("%%") are not allowed in this string.
 The default is "rejected by DMARC policy for %s"
 
 .TP
