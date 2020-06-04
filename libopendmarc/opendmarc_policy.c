@@ -435,6 +435,7 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 **		DMARC_PARSE_ERROR_EMPTY		-- if domain NULL or zero
 **		DMARC_PARSE_ERROR_NO_DOMAIN	-- No domain in domain
 **		DMARC_PARSE_ERROR_NO_ALLOC	-- Memory allocation failed
+**		DMARC_FROM_DOMAIN_ABSENT	-- No From: domain
 **	Side Effects:
 **		Allocates memory.
 **	Note:
@@ -454,6 +455,8 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (d_equal_domain == NULL || strlen((char *)d_equal_domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
+	if (pctx->from_domain == NULL)
+		return DMARC_FROM_DOMAIN_ABSENT;
 
 	switch (dkim_result)
 	{
