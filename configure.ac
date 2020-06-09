@@ -222,6 +222,19 @@ then
                   [Define to 1 if you need to include <opendmarc_strl.h> to get the `strlcat()' and `strlcpy()' functions.])
 fi
 
+# we need to include <search_hsearch_r.h> and add libhsearch_r to the library path if an installed
+# search_hsearch_r.h was found
+
+search_hsearch_r_found="no"
+AC_CHECK_HEADERS([search_hsearch_r.h], [search_hsearch_r_found="yes"])
+if test x"$search_hsearch_r_found" = x"yes"
+then
+        AC_DEFINE([USE_SEARCH_HSEARCH_R_H], 1,
+                  [Define to 1 if you need to include <search_hsearch_r.h> to get the `hcreate_r()', 'hsearch_r()', and 'hdestroy_r()' functions.])
+        saved_LIBS="$LIBS"
+        LIBS="$saved_LIBS -lhsearch_r"
+fi
+
 AC_PROG_LN_S
 AC_CHECK_PROG(miltertest, miltertest, "yes", "no")
 AC_SUBST(ac_aux_dir)

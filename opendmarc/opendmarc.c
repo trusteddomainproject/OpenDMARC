@@ -62,6 +62,11 @@
 /* hash support -- requires #define _GNU_SOURCE */
 #include <search.h>
 
+/* reentrant hash support if found */
+#ifdef USE_SEARCH_HSEARCH_R_H
+# include <search_hsearch_r.h>
+#endif /* USE_SEARCH_HSEARCH_R_H */
+
 /* opendmarc_strl if needed */
 #ifdef USE_DMARCSTRL_H
 # include <opendmarc_strl.h>

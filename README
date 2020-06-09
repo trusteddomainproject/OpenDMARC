@@ -43,6 +43,9 @@ o If you are interested in tinkering with the build and packaging structure,
 	automake (GNU automake) 1.7 (or 1.9 to avoid warnings)
 	ltmain.sh (GNU libtool) 2.2.6 (or 1.5.26 after make maintainer-clean)
 
+o macOS / Dawin systems do not have required functions hcreate_r(), hsearch_r()
+  and hdestroy_r() as standard. They can be provided by libc_hsearch_r.
+  See https://github.com/mikhail-j/libc_hsearch_r
 
 +-----------------------+
 | RELATED DOCUMENTATION |
