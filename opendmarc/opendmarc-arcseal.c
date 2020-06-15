@@ -21,12 +21,10 @@
 #endif /* USE_BSD_H */
 
 #include "opendmarc-arcseal.h"
+#include "opendmarc.h"
 
 #define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN 255
 #define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      512
-
-#define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
-#define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
 
 /* tables */
 struct opendmarc_arcseal_lookup
@@ -166,7 +164,7 @@ opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
 
 	/* count leading spaces after field_delim */
 	field_value_ptr = field + strlen(name_delim);
-	leading_space_len = strspn(field_value_ptr, " ");
+	leading_space_len = strspn(field_value_ptr, " \n\t");
 	field_value_ptr += leading_space_len;
 	field_value_len = strlen(field_value_ptr);
 
@@ -220,8 +218,10 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		char *tag_label;
 		char *tag_value;
 
-		leading_space_len = strspn(token, " \n");
+		leading_space_len = strspn(token, " \n\t");
 		token_ptr = token + leading_space_len;
+		if (*token_ptr == '\0')
+			return 0;
 		tag_label = strsep(&token_ptr, "=");
 		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
 

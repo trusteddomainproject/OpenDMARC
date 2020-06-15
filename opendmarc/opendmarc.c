@@ -2466,7 +2466,7 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* allocate one */
 		struct arcares_header *aar_hdr_new =
-		    (struct arcares_header *)malloc(sizeof(struct arcares_header));
+		    (struct arcares_header *) malloc(sizeof(struct arcares_header));
 		if (aar_hdr_new == NULL)
 		{
 			if (conf->conf_dolog)
@@ -2479,7 +2479,12 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* parse it */
 		if (opendmarc_arcares_parse(hdr->hdr_value, &aar_hdr_new->arcares) != 0)
+		{
+			syslog(LOG_WARNING,
+			       "%s: ignoring invalid %s header \"%s\"",
+			       dfc->mctx_jobid, hdr->hdr_name, hdr->hdr_value);
 			continue;
+		}
 
 		if (dfc->mctx_aarhead == NULL)
 		{
@@ -3546,14 +3551,14 @@ mlfi_eom(SMFICTX *ctx)
 	struct arcares_arc_field arcares_arc_field;
 
 	for (as_hdr = dfc->mctx_ashead, c = 0;
-	     as_hdr != NULL;
+	     dfc->mctx_aarhead != NULL && as_hdr != NULL;
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
 		/* fetch smtp.client_ip from aar */
 		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance, dfc->mctx_aarhead, &arcares) == 0)
 			(void) opendmarc_arcares_arc_parse(arcares.arc, &arcares_arc_field);
 
-		snprintf(arcseal_buf, sizeof arcseal_str,
+		snprintf(arcseal_buf, sizeof arcseal_buf,
 		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\", \"ip\":\"%s\" }",
 		         (c > 0) ? ", " : "",
 		         as_hdr->arcseal.instance,

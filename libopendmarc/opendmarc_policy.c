@@ -435,6 +435,7 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 **		DMARC_PARSE_ERROR_EMPTY		-- if domain NULL or zero
 **		DMARC_PARSE_ERROR_NO_DOMAIN	-- No domain in domain
 **		DMARC_PARSE_ERROR_NO_ALLOC	-- Memory allocation failed
+**		DMARC_FROM_DOMAIN_ABSENT	-- No From: domain
 **	Side Effects:
 **		Allocates memory.
 **	Note:
@@ -454,6 +455,8 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (d_equal_domain == NULL || strlen((char *)d_equal_domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
+	if (pctx->from_domain == NULL)
+		return DMARC_FROM_DOMAIN_ABSENT;
 
 	switch (dkim_result)
 	{
@@ -1074,7 +1077,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					/*
 					 * Be generous. Accept, for example, "rf=a, aspf=afrf or any
@@ -1090,6 +1093,11 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 						return DMARC_PARSE_ERROR_BAD_VALUE;
 					}
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
@@ -1116,11 +1124,16 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
 										&(pctx->rua_cnt));
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
@@ -1148,11 +1161,16 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
 										&(pctx->ruf_cnt));
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
@@ -1175,7 +1193,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					switch ((int)*xp)
 					{
@@ -1197,6 +1215,11 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 							return DMARC_PARSE_ERROR_BAD_VALUE;
 					}
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
