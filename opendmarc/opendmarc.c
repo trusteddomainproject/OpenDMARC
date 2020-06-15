@@ -2253,7 +2253,9 @@ mlfi_eom(SMFICTX *ctx)
 	struct arcseal_header *as_hdr;
 	u_char *reqhdrs_error = NULL;
 	u_char *user;
+	u_char **users;
 	u_char *domain;
+	u_char **domains;
 	u_char *bang;
 	u_char **ruv;
 	unsigned char header[MAXHEADER + 1];
@@ -2378,7 +2380,25 @@ mlfi_eom(SMFICTX *ctx)
 	/* extract From: domain */
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
-	status = dmarcf_mail_parse(addrbuf, &user, &domain);
+	status = dmarcf_mail_parse_multi(addrbuf, &users, &domains);
+	if (status == 0 && (users[0] != NULL || domains[0] != NULL))
+	{
+		/* extract user and domain only if there was exactly one */
+		if (users[1] != NULL || domains[1] != NULL)
+		{
+			if (conf->conf_dolog)
+			{
+				syslog(LOG_ERR,
+				       "%s: multi-valued From field detected",
+				       dfc->mctx_jobid);
+			}
+		}
+		else
+		{
+			user = users[0];
+			domain = domains[0];
+		}
+	}
 	if (status != 0 || user == NULL || domain == NULL)
 	{
 		if (conf->conf_dolog)
