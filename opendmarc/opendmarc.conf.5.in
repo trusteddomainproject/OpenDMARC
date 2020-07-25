@@ -293,7 +293,7 @@ version, and the job ID are included in the header field's contents.
 .TP
 .I SPFIgnoreResults (Boolean)
 Causes the filter to ignore any SPF results in the header of the
-message.  This is useful if you want the filter to perfrom SPF checks
+message.  This is useful if you want the filter to perform SPF checks
 itself, or because you don't trust the arriving header.  The default is "false".
 
 .TP
