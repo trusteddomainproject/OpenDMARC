@@ -126,6 +126,16 @@ AC_CHECK_LIB(resolv, inet_aton, , , [-lnsl -lsocket])
 AC_SEARCH_LIBS(res_ninit, resolv,
 	AC_DEFINE(HAVE_RES_NINIT, 1,
 	[Define to 1 if you have the `res_ninit()' function.]))
+AC_SEARCH_LIBS(res_ndestroy, resolv,
+       AC_DEFINE(HAVE_RES_NDESTROY, 1,
+       [Define to 1 if you have the `res_ndestroy()' function.]))
+AC_SEARCH_LIBS(__res_ninit, resolv,
+	AC_DEFINE(HAVE_RES_NINIT, 1,
+	[Define to 1 if you have the `__res_ninit()' function.]))
+AC_SEARCH_LIBS(__res_ndestroy, resolv,
+       AC_DEFINE(HAVE_RES_NDESTROY, 1,
+       [Define to 1 if you have the `__res_ndestroy()' function.]))
+
 AC_CHECK_LIB(idn, idn_free)
 AC_CHECK_LIB(rt, nanosleep)
 AC_SEARCH_LIBS(inet_addr, nsl)

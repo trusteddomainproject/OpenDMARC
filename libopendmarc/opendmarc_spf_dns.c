@@ -108,7 +108,11 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 
 #ifdef HAVE_RES_NINIT
 	k = res_nquery(&resp, bp, C_IN, sought, a_buf, sizeof a_buf);
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
 	k = res_query(bp, C_IN, sought, a_buf, sizeof a_buf);
 #endif /* HAVE_RES_NINIT */
@@ -253,7 +257,11 @@ opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt)
         memset(&resp, '\0', sizeof resp);
 	res_ninit(&resp);
 	k = res_nquery(&resp, domain, C_IN, T_MX, (u_char *) &q, sizeof(q));
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
 	k = res_query(domain, C_IN, T_MX, (u_char *) &q, sizeof(q));
 #endif /* HAVE_RES_NINIT */
@@ -366,7 +374,11 @@ opendmarc_spf_dns_lookup_ptr(char *ip, char **ary, int *cnt)
         memset(&resp, '\0', sizeof resp);
 	res_ninit(&resp);
 	k = res_nquery(&resp, (char *)buf, C_IN, T_PTR, (u_char *) &q, sizeof(q));
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
 	k = res_query((char *)buf, C_IN, T_PTR, (u_char *) &q, sizeof(q));
 #endif /* HAVE_RES_NINIT */
@@ -461,7 +473,11 @@ opendmarc_spf_dns_does_domain_exist(char *domain, int *reply)
         (void) res_nquery(&resp, domain, C_IN, T_AAAA, aaaa_q, sizeof aaaa_q);  
 #endif /* T_AAAA */
         (void) res_nquery(&resp, domain, C_IN, T_MX, mx_q, sizeof mx_q);  
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
         (void) res_query(domain, C_IN, T_A, a_q, sizeof a_q);  
 #ifdef T_AAAA
@@ -603,13 +619,21 @@ opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen,
 		}
 		*rp = h_errno;
 #ifdef HAVE_RES_NINIT 
+#ifdef HAVE_RES_NDESTROY
+		res_ndestroy(&resp);
+#else
 		res_nclose(&resp);
+#endif
 #endif /* HAVE_RES_NINIT */
 		return NULL;
 	}
 got_spf_record:
 #ifdef HAVE_RES_NINIT 
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #endif /* HAVE_RES_NINIT */
 
 	if (k > (int)(sizeof txt_buf))
