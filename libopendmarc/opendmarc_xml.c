@@ -158,7 +158,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 			if (*cp != '<')
 				continue;
 			++cp;
-			for(sp = cp; *sp != '\0'; ++sp)
+			for (sp = cp; *sp != '\0'; ++sp)
 			{
 				if (*sp == '?')
 					break;
@@ -546,7 +546,7 @@ opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len)
 	if (fname == NULL)
 	{
 		xerror = errno;
-		(void) snprintf(err_buf, err_len, "%s: %s", fname, "File name was NULL");
+		(void) snprintf(err_buf, err_len, "%s", "File name was NULL");
 		errno = EINVAL;
 		return NULL;
 	}
@@ -572,7 +572,7 @@ opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len)
 		return NULL;
 	}
 
-	bufp = calloc(statb.st_size, 1);
+	bufp = calloc(statb.st_size + 1, 1);
 	if (bufp == NULL)
 	{
 		xerror = errno;
