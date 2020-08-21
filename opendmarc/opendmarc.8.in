@@ -36,7 +36,7 @@ using a configuration file.  See the
 option for details.
 
 .B opendmarc
-relies on addition of Authentication-Results fields by upsteam filters on
+relies on addition of Authentication-Results fields by upstream filters on
 trusted hosts to collect input to the DMARC algorithm.  It does not itself
 do DKIM or SPF evaluation.
 .SH OPTIONS
