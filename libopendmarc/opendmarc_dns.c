@@ -209,7 +209,11 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	(void) opendmarc_policy_library_dns_hook(&resp.nscount,
                                                  &resp.nsaddr_list);
 	answer_len = res_nquery(&resp, bp, C_IN, T_TXT, answer_buf, sizeof answer_buf);
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
 	res_init();
 #ifdef RES_USE_DNSSEC
