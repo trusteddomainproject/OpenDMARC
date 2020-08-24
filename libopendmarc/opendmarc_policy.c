@@ -525,11 +525,16 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 			goto set_final;
 	}
 	/*
-	 * If we found any record so far that passed.
-	 * preserve it.
+	 * If we found any record so far that passed, preserve it; if the new entry
+	 * is not aligned, only replace an existing one by an unaligned one if it was
+	 * not a pass, but make sure to update the domain in that case!
 	 */
-	if (pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS)
+	if (pctx->dkim_outcome == DMARC_POLICY_DKIM_OUTCOME_PASS) {
 		return DMARC_PARSE_OKAY;
+	} else {
+		(void) free(pctx->dkim_domain);
+		pctx->dkim_domain = NULL;
+	}
 
 set_final:
 	if (pctx->dkim_domain == NULL)
