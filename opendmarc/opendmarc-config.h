@@ -45,6 +45,7 @@ struct configdef dmarcf_config[] =
 	{ "RecordAllMessages",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "RequiredHeaders",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "RejectFailures",		CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "RejectMultiValueFrom",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ReportCommand",		CONFIG_TYPE_STRING,	FALSE },
 	{ "Socket",			CONFIG_TYPE_STRING,	FALSE },
 	{ "SoftwareHeader",		CONFIG_TYPE_BOOLEAN,	FALSE },

@@ -114,6 +114,7 @@
 ##
 ##  This list will be concatenated with DomainWhitelistFile (if provided).
 ##
+# 
 # DomainWhitelist example.com
 
 ##  DomainWhitelistFile path
@@ -125,6 +126,7 @@
 ##
 ##  This list will be concatenated with DomainWhitelist (if provided).
 ##
+# 
 # DomainWhitelistFile /usr/local/etc/opendmarc/whitelist.domains
 
 ##  DomainWhitelistSize
@@ -135,6 +137,7 @@
 ##  DomainWhitelistFile. This number will be increased by approximately 20% to
 ##  increase the efficiency of the hashing algorithm.
 ##
+# 
 # DomainWhitelistSize 3000
 
 ##  DNSTimeout (integer)
@@ -284,6 +287,16 @@
 ##  field will be added.
 #
 # RejectFailures false
+
+##  RejectMultiValueFrom { true | false }
+##  	default "false"
+##
+##  If set, messages with multiple addresses in the From: field of the message
+##  ill be rejected.  They will otherwise be ignored by the filter (the
+##  default).
+# 
+# RejectMultiValueFrom false
+
 
 ##  ReportCommand string
 ##  	default "/usr/sbin/sendmail -t"

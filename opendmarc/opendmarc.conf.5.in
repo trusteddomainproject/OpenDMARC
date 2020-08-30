@@ -244,6 +244,11 @@ the message.  Instead, an Authentication-Results header field will be added.
 The default is "false".
 
 .TP
+.I RejectMultiValueFrom (Boolean)
+If set, messages with multiple addresses in the From: field of the message
+will be rejected.  They will otherwise be ignored by the filter (the default).
+
+.TP
 .I ReportCommand (string)
 Indicates the shell command to which failure reports should be passed for
 delivery when

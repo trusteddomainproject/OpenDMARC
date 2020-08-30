@@ -177,6 +177,7 @@ struct dmarcf_config
 	_Bool			conf_spfselfvalidate;
 #endif /* WITH_SPF */
 	_Bool			conf_ignoreauthclients;
+	_Bool			conf_reject_multi_from;
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
@@ -1354,6 +1355,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_afrf,
 		                  sizeof conf->conf_afrf);
 
+		(void) config_get(data, "RejectMultiValueFrom",
+		                  &conf->conf_reject_multi_from,
+		                  sizeof conf->conf_reject_multi_from);
+
 		(void) config_get(data, "FailureReportsOnNone",
 		                  &conf->conf_afrfnone,
 		                  sizeof conf->conf_afrfnone);
@@ -2388,10 +2393,20 @@ mlfi_eom(SMFICTX *ctx)
 		{
 			if (conf->conf_dolog)
 			{
+				for (c = 0;
+				     users[c] != NULL && domains[c] != NULL;
+				     c++)
+					continue;
+
 				syslog(LOG_ERR,
-				       "%s: multi-valued From field detected",
-				       dfc->mctx_jobid);
+				       "%s: multi-valued From field detected (%d values found)",
+				       dfc->mctx_jobid, c);
 			}
+
+			if (conf->conf_reject_multi_from)
+				return SMFIS_REJECT;
+			else
+				return SMFIS_ACCEPT;
 		}
 		else
 		{
