@@ -2215,6 +2215,8 @@ mlfi_eom(SMFICTX *ctx)
 	                      dfc->mctx_fromdomain);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "mfrom %s\n",
 	                      dfc->mctx_envdomain);
+	/*dmarcf_dstring_printf(dfc->mctx_histbuf, "from_domain %s\n", cc->cctx_dmarc->from_domain);*/
+	fprintf(stderr, "%s: %s: check debug\n", "opendmarc.c", "NETA");
 
 	/*
 	**  Walk through Authentication-Results fields and pull out data.
@@ -2639,6 +2641,8 @@ mlfi_eom(SMFICTX *ctx)
 		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf %d\n",
 		                      dfc->mctx_spfresult);
 	}
+
+	/*dmarcf_dstring_printf(dfc->mctx_histbuf, "spf_domain %s\n", cc->cctx_dmarc->spf_domain);*/
 
 	ostatus = opendmarc_policy_query_dmarc(cc->cctx_dmarc,
 	                                       dfc->mctx_fromdomain);
