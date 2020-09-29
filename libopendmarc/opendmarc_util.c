@@ -252,7 +252,7 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 			++cp;
 			if (*cp == '\0')
 				break;
-			if (*cp == '"') || (*cp == '\\' )
+			if ((*cp == '"') || (*cp == '\\' ))
 			{
 				*cp = ' ';
 				continue;
