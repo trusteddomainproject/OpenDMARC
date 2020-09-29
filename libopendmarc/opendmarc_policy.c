@@ -262,12 +262,14 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 	ep = rev_sub + strlen(rev_sub) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_sub, ".", sizeof rev_sub);
+	fprintf(stderr, "%s: %s: rev_sub == from_domain %s\n", "opendmarc_policy.c", "NETA", rev_sub);
 
 	(void) memset(rev_tld, '\0', sizeof rev_tld);
 	(void) opendmarc_reverse_domain(tld_buf,   rev_tld, sizeof rev_tld);
 	ep = rev_tld + strlen(rev_tld) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_tld, ".", sizeof rev_tld);
+	fprintf(stderr, "%s: %s: rev_tld == spf domain %s\n", "opendmarc_policy.c", "NETA", rev_tld);
 
 	/*
 	 * Perfect match is aligned irrespective of relaxed or strict.
@@ -291,6 +293,7 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 	ep = rev_tld + strlen(rev_tld) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_tld, ".", sizeof rev_tld);
+	fprintf(stderr, "%s: %s: after get tld rev_tld == spf domain %s\n", "opendmarc_policy.c", "NETA", rev_tld);
 
 	/*
 	 * Perfect match is aligned irrespective of relaxed or strict.
@@ -342,6 +345,7 @@ opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *from_domain)
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
 	pctx->from_domain = strdup((char *)dp);
+	fprintf(stderr, "%s: %s: from_domain %s\n", "opendmarc_policy.c", "NETA", pctx->from_domain);
 	if (pctx->from_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;
 	return DMARC_PARSE_OKAY;
@@ -389,7 +393,7 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 	if (human_readable != NULL)
 		pctx->spf_human_outcome = strdup((char *)human_readable);
 	pctx->spf_domain = strdup((char *)dp);
-	fprintf(stderr, "%s: %s: check debug %s\n", "opendmarc_policy.c", "NETA", pctx->spf_domain);
+	fprintf(stderr, "%s: %s: spf_domain %s\n", "opendmarc_policy.c", "NETA", pctx->spf_domain);
 	if (pctx->spf_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;
 	switch (result)
@@ -827,6 +831,8 @@ opendmarc_get_policy_to_enforce(DMARC_POLICY_T *pctx)
 		if (opendmarc_policy_check_alignment(pctx->from_domain, pctx->spf_domain, pctx->aspf) == 0)
 			pctx->spf_alignment = DMARC_POLICY_SPF_ALIGNMENT_PASS;
 	}
+
+	fprintf(stderr, "%s: %s: spf_alignment %d dkim_alignment %d\n", "opendmarc_policy.c", "NETA", pctx->spf_alignment, pctx->dkim_alignment);
 
 	/*
 	 * If dkim passes and dkim aligns OR spf passes and spf aligns
