@@ -244,7 +244,7 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 			}
 		}
 		/*
-		 * handle quoted-pair inside quoted-string (see 3.2.5 in RFC2822)
+		 * handle quoted-pair inside quoted-string (see 3.2.4 in RFC5322)
 		 * Prevents "From: "\"Foo, Inc.\"" <a@a.com>" from breaking.
 		 */
 		if (indqoute  && *cp == '\\' )
