@@ -2640,8 +2640,6 @@ mlfi_eom(SMFICTX *ctx)
 		                      dfc->mctx_spfresult);
 	}
 
-	/*dmarcf_dstring_printf(dfc->mctx_histbuf, "spf_domain %s\n", cc->cctx_dmarc->spf_domain);*/
-
 	ostatus = opendmarc_policy_query_dmarc(cc->cctx_dmarc,
 	                                       dfc->mctx_fromdomain);
 	if (ostatus == DMARC_PARSE_ERROR_NULL_CTX ||
