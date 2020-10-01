@@ -2215,8 +2215,6 @@ mlfi_eom(SMFICTX *ctx)
 	                      dfc->mctx_fromdomain);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "mfrom %s\n",
 	                      dfc->mctx_envdomain);
-	/*dmarcf_dstring_printf(dfc->mctx_histbuf, "from_domain %s\n", cc->cctx_dmarc->from_domain);*/
-	fprintf(stderr, "%s: %s: check debug\n", "opendmarc.c", "NETA");
 
 	/*
 	**  Walk through Authentication-Results fields and pull out data.
