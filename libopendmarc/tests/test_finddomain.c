@@ -22,7 +22,9 @@ main(int argc, char **argv)
 		/* 10 */ {"\"Mandel, Bob\" <joe@joe.com>", "joe.com"},
 		/* 11 */ {"(,) joe@joe.com", "joe.com"},
 		/* 12 */ {"\"( bob@bob.com)\" joe@joe.com", "joe.com"},
-		/* 12 */ {"From: Davide D'Marco <user@blah.com>", "blah.com"},
+		/* 13 */ {"From: Davide D'Marco <user@blah.com>", "blah.com"},
+		/* 14 */ {"From: \"\\\"Micron Technology, Inc.\\\"\" <user@blah.com>", "blah.com"},
+		/* 15 */ {"From: \"Joe J, <joe@joe.com>\" <joe@blah.com>", "blah.com"},
 			 {NULL, NULL},
 	};
 	u_char dbuf[256];
