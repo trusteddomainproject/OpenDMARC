@@ -1,7 +1,7 @@
 /*************************************************************************
 ** The user interface to the rest of this library.
 **
-**  Copyright (c) 2012-2016, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2016, 2018, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 
 #include "opendmarc_internal.h"
@@ -157,6 +157,8 @@ opendmarc_policy_connect_clear(DMARC_POLICY_T *pctx)
 		(void) free(pctx->spf_domain);
 	if (pctx->dkim_domain != NULL)
 		(void) free(pctx->dkim_domain);
+	if (pctx->dkim_selector != NULL)
+		(void) free(pctx->dkim_selector);
 	if (pctx->spf_human_outcome != NULL)
 		(void) free(pctx->spf_human_outcome);
 	if (pctx->dkim_human_outcome != NULL)
@@ -419,19 +421,21 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 ** OPENDMARC_POLICY_STORE_DKIM -- Store dkim results
 **
 **	Parameters:
-**		pctx		-- The context to uptdate
-**		d_equal_domain 	-- The the domain from the p= 
-**		dkim_result 	-- DMARC_POLICY_DKIM_OUTCOME_NONE
-**				or DMARC_POLICY_DKIM_OUTCOME_PASS
-**				or DMARC_POLICY_DKIM_OUTCOME_FAIL
-**				or DMARC_POLICY_DKIM_OUTCOME_TMPFAIL
-**		human_result	-- A human readable reason for failure
+**		pctx			-- The context to update
+**		d_equal_domain 		-- The the domain from the d=
+**		s_equal_selector	-- The selector from the s=
+**		dkim_result 		-- DMARC_POLICY_DKIM_OUTCOME_NONE
+**					or DMARC_POLICY_DKIM_OUTCOME_PASS
+**					or DMARC_POLICY_DKIM_OUTCOME_FAIL
+**					or DMARC_POLICY_DKIM_OUTCOME_TMPFAIL
+**		human_result		-- A human readable reason for failure
 **	Returns:
 **		DMARC_PARSE_OKAY		-- On success
 **		DMARC_PARSE_ERROR_NULL_CTX	-- If pctx was NULL
 **		DMARC_PARSE_ERROR_EMPTY		-- if domain NULL or zero
 **		DMARC_PARSE_ERROR_NO_DOMAIN	-- No domain in domain
 **		DMARC_PARSE_ERROR_NO_ALLOC	-- Memory allocation failed
+**		DMARC_FROM_DOMAIN_ABSENT	-- No From: domain
 **	Side Effects:
 **		Allocates memory.
 **	Note:
@@ -440,7 +444,8 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 **		puney decoded into 8-bit data.
 ***************************************************************************/
 OPENDMARC_STATUS_T
-opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dkim_result, u_char *human_result)
+opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
+	u_char *s_equal_selector, int dkim_result, u_char *human_result)
 {
 	char	domain_buf[256];
 	u_char *dp;
@@ -450,6 +455,8 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (d_equal_domain == NULL || strlen((char *)d_equal_domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
+	if (pctx->from_domain == NULL)
+		return DMARC_FROM_DOMAIN_ABSENT;
 
 	switch (dkim_result)
 	{
@@ -472,7 +479,7 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 	/*
 	 * If the d= domain is an exact match to the from_domain
 	 * select this one as the domain of choice.
-	 * If the outcome is pass, the is the final choice.
+	 * If the outcome is pass, make this the final choice.
 	 */
 	if (strcasecmp((char *)dp, pctx->from_domain) == 0)
 	{
@@ -480,6 +487,11 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 		{
 			(void) free(pctx->dkim_domain);
 			pctx->dkim_domain = NULL;
+		}
+		if (pctx->dkim_selector != NULL)
+		{
+			(void) free(pctx->dkim_selector);
+			pctx->dkim_selector = NULL;
 		}
 		if (result == DMARC_POLICY_DKIM_OUTCOME_PASS)
 		{
@@ -504,6 +516,11 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain, int dk
 			(void) free(pctx->dkim_domain);
 			pctx->dkim_domain = NULL;
 		}
+		if (pctx->dkim_selector != NULL)
+		{
+			(void) free(pctx->dkim_selector);
+			pctx->dkim_selector = NULL;
+		}
 		if (result == DMARC_POLICY_DKIM_OUTCOME_PASS)
 			goto set_final;
 	}
@@ -519,6 +536,8 @@ set_final:
 		pctx->dkim_domain = strdup((char *)dp);
 	if (pctx->dkim_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;
+	if (pctx->dkim_selector == NULL && s_equal_selector != NULL)
+		pctx->dkim_selector = strdup((char *)s_equal_selector);
 	if (human_result != NULL)
 	{
 		if (pctx->dkim_human_outcome != NULL)
@@ -1058,7 +1077,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					/*
 					 * Be generous. Accept, for example, "rf=a, aspf=afrf or any
@@ -1074,6 +1093,11 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 						return DMARC_PARSE_ERROR_BAD_VALUE;
 					}
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
@@ -1087,6 +1111,10 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			/*
 			 * A possibly comma delimited list of URI of where to send reports.
 			 */
+
+			if (pctx->rua_list != NULL)
+				return DMARC_PARSE_ERROR_BAD_VALUE;
+
 			for (xp = vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];
@@ -1096,11 +1124,16 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
 										&(pctx->rua_cnt));
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
@@ -1115,6 +1148,10 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			 * A possibly comma delimited list of URI of where to send 
 			 * MARF reports.
 			 */
+
+			if (pctx->ruf_list != NULL)
+				return DMARC_PARSE_ERROR_BAD_VALUE;
+
 			for (xp = vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];
@@ -1124,11 +1161,16 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
 										&(pctx->ruf_cnt));
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
@@ -1151,7 +1193,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					*yp = '\0';
 
 				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
-				if (xp != NULL || strlen((char *)xp) > 0)
+				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					switch ((int)*xp)
 					{
@@ -1173,6 +1215,11 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 							return DMARC_PARSE_ERROR_BAD_VALUE;
 					}
 				}
+				else
+				{
+					return DMARC_PARSE_ERROR_BAD_VALUE;
+				}
+
 				if (yp != NULL)
 					xp = yp+1;
 				else
@@ -1556,10 +1603,10 @@ opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status)
 		msg  ="Function called with NULL Context";
 		break;
 	    case DMARC_PARSE_ERROR_BAD_VERSION: 
-		msg = "Found DMARC record containd a bad v= value";
+		msg = "Found DMARC record contained a bad v= value";
 		break;
 	    case DMARC_PARSE_ERROR_BAD_VALUE: 
-		msg = "Found DMARC record containd a bad token value";
+		msg = "Found DMARC record contained a bad token value";
 		break;
 	    case DMARC_PARSE_ERROR_NO_REQUIRED_P: 
 		msg = "Found DMARC record lacked a required p= entry";
@@ -1708,6 +1755,11 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 	if (strlcat(buf, "DKIM_DOMAIN=", buflen) >= buflen) return E2BIG;
 	if (pctx->dkim_domain != NULL)
 		if (strlcat(buf, pctx->dkim_domain, buflen) >= buflen) return E2BIG;
+	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
+
+	if (strlcat(buf, "DKIM_SELECTOR=", buflen) >= buflen) return E2BIG;
+	if (pctx->dkim_selector != NULL)
+		if (strlcat(buf, pctx->dkim_selector, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
 	if (strlcat(buf, "DKIM_OUTOME=", buflen) >= buflen) return E2BIG;

@@ -34,6 +34,7 @@ main(int argc, char **argv)
 		/* 16 */ {"v=DMARC1; p=none; rua=ftp://abuse.com", DMARC_PARSE_OKAY},
 		/* 17 */ {"v=DMARC1; p=none; ruf=mailto://abuse.com", DMARC_PARSE_OKAY},
 		/* 18 */ {"v=DMARC1; p=none; ruf=mailto://abuse.com; foo=bar; buzz=happy;", DMARC_PARSE_OKAY},
+		/* 19 */ {"v=DMARC1; p=none; rf=000000000000000000000000000000000", DMARC_PARSE_ERROR_BAD_VALUE},
 			{NULL, 0},
 	};
 	int	pass, fails, count;

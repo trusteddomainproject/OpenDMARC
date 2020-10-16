@@ -1,7 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright (c) 2012-2017, The Trusted Domain Project.  All rights reserved.
+# Copyright (c) 2012-2017, 2018, The Trusted Domain Project.
+#	All rights reserved.
 
 # Acceptable arguments to configure are:
 # 	The usual CC= etc.
@@ -22,8 +23,8 @@ AC_PREREQ(2.61)
 # Package version
 #
 m4_define([VERSION_RELEASE], 1)
-m4_define([VERSION_MAJOR_REV], 3)
-m4_define([VERSION_MINOR_REV], 2)
+m4_define([VERSION_MAJOR_REV], 4)
+m4_define([VERSION_MINOR_REV], 0)
 m4_define([VERSION_PATCH], 0)
 
 #
@@ -123,9 +124,22 @@ AC_CHECK_HEADERS([resolv.h], [], [],
 AC_CHECK_LIB(socket, connect)
 AC_CHECK_LIB(resolv, hstrerror, , , [-lnsl -lsocket])
 AC_CHECK_LIB(resolv, inet_aton, , , [-lnsl -lsocket])
+# You might find res_ninit() in system libraries or in libresolv or not
+# at all. The way AC_LANG_CALL finds out is it declares res_ninit() so
+# it can call it, then it sees if linking fails because of unresolved
+# symbols. Great, except glibc doesn't export res_ninit() -- it exports
+# __res_ninit() -- res_ninit() is a macro in resolv.h. So unless we
+# include resolv.h, we won't find res_ninit(), but when we do include
+# it, it conflicts with AC_LANG_CALL's redeclaration. Hmm. I guess the
+# only thing for it is to include resolv.h, don't redeclare res_ninit(),
+# and use the proper type signature when calling it.
+m4_rename([AC_LANG_CALL], [saved_AC_LANG_CALL])
+m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
+                                           [return res_ninit(NULL);])])
 AC_SEARCH_LIBS(res_ninit, resolv,
 	AC_DEFINE(HAVE_RES_NINIT, 1,
 	[Define to 1 if you have the `res_ninit()' function.]))
+m4_rename_force([saved_AC_LANG_CALL], [AC_LANG_CALL])
 AC_CHECK_LIB(idn, idn_free)
 AC_CHECK_LIB(rt, nanosleep)
 AC_SEARCH_LIBS(inet_addr, nsl)
@@ -306,7 +320,8 @@ AM_CONDITIONAL([USE_SPF], [test x"$use_spf" = x"yes"])
 
 #
 # opendmarc
-# 
+#
+
 AC_ARG_ENABLE([filter],
               AS_HELP_STRING([--disable-filter],
                              [do not compile the opendmarc filter]),
@@ -331,6 +346,17 @@ if test x"$enable_filter_tests" = x"yes" -a x"$miltertest" != x"yes"
 then
 	AC_MSG_ERROR([miltertest is required for filter tests])
 fi
+
+# whitelist debugging implemented on linux only
+AC_ARG_ENABLE([whitelist-debug],
+            AS_HELP_STRING([--enable-whitelist-debug],
+                           [debug DomainWhitelist (linux only)]),
+            AC_DEFINE(DEBUG_WHITELIST, 1, [Define to 1 if you want DomainWhitelist debugging.]),
+            [])
+
+AC_CHECK_HEADERS(math.h, [], [AC_MSG_FAILURE([missing header '$ac_header'])])
+AC_SEARCH_LIBS([floor], [m])
+AC_CHECK_FUNCS([floor], [], [AC_MSG_FAILURE([missing function '$ac_func'])])
 
 #
 # libmilter

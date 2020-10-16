@@ -1,9 +1,29 @@
-			OPENDMARC RELEASE NOTES
+			 OPENDMARC RELEASE NOTES
 
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.3.2		2016/12/19
+1.4.0		2018/06/??
+	Add ARC support.  Extensive work contributed by ValiMail.
+	Add "DomainWhitelist" and "DomainWhitelistFile" config options.
+	Extract client IP address for ARC reports when provided via
+		Authentication-Results.
+	Update SQL schema to support new reporting functionality for DKIM
+		selectors and ARC local policy overrides (refer to the example
+		schema.mysql file).
+	Add experimental support for reporting of ARC local policy overrides.
+	Add support for recording and reporting of DKIM selectors.
+	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction with
+		an ARC policy pass.
+	Fix bug #137: Handle base64 inside AR tokens that are values.
+		Problem reported by Joseph Coffland.
+	LIBOPENDMARC: Fix bug #203: Reject DMARC records that have duplicate
+		tags in them.  Reported by Dirk Stoecker.
+	REPORTS: Feature request #146: Add option to pull input from a file.
+	REPORTS: Fix bug #153: Suppress duplicate results from the same
+		domain.  Patch from Tomki Camp.
+
+1.3.2		2017/03/04
 	Feature request #86: Change meaning of "RequiredHeaders" such that
 		header validity is always checked, but messages are only
 		rejected on that basis when the flag is set.  Based
@@ -34,6 +54,10 @@ release, and a summary of the changes in that release.
 	Fix bug #186: When reloading the configuration file, the public
 		suffix list was read in with the wrong comment indicator.
 		Patch from Federico Omoto.
+	Fix bug #194: Fix inappropriate DMARC status when "p=none" is
+		discovered.  Patch from Juri Haberland.
+	Fix bug #195: When parsing Received-SPF, use the correct constants
+		in the history file entries.  Patch from Juri Haberland.
 	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
 		Sebastian A. Siewior via Scott Kitterman.
 	LIBOPENDMARC: Fix bug #121: Fix IPv6 CIDR matching in SPF code.

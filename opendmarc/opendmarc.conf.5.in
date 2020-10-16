@@ -120,6 +120,30 @@ Adds the specified recipient to the message's envelope if it fails the DMARC
 evaluation.
 
 .TP
+.I DomainWhitelist (string)
+A brief list of whitelisted domains for which ARC signature headers are
+trusted as determined by evaluating entries in the "arc.chain" field found
+in a locally generated Authentication-Results header.
+
+This list will be concatenated with DomainWhitelistFile (if provided).
+
+.TP
+.I DomainWhitelistFile (string)
+A comprehensive list of whitelisted domains for which ARC signature headers
+are trusted as determined by evaluating entries in the "arc.chain" field
+found in a locally generated Authentication-Results header.
+
+This list will be concatenated with DomainWhitelist (if provided).
+
+.TP
+.I DomainWhitelistSize (integer)
+Sets the capacity of the whitelisted domains data structure. The value specifies
+the maximum number of entries including domains listed in the DomainWhitelist
+configuration parameter and the domains listed in the DomainWhiteListFile. The
+final size will be increased by approximately 20% to increase the efficiency of
+the hashing algorithm.
+
+.TP
 .I DNSTimeout (integer)
 Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
 The default is 5.  Ignored if not using an asynchronous resolver package.
@@ -164,7 +188,8 @@ batches of rows containing information about a single received message,
 and include all relevant information needed to generate a DMARC aggregate
 report.  It is expected that this will not be used in its raw form, but
 rather periodically imported into a relational database from which the
-aggregate reports can be extracted.
+aggregate reports can be extracted using
+.B opendmarc-importstats(8).
 
 .TP
 .I IgnoreAuthenticatedClients (Boolean)
@@ -339,9 +364,9 @@ This man page covers version @VERSION@ of
 .I opendmarc.
 
 .SH COPYRIGHT
-Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012-2015, 2018, The Trusted Domain Project.  All rights reserved.
 .SH SEE ALSO
-.I opendmarc(8), sendmail(8)
+.I opendmarc(8), opendmarc-importstats(8), sendmail(8)
 .P
 RFC4408 \- Sender Policy Framework
 .P

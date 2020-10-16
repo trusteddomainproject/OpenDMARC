@@ -1,5 +1,6 @@
 /*
-**  Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2015, 2018, The Trusted Domain Project.
+**		All rights reserved.
 */
 
 #ifndef _OPENDMARC_CONFIG_H_
@@ -26,6 +27,9 @@ struct configdef dmarcf_config[] =
 	{ "ChangeRootDirectory",	CONFIG_TYPE_STRING,	FALSE },
 	{ "CopyFailuresTo",		CONFIG_TYPE_STRING,	FALSE },
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
+	{ "DomainWhitelist",		CONFIG_TYPE_STRING,	FALSE },
+	{ "DomainWhitelistFile",	CONFIG_TYPE_STRING,	FALSE },
+	{ "DomainWhitelistSize",	CONFIG_TYPE_INTEGER,	FALSE },
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReports",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReportsBcc",		CONFIG_TYPE_STRING,	FALSE },
