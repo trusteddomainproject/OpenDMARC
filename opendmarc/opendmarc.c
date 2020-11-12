@@ -2033,6 +2033,7 @@ mlfi_eom(SMFICTX *ctx)
 	char *apolicy = NULL;
 	char *aresult = NULL;
 	char *adisposition = NULL;
+	char *aprotodisposition = NULL;
 	char *hostname = NULL;
 	char *authservid = NULL;
 	char *spfaddr;
@@ -3011,38 +3012,48 @@ mlfi_eom(SMFICTX *ctx)
 		aresult = "none";
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
+		aprotodisposition="none";
 		break;
 
 	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
 		aresult = "fail";		/* Accept and report */
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
+		aprotodisposition="none";
 		break;
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
+		aprotodisposition="none";
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
 		aresult = "fail";
 
-		if (conf->conf_rejectfail && random() % 100 < pct)
+		if (random() % 100 < pct)
 		{
-			snprintf(replybuf, sizeof replybuf,
-			         "rejected by DMARC policy for %s", pdomain);
+			aprotodisposition = "reject";
+			if ( conf->conf_rejectfail ) {
+				snprintf(replybuf, sizeof replybuf,
+				         "rejected by DMARC policy for %s", pdomain);
 
-			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
-			                         DMARC_REJECT_ESC, replybuf);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_setreply() failed",
-				       dfc->mctx_jobid);
+				status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
+				                         DMARC_REJECT_ESC, replybuf);
+				if (status != MI_SUCCESS && conf->conf_dolog)
+				{
+					syslog(LOG_ERR, "%s: smfi_setreply() failed",
+					       dfc->mctx_jobid);
+				}
+
+				ret = SMFIS_REJECT;
+				result = DMARC_RESULT_REJECT;
 			}
-
-			ret = SMFIS_REJECT;
-			result = DMARC_RESULT_REJECT;
+			else
+			{
+				aprotodisposition = "none";
+			}
 		}
 
 		if (conf->conf_copyfailsto != NULL)
@@ -3060,21 +3071,29 @@ mlfi_eom(SMFICTX *ctx)
 	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
 		aresult = "fail";
 
-		if (conf->conf_rejectfail && random() % 100 < pct)
+		if (random() % 100 < pct)
 		{
-			snprintf(replybuf, sizeof replybuf,
-			         "quarantined by DMARC policy for %s",
-			         pdomain);
-
-			status = smfi_quarantine(ctx, replybuf);
-			if (status != MI_SUCCESS && conf->conf_dolog)
+			aprotodisposition = "quarantine";
+			if ( conf->conf_rejectfail )
 			{
-				syslog(LOG_ERR, "%s: smfi_quarantine() failed",
-				       dfc->mctx_jobid);
-			}
+				snprintf(replybuf, sizeof replybuf,
+			        	 "quarantined by DMARC policy for %s",
+			         	pdomain);
 
-			ret = SMFIS_ACCEPT;
-			result = DMARC_RESULT_QUARANTINE;
+				status = smfi_quarantine(ctx, replybuf);
+				if (status != MI_SUCCESS && conf->conf_dolog)
+				{
+					syslog(LOG_ERR, "%s: smfi_quarantine() failed",
+				       	dfc->mctx_jobid);
+				}
+
+				ret = SMFIS_ACCEPT;
+				result = DMARC_RESULT_QUARANTINE;
+			}
+		}
+		else
+		{
+			aprotodisposition = "none";
 		}
 
 		if (conf->conf_copyfailsto != NULL)
@@ -3122,11 +3141,12 @@ mlfi_eom(SMFICTX *ctx)
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
 		snprintf(header, sizeof header,
-		         "%s%s%s; dmarc=%s (p=%s dis=%s) header.from=%s",
+		         "%s%s%s; dmarc=%s (p=%s dis=%s protodis=%s) header.from=%s",
 		         authservid,
 		         conf->conf_authservidwithjobid ? "/" : "",
 		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",
-		         aresult, apolicy, adisposition, dfc->mctx_fromdomain);
+		         aresult, apolicy, adisposition, aprotodisposition,
+			 dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
