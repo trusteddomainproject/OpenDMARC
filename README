@@ -86,8 +86,6 @@ contrib		A collection of user contributed scripts that may be useful.
 db		Database schema and tools for generating DMARC reports based
 		upon accumulated data.
 
-docs		A collection of RFCs and drafts related to opendmarc.
-
 libopendmarc	A library that implements the proposed DMARC standard.
 
 libopendmarc/docs
