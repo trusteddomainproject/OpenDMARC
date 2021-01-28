@@ -3,8 +3,9 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
-1.4.0		2018/06/??
-	Add ARC support.  Extensive work contributed by ValiMail.
+1.4.0		2021/01/28
+	Add ARC support.  Extensive work contributed by ValiMail, with patches
+		by Jonathan Kamens.
 	Add "DomainWhitelist" and "DomainWhitelistFile" config options.
 	Extract client IP address for ARC reports when provided via
 		Authentication-Results.
@@ -15,10 +16,25 @@ release, and a summary of the changes in that release.
 	Add support for recording and reporting of DKIM selectors.
 	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction with
 		an ARC policy pass.
+	Add "RejectMultiValueFrom" configuration option to reject messages
+		with multi-valued From fields.
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
+	Fix Authentication-Results tokenizing.  Patch from 
 	LIBOPENDMARC: Fix bug #203: Reject DMARC records that have duplicate
 		tags in them.  Reported by Dirk Stoecker.
+	LIBOPENDMARC: Pull request #70: For a non-pass DKIM outcome,
+		discard unaligned domain.  Patch from Andreas Weigel.
+	LIBOPENDMARC: Pull request #67: Fix resource leakage on systems
+		using res_ndestroy().  Patch from Emmanuel Dreyfus.
+	LIBOPENDMARC: In opendmarc_xml_parse(), ensure NULL-termination of
+		the buffer passed to opendmarc_xml().
+	LIBOPENDMARC: Add opendmarc_policy_fetch_from_domain().  Patch
+		from Andreas Weigel.
+	LIBOPENDMARC: Fix handling of long or malformed DMARC records.  Patch
+		from Joel Teichroeb.
+	LIBOPENDMARC: Enable opendmarc_policy_store_dkim() to report a missing
+		From domain.  Patch from Joel Teichroeb.
 	REPORTS: Feature request #146: Add option to pull input from a file.
 	REPORTS: Fix bug #153: Suppress duplicate results from the same
 		domain.  Patch from Tomki Camp.
