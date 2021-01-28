@@ -1458,11 +1458,13 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		dmarcf_init_syslog(log_facility);
 	}
 
-	/* resize whitelistsize to allow for growth and maintain performance
+	/*
+        **  Resize whitelistsize to allow for growth and maintain performance
 	**
-	** See: Knuth's "The Art of Computer Programming, Part 3: Searching and
-	** Sorting" for more information.
-	 */
+	**  See: Knuth's "The Art of Computer Programming, Part 3: Searching and
+	**  Sorting" for more information.
+	*/
+
 	whitelistsize = floor(whitelistsize * 1.20);
 
 	/* init domain_whitelist_hash table */
