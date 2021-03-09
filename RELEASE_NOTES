@@ -3,6 +3,9 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.4.1		2021/03/??
+	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
+
 1.4.0		2021/01/28
 	Add ARC support.  Extensive work contributed by ValiMail, with patches
 		by Jonathan Kamens.
