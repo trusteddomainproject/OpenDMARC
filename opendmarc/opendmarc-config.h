@@ -36,6 +36,7 @@ struct configdef dmarcf_config[] =
 	{ "FailureReportsOnNone",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReportsSentBy",	CONFIG_TYPE_STRING,	FALSE },
 	{ "HistoryFile",		CONFIG_TYPE_STRING,	FALSE },
+	{ "HoldQuarantinedMessages",    CONFIG_TYPE_BOOLEAN,    FALSE },
 	{ "IgnoreAuthenticatedClients",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "IgnoreHosts",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreMailFrom",		CONFIG_TYPE_STRING,	FALSE },
