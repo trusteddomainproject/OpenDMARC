@@ -255,7 +255,7 @@ opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
 		  case AAR_TAG_INSTANCE:
 			aar->instance = atoi(tag_value);
 			/* next value will be unlabeled authserv_id */
-			if (token = strsep((char **) &tmp_ptr, ";"))
+			if ((token = strsep((char **) &tmp_ptr, ";")) != NULL)
 			{
 				leading_space_len = strspn(token, " \n\t");
 				tag_value = opendmarc_arcares_strip_whitespace(token);
