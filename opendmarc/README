@@ -91,6 +91,12 @@ CONFIGURING OPENDMARC
 
 	/etc/init.d/postfix restart
 
+(9) Depending on your settings, mail sent with a policy of p=quarantine
+    may wind up in your MTA's "Hold" or "Quarantine" queue.
+
+	The setting "HoldQuarantinedMessages" (defaults to false) can be used
+	to control this feature.
+
 
 TESTING AND DEBUGGING
 =====================
@@ -220,5 +226,5 @@ subscribe to one or both of the following:
 
 These can be accessed via http://www.trusteddomain.org/mailman/listinfo.
 
-To report bugs and feature requests, you can access the SourceForge "tracker"
-facilities at http://sourceforge.net/projects/opendmarc.
+To report bugs and feature requests, you can access the GitHub "tracker"
+facilities at https://github.com/trusteddomainproject/OpenDMARC/issues.

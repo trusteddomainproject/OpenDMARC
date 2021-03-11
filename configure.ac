@@ -55,6 +55,16 @@ HEX_VERSION=$(printf %08x $(( ((VERSION_RELEASE << 8 | VERSION_MAJOR_REV) << 8 |
 AC_SUBST([HEX_VERSION])
 
 #
+# version string for GitHub assets
+# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0.tar.gz
+# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0-Beta1.tar.gz
+# Beta tag is passed to RPM by downstream packagers and expanded there.
+#
+GITHUB_VERSION=$(printf %d-%d-%d VERSION_RELEASE VERSION_MAJOR_REV VERSION_MINOR_REV)
+AC_SUBST([GITHUB_VERSION])#
+
+
+#
 # library version, passed to libtool
 #
 LIBOPENDMARC_VERSION_INFO=$(printf %d:%d:%d LIBVERSION_CURRENT LIBVERSION_REVISION LIBVERSION_AGE)
