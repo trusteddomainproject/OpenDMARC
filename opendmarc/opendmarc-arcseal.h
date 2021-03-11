@@ -54,12 +54,12 @@ typedef int as_tag_t;
 struct arcseal
 {
 	int instance;
-	u_char algorithm[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
-	u_char chain_validation[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
-	u_char signature_domain[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
-	u_char signature_selector[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
-	u_char signature_time[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
-	u_char signature_value[OPENDMARC_ARCSEAL_MAX_LONG_VALUE_LEN + 1];
+	char algorithm[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
+	char chain_validation[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
+	char signature_domain[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
+	char signature_selector[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
+	char signature_time[OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN + 1];
+	char signature_value[OPENDMARC_ARCSEAL_MAX_LONG_VALUE_LEN + 1];
 };
 
 /* ARCSEAL_HEADER -- a node for a linked list of arcseal structs */
@@ -82,6 +82,6 @@ struct arcseal_header
 **  	0 on success, -1 on failure
 **/
 
-extern int opendmarc_arcseal_parse __P((u_char *hdr, struct arcseal *as));
+extern int opendmarc_arcseal_parse __P((char *hdr, struct arcseal *as));
 
 #endif /* _OPENDMARC_ARCSEAL_H_ */

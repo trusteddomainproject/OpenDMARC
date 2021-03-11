@@ -124,17 +124,17 @@ typedef struct dmarc_policy_t {
 	/*
 	 * Supplied information
 	 */
-	u_char *	ip_addr;		/* Input: connected IPV4 or IPV6 address */
+	char *		ip_addr;		/* Input: connected IPV4 or IPV6 address */
 	int 		ip_type;		/* Input: IPv4 or IPv6 */
-	u_char * 	spf_domain;		/* Input: Domain used to verify SPF */
+	char * 		spf_domain;		/* Input: Domain used to verify SPF */
 	int 	 	spf_origin;		/* Input: was domain MAIL From: or HELO for SPF check */
 	int		spf_outcome;		/* Input: What was the outcome of the SPF check */
-	u_char *	spf_human_outcome;	/* Input: What was the outcome of the SPF check in human readable form */
+	char *		spf_human_outcome;	/* Input: What was the outcome of the SPF check in human readable form */
 	int		dkim_final;		/* This is the best record found */
-	u_char * 	dkim_domain;		/* Input: The d= domain */
-	u_char *	dkim_selector;		/* Input: The s= selector */
+	char * 		dkim_domain;		/* Input: The d= domain */
+	char *		dkim_selector;		/* Input: The s= selector */
 	int		dkim_outcome;		/* Input: What was the outcome of the DKIM check */
-	u_char *	dkim_human_outcome;	/* Input: What was the outcome of the DKIM check in human readable form */
+	char *		dkim_human_outcome;	/* Input: What was the outcome of the DKIM check in human readable form */
 
 	/*
 	 * Computed outcomes
@@ -145,8 +145,8 @@ typedef struct dmarc_policy_t {
 	/*
 	 * Computed Organizational domain, if subdomain lacked a record.
 	 */
-	u_char *	from_domain;		/* Input: From: header domain */
-	u_char *	organizational_domain;
+	char *		from_domain;		/* Input: From: header domain */
+	char *		organizational_domain;
 
 	/*
 	 * Found in the _dmarc record or supplied to us.
@@ -160,9 +160,9 @@ typedef struct dmarc_policy_t {
 	int		rf;
 	uint32_t	ri;
 	int		rua_cnt;
-	u_char **	rua_list;
+	char **		rua_list;
 	int		ruf_cnt;
-	u_char **	ruf_list;
+	char **		ruf_list;
 	int		fo;
 } DMARC_POLICY_T;
 #ifndef OPENDMARC_POLICY_C
@@ -216,16 +216,16 @@ int           		opendmarc_hash_expire(OPENDMARC_HASH_CTX *hctx, time_t age);
 
 /* opendmarc_tld.c */
 int 			opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
-int 			opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len);
-int                     opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen);
+int 			opendmarc_get_tld(char *domain, char *tld, size_t tld_len);
+int                     opendmarc_reverse_domain(char *domain, char *buf, size_t buflen);
 void 			opendmarc_tld_shutdown();
 
 /* opendmarc_util.c */
-u_char ** opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt);
-u_char ** opendmarc_util_clearargv(u_char **ary);
-u_char ** opendmarc_util_dupe_argv(u_char **ary);
-u_char *  opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen);
-u_char *  opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen);
+char ** opendmarc_util_pushargv(char *str, char **ary, int *cnt);
+char ** opendmarc_util_clearargv(char **ary);
+char ** opendmarc_util_dupe_argv(char **ary);
+char *  opendmarc_util_cleanup(char *str, char *buf, size_t buflen);
+char *  opendmarc_util_finddomain(char *raw, char *buf, size_t buflen);
 char **   opendmarc_util_freenargv(char **ary, int *num);
 char **   opendmarc_util_pushnargv(char *str, char **ary, int *num);
 char *    opendmarc_util_ultoa(unsigned long val, char *buffer, size_t bufferlen);

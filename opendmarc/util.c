@@ -243,9 +243,9 @@ dmarcf_socket_cleanup(char *sockspec)
 */
 
 void
-dmarcf_lowercase(u_char *str)
+dmarcf_lowercase(char *str)
 {
-	u_char *p;
+	char *p;
 
 	assert(str != NULL);
 

@@ -42,7 +42,7 @@ typedef unsigned long cmap_elem_type;
 #define	CMAP_TST(ar, c)    	((ar)[CMAP_INDEX(c)] &  CMAP_BIT(c))
 #define	CMAP_SET(ar, c)    	((ar)[CMAP_INDEX(c)] |= CMAP_BIT(c))
 
-static unsigned char const SPECIALS[] = "<>@,;:\\\"/[]?=";
+static char const SPECIALS[] = "<>@,;:\\\"/[]?=";
 
 #ifdef MAILPARSE_TEST
 /*
@@ -118,8 +118,8 @@ dmarcf_mail_unescape(char *s)
 **  	everything is balanced.
 */
 
-static u_char *
-dmarcf_mail_matching_paren(u_char *s, u_char *e, int open_paren, int close_paren)
+static char *
+dmarcf_mail_matching_paren(char *s, char *e, int open_paren, int close_paren)
 {
 	int 		paren = 1;
 
@@ -157,11 +157,11 @@ dmarcf_mail_matching_paren(u_char *s, u_char *e, int open_paren, int close_paren
 */
 
 static int
-dmarcf_mail_first_special(u_char *p, u_char *e, u_char **special_out)
+dmarcf_mail_first_special(char *p, char *e, char **special_out)
 {
 	size_t		i;
 	cmap_elem_type	is_special[CMAP_NELEMS] = { 0 };
-	u_char		*at_ptr = NULL;
+	char		*at_ptr = NULL;
 
 	/* set up special finder */
 	for (i = 0; SPECIALS[i] != '\0'; i++)
@@ -228,7 +228,7 @@ dmarcf_mail_first_special(u_char *p, u_char *e, u_char **special_out)
 			while (*p != '\0' &&
 			       !CMAP_TST(is_special, *p) &&
 			       (!isascii(*p) ||
-			        !isspace((unsigned char) *p)) &&
+			        !isspace(*p)) &&
 			       *p != '(')
 				p++;
 			p--;
@@ -256,15 +256,15 @@ dmarcf_mail_first_special(u_char *p, u_char *e, u_char **special_out)
 */
 
 static int
-dmarcf_mail_token(u_char *s, u_char *e, int *type_out, u_char **start_out,
-                  u_char **end_out, int *uncommented_whitespace)
+dmarcf_mail_token(char *s, char *e, int *type_out, char **start_out,
+                  char **end_out, int *uncommented_whitespace)
 {
-	u_char *p;
+	char *p;
 	int err = 0;
 	size_t i;
 	int token_type;
 	cmap_elem_type is_special[CMAP_NELEMS] = { 0 };
-	u_char *token_start, *token_end;
+	char *token_start, *token_end;
 
 	*start_out = NULL;
 	*end_out   = NULL;
@@ -280,8 +280,8 @@ dmarcf_mail_token(u_char *s, u_char *e, int *type_out, u_char **start_out,
 
 	/* skip white space between tokens */
 	while (p < e && (*p == '(' ||
-	                 (isascii((unsigned char) *p) &&
-	                  isspace((unsigned char) *p))))
+	                 (isascii(*p) &&
+	                  isspace(*p))))
 	{
 		if (*p != '(')
 		{
@@ -331,7 +331,7 @@ dmarcf_mail_token(u_char *s, u_char *e, int *type_out, u_char **start_out,
 	else
 	{
 		while (p < e && *p != '\0' && !CMAP_TST(is_special, *p) &&
-		       (!isascii(*p) || !isspace((unsigned char) *p)) &&
+		       (!isascii(*p) || !isspace(*p)) &&
 		       *p != '(')
 			p++;
 
@@ -363,15 +363,15 @@ dmarcf_mail_token(u_char *s, u_char *e, int *type_out, u_char **start_out,
 */
 
 int
-dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
-                  unsigned char **domain_out)
+dmarcf_mail_parse(char *line, char **user_out,
+                  char **domain_out)
 {
 	int type;
 	int ws;
 	int err;
-	u_char *e, *special;
-	u_char *tok_s, *tok_e;
-	u_char *w;
+	char *e, *special;
+	char *tok_s, *tok_e;
+	char *w;
 
 	*user_out = NULL;
 	*domain_out = NULL;
@@ -493,8 +493,8 @@ dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
 */
 
 int
-dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
-                        unsigned char ***domains_out)
+dmarcf_mail_parse_multi(char *line, char ***users_out,
+                        char ***domains_out)
 {
 	_Bool escaped = FALSE;
 	_Bool quoted = FALSE;
@@ -505,10 +505,10 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 	int parens = 0;
 	char *p;
 	char *addr;
-	unsigned char **uout = NULL;
-	unsigned char **dout = NULL;
-	unsigned char *u;
-	unsigned char *d;
+	char **uout = NULL;
+	char **dout = NULL;
+	char *u;
+	char *d;
 
 	/* walk the input string looking for unenclosed commas */
 	addr = line;
@@ -562,13 +562,13 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 
 			if (n == 0)
 			{
-				size_t newsize = 2 * sizeof(unsigned char *);
+				size_t newsize = 2 * sizeof(char *);
 
-				uout = (unsigned char **) malloc(newsize);
+				uout = (char **) malloc(newsize);
 				if (uout == NULL)
 					return -1;
 
-				dout = (unsigned char **) malloc(newsize);
+				dout = (char **) malloc(newsize);
 				if (dout == NULL)
 				{
 					free(uout);
@@ -579,11 +579,11 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			}
 			else if (n + 1 == a)
 			{
-				unsigned char **new;
+				char **new;
 
-				size_t newsize = a * 2 * sizeof(unsigned char *);
+				size_t newsize = a * 2 * sizeof(char *);
 
-				new = (unsigned char **) realloc(uout, newsize);
+				new = (char **) realloc(uout, newsize);
 				if (new == NULL)
 				{
 					free(uout);
@@ -593,7 +593,7 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 
 				uout = new;
 
-				new = (unsigned char **) realloc(dout, newsize);
+				new = (char **) realloc(dout, newsize);
 				if (new == NULL)
 				{
 					free(uout);
@@ -640,7 +640,7 @@ int
 main(int argc, char **argv)
 {
 	int err;
-	unsigned char **domains, **users;
+	char **domains, **users;
 
 	if (argc != 2)
 	{
@@ -658,7 +658,7 @@ main(int argc, char **argv)
 	{
 		int n;
 
-		for (n = 0; domains[n] != (unsigned char *) NULL; n++)
+		for (n = 0; domains[n] != (char *) NULL; n++)
 		{
 			printf("user: '%s'\ndomain: '%s'\n", 
 				string_or_null(users[n]),

@@ -115,17 +115,17 @@ struct lookup ptypes[] =
 */
 
 static int
-ares_tokenize(u_char *input, u_char *outbuf, size_t outbuflen,
-              u_char **tokens, int ntokens)
+ares_tokenize(char *input, char *outbuf, size_t outbuflen,
+              char **tokens, int ntokens)
 {
 	_Bool quoted = FALSE;
 	_Bool escaped = FALSE;
 	_Bool intok = FALSE;
 	int n = 0;
 	int parens = 0;
-	u_char *p;
-	u_char *q;
-	u_char *end;
+	char *p;
+	char *q;
+	char *end;
 
 	assert(input != NULL);
 	assert(outbuf != NULL);
@@ -357,7 +357,7 @@ ares_xconvert(struct lookup *table, int code)
 */
 
 int
-ares_parse(u_char *hdr, struct authres *ar)
+ares_parse(char *hdr, struct authres *ar)
 {
 	_Bool quoted;
 	int n;
@@ -366,8 +366,8 @@ ares_parse(u_char *hdr, struct authres *ar)
 	int r = 0;
 	int state;
 	int prevstate;
-	u_char tmp[MAXHEADER + 2];
-	u_char *tokens[ARES_MAXTOKENS];
+	char tmp[MAXHEADER + 2];
+	char *tokens[ARES_MAXTOKENS];
 
 	assert(hdr != NULL);
 	assert(ar != NULL);
@@ -654,8 +654,8 @@ main(int argc, char **argv)
 	char *p;
 	char *progname;
 	struct authres ar;
-	u_char buf[1024];
-	u_char *toks[NTOKENS];
+	char buf[1024];
+	char *toks[NTOKENS];
 
 	progname = (p = strrchr(argv[0], '/')) == NULL ? argv[0] : p + 1;
 

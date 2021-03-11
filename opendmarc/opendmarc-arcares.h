@@ -59,19 +59,19 @@ typedef int aar_arc_tag_t;
 
 struct arcares_field
 {
-	u_char status[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN];
-	u_char string[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN];
+	char status[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN];
+	char string[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN];
 };
 
 /* ARCARES structure -- the single header parsed */
 struct arcares
 {
 	int instance;
-	u_char authserv_id[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
-	u_char arc[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
-	u_char dkim[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
-	u_char dmarc[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
-	u_char spf[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
+	char authserv_id[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
+	char arc[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
+	char dkim[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
+	char dmarc[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
+	char spf[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
 };
 
 /* ARCARES_HEADER -- a node for a linked list of arcares structs */
@@ -84,9 +84,9 @@ struct arcares_header
 
 struct arcares_arc_field
 {
-	u_char arcresult[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
-	u_char smtpclientip[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
-	u_char arcchain[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
+	char arcresult[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
+	char smtpclientip[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
+	char arcchain[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
 };
 
 /*
@@ -102,7 +102,7 @@ struct arcares_arc_field
 **  	0 on success, -1 on failure
 **/
 
-extern int opendmarc_arcares_parse __P((u_char *hdr, struct arcares *aar));
+extern int opendmarc_arcares_parse __P((char *hdr, struct arcares *aar));
 
 /*
 ** OPENDMARC_ARCARES_ARC+PARSE -- parse an ARC-Authentication-Results: header
@@ -119,7 +119,7 @@ extern int opendmarc_arcares_parse __P((u_char *hdr, struct arcares *aar));
 **  	0 on success, -1 on failure
 **/
 
-extern int opendmarc_arcares_arc_parse __P((u_char *hdr_arc,
+extern int opendmarc_arcares_arc_parse __P((char *hdr_arc,
                                             struct arcares_arc_field *arc));
 
 /*
