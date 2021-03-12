@@ -22,6 +22,9 @@ for communicating mail traffic information between MTAs and mail filtering
 plug-in applications.  It was originally invented at Sendmail, Inc. but
 has also been adapted to other MTAs.
 
+Note that the implementation is called "OpenDMARC" but contains a program, 
+called "opendmarc", all lower case.
+
 +--------------+
 | DEPENDENCIES |
 +--------------+
@@ -33,6 +36,9 @@ o sendmail v8.13.0 (or later), or Postfix 2.3, (or later) and libmilter.
 
 o glib (GLib) headers and libraries 2.48.2 (or greater)
 
+o some systems (Linux at least) do not natively have the strlcpy()
+  function.  Under Arch Linux, this is provided by the "libbsd" package.
+
 o Access to a working nameserver (required only for signature verification).
 
 o A perl interpreter.
@@ -42,6 +48,9 @@ o If you are interested in tinkering with the build and packaging structure,
 	autoconf (GNU Autoconf) 2.61
 	automake (GNU automake) 1.7 (or 1.9 to avoid warnings)
 	ltmain.sh (GNU libtool) 2.2.6 (or 1.5.26 after make maintainer-clean)
+
+o LibSFF2 (https://www.libspf2.org) is optional, but can be used for improved
+  SPF parsing inside the opendmarc filter. 
 
 
 +-----------------------+
