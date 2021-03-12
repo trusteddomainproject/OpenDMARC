@@ -41,6 +41,7 @@ m4_define([LIBVERSION_AGE], 0)
 # Autotools setup
 #
 AC_INIT([OpenDMARC], [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV], [bcx+libdmarc@bcx.com])
+AC_CANONICAL_TARGET
 AC_CONFIG_AUX_DIR(build-aux)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([.])
@@ -55,16 +56,6 @@ HEX_VERSION=$(printf %08x $(( ((VERSION_RELEASE << 8 | VERSION_MAJOR_REV) << 8 |
 AC_SUBST([HEX_VERSION])
 
 #
-# version string for GitHub assets
-# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0.tar.gz
-# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0-Beta1.tar.gz
-# Beta tag is passed to RPM by downstream packagers and expanded there.
-#
-GITHUB_VERSION=$(printf %d-%d-%d VERSION_RELEASE VERSION_MAJOR_REV VERSION_MINOR_REV)
-AC_SUBST([GITHUB_VERSION])#
-
-
-#
 # library version, passed to libtool
 #
 LIBOPENDMARC_VERSION_INFO=$(printf %d:%d:%d LIBVERSION_CURRENT LIBVERSION_REVISION LIBVERSION_AGE)
@@ -74,14 +65,15 @@ AC_SUBST([LIBOPENDMARC_VERSION_INFO])
 # Checks for programs
 #
 AC_PROG_CC
-AC_PROG_CC_C99
+#AC_PROG_CC_C99
 AM_PROG_CC_C_O
-AC_PROG_LIBTOOL
+#AC_PROG_LIBTOOL
+LT_INIT
 
 PKG_PROG_PKG_CONFIG
 
 AC_ARG_WITH([installdir],
-        AC_HELP_STRING([--with-installdir=/path], [(default =/usr/local)]),
+        AS_HELP_STRING([--with-installdir=/path], [(default =/usr/local)]),
 		LIBDMARC_BASE=$withval, LIBDMARC_BASE=/usr/local/)
 AC_SUBST(LIBDMARC_DIR, $LIBDMARC_BASE)
 
@@ -91,8 +83,8 @@ AC_SUBST(LIBDMARC_DIR, $LIBDMARC_BASE)
 AX_PTHREAD
 
 
-AC_HEADER_STDC
-AC_HEADER_TIME
+# AC_HEADER_STDC
+# AC_HEADER_TIME
 AC_CHECK_HEADERS(stdio.h)
 AC_CHECK_HEADERS(syslog.h)
 AC_CHECK_HEADERS(sysexits.h)
@@ -247,7 +239,7 @@ AC_CHECK_PROG(miltertest, miltertest, "yes", "no")
 AC_SUBST(ac_aux_dir)
 
 AC_ARG_WITH([wall],
-	AC_HELP_STRING([--with-wall], [(no default)]),
+	AS_HELP_STRING([--with-wall], [(no default)]),
 	CC="gcc -Wall",)
 
 
@@ -306,16 +298,16 @@ AC_SUBST(SQL_BACKEND)
 AC_DEFINE_UNQUOTED(SQL_BACKEND, "$SQL_BACKEND", [default SQL back-end])
 
 AC_ARG_WITH([spf],
-	AC_HELP_STRING([--with-spf], [enable SPF checking]),
+	AS_HELP_STRING([--with-spf], [enable SPF checking]),
 	AC_DEFINE(WITH_SPF, 1, [Define to 1 if you want SPF support.]),
 	[])
 
 AC_ARG_WITH([spf2-include],
-	AC_HELP_STRING([--with-spf2-include], [path to libspf2 includes]),
+	AS_HELP_STRING([--with-spf2-include], [path to libspf2 includes]),
 	SPF2_INCLUDE="$withval",
 	[])
 AC_ARG_WITH([spf2-lib],
-	AC_HELP_STRING([--with-spf2-lib], [path to libspf2 libraries]),
+	AS_HELP_STRING([--with-spf2-lib], [path to libspf2 libraries]),
 	SPF2_LIB="$withval",
 	[])
 use_spf="no"
@@ -511,7 +503,7 @@ AC_SUBST([SYSCONFDIR])
 #
 # Generate files
 #
-AC_OUTPUT([ Makefile
+AC_CONFIG_FILES([ Makefile
 	contrib/Makefile
 	contrib/init/Makefile
 	contrib/init/generic/Makefile
@@ -543,5 +535,5 @@ AC_OUTPUT([ Makefile
 		reports/opendmarc-reports
 		reports/opendmarc-reports.8
 	])
-
+AC_OUTPUT()
 # @end1
