@@ -150,7 +150,7 @@ OPENDMARC_STATUS_T opendmarc_get_policy_token_used(DMARC_POLICY_T *pctx);
  * TLD processing
  */
 int  		   opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
-void		   opendmarc_tld_shutdown(void);
+void		   opendmarc_tld_shutdown();
 
 /*
  * XML Parsing

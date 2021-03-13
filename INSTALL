@@ -79,8 +79,7 @@ As Postfix currently does not provide the milter library, you need to have
 sendmail sources or development package installed.  See
 http://www.postfix.org/MILTER_README.html
 
-You can view the configuration options with the following command (once you
-have built the configure script (see step 3, below)):
+You can view the configuration options with the following command:
 
 	./configure --help
 
@@ -89,15 +88,17 @@ installed.
 
 Steps to compiling the library and the milter:
 
-(1) Download the source from github
-    git clone https://github.com/trusteddomainproject/OpenDMARC.git
+(1) Download the source from SourceForge
+    (http://sourceforge.net/projects/opendmarc).
 
-(2) Change directories to the repository directory that
+(2) Unpack the tarball:
+	tar -xzvf opendmarc-<version>.tar.gz
+
+    Note: Use <version> as the version number that you downloaded.
+
+(3) Change directories to the release directory (opendmarc-<version>) that
     was created in step 2.
 	cd opendmarc-<version>
-
-(3) Run gnu autoreconf to generate the configure and make files.
-	autoreconf -v -i
 
 (4) Run the "configure" script to configure the package for your operating
     system.
