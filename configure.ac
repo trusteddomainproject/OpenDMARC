@@ -17,6 +17,7 @@
 #
 # Setup
 #
+AC_CONFIG_AUX_DIR([build-aux])
 AC_PREREQ(2.61)
 
 #
@@ -41,6 +42,7 @@ m4_define([LIBVERSION_AGE], 0)
 # Autotools setup
 #
 AC_INIT([OpenDMARC], [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV], [bcx+libdmarc@bcx.com])
+AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_TARGET
 AC_CONFIG_AUX_DIR(build-aux)
 AM_INIT_AUTOMAKE
