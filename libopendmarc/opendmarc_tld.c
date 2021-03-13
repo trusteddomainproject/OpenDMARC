@@ -110,7 +110,7 @@ opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char 
 	u_char 	buf[BUFSIZ];
 	char *	cp;
 	void *	vp;
-	int	nlines;
+	int	nlines=0;
 	int	ret;
 	u_char	revbuf[MAXDNSHOSTNAME];
 	int	adddot;
