@@ -101,6 +101,15 @@
 #       define MAYBE		(2)
 # endif 
 # define bool int
+
+#ifndef NETDB_INTERNAL
+# define NETDB_INTERNAL (-1)
+#endif
+
+#ifndef NETDB_SUCCESS
+# define NETDB_SUCCESS (0)
+#endif
+
 /*
 ** Beware that some Linux versions incorrectly define 
 ** MAXHOSTNAMELEN as 64, but DNS lookups require a length
