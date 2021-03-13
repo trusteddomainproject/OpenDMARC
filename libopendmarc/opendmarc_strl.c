@@ -50,7 +50,10 @@
 */
 
 size_t
-dmarc_strlcpy(register char *dst, register const char *src, ssize_t size)
+dmarc_strlcpy(dst, src, size)
+	register char *dst;
+	register const char *src;
+	ssize_t size;
 {
 	register ssize_t i;
 
@@ -93,7 +96,10 @@ dmarc_strlcpy(register char *dst, register const char *src, ssize_t size)
 */
 
 size_t
-dmarc_strlcat(register char *dst, register const char *src, ssize_t size)
+dmarc_strlcat(dst, src, size)
+	register char *dst;
+	register const char *src;
+	ssize_t size;
 {
 	register ssize_t i, j, o;
 
