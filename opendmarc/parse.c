@@ -519,14 +519,13 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			escaped = FALSE;
 			continue;
 		}
-
 		switch (*p)
 		{
 		  case '\\':
 			escaped = TRUE;
 			continue;
 
-		  case ':':
+		  case '\"':
 			quoted = !quoted;
 			continue;
 
@@ -540,14 +539,12 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 
 		  case ',':
 		  case '\0':
-			if (parens != 0)
+			if (parens != 0 || quoted)
 				continue;
-
 			if (*p == '\0')
 				done = TRUE;
 			else
 				*p = '\0';
-
 			status = dmarcf_mail_parse(addr, &u, &d);
 			if (status != 0)
 			{

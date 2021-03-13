@@ -9,6 +9,12 @@ endif
 dist_doc_DATA = opendmarc.conf.sample
 
 sbin_PROGRAMS = opendmarc opendmarc-check
+check_PROGRAMS = parse_tests
+
+parse_tests_SOURCES = parse-tests.c /parse.c
+# parse_tests_CPPFLAGS = -I$(top_srcdir)/opendmarc
+
+TESTS = $(check_PROGRAMS)
 
 opendmarc_SOURCES = config.c config.h opendmarc.c opendmarc.h \
 	opendmarc-ar.c opendmarc-ar.h \
