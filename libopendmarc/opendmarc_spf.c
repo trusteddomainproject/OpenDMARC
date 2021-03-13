@@ -1098,9 +1098,10 @@ opendmarc_spf_macro_expand(SPF_CTX_T *spfctx, char *str, char *buf, size_t bufle
 		{
 			num = strtoul(xp, &xp, 10);
 		}
-		char * cp;
 		switch ((int)*sp)
 		{
+		    char * cp;
+
 		    case 's':
 			if (rev == TRUE)
 				(void) opendmarc_spf_reverse(spfctx->mailfrom_domain, scratch, MAXDNSHOSTNAME);
