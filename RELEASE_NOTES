@@ -5,7 +5,7 @@ release, and a summary of the changes in that release.
 
 1.4.1		2021/03/??
 	Addition of defines for MUSL C Library. (#129/#133)
-		Patches by 2xsaiko on GitHub.
+		Patches by Marco Rebhan (me@dblsaiko.net).
 	Fixes to MySQL Schema (#98/#99).  Patch by Bond Keevil.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
 	Documentation updates about SourceForge being deprecated.  (#101)
