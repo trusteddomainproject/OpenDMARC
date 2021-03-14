@@ -1524,18 +1524,18 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		domain = cur->list_str;
 		dmarcf_lowercase(domain);
 
-		entry.key = u_char domain;
-		entry.data = (void *)domain;
+		entry.key = domain;
+		entry.data = (void *) domain;
 
 		/* keep track of the number of entries */
-		result = hsearch(entry, FIND);
-		if (result == 0 && errno == ESRCH) {
+		entryptr = hsearch(entry, FIND);
+		if (entryptr == NULL && errno == ESRCH) {
 			conf->conf_domainwhitelisthashcount++;
 		}
 
 		/* try to add or update the entry */
-		result = hsearch(entry, ENTER);
-		if (result == 0 && errno == ENOMEM) {
+		entryptr = hsearch(entry, ENTER);
+		if (entryptr == NULL && errno == ENOMEM) {
 			fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
 				progname, strerror(errno));
 
@@ -4050,17 +4050,16 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
-	if (conf->conf_domainwhitelisthash != NULL)
+/*	if (conf->conf_domainwhitelisthash != NULL)
 	{
 		/*
 		** conf_domainwhitelist manages memory for entries in domain
 		** whitelist hash so we just free that allocation here.
-		 */
 		dmarcf_freelist(conf->conf_domainwhitelist);
 		hdestroy();
 		free(conf->conf_domainwhitelisthash);
 	}
-
+*/
 	free(conf);
 }
 
