@@ -32,7 +32,7 @@ release, and a summary of the changes in that release.
 		with multi-valued From fields.
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
-	Fix Authentication-Results tokenizing.
+	Fix Authentication-Results tokenizing.  Patch from Dilyan Palauzov.
 	LIBOPENDMARC: Fix bug #203: Reject DMARC records that have duplicate
 		tags in them.  Reported by Dirk Stoecker.
 	LIBOPENDMARC: Pull request #70: For a non-pass DKIM outcome,
