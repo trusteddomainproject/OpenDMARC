@@ -45,7 +45,7 @@ struct dmarcf_dstring
 	int			ds_alloc;
 	int			ds_max;
 	int			ds_len;
-	u_char *		ds_buf;
+	char *		ds_buf;
 };
 
 /*
@@ -68,7 +68,7 @@ static _Bool
 dmarcf_dstring_resize(struct dmarcf_dstring *dstr, int len)
 {
 	int newsz;
-	u_char *new;
+	char *new;
 
 	assert(dstr != NULL);
 	assert(len > 0);
@@ -192,7 +192,7 @@ dmarcf_dstring_free(struct dmarcf_dstring *dstr)
 */
 
 _Bool
-dmarcf_dstring_copy(struct dmarcf_dstring *dstr, u_char *str)
+dmarcf_dstring_copy(struct dmarcf_dstring *dstr, char *str)
 {
 	int len;
 
@@ -235,7 +235,7 @@ dmarcf_dstring_copy(struct dmarcf_dstring *dstr, u_char *str)
 */
 
 _Bool
-dmarcf_dstring_cat(struct dmarcf_dstring *dstr, u_char *str)
+dmarcf_dstring_cat(struct dmarcf_dstring *dstr, char *str)
 {
 	int len;
 
@@ -321,7 +321,7 @@ dmarcf_dstring_cat1(struct dmarcf_dstring *dstr, int c)
 */
 
 _Bool
-dmarcf_dstring_catn(struct dmarcf_dstring *dstr, unsigned char *str,
+dmarcf_dstring_catn(struct dmarcf_dstring *dstr, char *str,
                    size_t nbytes)
 {
 	size_t needed;
@@ -361,7 +361,7 @@ dmarcf_dstring_catn(struct dmarcf_dstring *dstr, unsigned char *str,
 **  	Pointer to the NULL-terminated contents of "dstr".
 */
 
-u_char *
+char *
 dmarcf_dstring_get(struct dmarcf_dstring *dstr)
 {
 	assert(dstr != NULL);

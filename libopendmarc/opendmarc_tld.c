@@ -26,10 +26,10 @@ static OPENDMARC_HASH_CTX *TLDbak_hctx = NULL;
 static char TLDfile[MAXPATHLEN];
 
 int
-opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
+opendmarc_reverse_domain(char *domain, char *buf, size_t buflen)
 {
-	u_char *dp, *ep, *cp;
-	u_char  copy[MAXDNSHOSTNAME];
+	char *dp, *ep, *cp;
+	char  copy[MAXDNSHOSTNAME];
 
 	if (buf == NULL || buflen == 0 || domain == NULL)
 	{
@@ -107,12 +107,12 @@ int
 opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except)
 {
 	FILE *	fp;
-	u_char 	buf[BUFSIZ];
+	char 	buf[BUFSIZ];
 	char *	cp;
 	void *	vp;
 	int	nlines;
 	int	ret;
-	u_char	revbuf[MAXDNSHOSTNAME];
+	char	revbuf[MAXDNSHOSTNAME];
 	int	adddot;
 	int	preflen;
 	OPENDMARC_HASH_CTX *hashp;
@@ -160,7 +160,7 @@ opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char 
 						break;
 				}
 				*ep = '\0';
-				ret = opendmarc_reverse_domain((u_char *)cp, revbuf, sizeof revbuf);
+				ret = opendmarc_reverse_domain(cp, revbuf, sizeof revbuf);
 				adddot = TRUE;
 				goto got_xn;
 			}
@@ -231,12 +231,12 @@ opendmarc_tld_shutdown()
 }
 
 int
-opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
+opendmarc_get_tld(char *domain, char *tld, size_t tld_len)
 {
 	int	ret;
-	u_char	revbuf[MAXDNSHOSTNAME];
-	u_char *rp;
-	u_char  save;
+	char	revbuf[MAXDNSHOSTNAME];
+	char *rp;
+	char  save;
 	void *	vp;
 	
 	if (domain == NULL || tld == NULL || tld_len == 0)

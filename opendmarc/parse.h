@@ -20,7 +20,7 @@
 #endif /* __STDC__ */
 
 /* prototypes */
-extern int dmarcf_mail_parse __P((unsigned char *, unsigned char **,
-                                  unsigned char **));
+extern int dmarcf_mail_parse __P((char *, char **,
+                                  char **));
 
 #endif /* ! _DMARCF_MAILPARSE_H_ */

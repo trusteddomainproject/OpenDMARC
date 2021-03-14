@@ -85,7 +85,7 @@ tag_lookup(char *tag)
 # define MAX_ITEM_NAME_LEN	(256)
 typedef char STACK[MAX_STACK_DEPTH][MAX_STACK_LINE_LEN];
 
-u_char **
+char **
 opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 {
 	STACK		stack;
@@ -94,7 +94,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 	int		i;
 	int		inside = FALSE;
 	char		org_name[MAX_ITEM_NAME_LEN];
-	u_char **	ary			= NULL;
+	char **		ary			= NULL;
 	int		ary_cnt			= 0;
 	char		begin[MAX_ITEM_NAME_LEN];
 	char		end[MAX_ITEM_NAME_LEN];
@@ -145,7 +145,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 
 	(void) memset(obuf, '\0', sizeof obuf);
 	(void) strlcpy(obuf, "begin,end,org_name,email,domain,adkim,aspf,p,pct,source_ip,count,disposition,policy_eval_dkim,policy_eval_spf,reason_type,reason_comment,header_from,auth_dkim_domain,auth_dkim_result,auth_dkim_human,auth_spf_domain,auth_spf_result,auth_spf_human", sizeof obuf);
-	ary = opendmarc_util_pushargv((u_char *)obuf, ary, &ary_cnt);
+	ary = opendmarc_util_pushargv(obuf, ary, &ary_cnt);
 
 	ep = b + blen;
 	for (cp = b; cp < ep; ++cp)
@@ -235,7 +235,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 					(void) strlcat(obuf, ",", sizeof obuf);
 					(void) strlcat(obuf, auth_spf_human, sizeof obuf);
 					(void) strlcat(obuf, ",", sizeof obuf);
-					ary = opendmarc_util_pushargv((u_char *)obuf, ary, &ary_cnt);
+					ary = opendmarc_util_pushargv(obuf, ary, &ary_cnt);
 					if (ary == NULL)
 					{
 						int xerror = errno;
@@ -531,7 +531,7 @@ opendmarc_xml(char *b, size_t blen, char *e, size_t elen)
 	return ary;
 }
 
-u_char **
+char **
 opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len)
 {
 	struct stat	statb;
@@ -539,7 +539,7 @@ opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len)
 	char *		bufp;
 	char		e_buf[128];
 	int		ret;
-	u_char **	ary = NULL;
+	char **		ary = NULL;
 	int		xerror;
 	size_t		rb;
 

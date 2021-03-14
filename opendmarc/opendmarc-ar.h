@@ -73,17 +73,17 @@ struct result
 	ares_method_t	result_method;
 	ares_result_t	result_result;
 	ares_ptype_t	result_ptype[MAXPROPS];
-	unsigned char	result_reason[MAXAVALUE + 1];
-	unsigned char	result_property[MAXPROPS][MAXAVALUE + 1];
-	unsigned char	result_value[MAXPROPS][MAXAVALUE + 1];
+	char	result_reason[MAXAVALUE + 1];
+	char	result_property[MAXPROPS][MAXAVALUE + 1];
+	char	result_value[MAXPROPS][MAXAVALUE + 1];
 };
 
 /* AUTHRES structure -- the entire header parsed */
 struct authres
 {
 	int		ares_count;
-	unsigned char	ares_host[DMARC_MAXHOSTNAMELEN + 1];
-	unsigned char	ares_version[MAXAVALUE + 1];
+	char	ares_host[DMARC_MAXHOSTNAMELEN + 1];
+	char	ares_version[MAXAVALUE + 1];
 	struct result	ares_result[MAXARESULTS];
 };
 
@@ -100,6 +100,6 @@ struct authres
 **  	0 on success, -1 on failure.
 */
 
-extern int ares_parse __P((u_char *hdr, struct authres *ar));
+extern int ares_parse __P((char *hdr, struct authres *ar));
 
 #endif /* _OPENDMARC_AR_H_ */

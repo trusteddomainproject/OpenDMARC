@@ -137,9 +137,9 @@ struct dmarcf_msgctx
 	struct dmarcf_header *	mctx_hqtail;
 	struct dmarcf_dstring *	mctx_histbuf;
 	struct dmarcf_dstring *	mctx_afrf;
-	unsigned char		mctx_envfrom[BUFRSZ + 1];
-	unsigned char		mctx_envdomain[BUFRSZ + 1];
-	unsigned char		mctx_fromdomain[BUFRSZ + 1];
+	char			mctx_envfrom[BUFRSZ + 1];
+	char			mctx_envdomain[BUFRSZ + 1];
+	char			mctx_fromdomain[BUFRSZ + 1];
 };
 typedef struct dmarcf_msgctx * DMARCF_MSGCTX;
 
@@ -1038,7 +1038,7 @@ dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 		dst_len = sizeof ipbuf - 1;
 
 		inet_ntop(AF_INET6, &addr, dst, dst_len);
-		dmarcf_lowercase((u_char *) dst);
+		dmarcf_lowercase(dst);
 
 		if (dmarcf_checklist(ipbuf, list))
 			return FALSE;
@@ -1059,7 +1059,7 @@ dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 			dst_len = sizeof ipbuf - 1;
 
 			inet_ntop(AF_INET6, &addr, dst, dst_len);
-			dmarcf_lowercase((u_char *) dst);
+			dmarcf_lowercase(dst);
 
 			sz = strlcat(ipbuf, "/", sizeof ipbuf);
 			if (sz >= sizeof ipbuf)
@@ -1512,7 +1512,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	for (struct list *cur = conf->conf_domainwhitelist; cur != NULL; cur = cur->list_next)
 	{
 		int result;
-		u_char *domain;
+		char *domain;
 		ENTRY entry;
 		ENTRY *entryptr;
 
@@ -2107,8 +2107,8 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 	if (envfrom[0] != NULL)
 	{
 		size_t len;
-		unsigned char *p;
-		unsigned char *q;
+		char *p;
+		char *q;
 
 #if WITH_SPF
 		strncpy(cc->cctx_rawmfrom, envfrom[0],
@@ -2258,17 +2258,17 @@ mlfi_eom(SMFICTX *ctx)
 	struct dmarcf_header *hdr;
 	struct dmarcf_header *from;
 	struct arcseal_header *as_hdr;
-	u_char *reqhdrs_error = NULL;
-	u_char *user;
-	u_char **users;
-	u_char *domain;
-	u_char **domains;
-	u_char *bang;
-	u_char **ruv;
-	unsigned char header[MAXHEADER + 1];
-	unsigned char addrbuf[BUFRSZ + 1];
-	unsigned char replybuf[BUFRSZ + 1];
-	unsigned char pdomain[MAXHOSTNAMELEN + 1];
+	char *reqhdrs_error = NULL;
+	char *user;
+	char **users;
+	char *domain;
+	char **domains;
+	char *bang;
+	char **ruv;
+	char header[MAXHEADER + 1];
+	char addrbuf[BUFRSZ + 1];
+	char replybuf[BUFRSZ + 1];
+	char pdomain[MAXHOSTNAMELEN + 1];
 	struct authres ar;
 
 	assert(ctx != NULL);
@@ -2292,7 +2292,7 @@ mlfi_eom(SMFICTX *ctx)
 
 	if (strcmp((char *) dfc->mctx_jobid, JOBIDUNKNOWN) == 0)
 	{
-		dfc->mctx_jobid = (u_char *) dmarcf_getsymval(ctx, "i");
+		dfc->mctx_jobid = dmarcf_getsymval(ctx, "i");
 		if (dfc->mctx_jobid == NULL)
 		{
 			if (no_i_whine && conf->conf_dolog)
@@ -2301,7 +2301,7 @@ mlfi_eom(SMFICTX *ctx)
 				       "WARNING: symbol 'i' not available");
 				no_i_whine = FALSE;
 			}
-			dfc->mctx_jobid = (u_char *) JOBIDUNKNOWN;
+			dfc->mctx_jobid = JOBIDUNKNOWN;
 		}
 	}
 
@@ -2581,7 +2581,7 @@ mlfi_eom(SMFICTX *ctx)
 		     !dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
 		                   FALSE)))
 		{
-			unsigned char *slash;
+			char *slash;
 
 			if (!conf->conf_authservidwithjobid)
 			{
@@ -2596,7 +2596,7 @@ mlfi_eom(SMFICTX *ctx)
 				continue;
 			}
 
-			slash = (unsigned char *) strchr(ar.ares_host, '/');
+			slash = (char *) strchr(ar.ares_host, '/');
 			if (slash == NULL)
 			{
 				if (conf->conf_dolog)
@@ -2748,8 +2748,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
-				u_char *dkim_selector = NULL;
-				u_char *dkim_domain = NULL;
+				char *dkim_selector = NULL;
+				char *dkim_domain = NULL;
 
 				for (pc = 0;
 				     pc < ar.ares_result[c].result_props;
@@ -2774,7 +2774,7 @@ mlfi_eom(SMFICTX *ctx)
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %s %d\n",
 				                      dkim_domain,
-				                      (dkim_selector != NULL) ? dkim_selector : (u_char *)"-",
+				                      (dkim_selector != NULL) ? dkim_selector : "-",
 				                      ar.ares_result[c].result_result);
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
@@ -2826,8 +2826,8 @@ mlfi_eom(SMFICTX *ctx)
 				*/
 				if (dfc->mctx_arcpass == ARES_RESULT_PASS && conf->conf_domainwhitelisthashcount > 0)
 				{
-					u_char *arcchain = NULL;
-					u_char *arcdomain;
+					char *arcchain = NULL;
+					char *arcdomain;
 					int arcchainlen = 0;
 					int arcchainitempass = 0;
 					int result = 0;
@@ -2850,7 +2850,7 @@ mlfi_eom(SMFICTX *ctx)
 						     dfc->mctx_arcchain[pc] != NULL;
 						     pc++)
 						{
-							arcdomain = (u_char *)strdup(dfc->mctx_arcchain[pc]);
+							arcdomain = strdup(dfc->mctx_arcchain[pc]);
 							dmarcf_lowercase(arcdomain);
 
 							entry.key = arcdomain;
@@ -3562,8 +3562,8 @@ mlfi_eom(SMFICTX *ctx)
 	/*
 	** iterate through arcseal headers and add results to report
 	*/
-	u_char arcseal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
-	u_char arcseal_buf[HIST_MAX_ARCSEAL_LEN + 1];
+	char arcseal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
+	char arcseal_buf[HIST_MAX_ARCSEAL_LEN + 1];
 	struct arcares arcares;
 	struct arcares_arc_field arcares_arc_field;
 

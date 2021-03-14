@@ -63,8 +63,8 @@ main(int argc, char **argv)
 	char *sp;
 	char *adkim;
 	char *aspf;
-	unsigned char **rua;
-	unsigned char **ruf;
+	char **rua;
+	char **ruf;
 	DMARC_POLICY_T *dmarc;
 	OPENDMARC_LIB_T lib;
 

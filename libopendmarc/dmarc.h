@@ -93,7 +93,7 @@ extern "C" {
 #define OPENDMARC_MAX_NSADDRLIST (8)
 typedef struct {
 	int			tld_type;
-	u_char 			tld_source_file[MAXPATHLEN];
+	char 			tld_source_file[MAXPATHLEN];
 	int    			nscount;
 	struct sockaddr_in 	nsaddr_list[MAXNS];
 } OPENDMARC_LIB_T;
@@ -110,7 +110,7 @@ OPENDMARC_STATUS_T  opendmarc_policy_library_shutdown(OPENDMARC_LIB_T *lib_init)
 /*
  * Context management.
  */
-DMARC_POLICY_T * opendmarc_policy_connect_init(u_char *ip_addr, int ip_type);
+DMARC_POLICY_T * opendmarc_policy_connect_init(char *ip_addr, int ip_type);
 DMARC_POLICY_T * opendmarc_policy_connect_clear(DMARC_POLICY_T *pctx);
 DMARC_POLICY_T * opendmarc_policy_connect_rset(DMARC_POLICY_T *pctx);
 DMARC_POLICY_T * opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx);
@@ -118,16 +118,16 @@ DMARC_POLICY_T * opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx);
 /*
  * Store information routines.
  */
-OPENDMARC_STATUS_T opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *domain);
-OPENDMARC_STATUS_T opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *domain, u_char *selector, int result, u_char *human_result);
-OPENDMARC_STATUS_T opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int origin, u_char *human_result);
+OPENDMARC_STATUS_T opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, char *domain);
+OPENDMARC_STATUS_T opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, char *domain, char *selector, int result, char *human_result);
+OPENDMARC_STATUS_T opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, char *domain, int result, int origin, char *human_result);
 
 /*
  * The DMARC record itself.
  */
-OPENDMARC_STATUS_T opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain);
-OPENDMARC_STATUS_T opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *record);
-OPENDMARC_STATUS_T opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dmarc_record, u_char *domain, u_char *organizationaldomain);
+OPENDMARC_STATUS_T opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, char *domain);
+OPENDMARC_STATUS_T opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, char *domain, char *record);
+OPENDMARC_STATUS_T opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, char *dmarc_record, char *domain, char *organizationaldomain);
 
 /*
  * Access to parts of the DMARC record.
@@ -139,11 +139,11 @@ OPENDMARC_STATUS_T opendmarc_policy_fetch_adkim(DMARC_POLICY_T *pctx, int *adkim
 OPENDMARC_STATUS_T opendmarc_policy_fetch_aspf(DMARC_POLICY_T *pctx, int *aspf);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_p(DMARC_POLICY_T *pctx, int *p);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp);
-u_char **	   opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);
-u_char **	   opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);
-OPENDMARC_STATUS_T opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen);
-OPENDMARC_STATUS_T opendmarc_policy_fetch_from_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen);
-OPENDMARC_STATUS_T opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri);
+char **            opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, char *list_buf, size_t size_of_buf, int constant);
+char **            opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, char *list_buf, size_t size_of_buf, int constant);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, char *buf, size_t buflen);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_from_domain(DMARC_POLICY_T *pctx, char *buf, size_t buflen);
+OPENDMARC_STATUS_T opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, char *uri);
 OPENDMARC_STATUS_T opendmarc_get_policy_token_used(DMARC_POLICY_T *pctx);
 
 /*
@@ -155,16 +155,16 @@ void		   opendmarc_tld_shutdown();
 /*
  * XML Parsing
  */
-u_char **          opendmarc_xml(char *b, size_t blen, char *e, size_t elen);
-u_char **          opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len);
+char **          opendmarc_xml(char *b, size_t blen, char *e, size_t elen);
+char **          opendmarc_xml_parse(char *fname, char *err_buf, size_t err_len);
 
 /*
  * Utility routines
  */
 void		   opendmarc_dns_fake_record(const char *name, const char *answer);
-u_char ** 	   opendmarc_util_clearargv(u_char **ary);
+char ** 	   opendmarc_util_clearargv(char **ary);
 const char *	   opendmarc_policy_status_to_str(OPENDMARC_STATUS_T status);
-int                opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode);
+int                opendmarc_policy_check_alignment(char *subdomain, char *tld, int mode);
 int 		   opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen);
 
 /*

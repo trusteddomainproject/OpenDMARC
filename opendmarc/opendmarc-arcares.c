@@ -99,7 +99,7 @@ opendmarc_arcares_convert(struct opendmarc_arcares_lookup *table, char *str)
 **/
 
 static char *
-opendmarc_arcares_strip_whitespace(u_char *string)
+opendmarc_arcares_strip_whitespace(char *string)
 {
 	assert(string != NULL);
 
@@ -145,7 +145,7 @@ opendmarc_arcares_strip_whitespace(u_char *string)
 **/
 
 static int
-opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
+opendmarc_arcares_strip_field_name(char *field, char *name, char *delim,
                                    char *buf, size_t buf_len)
 {
 	size_t copy_len;
@@ -153,7 +153,7 @@ opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
 	size_t delim_len;
 	size_t leading_space_len;
 	size_t field_value_len;
-	u_char *field_value_ptr;
+	char *field_value_ptr;
 
 	assert(field != NULL);
 	assert(name != NULL);
@@ -168,7 +168,7 @@ opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
 		return -1;
 
 	/* build delimited name */
-	u_char name_delim[OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN + 1];
+	char name_delim[OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN + 1];
 	memcpy(name_delim, (const void *) name, name_len);
 	memcpy(name_delim + name_len, delim, delim_len);
 	memset(name_delim + name_len + delim_len, '\0', sizeof(char));
@@ -203,13 +203,13 @@ opendmarc_arcares_strip_field_name(u_char *field, u_char *name, u_char *delim,
 **/
 
 int
-opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
+opendmarc_arcares_parse (char *hdr, struct arcares *aar)
 {
 	int result = 0;
-	u_char *tmp_ptr;
-	u_char *token;
-	u_char token_buf[OPENDMARC_ARCARES_MAX_TOKEN_LEN + 1];
-	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
+	char *tmp_ptr;
+	char *token;
+	char token_buf[OPENDMARC_ARCARES_MAX_TOKEN_LEN + 1];
+	char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
 
 	assert(hdr != NULL);
 	assert(aar != NULL);
@@ -292,12 +292,12 @@ opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
 **/
 
 int
-opendmarc_arcares_arc_parse (u_char *hdr_arc, struct arcares_arc_field *arc)
+opendmarc_arcares_arc_parse (char *hdr_arc, struct arcares_arc_field *arc)
 {
-	u_char *tmp_ptr;
-	u_char *token;
-	u_char token_buf[OPENDMARC_ARCARES_MAX_TOKEN_LEN + 1];
-	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
+	char *tmp_ptr;
+	char *token;
+	char token_buf[OPENDMARC_ARCARES_MAX_TOKEN_LEN + 1];
+	char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
 	int result = 0;
 
 	tmp_ptr = tmp;
