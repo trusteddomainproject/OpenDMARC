@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.4.1		2021/03/??
+	Add compatibility with AutoConf 2.70. (#95)  
+		Reported by gene-git at github.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
 	Documentation updates about SourceForge being deprecated.  (#101)
         Many build-time fixes (#100, #91, #90, #86, #85, #84, #83, #82, #81)
