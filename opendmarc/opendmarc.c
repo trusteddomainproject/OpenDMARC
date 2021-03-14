@@ -2451,7 +2451,7 @@ mlfi_eom(SMFICTX *ctx)
 	strncpy(dfc->mctx_fromdomain, domain, sizeof dfc->mctx_fromdomain - 1);
 
 	ostatus = opendmarc_policy_store_from_domain(cc->cctx_dmarc,
-	                                             dfc->mctx_fromdomain);
+	                                             from->hdr_value);
 	if (ostatus != DMARC_PARSE_OKAY)
 	{
 		if (conf->conf_dolog)
