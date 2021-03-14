@@ -5,6 +5,15 @@ release, and a summary of the changes in that release.
 
 1.4.1		2021/03/??
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
+	Documentation updates about SourceForge being deprecated.  (#101)
+        Many build-time fixes (#100, #91, #90, #86, #85, #84, #83, #82, #81)
+		Patches provided by Rupert Gallagher (ruga@protonmail.com)
+	Added config option HoldQuarantinedMessages (default false), which
+		controls if messages with p=quarantine will be passed on to 
+		the mail stream (if False) or placed in the MTA's "hold" 
+		queue. (if True).  Issue #105.  Patch by Marcos Moraes, on
+		the OpenDMARC mailing list.
+
 
 1.4.0		2021/01/28
 	Add ARC support.  Extensive work contributed by ValiMail, with patches
