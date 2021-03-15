@@ -582,7 +582,8 @@ dmarcf_addlist_csv(char *str, char *delim, struct list **head)
 
 	result = dmarcf_mkarray(str, delim, &array);
 
-	for (int i = 0; array[i] != NULL; i++)
+	int i;
+	for (i = 0; array[i] != NULL; i++)
 	{
 		dmarcf_addlist(array[i], head);
 	}
@@ -1514,7 +1515,8 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	}
 
 	/* load domain whitelist hash, memory is managed by list type */
-	for (struct list *cur = conf->conf_domainwhitelist; cur != NULL; cur = cur->list_next)
+	struct list *cur;
+	for (cur = conf->conf_domainwhitelist; cur != NULL; cur = cur->list_next)
 	{
 		int result;
 		u_char *domain;
@@ -1545,7 +1547,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 /* Can't walk an hsearch list.  It's by-key access only
 #if defined(__linux__) && defined(DEBUG_WHITELIST)
-	/* walk through the hash and print keys and values 
+//	walk through the hash and print keys and values 
 	struct hsearch_data *hdp = conf->conf_domainwhitelisthash;
 
 	fprintf(stderr, "conf_domainwhitelisthash contents...\n");
