@@ -1473,8 +1473,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 	whitelistsize = floor(whitelistsize * 1.20);
 
-	/* init domain_whitelist_hash table */
-//	conf->conf_domainwhitelisthash = calloc(1, sizeof(struct hsearch_data));
+	/* create whitelist global hash table */
 	if (hcreate(whitelistsize) == 0)
 		{
 		fprintf(stderr,
@@ -4039,16 +4038,8 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
-/*	if (conf->conf_domainwhitelisthash != NULL)
-	{
-		/*
-		** conf_domainwhitelist manages memory for entries in domain
-		** whitelist hash so we just free that allocation here.
-		dmarcf_freelist(conf->conf_domainwhitelist);
-		hdestroy();
-		free(conf->conf_domainwhitelisthash);
-	}
-*/
+/* Free the hash table used for whitelists */
+	hdestroy();
 	free(conf);
 }
 

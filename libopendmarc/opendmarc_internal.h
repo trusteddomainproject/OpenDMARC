@@ -236,7 +236,6 @@ void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *nsaddr
 #if WITH_SPF
 
 #if HAVE_SPF2_H
-// #define HAVE_NS_TYPE
 #include "spf.h"
 typedef struct spf_context_struct { 
 	SPF_server_t *		spf_server;
