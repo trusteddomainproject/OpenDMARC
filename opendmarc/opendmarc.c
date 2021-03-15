@@ -1544,20 +1544,6 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			return EX_CONFIG;
 		}
 	}
-
-/* Can't walk an hsearch list.  It's by-key access only
-#if defined(__linux__) && defined(DEBUG_WHITELIST)
-//	walk through the hash and print keys and values 
-	struct hsearch_data *hdp = conf->conf_domainwhitelisthash;
-
-	fprintf(stderr, "conf_domainwhitelisthash contents...\n");
-	for (int i = 0; i < hdp->size; i++)
-	{
-		if (hdp->table[i].used)
-			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
-	}
-#endif /* DEBUG_WHITELIST */
-
 	return 0;
 }
 
