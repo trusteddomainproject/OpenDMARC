@@ -2134,7 +2134,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 		}
 
 		if (p != dfc->mctx_envfrom)
-		{
+		{git push 
 			*(q + 1) = '\0';
 			memmove(dfc->mctx_envfrom, p, len + 1);
 		}
@@ -2143,7 +2143,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 		if (p != NULL)
 		{
 			len = strlen(p + 1);
-			strncpy(dfc->mctx_envdomain, p + 1, len;
+			strncpy(dfc->mctx_envdomain, p + 1, len);
 		}
 	}
 
