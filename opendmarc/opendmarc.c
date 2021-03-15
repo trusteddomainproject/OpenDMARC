@@ -2130,7 +2130,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		p = strchr(dfc->mctx_envfrom, '@');
 		if (p != NULL)
-			len = strlen(p + 1)
+			len = strlen(p + 1);
 			strncpy(dfc->mctx_envdomain, p + 1, len);
 	}
 
