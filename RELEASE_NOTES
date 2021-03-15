@@ -4,6 +4,9 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.4.1		2021/03/??
+        LIBSPF2 calls would not compile on OpenBSD due to OpenBSD not 
+		having the ns_type definition in arpa/resolv.h.
+		Added detection to configure script.  (#134)
 	Reworked hcreate_r functions to hcreate to compile natively on
 		OpenBSD, MacOS. (Part of #94)  Reported by Rupert Gallagher.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
