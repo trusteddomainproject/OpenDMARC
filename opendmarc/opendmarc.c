@@ -2848,8 +2848,8 @@ mlfi_eom(SMFICTX *ctx)
 							dmarcf_lowercase(arcdomain);
 
 							entry.key = arcdomain;
-							result = hsearch(entry, FIND);
-							if (result == 0 && errno == ESRCH)
+							entryptr = hsearch(entry, FIND);
+							if (entryptr == NULL && errno == ESRCH)
 								continue;
 
 							arcchainitempass++;
