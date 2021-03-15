@@ -16,7 +16,7 @@ if os.getenv("srcdir") ~= nil then
 end
 
 -- try to start the filter
-mt.startfilter(binpath .. "/opendmarc", "-c", "t-verify-nodata.conf",
+mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-nodata.conf",
                "-p", sock)
 
 -- try to connect to it

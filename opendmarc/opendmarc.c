@@ -3435,7 +3435,7 @@ mlfi_eom(SMFICTX *ctx)
 		aresult = "fail";
 		ret = SMFIS_CONTINUE;
 
-		if (conf->conf_rejectfail && conf->conf_holdquarantinedmessages &&
+		if (conf->conf_rejectfail &&
 		    random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
@@ -3469,7 +3469,7 @@ mlfi_eom(SMFICTX *ctx)
 		aresult = "fail";
 		ret = SMFIS_CONTINUE;
 
-		if (conf->conf_rejectfail && random() % 100 < pct)
+		if (conf->conf_rejectfail && conf->conf_holdquarantinedmessages && random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "quarantined by DMARC policy for %s",

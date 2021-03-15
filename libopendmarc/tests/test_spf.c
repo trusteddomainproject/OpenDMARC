@@ -16,11 +16,11 @@ int
 opendmarc_spf2_run_test()
 {
 	SPF2_T tests[] = {
-		/* {"bcx.com",   "root@bcx.com",   "204.14.152.228",    DMARC_POLICY_SPF_OUTCOME_PASS}, */
+		/* {"gushi.org",   "root@gushi.org",   "149.20.68.145",    DMARC_POLICY_SPF_OUTCOME_PASS}, */
 		{"agari.com", "root@agari.com", "2001:a60:901e::22", DMARC_POLICY_SPF_OUTCOME_FAIL},
 		{"agari.com", "root@agari.com", "1.2.3.4",           DMARC_POLICY_SPF_OUTCOME_FAIL},
 		{"agari.com", "root@agari.com", "185.28.196.1",      DMARC_POLICY_SPF_OUTCOME_PASS},
-		/* {"bcx.com",    "<>",             "204.14.152.227",   DMARC_POLICY_SPF_OUTCOME_FAIL}, */
+		/* {"gushi.org",    "<>",             "204.14.152.227",   DMARC_POLICY_SPF_OUTCOME_FAIL}, */
 		{NULL, NULL, NULL, 0}
 	};
 	int		status;
@@ -64,28 +64,28 @@ int
 opendmarc_spf_test_records(void)
 {
 	SL spflist[] = {
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 ip4:204.14.152.228 -all",                 DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv4 */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 ip4:204.14.152.0/24 -all",                DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv4 cidr */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 ip4:204.14.252.0/24 -all",                DMARC_POLICY_SPF_OUTCOME_FAIL}, /* simple fail ipv4 cidr */
-		{"2001:a60:901e::22",        "<foo@bcx.com>", "bcx.com", "v=spf1 ip6:2001:a60:901e::22 -all",              DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv6 compressed versus compressed */
-		{"2001:a60:901e:0:0:0:0:22", "<foo@bcx.com>", "bcx.com", "v=spf1 ip6:2001:a60:901e::22 -all",              DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv6 compressed versus uncompressed */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", NULL,                                             DMARC_POLICY_SPF_OUTCOME_PASS}, /* force a lookup */
-		{"204.14.152.228",           "<>",            "bcx.com", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check with helo*/
-		{"204.14.152.228",           "MAILER_DAEMON", "bcx.com", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check with helo*/
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 -ip4:1.2.3.4 ip4:204.14.152.228 -all",    DMARC_POLICY_SPF_OUTCOME_FAIL}, /* fail before success */
-		{"174.137.46.2",             "<foo@bcx.com>", "bcx.com", "v=spf1 include:_netblocks.zdsys.com  -all",      DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with include */
-		{"204.14.152.228",           "<foo@sf1.bcx.com>", "sf1.bcx.com", "v=spf1 include:bcx.com       -all",      DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with include */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 include:bcx.org               -all",      DMARC_POLICY_SPF_OUTCOME_FAIL}, /* fail with include */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 -a",                                      DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1  a -all",                                 DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
-		{"204.14.152.227",           "<foo@bcx.com>", "bcx.com", "v=spf1 -a",                                      DMARC_POLICY_SPF_OUTCOME_FAIL}, /* a record test fail */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 a:sf1.bcx.com -all",                      DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 ptr -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* ptr record test pass */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 ptr:bcx.com -all",                        DMARC_POLICY_SPF_OUTCOME_PASS}, /* ptr record test pass */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 exists:%s -all",                          DMARC_POLICY_SPF_OUTCOME_FAIL}, /* exists bad syntax */
-		{"204.14.152.228",           "<foo@bcx.com>", "bcx.com", "v=spf1 exists:%{s} -all",                        DMARC_POLICY_SPF_OUTCOME_PASS}, /* exits good record */
-		{"204.14.152.228",           "<foo@sf1.bcx.com>", "sf1.bcx.com", "v=spf1 redirect:bcx.com       -all",     DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with redirect */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 ip4:149.20.68.145 -all",                 DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv4 */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 ip4:149.20.68.0/24 -all",                DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv4 cidr */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 ip4:149.20.69.0/24 -all",                DMARC_POLICY_SPF_OUTCOME_FAIL}, /* simple fail ipv4 cidr */
+		{"2620:137:6000:10::145",   "<foo@gushi.org>", "gushi.org", "v=spf1 ip6:2620:137:6000:10::145 -all",              DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv6 compressed versus compressed */
+		{"2620:137:6000:10:0:0:0:145", "<foo@gushi.org>", "gushi.org", "v=spf1 ip6:2620:137:6000:10::145 -all",              DMARC_POLICY_SPF_OUTCOME_PASS}, /* simple pass ipv6 compressed versus uncompressed */
+		{"149.20.68.142",           "<foo@gushi.org>", "gushi.org", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", NULL,                                             DMARC_POLICY_SPF_OUTCOME_PASS}, /* force a lookup */
+		{"149.20.68.142",           "<>",            "gushi.org", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check with helo*/
+		{"149.20.68.142",           "MAILER_DAEMON", "gushi.org", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check with helo*/
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 -ip4:1.2.3.4 ip4:149.20.68.145 -all",    DMARC_POLICY_SPF_OUTCOME_FAIL}, /* fail before success */
+		{"204.152.184.1",            "<foo@gushi.org>", "gushi.org", "v=spf1 include:isc.org  -all",      DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with include */
+		{"149.20.68.145",           "<foo@sf1.gushi.org>", "sf1.gushi.org", "v=spf1 include:gushi.org       -all",      DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with include */
+		{"149.30.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 include:isc.org               -all",      DMARC_POLICY_SPF_OUTCOME_FAIL}, /* fail with include */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 -a",                                      DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1  a -all",                                 DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
+		{"204.14.152.227",           "<foo@gushi.org>", "gushi.org", "v=spf1 -a",                                      DMARC_POLICY_SPF_OUTCOME_FAIL}, /* a record test fail */
+		{"149.20.68.142",           "<foo@gushi.org>", "gushi.org", "v=spf1 a:prime.gushi.org -all",                      DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 ptr -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* ptr record test pass */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 ptr:defaultsite.gushi.org -all",                        DMARC_POLICY_SPF_OUTCOME_PASS}, /* ptr record test pass */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 exists:%s -all",                          DMARC_POLICY_SPF_OUTCOME_FAIL}, /* exists bad syntax */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 exists:%{s} -all",                        DMARC_POLICY_SPF_OUTCOME_PASS}, /* exits good record */
+		{"149.20.68.145",           "<foo@prime.gushi.org>", "prime.gushi.org", "v=spf1 redirect:gushi.org       -all",     DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with redirect */
 		{NULL, NULL, NULL, NULL, 0},
 	};
 	SL *	sp;
@@ -115,11 +115,11 @@ int
 opendmarc_spf_test_exp()
 {
 	SPF_CTX_T *     ctx;
-	char *	mfrom		= "foo@bcx.com";
-	char *	ip		= "204.14.152.228";
-	char *	helo		= "bcx.com";
+	char *	mfrom		= "foo@gushi.org";
+	char *	ip		= "149.20.68.145";
+	char *	helo		= "gushi.org";
 	char *	spf 		= "v=spf1 ip4:1.2.3.4 exp:http://%{s}/spf  -all";
-	char *  converted	= "http://bcx.com/spf";
+	char *  converted	= "http://gushi.org/spf";
 	char	errbuf[BUFSIZ];
 	int	ret;
 	int	success		= 0;
