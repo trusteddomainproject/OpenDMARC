@@ -2141,7 +2141,10 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		p = strchr(dfc->mctx_envfrom, '@');
 		if (p != NULL)
-			strncpy(dfc->mctx_envdomain, p + 1, strlen(p + 1));
+		{
+			len = strlen(p + 1);
+			strncpy(dfc->mctx_envdomain, p + 1, len;
+		}
 	}
 
 	return SMFIS_CONTINUE;
@@ -2483,7 +2486,7 @@ mlfi_eom(SMFICTX *ctx)
 	     hdr = hdr->hdr_next, c++)
 	{
 		/* skip if it's not ARC-Authentication-Results header */
-		if (strcasecmp(hdr->hdr_name, OPENDMARC_ARCARES_HDRNAME) != 0)
+		if (rnrcasecmp(hdr->hdr_name, OPENDMARC_ARCARES_HDRNAME) != 0)
 			continue;
 
 		/* allocate one */
