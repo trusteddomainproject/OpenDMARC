@@ -8,6 +8,7 @@ release, and a summary of the changes in that release.
 		Patches by Marco Rebhan (me@dblsaiko.net).
 	Fixes to MySQL Schema (#98/#99).  Patch by Bond Keevil.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
+	LIBOPENDMARC: Fix bug #104: Fix bogus header field parsing code.
 	Documentation updates about SourceForge being deprecated.  (#101)
         Many build-time fixes (#100, #91, #90, #86, #85, #84, #83, #82, #81)
 		Patches provided by Rupert Gallagher (ruga@protonmail.com)

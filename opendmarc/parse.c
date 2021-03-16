@@ -526,7 +526,7 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			escaped = TRUE;
 			continue;
 
-		  case ':':
+		  case '"':
 			quoted = !quoted;
 			continue;
 
@@ -540,7 +540,7 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 
 		  case ',':
 		  case '\0':
-			if (parens != 0)
+			if (parens != 0 || quoted)
 				continue;
 
 			if (*p == '\0')
