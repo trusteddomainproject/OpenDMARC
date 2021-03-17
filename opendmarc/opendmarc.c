@@ -1514,7 +1514,6 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	     cur != NULL;
 	     cur = cur->list_next)
 	{
-		int result;
 		u_char *domain;
 		ENTRY entry;
 		ENTRY *eptr;
@@ -1535,7 +1534,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		if (eptr == NULL)
 		{
 			fprintf(stderr,
-			        "%s: error inserting new hash table entry: \n",
+			        "%s: error inserting new hash table entry: %s\n",
 				progname, strerror(errno));
 
 			pthread_rwlock_unlock(&hash_lock);
@@ -2826,7 +2825,6 @@ mlfi_eom(SMFICTX *ctx)
 					u_char *arcdomain;
 					int arcchainlen = 0;
 					int arcchainitempass = 0;
-					int result = 0;
 					ENTRY entry;
 					ENTRY *eptr;
 
