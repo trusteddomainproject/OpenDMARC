@@ -40,7 +40,9 @@ m4_define([LIBVERSION_AGE], 0)
 #
 # Autotools setup
 #
-AC_INIT([OpenDMARC], [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV], [bcx+libdmarc@bcx.com])
+AC_INIT([OpenDMARC],
+        [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV],
+        [msk@trusteddomain.org])
 AC_CONFIG_AUX_DIR(build-aux)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([.])
