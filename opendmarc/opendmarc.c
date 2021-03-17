@@ -235,18 +235,6 @@ struct lookup log_facilities[] =
 	{ NULL,			-1 }
 };
 
-#if defined(__linux__) && defined(DEBUG_WHITELIST)
-/* replicate search internal hash struct so we can iterate over the hash
-** structure for debugging.
- */
-struct _ENTRY
-{
-	unsigned int used;
-	ENTRY entry;
-};
-typedef struct _ENTRY _ENTRY;
-#endif /* DEBUG_WHITELIST */
-
 /* prototypes */
 sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));

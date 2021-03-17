@@ -384,13 +384,6 @@ then
 	AC_MSG_ERROR([miltertest is required for filter tests])
 fi
 
-# whitelist debugging implemented on linux only
-AC_ARG_ENABLE([whitelist-debug],
-            AS_HELP_STRING([--enable-whitelist-debug],
-                           [debug DomainWhitelist (linux only)]),
-            AC_DEFINE(DEBUG_WHITELIST, 1, [Define to 1 if you want DomainWhitelist debugging.]),
-            [])
-
 AC_CHECK_HEADERS(math.h, [], [AC_MSG_FAILURE([missing header '$ac_header'])])
 AC_SEARCH_LIBS([floor], [m])
 AC_CHECK_FUNCS([floor], [], [AC_MSG_FAILURE([missing function '$ac_func'])])
