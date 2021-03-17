@@ -22,8 +22,8 @@
 /* prototypes */
 extern int dmarcf_mail_parse __P((unsigned char *, unsigned char **,
                                   unsigned char **));
-extern int dmarcf_mail_parse_multi __P((char *, char ***,
-                                       char ***));
+extern int dmarcf_mail_parse_multi __P((char *, unsigned char ***,
+                                       unsigned char ***));
 
 
 #endif /* ! _DMARCF_MAILPARSE_H_ */
