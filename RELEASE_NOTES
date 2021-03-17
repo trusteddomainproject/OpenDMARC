@@ -7,6 +7,11 @@ release, and a summary of the changes in that release.
 	Addition of defines for MUSL C Library. (#129/#133)
 		Patches by Marco Rebhan (me@dblsaiko.net).
 	Fixes to MySQL Schema (#98/#99).  Patch by Bond Keevil.
+	LIBSPF2 calls would not compile on OpenBSD due to OpenBSD not 
+		having the ns_type definition in arpa/resolv.h.
+		Added detection to configure script.  (#134)
+	Reworked hcreate_r functions to hcreate to compile natively on
+		OpenBSD, MacOS. (Part of #94)  Reported by Rupert Gallagher.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
 	LIBOPENDMARC: Fix bug #104: Fix bogus header field parsing code.
 	Documentation updates about SourceForge being deprecated.  (#101)
