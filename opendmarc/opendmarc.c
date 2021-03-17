@@ -575,6 +575,7 @@ dmarcf_addlist_csv(char *str, char *delim, struct list **head)
 {
 	char **array = NULL;
 	int result = 0;
+	int i;
 
 	assert(str != NULL);
 	assert(delim != NULL);
@@ -582,10 +583,8 @@ dmarcf_addlist_csv(char *str, char *delim, struct list **head)
 
 	result = dmarcf_mkarray(str, delim, &array);
 
-	for (int i = 0; array[i] != NULL; i++)
-	{
+	for (i = 0; array[i] != NULL; i++)
 		dmarcf_addlist(array[i], head);
-	}
 
 	dmarcf_freearray(array);
 
@@ -1279,6 +1278,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	char basedir[MAXPATHLEN + 1];
 	char *whitelist = NULL;
 	char *whitelistfile = NULL;
+	struct list *cur;
 	int whitelistsize = DEF_WHITELIST_SIZE;
 
 	assert(conf != NULL);
@@ -1522,7 +1522,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	}
 
 	/* load domain whitelist hash, memory is managed by list type */
-	for (struct list *cur = conf->conf_domainwhitelist;
+	for (cur = conf->conf_domainwhitelist;
 	     cur != NULL;
 	     cur = cur->list_next)
 	{
