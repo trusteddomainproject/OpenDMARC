@@ -41,16 +41,12 @@ m4_define([LIBVERSION_AGE], 0)
 #
 # Autotools setup
 #
-<<<<<<< HEAD
 AC_INIT([OpenDMARC],
         [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV],
         [msk@trusteddomain.org])
 AC_CONFIG_AUX_DIR(build-aux)
-=======
-AC_INIT([OpenDMARC], [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV], [bcx+libdmarc@bcx.com])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CANONICAL_TARGET
->>>>>>> testing
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([.])
 AC_CONFIG_HEADERS(build-config.h)
