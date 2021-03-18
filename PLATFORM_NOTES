@@ -6,4 +6,4 @@
 	* You need to install Lua first, and modify OpenDKIM's configure.ac to find the lua libs
 	  in /usr/local/lib/lua/5.1
 	* You need to fully install OpenDKIM, as miltertest needs an OpenDKIM lib.
-./configure --with-spf --with-spf2-include=/usr/local/include/spf2 --with-spf2-lib=/usr/local/lib --enable-live-tests --enable-filter-tests USE_SPF=TRUE CC=clang	
+./configure --with-spf --with-spf2-include=/usr/local/include/spf2 --with-spf2-lib=/usr/local/lib --enable-live-tests --enable-filter-tests USE_SPF=TRUE	
