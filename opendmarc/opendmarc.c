@@ -3470,7 +3470,9 @@ mlfi_eom(SMFICTX *ctx)
 		aresult = "fail";
 		ret = SMFIS_CONTINUE;
 
-		if (conf->conf_rejectfail && conf->conf_holdquarantinedmessages && random() % 100 < pct)
+		if (conf->conf_rejectfail &&
+		    conf->conf_holdquarantinedmessages &&
+		    random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "quarantined by DMARC policy for %s",
@@ -3506,15 +3508,18 @@ mlfi_eom(SMFICTX *ctx)
 		break;
 	}
 
-	/* ARC override
-	** If DMARC is in failure mode, we will allow the message provided that arc
-	** information is valid: arc=pass, arc.chain is present, and all listed
-	** domains in the chain are whitelisted.
+	/*
+	**  ARC override
 	**
-	** Additional logging is provided when DMARC is in failure mode and arc=pass
-	** but authentication still fails because of an invalid arc.chain to assist
-	** with administrative debugging.
+	**  If DMARC is in failure mode, we will allow the message provided
+	**  that arc information is valid: arc=pass, arc.chain is present,
+	**  and all listed domains in the chain are whitelisted.
+	**
+	**  Additional logging is provided when DMARC is in failure mode
+	**  and arc=pass but authentication still fails because of an invalid
+	**  arc.chain to assist with administrative debugging.
 	*/
+
 	if (result == DMARC_RESULT_REJECT &&
 	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
 	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
@@ -3525,7 +3530,8 @@ mlfi_eom(SMFICTX *ctx)
 		       dfc->mctx_jobid);
 	}
 
-	if (result == DMARC_RESULT_REJECT && dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
+	if (result == DMARC_RESULT_REJECT &&
+	    dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
 	{
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
@@ -3553,6 +3559,7 @@ mlfi_eom(SMFICTX *ctx)
 	**                         { i=1, d = d1.example, s = s1, ip = addr1 }
 	**                     ]
 	*/
+
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "arc %d\n",
 	                      dfc->mctx_arcpass);
 
@@ -3569,7 +3576,9 @@ mlfi_eom(SMFICTX *ctx)
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
 		/* fetch smtp.client_ip from aar */
-		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance, dfc->mctx_aarhead, &arcares) == 0)
+		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance,
+		                                 dfc->mctx_aarhead,
+		                                 &arcares) == 0)
 			(void) opendmarc_arcares_arc_parse(arcares.arc, &arcares_arc_field);
 
 		snprintf(arcseal_buf, sizeof arcseal_buf,
@@ -3579,7 +3588,8 @@ mlfi_eom(SMFICTX *ctx)
 		         as_hdr->arcseal.signature_domain,
 		         as_hdr->arcseal.signature_selector,
 			 arcares_arc_field.smtpclientip);
-		strlcat(arcseal_str, (const char *)arcseal_buf, sizeof arcseal_str);
+		strlcat(arcseal_str, (const char *)arcseal_buf,
+		        sizeof arcseal_str);
 	}
 
 	dmarcf_dstring_printf(dfc->mctx_histbuf,
