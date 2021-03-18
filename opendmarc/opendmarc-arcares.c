@@ -171,6 +171,8 @@ opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
 
 		leading_space_len = strspn(token, " \n\t");
 		token_ptr = token + leading_space_len;
+		if (*token_ptr == '\0')
+		        return 0;
 		tag_label = strsep(&token_ptr, "=");
 		tag_value = token_ptr;
 		tag_code = opendmarc_arcares_convert(aar_tags, tag_label);
