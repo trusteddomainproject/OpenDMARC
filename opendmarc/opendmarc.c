@@ -193,7 +193,6 @@ struct dmarcf_config
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
 	struct list *		conf_domainwhitelist;
-	struct hsearch_data *	conf_domainwhitelisthash;
 	unsigned int		conf_domainwhitelisthashcount;
 };
 
@@ -236,18 +235,6 @@ struct lookup log_facilities[] =
 	{ NULL,			-1 }
 };
 
-#if defined(__linux__) && defined(DEBUG_WHITELIST)
-/* replicate search internal hash struct so we can iterate over the hash
-** structure for debugging.
- */
-struct _ENTRY
-{
-	unsigned int used;
-	ENTRY entry;
-};
-typedef struct _ENTRY _ENTRY;
-#endif /* DEBUG_WHITELIST */
-
 /* prototypes */
 sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));
@@ -286,6 +273,7 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+pthread_rwlock_t hash_lock;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -575,6 +563,7 @@ dmarcf_addlist_csv(char *str, char *delim, struct list **head)
 {
 	char **array = NULL;
 	int result = 0;
+	int i;
 
 	assert(str != NULL);
 	assert(delim != NULL);
@@ -582,10 +571,8 @@ dmarcf_addlist_csv(char *str, char *delim, struct list **head)
 
 	result = dmarcf_mkarray(str, delim, &array);
 
-	for (int i = 0; array[i] != NULL; i++)
-	{
+	for (i = 0; array[i] != NULL; i++)
 		dmarcf_addlist(array[i], head);
-	}
 
 	dmarcf_freearray(array);
 
@@ -1279,6 +1266,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	char basedir[MAXPATHLEN + 1];
 	char *whitelist = NULL;
 	char *whitelistfile = NULL;
+	struct list *cur;
 	int whitelistsize = DEF_WHITELIST_SIZE;
 
 	assert(conf != NULL);
@@ -1472,22 +1460,29 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 	whitelistsize = floor(whitelistsize * 1.20);
 
-	/* init domain_whitelist_hash table */
-	conf->conf_domainwhitelisthash = calloc(1, sizeof(struct hsearch_data));
-	if (hcreate_r(whitelistsize, conf->conf_domainwhitelisthash) == 0)
+	/*
+	**  Initialize domain_whitelist_hash table.
+	**
+	**  As this is the only hash table this tool currently needs,
+	**  and since we protect access to the table via a read/write lock,
+	**  we use the older non-reentrant version of the hash table functions
+	**  since it's more portable.
+	*/
+
+	pthread_rwlock_wrlock(&hash_lock);
+	if (hcreate(whitelistsize) == 0)
 	{
 		fprintf(stderr,
-		        "%s: failed to alloc memory for conf_domainwhitelisthash: %s\n",
+		        "%s: failed to allocate domain whitelist hash table: %s\n",
 		        progname,
 		        strerror(errno));
 
+		pthread_rwlock_unlock(&hash_lock);
 		return EX_OSERR;
 	}
 	conf->conf_domainwhitelisthashcount = 0;
 
-	/*
-	** Add entries from configuration file whitelist parameter
-	 */
+	/* load entries from configuration file whitelist parameter */
 	if (whitelist != NULL)
 	{
 		if (!dmarcf_addlist_csv(whitelist, ",", &conf->conf_domainwhitelist))
@@ -1495,31 +1490,33 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			fprintf(stderr,
 			        "%s: can't load domain whitelist from %s: %s\n",
 			        progname, conffile, strerror(errno));
+			pthread_rwlock_unlock(&hash_lock);
 			return EX_DATAERR;
 		}
 	}
 
-	/*
-	** Add entries from whitelist file
-	 */
+	/* ...and/or from the whitelist file  */
 	if (whitelistfile != NULL)
 	{
-		if (!dmarcf_loadlist(whitelistfile, &conf->conf_domainwhitelist))
+		if (!dmarcf_loadlist(whitelistfile,
+		                     &conf->conf_domainwhitelist))
 		{
 			fprintf(stderr,
 			        "%s: can't load domain whitelist file from %s: %s\n",
 			        progname, whitelistfile, strerror(errno));
+			pthread_rwlock_unlock(&hash_lock);
 			return EX_DATAERR;
 		}
 	}
 
 	/* load domain whitelist hash, memory is managed by list type */
-	for (struct list *cur = conf->conf_domainwhitelist; cur != NULL; cur = cur->list_next)
+	for (cur = conf->conf_domainwhitelist;
+	     cur != NULL;
+	     cur = cur->list_next)
 	{
-		int result;
 		u_char *domain;
 		ENTRY entry;
-		ENTRY *entryptr;
+		ENTRY *eptr;
 
 		domain = cur->list_str;
 		dmarcf_lowercase(domain);
@@ -1528,32 +1525,24 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		entry.data = (void *)domain;
 
 		/* keep track of the number of entries */
-		result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
-		if (result == 0 && errno == ESRCH) {
+		eptr = hsearch(entry, FIND);
+		if (eptr == NULL)
 			conf->conf_domainwhitelisthashcount++;
-		}
 
 		/* try to add or update the entry */
-		result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
-		if (result == 0 && errno == ENOMEM) {
-			fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
+		eptr = hsearch(entry, ENTER);
+		if (eptr == NULL)
+		{
+			fprintf(stderr,
+			        "%s: error inserting new hash table entry: %s\n",
 				progname, strerror(errno));
 
+			pthread_rwlock_unlock(&hash_lock);
 			return EX_CONFIG;
 		}
 	}
 
-#if defined(__linux__) && defined(DEBUG_WHITELIST)
-	/* walk through the hash and print keys and values */
-	struct hsearch_data *hdp = conf->conf_domainwhitelisthash;
-
-	fprintf(stderr, "conf_domainwhitelisthash contents...\n");
-	for (int i = 0; i < hdp->size; i++)
-	{
-		if (hdp->table[i].used)
-			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
-	}
-#endif /* DEBUG_WHITELIST */
+	pthread_rwlock_unlock(&hash_lock);
 
 	return 0;
 }
@@ -2141,7 +2130,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		p = strchr(dfc->mctx_envfrom, '@');
 		if (p != NULL)
-			strncpy(dfc->mctx_envdomain, p + 1, strlen(p + 1));
+			strncpy(dfc->mctx_envdomain, p + 1, BUFRSZ);
 	}
 
 	return SMFIS_CONTINUE;
@@ -2807,16 +2796,18 @@ mlfi_eom(SMFICTX *ctx)
 			else if (ar.ares_result[c].result_method == ARES_METHOD_ARC)
 			{
 				/*
-				** NOTE: If we arrive here with a trusted A-R header with
-				** arc=none, per draft-ietf-dmarc-arc-protocol there is
-				** nothing else to do because arc=none should only appear
-				** when i=1.
+				**  NOTE: If we arrive here with a trusted A-R
+				**  header field with "arc=none", per
+				**  draft-ietf-dmarc-arc-protocol there is
+				**  nothing else to do because "arc=none"
+				**  should only appear when i=1.
 				*/
 
 				/*
-				** If we already countered a trusted A-R header with arc=pass
-				** we need to fail.
+				**  If we already countered a trusted A-R
+				**  header with "arc=pass", we need to fail.
 				*/
+
 				if (ar.ares_result[c].result_result == ARES_RESULT_PASS)
 				{
 					dfc->mctx_arcpass = ARES_RESULT_PASS;
@@ -2826,19 +2817,16 @@ mlfi_eom(SMFICTX *ctx)
 				if (dfc->mctx_arcpass == ARES_RESULT_PASS && limit_arc > 1)
 					dfc->mctx_arcpass = ARES_RESULT_FAIL;
 
-				/*
-				** Check arc status against whitelist policy
-				*/
-				if (dfc->mctx_arcpass == ARES_RESULT_PASS && conf->conf_domainwhitelisthashcount > 0)
+				/* check arc status against whitelist policy */
+				if (dfc->mctx_arcpass == ARES_RESULT_PASS &&
+				    conf->conf_domainwhitelisthashcount > 0)
 				{
 					u_char *arcchain = NULL;
 					u_char *arcdomain;
 					int arcchainlen = 0;
 					int arcchainitempass = 0;
-					int result = 0;
 					ENTRY entry;
-					ENTRY *entryptr;
-
+					ENTRY *eptr;
 
 					for (pc = 0;
 					     pc < ar.ares_result[c].result_props;
@@ -2847,6 +2835,7 @@ mlfi_eom(SMFICTX *ctx)
 						if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_ARCCHAIN)
 							arcchain = ar.ares_result[c].result_value[pc];
 					}
+
 					if (arcchain != NULL)
 					{
 						arcchainlen = dmarcf_mkarray(arcchain, ":",
@@ -2859,12 +2848,16 @@ mlfi_eom(SMFICTX *ctx)
 							dmarcf_lowercase(arcdomain);
 
 							entry.key = arcdomain;
-							result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
-							if (result == 0 && errno == ESRCH)
+							pthread_rwlock_rdlock(&hash_lock);
+							eptr = hsearch(entry,
+							               FIND);
+							pthread_rwlock_unlock(&hash_lock);
+							if (eptr == NULL)
 								continue;
 
 							arcchainitempass++;
 						}
+
 						if (arcchainlen == arcchainitempass)
 							dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_PASS;
 					}
@@ -3445,7 +3438,7 @@ mlfi_eom(SMFICTX *ctx)
 		aresult = "fail";
 		ret = SMFIS_CONTINUE;
 
-		if (conf->conf_rejectfail && conf->conf_holdquarantinedmessages &&
+		if (conf->conf_rejectfail &&
 		    random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
@@ -3479,7 +3472,7 @@ mlfi_eom(SMFICTX *ctx)
 		aresult = "fail";
 		ret = SMFIS_CONTINUE;
 
-		if (conf->conf_rejectfail && random() % 100 < pct)
+		if (conf->conf_rejectfail && conf->conf_holdquarantinedmessages && random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "quarantined by DMARC policy for %s",
@@ -4049,15 +4042,15 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
-	if (conf->conf_domainwhitelisthash != NULL)
+	if (conf->conf_domainwhitelisthashcount > 0)
 	{
 		/*
-		** conf_domainwhitelist manages memory for entries in domain
-		** whitelist hash so we just free that allocation here.
-		 */
+		**  conf_domainwhitelist manages memory for entries in domain
+		**  whitelist hash so we just free that allocation here.
+		*/
+
 		dmarcf_freelist(conf->conf_domainwhitelist);
-		hdestroy_r(conf->conf_domainwhitelisthash);
-		free(conf->conf_domainwhitelisthash);
+		hdestroy();
 	}
 
 	free(conf);
@@ -5070,6 +5063,7 @@ main(int argc, char **argv)
 	}
 
 	pthread_mutex_init(&conf_lock, NULL);
+	pthread_rwlock_init(&hash_lock, NULL);
 
 	/* initialize libopendmarc */
 	(void) memset(&libopendmarc, '\0', sizeof libopendmarc);

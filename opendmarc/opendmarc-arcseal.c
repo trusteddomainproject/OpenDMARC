@@ -119,66 +119,6 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 }
 
 /*
-**  OPENDMARC_ARCSEAL_STRIP_FIELD_NAME -- strip the field name from a string,
-**                                        skipping leading whitespace
-**
-**  Parameters:
-**  	field -- NULL-terminated string
-**  	name -- NULL-terminated string containing field to remove
-**  	delim -- NULL-terminated string containing delimiter
-**  	buf -- destination buffer
-**  	buflen -- number of bytes at buf
-**
-**  Returns:
-**  	0 on success, -1 on failure
-**/
-
-static int
-opendmarc_arcseal_strip_field_name(u_char *field, u_char *name, u_char *delim,
-                                   char *buf, size_t buf_len)
-{
-	size_t copy_len;
-	size_t name_len;
-	size_t delim_len;
-	size_t leading_space_len;
-	size_t field_value_len;
-	u_char *field_value_ptr;
-
-	assert(field != NULL);
-	assert(name != NULL);
-	assert(delim != NULL);
-	assert(buf != NULL);
-	assert(buf_len > 0);
-
-	name_len = strlen(name);
-	delim_len = strlen(delim);
-
-	if (name_len + delim_len > OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN)
-		return -1;
-
-	/* build delimited name */
-	u_char name_delim[OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN + 1];
-	memcpy(name_delim, (const void *)name, name_len);
-	memcpy(name_delim + name_len, delim, delim_len);
-	memset(name_delim + name_len + delim_len, '\0', sizeof(char));
-
-	/* count leading spaces after field_delim */
-	field_value_ptr = field + strlen(name_delim);
-	leading_space_len = strspn(field_value_ptr, " \n\t");
-	field_value_ptr += leading_space_len;
-	field_value_len = strlen(field_value_ptr);
-
-	if (field_value_len > buf_len)
-		return -1;
-
-	/* copy remaining characters into buf */
-	memcpy(buf, field_value_ptr, field_value_len);
-	memset(buf + field_value_len, '\0', sizeof(char));
-
-	return field_value_len;
-}
-
-/*
 **  OPENDMARC_ARCSEAL_PARSE -- parse an ARC-Seal: header, return a structure
 **                             containing a parsed result
 **
@@ -195,7 +135,6 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 {
 	u_char *tmp_ptr;
 	u_char *token;
-	u_char token_buf[OPENDMARC_ARCSEAL_MAX_TOKEN_LEN + 1];
 	u_char tmp[OPENDMARC_ARCSEAL_MAXHEADER_LEN + 1];
 	int result = 0;
 

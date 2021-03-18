@@ -4,6 +4,8 @@
 **  Copyright (c) 2012-2016, 2018, The Trusted Domain Project.  All rights reserved.
 **************************************************************************/
 
+#include <ctype.h>
+
 #include "opendmarc_internal.h"
 #include "dmarc.h"
 
@@ -21,6 +23,33 @@
 #ifdef USE_DMARCSTRL_H
 # include <opendmarc_strl.h>
 #endif /* USE_DMARCSTRL_H */
+
+/*
+**  CHECK_DOMAIN -- check for syntactical validity of a domain name
+**
+**  Parameters:
+**  	domain -- domain name to check
+**
+**  Return value:
+**  	TRUE if the syntax was fine, FALSE otherwise.
+*/
+
+bool check_domain(u_char *domain)
+{
+	u_char *dp;
+
+	for (dp = domain; *dp != '\0'; dp++)
+	{
+		if (!(isalpha(*dp) ||
+		      isdigit(*dp) ||
+		      *dp == '.' ||
+		      *dp == '-' ||
+		      *dp == '_'))
+			return FALSE;
+	}
+
+	return TRUE;
+}
 
 /**************************************************************************
 ** OPENDMARC_POLICY_LIBRARY_INIT -- Initialize The Library
@@ -385,6 +414,8 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (domain == NULL || strlen((char *)domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
+	if (!check_domain(domain))
+		return DMARC_PARSE_ERROR_BAD_VALUE;
 	dp = opendmarc_util_finddomain(domain, domain_buf, sizeof domain_buf);
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
@@ -457,6 +488,8 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 		return DMARC_PARSE_ERROR_EMPTY;
 	if (pctx->from_domain == NULL)
 		return DMARC_FROM_DOMAIN_ABSENT;
+	if (!check_domain(d_equal_domain))
+		return DMARC_PARSE_ERROR_BAD_VALUE;
 
 	switch (dkim_result)
 	{

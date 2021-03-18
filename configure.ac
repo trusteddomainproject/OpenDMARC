@@ -40,13 +40,32 @@ m4_define([LIBVERSION_AGE], 0)
 #
 # Autotools setup
 #
-AC_INIT([OpenDMARC], [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV], [bcx+libdmarc@bcx.com])
+AC_INIT([OpenDMARC],
+        [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV],
+        [msk@trusteddomain.org])
 AC_CONFIG_AUX_DIR(build-aux)
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([.])
 AC_CONFIG_HEADERS(build-config.h)
 
 AC_CONFIG_MACRO_DIR([m4])
+
+AC_HEADER_RESOLV
+AC_CHECK_TYPES([ns_type], [], [], [[
+#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#  include <netinet/in.h>   /* inet_ functions / structs */
+#endif
+#ifdef HAVE_ARPA_NAMESER_H
+#  include <arpa/nameser.h> /* DNS HEADER struct */
+#endif
+#ifdef HAVE_NETDB_H
+#  include <netdb.h>
+#endif
+#include <resolv.h>
+]])
 
 #
 # Hexadecimal version, for use in generating dmarc.h
@@ -366,13 +385,6 @@ if test x"$enable_filter_tests" = x"yes" -a x"$miltertest" != x"yes"
 then
 	AC_MSG_ERROR([miltertest is required for filter tests])
 fi
-
-# whitelist debugging implemented on linux only
-AC_ARG_ENABLE([whitelist-debug],
-            AS_HELP_STRING([--enable-whitelist-debug],
-                           [debug DomainWhitelist (linux only)]),
-            AC_DEFINE(DEBUG_WHITELIST, 1, [Define to 1 if you want DomainWhitelist debugging.]),
-            [])
 
 AC_CHECK_HEADERS(math.h, [], [AC_MSG_FAILURE([missing header '$ac_header'])])
 AC_SEARCH_LIBS([floor], [m])

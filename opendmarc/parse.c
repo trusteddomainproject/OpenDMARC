@@ -526,7 +526,7 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			escaped = TRUE;
 			continue;
 
-		  case ':':
+		  case '"':
 			quoted = !quoted;
 			continue;
 
@@ -539,10 +539,12 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			continue;
 
 		  case ',':
-		  case '\0':
-			if (parens != 0)
+			/* skip it if it's quoted or in a comment */
+			if (parens != 0 || quoted)
 				continue;
+			/* FALLTHROUGH */
 
+		  case '\0':
 			if (*p == '\0')
 				done = TRUE;
 			else
