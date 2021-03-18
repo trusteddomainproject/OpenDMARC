@@ -257,7 +257,8 @@ The default is "false".
 .TP
 .I RejectMultiValueFrom (Boolean)
 If set, messages with multiple addresses in the From: field of the message
-will be rejected.  They will otherwise be ignored by the filter (the default).
+will be rejected unless all domain names in that field are the same.  They
+will otherwise be ignored by the filter (the default).
 
 .TP
 .I ReportCommand (string)

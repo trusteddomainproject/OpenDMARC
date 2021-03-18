@@ -38,7 +38,8 @@ release, and a summary of the changes in that release.
 	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction with
 		an ARC policy pass.
 	Add "RejectMultiValueFrom" configuration option to reject messages
-		with multi-valued From fields.
+		with multi-valued From fields, unless all domains in that
+		field are the same.
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
 	Fix Authentication-Results tokenizing.  Patch from Dilyan Palauzov.

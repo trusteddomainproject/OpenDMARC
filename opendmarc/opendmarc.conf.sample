@@ -306,11 +306,10 @@
 ##  	default "false"
 ##
 ##  If set, messages with multiple addresses in the From: field of the message
-##  ill be rejected.  They will otherwise be ignored by the filter (the
-##  default).
+##  will be rejected unless all domains in the field are the same.  They will
+##  otherwise be ignored by the filter (the default).
 # 
 # RejectMultiValueFrom false
-
 
 ##  ReportCommand string
 ##  	default "/usr/sbin/sendmail -t"
