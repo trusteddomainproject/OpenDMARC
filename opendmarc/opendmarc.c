@@ -2253,9 +2253,9 @@ mlfi_eom(SMFICTX *ctx)
 	struct dmarcf_header *from;
 	struct arcseal_header *as_hdr;
 	u_char *reqhdrs_error = NULL;
-	u_char *user;
+	u_char *user = NULL;
 	u_char **users;
-	u_char *domain;
+	u_char *domain = NULL;
 	u_char **domains;
 	u_char *bang;
 	u_char **ruv;
@@ -2378,25 +2378,24 @@ mlfi_eom(SMFICTX *ctx)
 		return SMFIS_ACCEPT;
 	}
 
-	/* extract From: domain */
+	/* extract From: addresses */
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
 	status = dmarcf_mail_parse_multi(addrbuf, &users, &domains);
 	if (status == 0 && (users[0] != NULL || domains[0] != NULL))
 	{
-		/* extract user and domain only if there was exactly one */
-		if (users[1] != NULL || domains[1] != NULL)
-		{
-			if (conf->conf_dolog)
-			{
-				for (c = 0;
-				     users[c] != NULL && domains[c] != NULL;
-				     c++)
-					continue;
+		/*
+		**  Enact special handling for a multi-valued from if
+		**  the domains are not all the same.
+		*/
 
+		for (c = 1; users[c] != NULL; c++)
+		{
+			if (strcasecmp(domains[0], domains[c]) != 0)
+			{
 				syslog(LOG_ERR,
-				       "%s: multi-valued From field detected (%d values found)",
-				       dfc->mctx_jobid, c);
+				       "%s: multi-valued From field detected",
+				       dfc->mctx_jobid);
 			}
 
 			if (conf->conf_reject_multi_from)
@@ -2404,12 +2403,11 @@ mlfi_eom(SMFICTX *ctx)
 			else
 				return SMFIS_ACCEPT;
 		}
-		else
-		{
-			user = users[0];
-			domain = domains[0];
-		}
+
+		user = users[0];
+		domain = domains[0];
 	}
+
 	if (status != 0 || user == NULL || domain == NULL)
 	{
 		if (conf->conf_dolog)
