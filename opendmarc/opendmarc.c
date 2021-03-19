@@ -2141,7 +2141,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		p = strchr(dfc->mctx_envfrom, '@');
 		if (p != NULL)
-			strncpy(dfc->mctx_envdomain, p + 1, strlen(p + 1));
+			strlcpy(dfc->mctx_envdomain, p + 1, sizeof(dfc->mctx_envdomain));
 	}
 
 	return SMFIS_CONTINUE;
