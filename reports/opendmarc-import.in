@@ -649,7 +649,7 @@ while (<$inputfh>)
 				}
 
 	  case "from"		{
-					$fdomain = $value;
+					$fdomain = lc($value);
 				}
 
 	  case "job"		{
@@ -691,7 +691,7 @@ while (<$inputfh>)
 				}
 
 	  case "mfrom"		{
-					$envdomain = $value;
+					$envdomain = lc($value);
 				}
 
 	  case "p"		{
@@ -703,7 +703,7 @@ while (<$inputfh>)
 				}
 
 	  case "pdomain"	{
-					$pdomain = $value;
+					$pdomain = lc($value);
 				}
 
 	  case "policy"		{
