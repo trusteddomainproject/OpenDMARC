@@ -40,6 +40,7 @@ struct configdef dmarcf_config[] =
 	{ "PublicSuffixList",		CONFIG_TYPE_STRING,	FALSE },
 	{ "RecordAllMessages",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "RequiredHeaders",		CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "RequiredFrom",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "RejectFailures",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ReportCommand",		CONFIG_TYPE_STRING,	FALSE },
 	{ "Socket",			CONFIG_TYPE_STRING,	FALSE },
