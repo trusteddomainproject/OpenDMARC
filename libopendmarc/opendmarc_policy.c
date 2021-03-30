@@ -414,11 +414,11 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (domain == NULL || strlen((char *)domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
-	if (!check_domain(domain))
-		return DMARC_PARSE_ERROR_BAD_VALUE;
 	dp = opendmarc_util_finddomain(domain, domain_buf, sizeof domain_buf);
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
+	if (!check_domain(dp))
+		return DMARC_PARSE_ERROR_BAD_VALUE;
 	if (human_readable != NULL)
 		pctx->spf_human_outcome = strdup((char *)human_readable);
 	pctx->spf_domain = strdup((char *)dp);
