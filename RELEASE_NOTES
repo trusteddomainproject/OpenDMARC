@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.4.1		2021/03/??
+	Fix two #IFDEFINES in arc functions for strlcpy. (#138).
+		Reported by Leo Bicknell.
 	Addition of defines for MUSL C Library. (#129/#133)
 		Patches by Marco Rebhan (me@dblsaiko.net).
 	Fixes to MySQL Schema (#98/#99).  Patch by Bond Keevil.
