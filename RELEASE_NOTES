@@ -13,6 +13,8 @@ release, and a summary of the changes in that release.
 	Reworked hcreate_r functions to hcreate to compile natively on
 		OpenBSD, MacOS. (Part of #94)  Reported by Rupert Gallagher.
 	Add compatibility with AutoConf 2.70. (#95)  
+	LIBOPENDMARC: Fix bug #50: Ignore all RRTYPEs other than TXT.
+		Problem reported by Jan Bouwhuis.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
 	LIBOPENDMARC: Fix bug #104: Fix bogus header field parsing code.
 	Documentation updates about SourceForge being deprecated.  (#101)
