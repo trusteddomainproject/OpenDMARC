@@ -4,6 +4,8 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.4.1		2021/03/??
+	Updated opendmarc.conf manpage and opendmarc.conf.sample to point to 
+		https://publicsuffix.org/list/
 	Added a CONTRIBUTING document
 	Fix two #IFDEFINES in arc functions for strlcpy. (#138).
 		Reported by Leo Bicknell.
