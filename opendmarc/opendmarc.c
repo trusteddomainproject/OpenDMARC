@@ -422,61 +422,51 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 **
 **  Parameters:
 **  	str -- the value of the Received-SPF field to analyze
+**  	envfrom -- envelope sender against which to test
 **
 **  Return value:
 **  	A ARES_RESULT_* constant.
+**
+**  Notes:
+**  	We will not accept a result delivered via a discovered Received-SPF
+**  	header field unless (a) it includes the "identity" key and its
+**  	value is "mailfrom", AND (b) it includes the "envelope-from" key and
+**  	its value matches the envelope sender we got via milter.  If either
+**  	of those tests fails, a "pass" or a "fail" is interpreted as "neutral".
+**  	This is necessary to be compliant with RFC 7489 Section 4.1,
+**  	which says the SPF evaluation of MAIL FROM is what DMARC consumes.
 */
 
 int
-dmarcf_parse_received_spf(char *str)
+dmarcf_parse_received_spf(char *str, char *envfrom)
 {
-	_Bool copying = FALSE;
+	_Bool in_result = TRUE;
 	_Bool escaped = FALSE;
 	int parens = 0;
 	char *p;
 	char *r;
 	char *end;
 	char result[MAXSPFRESULT + 1];
+	char spf_envfrom[BUFRSZ + 1];
+	char key[BUFRSZ + 1];
+	char value[BUFRSZ + 1];
+	char identity[BUFRSZ + 1];
 
 	assert(str != NULL);
 
+	memset(spf_envfrom, '\0', sizeof spf_envfrom);
+	memset(key, '\0', sizeof key);
+	memset(value, '\0', sizeof value);
+	memset(identity, '\0', sizeof identity);
 	memset(result, '\0', sizeof result);
+
+	/* first thing we get is the result token */
 	r = result;
 	end = &result[sizeof result - 1];
 
 	for (p = str; *p != '\0'; p++)
 	{
-		if (escaped)
-		{
-			if (copying)
-			{
-				if (r < end)
-					*r++ = *p;
-			}
-
-			escaped = FALSE;
-		}
-		else if (copying)
-		{
-			if (!escaped && *p == '\\')
-			{
-				escaped = TRUE;
-			}
-			else if (*p == '(')
-			{
-				copying = FALSE;
-				parens++;
-			}
- 			else if (isascii(*p) && isspace(*p))
-			{
-				copying = FALSE;
-			}
-			else if (r < end)
-			{
-				*r++ = *p;
-			}
-		}
-		else if (*p == '(')
+		if (*p == '(')
 		{
 			parens++;
 		}
@@ -484,37 +474,95 @@ dmarcf_parse_received_spf(char *str)
 		{
 			parens--;
 		}
+		else if (escaped)
+		{
+			if (parens == 0 && r < end)
+				*r++ = *p;
+			escaped = FALSE;
+		}
+		else if (*p == '\\')
+		{
+			escaped = TRUE;
+		}
 		else if (parens == 0)
 		{
+			/* a possibly meaningful character */
 			if (isascii(*p) && isspace(*p))
-				continue;
-
-			if (!copying)
 			{
-				if (result[0] != '\0')
-					break;
+				if (in_result)
+				{
+					in_result = FALSE;
+					r = key;
+					end = &key[sizeof key - 1];
+				}
+				continue;
+			}
 
-				copying = TRUE;
-				if (r < end)
-					*r++ = *p;
+			if (!in_result && *p == '=')
+			{
+				r = value;
+				end = &value[sizeof value - 1];
+			}
+			else if (!in_result && *p == ';')
+			{
+				if (strcasecmp(key, "identity") == 0)
+					strlcpy(identity, value, sizeof identity);
+				if (strcasecmp(key, "envelope-from") == 0)
+					strlcpy(spf_envfrom, value, sizeof spf_envfrom);
+				memset(key, '\0', sizeof key);
+				memset(value, '\0', sizeof value);
+
+				r = key;
+				end = &key[sizeof key - 1];
+			}
+			else if (r < end)
+			{
+				*r++ = *p;
 			}
 		}
 	}
 
-	if (strcasecmp(result, "pass") == 0)
-		return ARES_RESULT_PASS;
-	else if (strcasecmp(result, "fail") == 0)
-		return ARES_RESULT_FAIL;
-	else if (strcasecmp(result, "softfail") == 0)
-		return ARES_RESULT_SOFTFAIL;
-	else if (strcasecmp(result, "neutral") == 0)
+	if (key[0] != '\0')
+	{
+		if (strcasecmp(key, "identity") == 0)
+			strlcpy(identity, value, sizeof identity);
+		if (strcasecmp(key, "envelope-from") == 0)
+			strlcpy(spf_envfrom, value, sizeof spf_envfrom);
+	}
+
+	if (strcasecmp(identity, "mailfrom") != 0 ||
+            strcasecmp(spf_envfrom, envfrom) != 0)
+	{
 		return ARES_RESULT_NEUTRAL;
+	}
+	else if (strcasecmp(result, "pass") == 0)
+	{
+		return ARES_RESULT_PASS;
+	}
+	else if (strcasecmp(result, "fail") == 0)
+	{
+		return ARES_RESULT_FAIL;
+	}
+	else if (strcasecmp(result, "softfail") == 0)
+	{
+		return ARES_RESULT_SOFTFAIL;
+	}
+	else if (strcasecmp(result, "neutral") == 0)
+	{
+		return ARES_RESULT_NEUTRAL;
+	}
 	else if (strcasecmp(result, "temperror") == 0)
+	{
 		return ARES_RESULT_TEMPERROR;
+	}
 	else if (strcasecmp(result, "none") == 0)
+	{
 		return ARES_RESULT_NONE;
+	}
 	else
+	{
 		return ARES_RESULT_PERMERROR;
+	}
 }
 
 /*
@@ -2889,7 +2937,8 @@ mlfi_eom(SMFICTX *ctx)
 				else
 					spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 
-				spfres = dmarcf_parse_received_spf(hdr->hdr_value);
+				spfres = dmarcf_parse_received_spf(hdr->hdr_value,
+				                                   dfc->mctx_envfrom);
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n", spfres);
