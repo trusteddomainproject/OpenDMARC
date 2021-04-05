@@ -21,6 +21,11 @@
 # include <bsd/string.h>
 #endif /* USE_BSD_H */
 
+/* opendmarc_strl if needed */
+#ifdef USE_DMARCSTRL_H
+# include <opendmarc_strl.h>
+#endif /* USE_DMARCSTRL_H */
+
 #include "opendmarc-arcares.h"
 #include "opendmarc.h"
 

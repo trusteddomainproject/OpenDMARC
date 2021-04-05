@@ -6,6 +6,11 @@ release, and a summary of the changes in that release.
 1.4.1		2021/03/??
 	Addition of defines for MUSL C Library. (#129/#133).  Patches by
 		Marco Rebhan.
+	Updated opendmarc.conf manpage and opendmarc.conf.sample to point to 
+		https://publicsuffix.org/list/
+	Added a CONTRIBUTING document
+	Fix two #ifdefs in arc functions for strlcpy. (#138).
+		Reported by Leo Bicknell.
 	Fixes to MySQL Schema (#98/#99).  Patch by Bond Keevil.
 	LIBSPF2 calls would not compile on OpenBSD due to OpenBSD not 
 		having the ns_type definition in arpa/resolv.h.

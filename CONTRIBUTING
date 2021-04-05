@@ -1,0 +1,68 @@
+# Contributing to OpenDMARC
+
+This document attempts to list some things potential contributors can do to
+offer contributions to the OpenDMARC and other Trusted Domain Project 
+projects.  
+
+An active user community is the basis for many open source projects, and 
+while open source is often thankless, and the developers have busy lives, 
+we aim for regular, consistent releases that contain all the features 
+suggested in the relevant RFCs and specifications, and that work on a good 
+variety of operating systems.
+
+## Things you can do
+
+* Our sourceforge projects are going away, but many issues have either been
+  duplicated or obsoleted by code that has been contributed since the move
+  to github.  Helping to triage remaining issues, and adding comments to the
+  Sourceforge issues is incredibly helpful.
+
+* We use the "needs-testing" tag on our GitHub issues to indicate issues that
+  we believe resolved, but want to confirm are fixed for the original reporter.
+  If you run an environment similar to the reporter, and can reproduce the
+  failure mode, more testing is useful, especially in the case where the
+  origninal reporter has not responded.
+
+* Reporting compiler warnings on your platform (along with the platform and 
+  version) is helpful.  Our goal is for a zero-warnings compile on most platforms.
+
+* If you find an OS packager is patching OpenDMARC after our releases, open
+  an issue to let us know how we can include those fixed in our main release.
+
+* Our code has some unit tests which are useful, but more are always helpful.
+  There are both "live" tests which fire up a copy of opendmarc and fire test
+  messages against it, as well as unit tests which test individual functions
+  in the code.
+
+* If you wish to run a testing version (built from the github "develop")
+  branch in production, this can often expose new issues.  If you do this,
+  you may want to run with extended logging, keep copies of messages, and 
+  perhaps disable reporting.
+
+* The code has the start of a PLATFORM_NOTES file where we attempt to 
+  document weirdnesses about various platforms.  (e.g. FooOS uses the MUSL
+  c libraries by default, BarOS does not have stringfunc.blah).  We welcome
+  more knowledge about this.
+
+## Contributing code guidelines
+
+* The opendmarc code is in Autoconf, Automake, M4, and C, with the reporting
+  functions in perl, and some of the unit tests written in Lua.  If you 
+  find that there are more consistent standards that some of these 
+  languages use, we would like to know about it via a GitHub Issue, or,
+  preferably, a pull request.
+
+* There is a file called ".editorconfig" in the top level of our GitHub
+  repository.  It contains preferences for editors to use, but not all editors
+  know how to use this file out of the box.
+
+* The best way to offer contributions is by submitted a GitHub pull request.
+  Specifically, you should clone the "develop" branch, as "master" reflects
+  the most recent release, but pending work happens in "develop".  Pull 
+  requests should target this branch.
+
+* If you clone our GitHub repo for your own use, please create a new branch
+  for each enhancement.  While it is possible to "cherry-pick" multiple commits
+  out of a merge request, the GitHub web UI doesn't make it particularly easy.
+  It's way easier to do this if commits are one-branch-per-issue on the
+  "requesting" or "contributing" side.
