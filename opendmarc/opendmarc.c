@@ -2683,11 +2683,36 @@ mlfi_eom(SMFICTX *ctx)
 #endif
 			)
 			{
+				_Bool envfrom_match = FALSE;
 				int spfmode;
+				int i;
 
 				dfc->mctx_spfresult = ar.ares_result[c].result_result;
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+					continue;
+
+				/*
+				**  Confirm the method used was "smtp.mailfrom"
+				**  and it matches our envelope sender.
+				*/
+
+				for (i = 0;
+				     i < ar.ares_result[c].result_props;
+				     i++)
+				{
+					if (ar.ares_result[c].result_ptype[i] == ARES_PTYPE_SMTP &&
+					    strcasecmp(ar.ares_result[c].result_property[i],
+					               "mailfrom") == 0 &&
+					    strcasecmp(ar.ares_result[c].result_value[i],
+					               dfc->mctx_envfrom) == 0)
+					{
+						envfrom_match = TRUE;
+						break;
+					}
+				}
+
+				if (!envfrom_match)
 					continue;
 
 				spfaddr = NULL;
