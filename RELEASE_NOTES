@@ -4,6 +4,17 @@ This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
 1.4.1		2021/03/??
+
+	NOTE: In response to CVE-2019-20790, opendmarc has changed
+		how it evaluates headers added by previous
+		SPF milters.  Users are encouraged to read the
+		CVE-2019-20790 file in the "SECURITY" folder
+		for more details. (#49, #158)
+	NOTE: OpenDMARC's internal SPF handling will be removed
+		in a future version.  Users are encouraged to
+		build linked against libspf2.  Many pre-built 
+		packages provided by OS packagers
+		already do this.  (https://www.libspf2.org)
 	Addition of defines for MUSL C Library. (#129/#133).  Patches by
 		Marco Rebhan.
 	Updated opendmarc.conf manpage and opendmarc.conf.sample to point to 
