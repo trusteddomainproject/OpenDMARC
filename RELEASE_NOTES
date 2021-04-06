@@ -10,6 +10,9 @@ release, and a summary of the changes in that release.
 		SPF milters.  Users are encouraged to read the
 		CVE-2019-20790 file in the "SECURITY" folder
 		for more details. (#49, #158)
+		Originally reported by Jianjun Chen, feedback
+		by Simon Wilson, David Bürgin <dbuergin@gluet.ch>
+
 	NOTE: OpenDMARC's internal SPF handling will be removed
 		in a future version.  Users are encouraged to
 		build linked against libspf2.  Many pre-built 
