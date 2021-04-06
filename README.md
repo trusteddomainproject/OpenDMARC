@@ -10,7 +10,23 @@ On GitHub, the "Master" branch follows the latest released version, while contin
 
 The OpenDMARC project is a community effort to develop and maintain an open source package for providing DMARC report generation and policy enforcement services.  It includes a library for handling DMARC record parsing, a database schema and tools for aggregating and processing transaction history to produce DMARC reports, and a filter that ties it all together with an MTA using the milter protocol.
 
-"milter" is a portmanteau of "mail filter" and refers to a protocol and API for communicating mail traffic information between MTAs and mail filtering plug-in applications.  It was originally invented at Sendmail, Inc. but has also been adapted to other MTAs.
+In simple terms, DMARC takes the results of ARC, SPF and DKIM checks, 
+done by either upstream filters, or SPF checks that opendmarc performs itself, 
+and uses these to make a "pass or fail" decision.  A domain owner may put 
+a record in the DNS to determine what should happen to a failing record:
+No negative action (typically for testing), message quarantining, or 
+outright rejection at SMTP acceptance time.
+
+Additionally, records placed in the DNS allow a domain owner to 
+receive reports back on when messages are received that fail DMARC,
+as well as specifying what percentage of messages should be evaluated.
+
+This README is not intended to be a full explanation of how the DMARC
+protocol works, but at the very least, some software that does DKIM 
+checks should be available in your mail stream in order to use this
+software.
+
+The word "milter" is a portmanteau of "mail filter" and refers to a protocol and API for communicating mail traffic information between MTAs and mail filtering plug-in applications.  It was originally invented at Sendmail, Inc. but has also been adapted to other MTAs.
 
 ##  Dependencies
 
@@ -100,6 +116,26 @@ Bug tracking is done via the trackers on GitHub at:
 https://github.com/trusteddomainproject/OpenDMARC/issues  
 
 Please report them there, after checking for prior reports.
+
+## Further Reading
+
+As DMARC adoption becomes more common, any list of links placed in the README
+of a single implementation will invariably grow out of date.  Using your favorite
+search engine, or the mailing lists for your operating system or MTA is 
+not an unreasonable path forward.
+
+As a start, however, the RFC's that define SPF, DKIM, and DMARC present a
+fairly comprehensive, if technical, understanding of the underlying protocols.
+Although there is not much information involving marrying them to a specific 
+mail server.
+
+At the time of this writing, the following are the most recent RFC's for the
+protocols involved (although many other RFC's are referenced, of course).
+
+* https://tools.ietf.org/html/rfc6376 (DKIM)
+* https://tools.ietf.org/html/rfc7208 (SPF)
+* https://tools.ietf.org/html/rfc7489 (DMARC)
+* https://tools.ietf.org/html/rfc8617 (ARC)
 
 --
 Copyright (c) 2012, 2016, 2018, The Trusted Domain Project. All rights reserved.
