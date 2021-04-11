@@ -442,6 +442,7 @@ dmarcf_parse_received_spf(char *str, char *envfrom)
 {
 	_Bool in_result = TRUE;
 	_Bool escaped = FALSE;
+	_Bool quoting = FALSE;
 	int parens = 0;
 	char *p;
 	char *r;
@@ -466,15 +467,7 @@ dmarcf_parse_received_spf(char *str, char *envfrom)
 
 	for (p = str; *p != '\0'; p++)
 	{
-		if (*p == '(')
-		{
-			parens++;
-		}
-		else if (*p == ')' && parens > 0)
-		{
-			parens--;
-		}
-		else if (escaped)
+		if (escaped)
 		{
 			if (parens == 0 && r < end)
 				*r++ = *p;
@@ -484,11 +477,30 @@ dmarcf_parse_received_spf(char *str, char *envfrom)
 		{
 			escaped = TRUE;
 		}
+		else if (*p == '(')
+		{
+			parens++;
+		}
+		else if (*p == ')' && parens > 0)
+		{
+			parens--;
+		}
 		else if (parens == 0)
 		{
+			if (*p == '"')
+			{
+				/* entering/leaving a quoted substring */
+				quoting = !quoting;
+				continue;
+			}
+
 			/* a possibly meaningful character */
 			if (isascii(*p) && isspace(*p))
 			{
+				/* a space while quoting; just continue */
+				if (quoting)
+					continue;
+
 				if (in_result)
 				{
 					in_result = FALSE;

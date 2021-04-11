@@ -46,7 +46,7 @@ end
 
 -- send headers
 -- mt.rcptto() is called implicitly
-if mt.header(conn, "Received-SPF", "pass identity=mailfrom; envelope-from=user@trusteddomain.org") ~= nil then
+if mt.header(conn, "Received-SPF", "pass identity=mailfrom; envelope-from=\"user@trusteddomain.org\"") ~= nil then
 	error("mt.header(Received-SPF) failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then
