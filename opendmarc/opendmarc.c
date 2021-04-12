@@ -2746,12 +2746,21 @@ mlfi_eom(SMFICTX *ctx)
 				{
 					if (ar.ares_result[c].result_ptype[i] == ARES_PTYPE_SMTP &&
 					    strcasecmp(ar.ares_result[c].result_property[i],
-					               "mailfrom") == 0 &&
-					    strcasecmp(ar.ares_result[c].result_value[i],
-					               dfc->mctx_envfrom) == 0)
+					               "mailfrom") == 0)
 					{
-						envfrom_match = TRUE;
-						break;
+						char *d;
+
+						d = strchr(ar.ares_result[c].result_value[i],
+						           '@');
+						if (d == NULL)
+							d = ar.ares_result[c].result_value[i];
+
+						if (strcasecmp(d,
+						               dfc->mctx_envdomain) == 0)
+						{
+							envfrom_match = TRUE;
+							break;
+						}
 					}
 				}
 
@@ -3080,7 +3089,7 @@ mlfi_eom(SMFICTX *ctx)
 				&used_mfrom);
 			if (used_mfrom == TRUE)
 			{
-				use_domain = dfc->mctx_envfrom;
+				use_domain = dfc->mctx_envdomain;
 				spf_mode   = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 			}
 			else
@@ -3089,10 +3098,10 @@ mlfi_eom(SMFICTX *ctx)
 				spf_mode   = DMARC_POLICY_SPF_ORIGIN_HELO;
 			}
 			ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc, 
-				                                     use_domain,
-				                                     spf_result,
-				                                     spf_mode,
-				                                     human);
+				                             use_domain,
+				                             spf_result,
+				                             spf_mode,
+				                             human);
 			switch (spf_result)
 			{
 			    case DMARC_POLICY_SPF_OUTCOME_PASS:
