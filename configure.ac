@@ -4,10 +4,6 @@
 # Copyright (c) 2012-2017, 2018, The Trusted Domain Project.
 #	All rights reserved.
 
-# Acceptable arguments to configure are:
-# 	The usual CC= etc.
-# 	--with-wall forces CC=gcc -Wall
-
 # SPF support:
 # Define --with-spf to include either internal OR libspf2 support.  For libspf2
 # support, also define these:
@@ -261,11 +257,6 @@ fi
 AC_PROG_LN_S
 AC_CHECK_PROG(miltertest, miltertest, "yes", "no")
 AC_SUBST(ac_aux_dir)
-
-AC_ARG_WITH([wall],
-	AS_HELP_STRING([--with-wall], [(no default)]),
-	CC="gcc -Wall",)
-
 
 #
 # See if we will need -lresolv

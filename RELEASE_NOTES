@@ -41,6 +41,7 @@ release, and a summary of the changes in that release.
 		the mail stream (if False) or placed in the MTA's "hold" 
 		queue (if True).  Issue #105.  Patch by Marcos Moraes, on
 		the OpenDMARC mailing list.
+	Remove "--with-wall" from "configure".  Suggested by Leo Bicknell.
 	LIBOPENDMARC: Fix bug #50: Ignore all RRTYPEs other than TXT.
 		Problem reported by Jan Bouwhuis.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
