@@ -90,8 +90,6 @@
 #define	DEFTIMEOUT			5
 #define	MAXSPFRESULT			16
 #define	RECEIVEDSPF			"Received-SPF"
-#define HIST_MAX_ARCSEAL_LIST_LEN	2048
-#define HIST_MAX_ARCSEAL_LEN		256
 
 /* defaults */
 #define	DEF_WHITELIST_SIZE		3000
@@ -3669,13 +3667,14 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
-	/* append arc override to historyfile
+	/*
+ 	**  Append arc override to historyfile.  The format 
 	**
 	**  <reason>
 	**    <type>local_policy</type>
 	**	  <comment>
-	**	    arc=[status] as[N].d=dN.example.com as[N].s=sN
-	**          .. as[1].d=d1.example.com as[1].s=s1 client-ip[1]=10.10.10.13
+	**	    arc=[status] as[N].d=dN.example as[N].s=sN
+	**          .. as[1].d=d1.example as[1].s=s1 client-ip[1]=10.10.10.13
 	**	  </comment>
 	**  </reason>
 	**
@@ -3690,12 +3689,15 @@ mlfi_eom(SMFICTX *ctx)
 	                      dfc->mctx_arcpass);
 
 	/*
-	** iterate through arcseal headers and add results to report
+	**  Iterate through ARC-Seal headers and add results to report.
 	*/
-	u_char arcseal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
-	u_char arcseal_buf[HIST_MAX_ARCSEAL_LEN + 1];
+
 	struct arcares arcares;
 	struct arcares_arc_field arcares_arc_field;
+
+	dmarcf_dstring_printf(dfc->mctx_histbuf,
+	                      "arc_policy %d json:[",
+	                      dfc->mctx_arcpolicypass);
 
 	for (as_hdr = dfc->mctx_ashead, c = 0;
 	     dfc->mctx_aarhead != NULL && as_hdr != NULL;
@@ -3705,23 +3707,21 @@ mlfi_eom(SMFICTX *ctx)
 		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance,
 		                                 dfc->mctx_aarhead,
 		                                 &arcares) == 0)
-			(void) opendmarc_arcares_arc_parse(arcares.arc, &arcares_arc_field);
+		{
+			(void) opendmarc_arcares_arc_parse(arcares.arc,
+			                                   &arcares_arc_field);
+		}
 
-		snprintf(arcseal_buf, sizeof arcseal_buf,
-		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\", \"ip\":\"%s\" }",
-		         (c > 0) ? ", " : "",
-		         as_hdr->arcseal.instance,
-		         as_hdr->arcseal.signature_domain,
-		         as_hdr->arcseal.signature_selector,
-			 arcares_arc_field.smtpclientip);
-		strlcat(arcseal_str, (const char *)arcseal_buf,
-		        sizeof arcseal_str);
+		dmarcf_dstring_printf(dfc->mctx_histbuf,
+		                      "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\", \"ip\":\"%s\" }",
+		                      (c > 0) ? ", " : "",
+		                      as_hdr->arcseal.instance,
+		                      as_hdr->arcseal.signature_domain,
+		                      as_hdr->arcseal.signature_selector,
+			              arcares_arc_field.smtpclientip);
 	}
 
-	dmarcf_dstring_printf(dfc->mctx_histbuf,
-	                      "arc_policy %d json:[%s]\n",
-	                      dfc->mctx_arcpolicypass,
-	                      arcseal_str);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "]\n");
 
 	/* prepare human readable dispositon string for later processing */
 	switch (result)
