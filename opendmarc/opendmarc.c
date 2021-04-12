@@ -1,6 +1,8 @@
 /*
-**  Copyright (c) 2012-2018, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2018, 2021, The Trusted Domain Project.
+**    All rights reserved.
 */
+
 #include "build-config.h"
 
 #ifndef _GNU_SOURCE

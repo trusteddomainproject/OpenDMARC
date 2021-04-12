@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright (c) 2012-2017, 2018, The Trusted Domain Project.
+# Copyright (c) 2012-2017, 2018, 2021, The Trusted Domain Project.
 #	All rights reserved.
 
 # SPF support:

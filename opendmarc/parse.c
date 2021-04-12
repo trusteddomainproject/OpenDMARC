@@ -2,7 +2,7 @@
 **  Copyright (c) 2005, 2007, 2008 Sendmail, Inc. and its suppliers.
 **    All rights reserved.
 **
-**  Copyright (c) 2009, 2010, 2012, The Trusted Domain Project.
+**  Copyright (c) 2009, 2010, 2012, 2021, The Trusted Domain Project.
 **    All rights reserved.
 */
 

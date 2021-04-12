@@ -1,7 +1,8 @@
 /*************************************************************************
 ** The user interface to the rest of this library.
 **
-**  Copyright (c) 2012-2016, 2018, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2016, 2018, 2021, The Trusted Domain Project.
+**    All rights reserved.
 **************************************************************************/
 
 #include <ctype.h>

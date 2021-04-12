@@ -1,5 +1,6 @@
 /*************************************************************************
-**  Copyright (c) 2012, 2014, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012, 2014, 2021, The Trusted Domain Project.
+**    All rights reserved.
 **************************************************************************/
 #include "opendmarc_internal.h"
 

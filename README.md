@@ -138,4 +138,5 @@ protocols involved (although many other RFC's are referenced, of course).
 * https://tools.ietf.org/html/rfc8617 (ARC)
 
 --
-Copyright (c) 2012, 2016, 2018, The Trusted Domain Project. All rights reserved.
+Copyright (c) 2012, 2016, 2018, 2021, The Trusted Domain Project.
+  All rights reserved.

@@ -6,7 +6,8 @@
 **  forth in the LICENSE file which can be found at the top level of
 **  the sendmail distribution.
 **
-**  Copyright (c) 2009, 2012, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2009, 2012, 2021, The Trusted Domain Project.
+**    All rights reserved.
 */
 
 /* system includes */

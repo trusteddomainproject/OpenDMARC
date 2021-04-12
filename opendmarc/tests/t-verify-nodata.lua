@@ -1,4 +1,4 @@
--- Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+-- Copyright (c) 2012, 2021, The Trusted Domain Project.  All rights reserved.
 
 -- Test message from paypal.com with no DKIM or SPF DATA
 -- 
