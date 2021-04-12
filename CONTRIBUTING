@@ -18,16 +18,17 @@ variety of operating systems.
   Sourceforge issues is incredibly helpful.
 
 * We use the "needs-testing" tag on our GitHub issues to indicate issues that
-  we believe resolved, but want to confirm are fixed for the original reporter.
-  If you run an environment similar to the reporter, and can reproduce the
-  failure mode, more testing is useful, especially in the case where the
-  origninal reporter has not responded.
+  we believe resolved, but want to confirm are fixed for the original
+  reporter.  If you run an environment similar to the reporter, and can
+  reproduce the failure mode, more testing is useful, especially in the
+  case where the origninal reporter has not responded.
 
 * Reporting compiler warnings on your platform (along with the platform and 
-  version) is helpful.  Our goal is for a zero-warnings compile on most platforms.
+  version) is helpful.  Our goal is for a zero-warnings compile on most
+  platforms.
 
 * If you find an OS packager is patching OpenDMARC after our releases, open
-  an issue to let us know how we can include those fixed in our main release.
+  an issue to let us know how we can include those fixes in our main release.
 
 * Our code has some unit tests which are useful, but more are always helpful.
   There are both "live" tests which fire up a copy of opendmarc and fire test
