@@ -4,7 +4,9 @@
 -- 
 -- Confirms that a message with a Received-SPF field that indicates a "pass",
 -- includes "identity=mailfrom", and includes "envelope-from" with the
--- right value, will be trusted.
+-- right value, will be trusted.  Also confirms that quoting inside
+-- Received-SPF is handled properly, and the local-part is not used as part
+-- of the comparison.
 
 mt.echo("*** Received-SPF test (good)")
 
@@ -46,7 +48,7 @@ end
 
 -- send headers
 -- mt.rcptto() is called implicitly
-if mt.header(conn, "Received-SPF", "pass identity=mailfrom; envelope-from=\"user@trusteddomain.org\"") ~= nil then
+if mt.header(conn, "Received-SPF", "pass identity=mailfrom; envelope-from=\"somebody@trusteddomain.org\"") ~= nil then
 	error("mt.header(Received-SPF) failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then

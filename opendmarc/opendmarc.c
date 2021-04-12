@@ -422,7 +422,7 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 **
 **  Parameters:
 **  	str -- the value of the Received-SPF field to analyze
-**  	envfrom -- envelope sender against which to test
+**  	envdomain -- envelope sender domain against which to test
 **
 **  Return value:
 **  	A ARES_RESULT_* constant.
@@ -438,7 +438,7 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 */
 
 int
-dmarcf_parse_received_spf(char *str, char *envfrom)
+dmarcf_parse_received_spf(char *str, char *envdomain)
 {
 	_Bool in_result = TRUE;
 	_Bool escaped = FALSE;
@@ -448,14 +448,14 @@ dmarcf_parse_received_spf(char *str, char *envfrom)
 	char *r;
 	char *end;
 	char result[MAXSPFRESULT + 1];
-	char spf_envfrom[BUFRSZ + 1];
+	char spf_envdomain[BUFRSZ + 1];
 	char key[BUFRSZ + 1];
 	char value[BUFRSZ + 1];
 	char identity[BUFRSZ + 1];
 
 	assert(str != NULL);
 
-	memset(spf_envfrom, '\0', sizeof spf_envfrom);
+	memset(spf_envdomain, '\0', sizeof spf_envdomain);
 	memset(key, '\0', sizeof key);
 	memset(value, '\0', sizeof value);
 	memset(identity, '\0', sizeof identity);
@@ -518,9 +518,17 @@ dmarcf_parse_received_spf(char *str, char *envfrom)
 			else if (!in_result && *p == ';')
 			{
 				if (strcasecmp(key, "identity") == 0)
-					strlcpy(identity, value, sizeof identity);
+				{
+					strlcpy(identity, value,
+					        sizeof identity);
+				}
+
 				if (strcasecmp(key, "envelope-from") == 0)
-					strlcpy(spf_envfrom, value, sizeof spf_envfrom);
+				{
+					strlcpy(spf_envdomain, value,
+					        sizeof spf_envdomain);
+				}
+
 				memset(key, '\0', sizeof key);
 				memset(value, '\0', sizeof value);
 
@@ -539,11 +547,34 @@ dmarcf_parse_received_spf(char *str, char *envfrom)
 		if (strcasecmp(key, "identity") == 0)
 			strlcpy(identity, value, sizeof identity);
 		if (strcasecmp(key, "envelope-from") == 0)
-			strlcpy(spf_envfrom, value, sizeof spf_envfrom);
+			strlcpy(spf_envdomain, value, sizeof spf_envdomain);
 	}
 
+	p = strchr(spf_envdomain, '@');
+	if (p != NULL)
+	{
+		r = spf_envdomain;
+		p = p + 1;
+		for (;;)
+		{
+			*r = *p;
+			if (*p == '\0')
+				break;
+			r++;
+			p++;
+		}
+	}
+
+	{
+		FILE *f;
+
+		f = fopen("/tmp/msk", "w");
+		fprintf(f, "%s\n%s\n", spf_envdomain, envdomain);
+		fclose(f);
+	}
+	
 	if (strcasecmp(identity, "mailfrom") != 0 ||
-            strcasecmp(spf_envfrom, envfrom) != 0)
+            strcasecmp(spf_envdomain, envdomain) != 0)
 	{
 		return ARES_RESULT_NEUTRAL;
 	}
@@ -2975,7 +3006,7 @@ mlfi_eom(SMFICTX *ctx)
 					spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 
 				spfres = dmarcf_parse_received_spf(hdr->hdr_value,
-				                                   dfc->mctx_envfrom);
+				                                   dfc->mctx_envdomain);
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n", spfres);

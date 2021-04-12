@@ -10,4 +10,4 @@ then
 	srcdir=`pwd`
 fi
 
-miltertest -s $srcdir/t-verify-received-spf-good.lua
+miltertest -v -v -v -s $srcdir/t-verify-received-spf-good.lua
