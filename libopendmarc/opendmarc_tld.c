@@ -97,7 +97,7 @@ opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
 **
 ** Returns:
 **	0		-- On success
-**	!= 0		-- On error and set's errno
+**	!= 0		-- On error and sets errno
 ** Side Effect:
 **	Opens and read a file (read-only)
 **	Allocates memory to store the result.
@@ -109,7 +109,6 @@ opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char 
 	FILE *	fp;
 	u_char 	buf[BUFSIZ];
 	char *	cp;
-	void *	vp;
 	int	nlines=0;
 	int	ret;
 	u_char	revbuf[MAXDNSHOSTNAME];
@@ -185,7 +184,8 @@ got_xn:
 		if (adddot == TRUE)
 			(void) strlcat((char *)revbuf, ".", sizeof revbuf);
 
-		vp = opendmarc_hash_lookup(hashp, revbuf, (void *)revbuf, strlen(revbuf));
+		if (opendmarc_hash_lookup(hashp, revbuf, (void *)revbuf, strlen(revbuf)) == NULL)
+			return 1;
 		nlines++;
 	}
 	(void) fclose(fp);
