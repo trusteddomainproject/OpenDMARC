@@ -10,7 +10,7 @@ release, and a summary of the changes in that release.
 		CVE-2019-20790 file in the "SECURITY" folder
 		for more details. (#49, #158).  Originally reported by
 		Jianjun Chen, feedback by Simon Wilson and
-		David Bürgin <dbuergin@gluet.ch>
+		David Bürgin <dbuergin@gluet.ch>.
 	NOTE: OpenDMARC's internal SPF handling will be removed
 		in a future version.  Users are encouraged to
 		build linked against libspf2.  Many pre-built 
@@ -46,6 +46,10 @@ release, and a summary of the changes in that release.
 		Problem reported by Jan Bouwhuis.
 	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
 	LIBOPENDMARC: Fix bug #104: Fix bogus header field parsing code.
+	LIBOPENDMARC: Fix bug #161: Don't pass the client IP address through
+		htonl() since it's already in network byte order.  This
+		was causing SPF errors when the internal SPF
+		implementation was in use.
 
 1.4.0		2021/01/28
 	Add ARC support.  Extensive work contributed by ValiMail, with patches

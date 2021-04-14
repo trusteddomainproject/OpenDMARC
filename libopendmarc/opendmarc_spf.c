@@ -1312,7 +1312,6 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 	(void) memset(ipnum, '\0', sizeof ipnum);
 	(void) strlcpy(ipnum, spfctx->ip_address, sizeof ipnum);
 	ip = inet_addr(ipnum);
-	ip = htonl(ip);
 
 	(void) strlcpy(stack[s].spf, spfctx->spf_record, SPF_MAX_SPF_RECORD_LEN);
 	SPF_SP  = stack[s].spf;
