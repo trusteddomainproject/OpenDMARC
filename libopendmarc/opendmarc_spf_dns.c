@@ -219,7 +219,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 **	cnt		-- Pointer to count of lines in array
 ** Returns:
 **	ary	-- on success
-**	NULL	-- otherise, and place the h_errno error into reply
+**	NULL	-- otherwise, and place the h_errno error into reply
 ** Side Effects:
 **	Makes a connection to the local name server and blocks
 **	waiting for a reply.
@@ -227,13 +227,27 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 char **
 opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 {
-	char **retp;
+	bool found = FALSE;
+	char **a_retp;
+	char **aaaa_retp;
 
-	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
+	a_retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
+	if (a_retp != (char **) NULL)
+	{
+		ary = a_retp;
+		found = TRUE;
+	}
+
 #ifdef T_AAAA
-	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAAA, retp, cnt);
+	aaaa_retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAAA, ary, cnt);
+	if (aaaa_retp != (char **) NULL)
+	{
+		ary = aaaa_retp;
+		found = TRUE;
+	}
 #endif /* T_AAAA */
-	return retp;
+
+	return *cnt > 0 ? ary : NULL;
 }
 
 /***************************************************************************************************

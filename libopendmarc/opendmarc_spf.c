@@ -547,7 +547,7 @@ opendmarc_spf_reverse(char *str, char *buf, size_t buflen)
 
 	dotp = strchr(dupe, '.');
 	if (dotp != NULL)
-		dotorcolon = ',';
+		dotorcolon = '.';
 	else
 	{
 		dotp = strchr(dupe, ':');
