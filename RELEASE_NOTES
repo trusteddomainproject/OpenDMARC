@@ -50,6 +50,8 @@ release, and a summary of the changes in that release.
 		htonl() since it's already in network byte order.  This
 		was causing SPF errors when the internal SPF
 		implementation was in use.
+	LIBOPENDMARC: Fix numerous problems with the internal SPF
+		implementation.
 
 1.4.0		2021/01/28
 	Add ARC support.  Extensive work contributed by ValiMail, with patches

@@ -291,7 +291,7 @@ char *  	opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_
 int     	opendmarc_spf_dns_does_domain_exist(char *domain, int *reply);
 char *  	opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen, char *cname, size_t cnamelen, int spfcheck);
 int 		opendmarc_spf_ipv6_cidr_check(char *ipv6_str, char *cidr_string);
-int 		opendmarc_spf_cidr_address(u_long ip, char *cidr_addr);
+int 		opendmarc_spf_cidr_address(uint32_t ip, char *cidr_addr);
 SPF_CTX_T *     opendmarc_spf_alloc_ctx();
 SPF_CTX_T *     opendmarc_spf_free_ctx(SPF_CTX_T *spfctx);
 int             opendmarc_spf_status_to_pass(int status, int none_pass);

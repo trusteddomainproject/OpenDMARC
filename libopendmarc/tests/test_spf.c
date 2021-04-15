@@ -206,7 +206,6 @@ opendmarc_spf_ip4_tests(void)
 	for (ipp = ip4list; ipp->connect_ip != NULL; ++ipp)
 	{
 		ip = inet_addr(ipp->connect_ip);
-		ip = htonl(ip);
 		if (opendmarc_spf_cidr_address(ip, ipp->record_ip) != ipp->outcome)
 		{
 			printf("Error: %s compared to %s failed\n", ipp->connect_ip, ipp->record_ip);

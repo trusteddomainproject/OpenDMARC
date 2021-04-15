@@ -325,6 +325,7 @@ AC_ARG_WITH([spf2-lib],
 	AS_HELP_STRING([--with-spf2-lib], [path to libspf2 libraries]),
 	SPF2_LIB="$withval",
 	[])
+
 use_spf="no"
 if test "x$SPF2_INCLUDE" != "x" -a "x$SPF2_LIB" != "x"
 then
@@ -343,7 +344,7 @@ then
 	AC_SEARCH_LIBS(SPF_server_new, spf2)
 fi
 
-AM_CONDITIONAL([USE_SPF], [test x"$use_spf" = x"yes"])
+AM_CONDITIONAL([TEST_SPF], [test x"$with_spf" = x"yes"])
 
 #
 # opendmarc
