@@ -1,4 +1,7 @@
-/* Copyright (c) 2012-2016, 2018, The Trusted Domain Project.  All rights reserved. */
+/*
+**  Copyright (c) 2012-2016, 2018, 2021, The Trusted Domain Project.
+**    All rights reserved.
+*/
 
 #ifndef DMARC_H
 #define DMARC_H
@@ -142,6 +145,7 @@ OPENDMARC_STATUS_T opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp);
 u_char **	   opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);
 u_char **	   opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_from_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen);
 OPENDMARC_STATUS_T opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri);
 OPENDMARC_STATUS_T opendmarc_get_policy_token_used(DMARC_POLICY_T *pctx);
 
@@ -149,7 +153,7 @@ OPENDMARC_STATUS_T opendmarc_get_policy_token_used(DMARC_POLICY_T *pctx);
  * TLD processing
  */
 int  		   opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
-void		   opendmarc_tld_shutdown();
+void		   opendmarc_tld_shutdown(void);
 
 /*
  * XML Parsing

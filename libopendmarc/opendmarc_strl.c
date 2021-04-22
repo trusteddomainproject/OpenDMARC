@@ -6,7 +6,8 @@
 **  forth in the LICENSE file which can be found at the top level of
 **  the sendmail distribution.
 **
-**  Copyright (c) 2009, 2012, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2009, 2012, 2021, The Trusted Domain Project.
+**    All rights reserved.
 */
 
 /* system includes */
@@ -50,10 +51,7 @@
 */
 
 size_t
-dmarc_strlcpy(dst, src, size)
-	register char *dst;
-	register const char *src;
-	ssize_t size;
+dmarc_strlcpy(register char *dst, register const char *src, ssize_t size)
 {
 	register ssize_t i;
 
@@ -96,10 +94,7 @@ dmarc_strlcpy(dst, src, size)
 */
 
 size_t
-dmarc_strlcat(dst, src, size)
-	register char *dst;
-	register const char *src;
-	ssize_t size;
+dmarc_strlcat(register char *dst, register const char *src, ssize_t size)
 {
 	register ssize_t i, j, o;
 

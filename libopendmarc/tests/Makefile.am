@@ -12,7 +12,7 @@ check_PROGRAMS		 = test_tld \
 if LIVE_TESTS
 #check_PROGRAMS           += test_dns_lookup
 #test_dns_lookup_SOURCES  = test_dns_lookup.c
-if USE_SPF
+if TEST_SPF
 check_PROGRAMS           += test_spf
 test_spf_SOURCES         = test_spf.c
 endif

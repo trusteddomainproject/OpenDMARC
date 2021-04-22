@@ -192,6 +192,17 @@ aggregate reports can be extracted using
 .B opendmarc-importstats(8).
 
 .TP
+.I HoldQuarantinedMessages (Boolean)
+If set, the milter will signal to the mta that messages with
+p=quarantine, which fail dmarc authentication, should be held in
+the MTA's "Hold" or "Quarantine" queue.  The name varies by MTA.
+If false, messsages will be accepted and passed along with the 
+regular mail flow, and the quarantine will be left up to downstream
+MTA/MDA/MUA filters, if any, to handle by re-evaluating the headers,
+including the Authentication-Results header added by this filter.
+The default is "false".
+
+.TP
 .I IgnoreAuthenticatedClients (Boolean)
 If set, causes mail from authenticated clients (i.e., those that used
 SMTP AUTH) to be ignored by the filter.  The default is "false".
@@ -225,7 +236,8 @@ Specifies the path to a file that contains top-level domains (TLDs) that
 will be used to compute the Organizational Domain for a given domain name,
 as described in the DMARC specification.  If not provided, the filter will
 not be able to determine the Organizational Domain and only the presented
-domain will be evaluated.
+domain will be evaluated.  This file should be periodically updated.
+One location to retrieve the file from is https://publicsuffix.org/list/
 
 .TP
 .I RecordAllMessages (Boolean)
@@ -306,7 +318,7 @@ version, and the job ID are included in the header field's contents.
 .TP
 .I SPFIgnoreResults (Boolean)
 Causes the filter to ignore any SPF results in the header of the
-message.  This is useful if you want the filter to perfrom SPF checks
+message.  This is useful if you want the filter to perform SPF checks
 itself, or because you don't trust the arriving header.  The default is "false".
 
 .TP
@@ -377,7 +389,8 @@ This man page covers version @VERSION@ of
 .I opendmarc.
 
 .SH COPYRIGHT
-Copyright (c) 2012-2015, 2018, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012-2015, 2018, 2021, The Trusted Domain Project.
+All rights reserved.
 .SH SEE ALSO
 .I opendmarc(8), opendmarc-importstats(8), sendmail(8)
 .P

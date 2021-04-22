@@ -1,6 +1,6 @@
 ## opendmarc.conf -- configuration file for OpenDMARC filter
 ##
-## Copyright (c) 2012-2015, 2018, The Trusted Domain Project.
+## Copyright (c) 2012-2015, 2018, 2021, The Trusted Domain Project.
 ##   All rights reserved.
 
 ## DEPRECATED CONFIGURATION OPTIONS
@@ -114,6 +114,7 @@
 ##
 ##  This list will be concatenated with DomainWhitelistFile (if provided).
 ##
+# 
 # DomainWhitelist example.com
 
 ##  DomainWhitelistFile path
@@ -125,6 +126,7 @@
 ##
 ##  This list will be concatenated with DomainWhitelist (if provided).
 ##
+# 
 # DomainWhitelistFile /usr/local/etc/opendmarc/whitelist.domains
 
 ##  DomainWhitelistSize
@@ -135,6 +137,7 @@
 ##  DomainWhitelistFile. This number will be increased by approximately 20% to
 ##  increase the efficiency of the hashing algorithm.
 ##
+# 
 # DomainWhitelistSize 3000
 
 ##  DNSTimeout (integer)
@@ -218,6 +221,20 @@
 #
 # IgnoreAuthenticatedClients false
 
+## HoldQuarantinedMessages { true | false }
+##  	default "false"
+##
+##  If set, the milter will signal to the mta that messages with
+##  p=quarantine, which fail dmarc authentication, should be held in
+##  the MTA's "Hold" or "Quarantine" queue.  The name varies by MTA.
+##  If false, messsages will be accepted and passed along with the 
+##  regular mail flow, and the quarantine will be left up to downstream
+##  MTA/MDA/MUA filters, if any, to handle by re-evaluating the headers,
+##  including the Authentication-Results header added by OpenDMARC
+#
+# HoldQuarantinedMessages false
+
+
 ##  IgnoreHosts path
 ##  	default (internal)
 ##
@@ -260,7 +277,8 @@
 ##  will be used to compute the Organizational Domain for a given domain name,
 ##  as described in the DMARC specification.  If not provided, the filter will
 ##  not be able to determine the Organizational Domain and only the presented
-##  domain will be evaluated.
+##  domain will be evaluated.  This file should be periodically updated.
+##  One location to retrieve the file from is https://publicsuffix.org/list/
 #
 # PublicSuffixList path
 
@@ -285,15 +303,6 @@
 #
 # RejectFailures false
 
-##  RejectMultiValueFrom { true | false }
-##  	default "false"
-##
-##  If set, messages with multiple addresses in the From: field of the message
-##  will be rejected unless all domains in the field are the same.  They will
-##  otherwise be ignored by the filter (the default).
-# 
-# RejectMultiValueFrom false
-
 ##  RejectString string
 ##      default ("rejected by DMARC policy for %s")
 ##
@@ -302,6 +311,15 @@
 ##  Escaped "%" ("%%") are not allowed in this string.
 #
 # RejectString rejected by DMARC policy for %s
+
+##  RejectMultiValueFrom { true | false }
+##  	default "false"
+##
+##  If set, messages with multiple addresses in the From: field of the message
+##  will be rejected unless all domains in the field are the same.  They will
+##  otherwise be ignored by the filter (the default).
+# 
+# RejectMultiValueFrom false
 
 ##  ReportCommand string
 ##  	default "/usr/sbin/sendmail -t"
@@ -351,7 +369,7 @@
 ##	default "false"
 ##
 ##  Causes the filter to ignore any SPF results in the header of the
-##  message.  This is useful if you want the filter to perfrom SPF checks
+##  message.  This is useful if you want the filter to perform SPF checks
 ##  itself, or because you don't trust the arriving header.
 #
 # SPFIgnoreResults false

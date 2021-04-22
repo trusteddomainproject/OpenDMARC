@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = -I m4
 libdir=@LIBDMARC_DIR@/lib
 includedir=@LIBDMARC_DIR@/include
 
-SUBDIRS		= contrib db docs libopendmarc reports
+SUBDIRS		= contrib db libopendmarc reports
 if BUILD_FILTER
 SUBDIRS         += opendmarc
 endif

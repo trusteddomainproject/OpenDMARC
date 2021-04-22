@@ -1,4 +1,7 @@
-/* Copyright (c) 2012-2015, 2018, The Trusted Domain Project.  All rights reserved. */
+/*
+**  Copyright (c) 2012-2015, 2018, 2021, The Trusted Domain Project.
+**    All rights reserved.
+*/
 
 #ifndef OPENDMARC_INTERNAL_H
 #define OPENDMARC_INTERNAL_H
@@ -101,6 +104,15 @@
 #       define MAYBE		(2)
 # endif 
 # define bool int
+
+#ifndef NETDB_INTERNAL
+# define NETDB_INTERNAL (-1)
+#endif
+
+#ifndef NETDB_SUCCESS
+# define NETDB_SUCCESS (0)
+#endif
+
 /*
 ** Beware that some Linux versions incorrectly define 
 ** MAXHOSTNAMELEN as 64, but DNS lookups require a length
@@ -218,7 +230,7 @@ int           		opendmarc_hash_expire(OPENDMARC_HASH_CTX *hctx, time_t age);
 int 			opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
 int 			opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len);
 int                     opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen);
-void 			opendmarc_tld_shutdown();
+void 			opendmarc_tld_shutdown(void);
 
 /* opendmarc_util.c */
 u_char ** opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt);
@@ -236,7 +248,6 @@ void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *nsaddr
 #if WITH_SPF
 
 #if HAVE_SPF2_H
-#define HAVE_NS_TYPE
 #include "spf.h"
 typedef struct spf_context_struct { 
 	SPF_server_t *		spf_server;
@@ -280,7 +291,7 @@ char *  	opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_
 int     	opendmarc_spf_dns_does_domain_exist(char *domain, int *reply);
 char *  	opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen, char *cname, size_t cnamelen, int spfcheck);
 int 		opendmarc_spf_ipv6_cidr_check(char *ipv6_str, char *cidr_string);
-int 		opendmarc_spf_cidr_address(u_long ip, char *cidr_addr);
+int 		opendmarc_spf_cidr_address(uint32_t ip, char *cidr_addr);
 SPF_CTX_T *     opendmarc_spf_alloc_ctx();
 SPF_CTX_T *     opendmarc_spf_free_ctx(SPF_CTX_T *spfctx);
 int             opendmarc_spf_status_to_pass(int status, int none_pass);
