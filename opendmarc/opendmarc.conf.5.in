@@ -244,6 +244,12 @@ the message.  Instead, an Authentication-Results header field will be added.
 The default is "false".
 
 .TP
+.I RejectMultiValueFrom (Boolean)
+If set, messages with multiple addresses in the From: field of the message
+will be rejected unless all domain names in that field are the same.  They
+will otherwise be ignored by the filter (the default).
+
+.TP
 .I RejectString (string)
 This string describes the reason of reject at SMTP level.
 The message MUST contain the word "%s" once, which will be replaced by the
