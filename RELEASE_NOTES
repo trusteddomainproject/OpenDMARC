@@ -28,7 +28,8 @@ release, and a summary of the changes in that release.
 		having the ns_type definition in arpa/resolv.h.
 		Added detection to configure script.  (#134)
 	Reworked hcreate_r calls to use hcreate, to compile natively on
-		OpenBSD and MacOS. (Part of #94)  Reported by Rupert Gallagher.
+		OpenBSD and MacOS. (Part of #94)  Reported by Rupert
+		Gallagher.
 	Add compatibility with AutoConf 2.70. (#95)  
 	Documentation updates about SourceForge being deprecated.  (#101)
 	Only accept results from Received-SPF fields that indicate clearly
