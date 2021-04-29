@@ -1,9 +1,9 @@
 From: Murray S. Kucherawy <msk@trusteddomain.org>
 To: opendmarc-announce@trusteddomain.org, opendmarc-users@trusteddomain.org
-Subject: OpenDMARC !!!VERSION!!! released
+Subject: OpenDMARC v1.3.2 released
 
 The Trusted Domain Project is pleased to announce the availability of
-OpenDMARC v!!!VERSION!!! now available for download from SourceForge.
+OpenDMARC v1.3.2, now available for download from SourceForge.
 
 This is mainly a bug fix release.  Upgrade is recommended.
 
@@ -13,16 +13,80 @@ community.  We thank those contributors for their ongoing support.
 The full RELEASE_NOTES for this version, showing changes since the last
 release:
 
-!!!PUT-RELEASE-NOTES-HERE!!!
+1.3.2		2017/03/04
+	Feature request #86: Change meaning of "RequiredHeaders" such that
+		header validity is always checked, but messages are only
+		rejected on that basis when the flag is set.  Based
+		on a patch from Andreas Schulze.
+	Feature request #127: Log SPF results when rejecting.  Requested
+		by Patrick Wagner; patch from Andreas Schulze, follow-up
+		patch from Juri Haberland.
+	Feature request #138: Inculde policy and disposition information
+		in an Authentication-Results comment.  Based on a patch
+		from Juri Haberland.
+	Feature request #139: Include the client host name if known
+		in failure reports.  Suggested by Roland Turner;
+		patch by Andreas Schulze.
+	Fix bug #95: Assume IPv6 for SPF operations.  Patch from Juri Haberland.
+	Fix bug #120: Fix control logic around the SPF result.
+		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
+	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.
+		Reported by Christophe Wolfhugel.
+	Fix bug #157: Fix logging of implicit authserv-ids.  Reported
+		by Andreas Schulze; patch from Juri Haberland.
+	Fix bug #158: Log ignored connections.  Patch from Andreas Schulze.
+	Fix bug #160: Fix "SyslogFacility" handling.  Patch from
+		Juri Haberland.
+	Fix bug #163: Use a larger buffer for the raw MAIL FROM value.
+		Based on a patch from Andreas Schulze.
+	Fix bug #174: Trim "!" suffixes from reporting addresses.  Problem
+		noted by Juri Haberland.
+	Fix bug #186: When reloading the configuration file, the public
+		suffix list was read in with the wrong comment indicator.
+		Patch from Federico Omoto.
+	LIBOPENDMARC: Fix bug #115: Fix type mismatch.  Patch from
+		Sebastian A. Siewior via Scott Kitterman.
+	LIBOPENDMARC: Fix bug #121: Fix IPv6 CIDR matching in SPF code.
+		Patch from Christophe Wolfhugel.
+	LIBOPENDMARC: Fix bug #125: Compile time IPv6 fix.  Reported by
+		Christophe Wolfhugel.
+	LIBOPENDMARC: Fix bug #131: Fix alignment bug.  Patch from
+		Andreas Schulze.
+	LIBOPENDMARC: Fix bug #147: Fix stripping of whitespace from
+		DMARC DNS records.  Based on a patch from Job Noorman.
+	LIBOPENDMARC: Fix bug #149: Apply "sp" setting, if present and
+		applicable.  Patch from Petr Novak.
+	LIBOPENDMARC: Fix bug #154: Fix "rf" and "fo" processing logic.
+	LIBOPENDMARC: Fix bug #156: Fix variable name.  Patch by
+		Andreas Schulze.
+	LIBOPENDMARC: Fix bug #165: Fix logic in checking which SPF
+		identifier was used.  Patches from Marco Favero and
+		Juri Haberland.
+	LIBOPENDMARC: Fix bug #167: Don't return "fail" when we should
+		return "none".  Patch from Marco Favero.
+	REPORTS: Fix bug #134: Handle SMTP errors correctly.  Patch from
+		Andreas Schulze.
+	REPORTS: Fix bug #141: Set the HELO parameter correctly.
+		Reported by Alan Smith; patch from Andreas Schulze.
+	REPORTS: Fix bug #143: Fix logic in table truncation.
+		Reported by Wayne Andersen; patch from Juri Haberland.
+	REPORTS: Fix bug #162: Always report "sp" in aggregate reports.
+		Patch from Juri Haberland.
+	REPORTS: Fix bug #166: Fix report start/end time logic.
+		Patch from Juri Haberland.
+	REPORTS: Fix bug #188: Don't delete inputs too early in
+		opendmarc-reports.  Patch from Juri Haberland.
+	TOOLS: Fix bug #161: "Forensic" reports were renamed "Failure"
+		reports.  Patch from Andreas Schulze.
+	TOOLS: Fix bug #164: Handle IPv6 test addresses.  Reported by
+		Andreas Schulze; patch from Juri Haberland.
+	DOCS: Patch #189: Replace the DMARC RFC with an HTML page
+		referencing the relevant specs, since Debian doesn't
+		consider RFCs to be "free".  Patch from Scott Kitterman
+		via Juri Haberland.
 
-Please use the trackers on GitHub at:
-
-https://github.com/trusteddomainproject/OpenDMARC/issues
-
-to file problem reports, or the mailing lists for more general discussion and questions.
-
-Prior versions of this project used SourceForge and/or Freshmeat, which are
-officially deprecated.  If you had submitted an issue there, please see if it is
-still relevant and consider re-filing it as a GitHub issue.
+Please use the trackers on SourceForge at
+https://sourceforge.net/p/opendmarc/tickets/ to file problem reports,
+or the mailing lists for more general discussion and questions.
 
 The Trusted Domain Project
