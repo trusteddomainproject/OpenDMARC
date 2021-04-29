@@ -1,4 +1,7 @@
-/* Copyright (c) 2012-2016, 2018, The Trusted Domain Project.  All rights reserved. */
+/*
+**  Copyright (c) 2012-2016, 2018, 2021, The Trusted Domain Project.
+**    All rights reserved.
+*/
 
 #ifndef DMARC_H
 #define DMARC_H
@@ -150,7 +153,7 @@ OPENDMARC_STATUS_T opendmarc_get_policy_token_used(DMARC_POLICY_T *pctx);
  * TLD processing
  */
 int  		   opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char *except);
-void		   opendmarc_tld_shutdown();
+void		   opendmarc_tld_shutdown(void);
 
 /*
  * XML Parsing

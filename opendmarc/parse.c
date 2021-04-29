@@ -2,7 +2,7 @@
 **  Copyright (c) 2005, 2007, 2008 Sendmail, Inc. and its suppliers.
 **    All rights reserved.
 **
-**  Copyright (c) 2009, 2010, 2012, The Trusted Domain Project.
+**  Copyright (c) 2009, 2010, 2012, 2021, The Trusted Domain Project.
 **    All rights reserved.
 */
 
@@ -526,7 +526,7 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			escaped = TRUE;
 			continue;
 
-		  case ':':
+		  case '"':
 			quoted = !quoted;
 			continue;
 
@@ -539,10 +539,12 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			continue;
 
 		  case ',':
-		  case '\0':
-			if (parens != 0)
+			/* skip it if it's quoted or in a comment */
+			if (parens != 0 || quoted)
 				continue;
+			/* FALLTHROUGH */
 
+		  case '\0':
 			if (*p == '\0')
 				done = TRUE;
 			else

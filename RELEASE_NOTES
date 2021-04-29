@@ -3,6 +3,57 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.4.1		2021/04/29
+	NOTE: In response to CVE-2019-20790, opendmarc has changed
+		how it evaluates headers added by previous
+		SPF milters.  Users are encouraged to read the
+		CVE-2019-20790 file in the "SECURITY" folder
+		for more details. (#49, #158).  Originally reported by
+		Jianjun Chen, feedback by Simon Wilson and
+		David Bürgin <dbuergin@gluet.ch>.
+	NOTE: OpenDMARC's internal SPF handling will be removed
+		in a future version.  Users are encouraged to
+		build linked against libspf2.  Many pre-built 
+		packages provided by OS packagers already do this.
+		(See https://www.libspf2.org)
+	Addition of defines for MUSL C Library. (#129/#133).  Patches by
+		Marco Rebhan.
+	Updated opendmarc.conf manpage and opendmarc.conf.sample to point to 
+		https://publicsuffix.org/list/.
+	Added a CONTRIBUTING document.
+	Fix two #ifdefs in arc functions for strlcpy. (#138).  Reported by
+		Leo Bicknell.
+	Fixes to MySQL Schema (#98/#99).  Patch by Bond Keevil.
+	LIBSPF2 calls would not compile on OpenBSD due to OpenBSD not 
+		having the ns_type definition in arpa/resolv.h.
+		Added detection to configure script.  (#134)
+	Reworked hcreate_r calls to use hcreate, to compile natively on
+		OpenBSD and MacOS. (Part of #94)  Reported by Rupert
+		Gallagher.
+	Add compatibility with AutoConf 2.70. (#95)  
+	Documentation updates about SourceForge being deprecated.  (#101)
+	Only accept results from Received-SPF fields that indicate clearly
+		which identifier was being evaluated, since DMARC specifically
+		only wants results based on MAIL FROM.
+        Many build-time fixes (#100, #91, #90, #86, #85, #84, #83, #82, #81)
+		Patches provided by Rupert Gallagher (ruga@protonmail.com)
+	Added config option HoldQuarantinedMessages (default false), which
+		controls if messages with p=quarantine will be passed on to 
+		the mail stream (if False) or placed in the MTA's "hold" 
+		queue (if True).  Issue #105.  Patch by Marcos Moraes, on
+		the OpenDMARC mailing list.
+	Remove "--with-wall" from "configure".  Suggested by Leo Bicknell.
+	LIBOPENDMARC: Fix bug #50: Ignore all RRTYPEs other than TXT.
+		Problem reported by Jan Bouwhuis.
+	LIBOPENDMARC: Fix bug #89: Repair absurd RRTYPE test in SPF code.
+	LIBOPENDMARC: Fix bug #104: Fix bogus header field parsing code.
+	LIBOPENDMARC: Fix bug #161: Don't pass the client IP address through
+		htonl() since it's already in network byte order.  This
+		was causing SPF errors when the internal SPF
+		implementation was in use.
+	LIBOPENDMARC: Fix numerous problems with the internal SPF
+		implementation.
+
 1.4.0		2021/01/28
 	Add ARC support.  Extensive work contributed by ValiMail, with patches
 		by Jonathan Kamens.
@@ -14,13 +65,14 @@ release, and a summary of the changes in that release.
 		schema.mysql file).
 	Add experimental support for reporting of ARC local policy overrides.
 	Add support for recording and reporting of DKIM selectors.
-	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction with
-		an ARC policy pass.
+	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction
+		with an ARC policy pass.
 	Add "RejectMultiValueFrom" configuration option to reject messages
-		with multi-valued From fields.
+		with multi-valued From fields, unless all domains in that
+		field are the same.
 	Fix bug #137: Handle base64 inside AR tokens that are values.
 		Problem reported by Joseph Coffland.
-	Fix Authentication-Results tokenizing.  Patch from 
+	Fix Authentication-Results tokenizing.  Patch from Dilyan Palauzov.
 	LIBOPENDMARC: Fix bug #203: Reject DMARC records that have duplicate
 		tags in them.  Reported by Dirk Stoecker.
 	LIBOPENDMARC: Pull request #70: For a non-pass DKIM outcome,
@@ -53,7 +105,8 @@ release, and a summary of the changes in that release.
 	Feature request #139: Include the client host name if known
 		in failure reports.  Suggested by Roland Turner;
 		patch by Andreas Schulze.
-	Fix bug #95: Assume IPv6 for SPF operations.  Patch from Juri Haberland.
+	Fix bug #95: Assume IPv6 for SPF operations.  Patch from Juri
+		Haberland.
 	Fix bug #120: Fix control logic around the SPF result.
 		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
 	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.

@@ -1,6 +1,8 @@
 /*
-**  Copyright (c) 2012-2018, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2018, 2021, The Trusted Domain Project.
+**    All rights reserved.
 */
+
 #include "build-config.h"
 
 #ifndef _GNU_SOURCE
@@ -90,8 +92,6 @@
 #define	DEFTIMEOUT			5
 #define	MAXSPFRESULT			16
 #define	RECEIVEDSPF			"Received-SPF"
-#define HIST_MAX_ARCSEAL_LIST_LEN	2048
-#define HIST_MAX_ARCSEAL_LEN		256
 
 /* defaults */
 #define	DEF_WHITELIST_SIZE		3000
@@ -192,7 +192,6 @@ struct dmarcf_config
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
 	struct list *		conf_domainwhitelist;
-	struct hsearch_data *	conf_domainwhitelisthash;
 	unsigned int		conf_domainwhitelisthashcount;
 };
 
@@ -235,18 +234,6 @@ struct lookup log_facilities[] =
 	{ NULL,			-1 }
 };
 
-#if defined(__linux__) && defined(DEBUG_WHITELIST)
-/* replicate search internal hash struct so we can iterate over the hash
-** structure for debugging.
- */
-struct _ENTRY
-{
-	unsigned int used;
-	ENTRY entry;
-};
-typedef struct _ENTRY _ENTRY;
-#endif /* DEBUG_WHITELIST */
-
 /* prototypes */
 sfsistat mlfi_abort __P((SMFICTX *));
 sfsistat mlfi_close __P((SMFICTX *));
@@ -285,6 +272,7 @@ char *sock;
 char *myname;
 char myhostname[MAXHOSTNAMELEN + 1];
 pthread_mutex_t conf_lock;
+pthread_rwlock_t hash_lock;
 
 /*
 **  DMARCF_ADDRCPT -- wrapper for smfi_addrcpt()
@@ -433,25 +421,46 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 **
 **  Parameters:
 **  	str -- the value of the Received-SPF field to analyze
+**  	envdomain -- envelope sender domain against which to test
 **
 **  Return value:
 **  	A ARES_RESULT_* constant.
+**
+**  Notes:
+**  	We will not accept a result delivered via a discovered Received-SPF
+**  	header field unless (a) it includes the "identity" key and its
+**  	value is "mailfrom", AND (b) it includes the "envelope-from" key and
+**  	its value matches the envelope sender we got via milter.  If either
+**  	of those tests fails, a "pass" or a "fail" is interpreted as "neutral".
+**  	This is necessary to be compliant with RFC 7489 Section 4.1,
+**  	which says the SPF evaluation of MAIL FROM is what DMARC consumes.
 */
 
 int
-dmarcf_parse_received_spf(char *str)
+dmarcf_parse_received_spf(char *str, char *envdomain)
 {
-	_Bool copying = FALSE;
+	_Bool in_result = TRUE;
 	_Bool escaped = FALSE;
+	_Bool quoting = FALSE;
 	int parens = 0;
 	char *p;
 	char *r;
 	char *end;
 	char result[MAXSPFRESULT + 1];
+	char spf_envdomain[BUFRSZ + 1];
+	char key[BUFRSZ + 1];
+	char value[BUFRSZ + 1];
+	char identity[BUFRSZ + 1];
 
 	assert(str != NULL);
 
+	memset(spf_envdomain, '\0', sizeof spf_envdomain);
+	memset(key, '\0', sizeof key);
+	memset(value, '\0', sizeof value);
+	memset(identity, '\0', sizeof identity);
 	memset(result, '\0', sizeof result);
+
+	/* first thing we get is the result token */
 	r = result;
 	end = &result[sizeof result - 1];
 
@@ -459,33 +468,13 @@ dmarcf_parse_received_spf(char *str)
 	{
 		if (escaped)
 		{
-			if (copying)
-			{
-				if (r < end)
-					*r++ = *p;
-			}
-
+			if (parens == 0 && r < end)
+				*r++ = *p;
 			escaped = FALSE;
 		}
-		else if (copying)
+		else if (*p == '\\')
 		{
-			if (!escaped && *p == '\\')
-			{
-				escaped = TRUE;
-			}
-			else if (*p == '(')
-			{
-				copying = FALSE;
-				parens++;
-			}
- 			else if (isascii(*p) && isspace(*p))
-			{
-				copying = FALSE;
-			}
-			else if (r < end)
-			{
-				*r++ = *p;
-			}
+			escaped = TRUE;
 		}
 		else if (*p == '(')
 		{
@@ -497,35 +486,125 @@ dmarcf_parse_received_spf(char *str)
 		}
 		else if (parens == 0)
 		{
-			if (isascii(*p) && isspace(*p))
-				continue;
-
-			if (!copying)
+			if (*p == '"')
 			{
-				if (result[0] != '\0')
-					break;
+				/* entering/leaving a quoted substring */
+				quoting = !quoting;
+				continue;
+			}
 
-				copying = TRUE;
-				if (r < end)
-					*r++ = *p;
+			/* a possibly meaningful character */
+			if (isascii(*p) && isspace(*p))
+			{
+				/* a space while quoting; just continue */
+				if (quoting)
+					continue;
+
+				if (in_result)
+				{
+					in_result = FALSE;
+					r = key;
+					end = &key[sizeof key - 1];
+				}
+				continue;
+			}
+
+			if (!in_result && *p == '=')
+			{
+				r = value;
+				end = &value[sizeof value - 1];
+			}
+			else if (!in_result && *p == ';')
+			{
+				if (strcasecmp(key, "identity") == 0)
+				{
+					strlcpy(identity, value,
+					        sizeof identity);
+				}
+
+				if (strcasecmp(key, "envelope-from") == 0)
+				{
+					strlcpy(spf_envdomain, value,
+					        sizeof spf_envdomain);
+				}
+
+				memset(key, '\0', sizeof key);
+				memset(value, '\0', sizeof value);
+
+				r = key;
+				end = &key[sizeof key - 1];
+			}
+			else if (r < end)
+			{
+				*r++ = *p;
 			}
 		}
 	}
 
-	if (strcasecmp(result, "pass") == 0)
-		return ARES_RESULT_PASS;
-	else if (strcasecmp(result, "fail") == 0)
-		return ARES_RESULT_FAIL;
-	else if (strcasecmp(result, "softfail") == 0)
-		return ARES_RESULT_SOFTFAIL;
-	else if (strcasecmp(result, "neutral") == 0)
+	if (key[0] != '\0')
+	{
+		if (strcasecmp(key, "identity") == 0)
+			strlcpy(identity, value, sizeof identity);
+		if (strcasecmp(key, "envelope-from") == 0)
+			strlcpy(spf_envdomain, value, sizeof spf_envdomain);
+	}
+
+	p = strchr(spf_envdomain, '@');
+	if (p != NULL)
+	{
+		r = spf_envdomain;
+		p = p + 1;
+		for (;;)
+		{
+			*r = *p;
+			if (*p == '\0')
+				break;
+			r++;
+			p++;
+		}
+	}
+
+	{
+		FILE *f;
+
+		f = fopen("/tmp/msk", "w");
+		fprintf(f, "%s\n%s\n", spf_envdomain, envdomain);
+		fclose(f);
+	}
+	
+	if (strcasecmp(identity, "mailfrom") != 0 ||
+            strcasecmp(spf_envdomain, envdomain) != 0)
+	{
 		return ARES_RESULT_NEUTRAL;
+	}
+	else if (strcasecmp(result, "pass") == 0)
+	{
+		return ARES_RESULT_PASS;
+	}
+	else if (strcasecmp(result, "fail") == 0)
+	{
+		return ARES_RESULT_FAIL;
+	}
+	else if (strcasecmp(result, "softfail") == 0)
+	{
+		return ARES_RESULT_SOFTFAIL;
+	}
+	else if (strcasecmp(result, "neutral") == 0)
+	{
+		return ARES_RESULT_NEUTRAL;
+	}
 	else if (strcasecmp(result, "temperror") == 0)
+	{
 		return ARES_RESULT_TEMPERROR;
+	}
 	else if (strcasecmp(result, "none") == 0)
+	{
 		return ARES_RESULT_NONE;
+	}
 	else
+	{
 		return ARES_RESULT_PERMERROR;
+	}
 }
 
 /*
@@ -574,6 +653,7 @@ dmarcf_addlist_csv(char *str, char *delim, struct list **head)
 {
 	char **array = NULL;
 	int result = 0;
+	int i;
 
 	assert(str != NULL);
 	assert(delim != NULL);
@@ -581,10 +661,8 @@ dmarcf_addlist_csv(char *str, char *delim, struct list **head)
 
 	result = dmarcf_mkarray(str, delim, &array);
 
-	for (int i = 0; array[i] != NULL; i++)
-	{
+	for (i = 0; array[i] != NULL; i++)
 		dmarcf_addlist(array[i], head);
-	}
 
 	dmarcf_freearray(array);
 
@@ -1278,6 +1356,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	char basedir[MAXPATHLEN + 1];
 	char *whitelist = NULL;
 	char *whitelistfile = NULL;
+	struct list *cur;
 	int whitelistsize = DEF_WHITELIST_SIZE;
 
 	assert(conf != NULL);
@@ -1467,22 +1546,29 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 	whitelistsize = floor(whitelistsize * 1.20);
 
-	/* init domain_whitelist_hash table */
-	conf->conf_domainwhitelisthash = calloc(1, sizeof(struct hsearch_data));
-	if (hcreate_r(whitelistsize, conf->conf_domainwhitelisthash) == 0)
+	/*
+	**  Initialize domain_whitelist_hash table.
+	**
+	**  As this is the only hash table this tool currently needs,
+	**  and since we protect access to the table via a read/write lock,
+	**  we use the older non-reentrant version of the hash table functions
+	**  since it's more portable.
+	*/
+
+	pthread_rwlock_wrlock(&hash_lock);
+	if (hcreate(whitelistsize) == 0)
 	{
 		fprintf(stderr,
-		        "%s: failed to alloc memory for conf_domainwhitelisthash: %s\n",
+		        "%s: failed to allocate domain whitelist hash table: %s\n",
 		        progname,
 		        strerror(errno));
 
+		pthread_rwlock_unlock(&hash_lock);
 		return EX_OSERR;
 	}
 	conf->conf_domainwhitelisthashcount = 0;
 
-	/*
-	** Add entries from configuration file whitelist parameter
-	 */
+	/* load entries from configuration file whitelist parameter */
 	if (whitelist != NULL)
 	{
 		if (!dmarcf_addlist_csv(whitelist, ",", &conf->conf_domainwhitelist))
@@ -1490,31 +1576,33 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			fprintf(stderr,
 			        "%s: can't load domain whitelist from %s: %s\n",
 			        progname, conffile, strerror(errno));
+			pthread_rwlock_unlock(&hash_lock);
 			return EX_DATAERR;
 		}
 	}
 
-	/*
-	** Add entries from whitelist file
-	 */
+	/* ...and/or from the whitelist file  */
 	if (whitelistfile != NULL)
 	{
-		if (!dmarcf_loadlist(whitelistfile, &conf->conf_domainwhitelist))
+		if (!dmarcf_loadlist(whitelistfile,
+		                     &conf->conf_domainwhitelist))
 		{
 			fprintf(stderr,
 			        "%s: can't load domain whitelist file from %s: %s\n",
 			        progname, whitelistfile, strerror(errno));
+			pthread_rwlock_unlock(&hash_lock);
 			return EX_DATAERR;
 		}
 	}
 
 	/* load domain whitelist hash, memory is managed by list type */
-	for (struct list *cur = conf->conf_domainwhitelist; cur != NULL; cur = cur->list_next)
+	for (cur = conf->conf_domainwhitelist;
+	     cur != NULL;
+	     cur = cur->list_next)
 	{
-		int result;
 		u_char *domain;
 		ENTRY entry;
-		ENTRY *entryptr;
+		ENTRY *eptr;
 
 		domain = cur->list_str;
 		dmarcf_lowercase(domain);
@@ -1523,32 +1611,24 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		entry.data = (void *)domain;
 
 		/* keep track of the number of entries */
-		result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
-		if (result == 0 && errno == ESRCH) {
+		eptr = hsearch(entry, FIND);
+		if (eptr == NULL)
 			conf->conf_domainwhitelisthashcount++;
-		}
 
 		/* try to add or update the entry */
-		result = hsearch_r(entry, ENTER, &entryptr, conf->conf_domainwhitelisthash);
-		if (result == 0 && errno == ENOMEM) {
-			fprintf(stderr, "%s: conf_domainwhitelisthash allocation exceeded: %s\n",
+		eptr = hsearch(entry, ENTER);
+		if (eptr == NULL)
+		{
+			fprintf(stderr,
+			        "%s: error inserting new hash table entry: %s\n",
 				progname, strerror(errno));
 
+			pthread_rwlock_unlock(&hash_lock);
 			return EX_CONFIG;
 		}
 	}
 
-#if defined(__linux__) && defined(DEBUG_WHITELIST)
-	/* walk through the hash and print keys and values */
-	struct hsearch_data *hdp = conf->conf_domainwhitelisthash;
-
-	fprintf(stderr, "conf_domainwhitelisthash contents...\n");
-	for (int i = 0; i < hdp->size; i++)
-	{
-		if (hdp->table[i].used)
-			fprintf(stderr, "[%s]: %s\n", hdp->table[i].entry.key, (char *)hdp->table[i].entry.data);
-	}
-#endif /* DEBUG_WHITELIST */
+	pthread_rwlock_unlock(&hash_lock);
 
 	return 0;
 }
@@ -2136,7 +2216,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		p = strchr(dfc->mctx_envfrom, '@');
 		if (p != NULL)
-			strncpy(dfc->mctx_envdomain, p + 1, strlen(p + 1));
+			strncpy(dfc->mctx_envdomain, p + 1, BUFRSZ);
 	}
 
 	return SMFIS_CONTINUE;
@@ -2259,9 +2339,9 @@ mlfi_eom(SMFICTX *ctx)
 	struct dmarcf_header *from;
 	struct arcseal_header *as_hdr;
 	u_char *reqhdrs_error = NULL;
-	u_char *user;
+	u_char *user = NULL;
 	u_char **users;
-	u_char *domain;
+	u_char *domain = NULL;
 	u_char **domains;
 	u_char *bang;
 	u_char **ruv;
@@ -2384,25 +2464,24 @@ mlfi_eom(SMFICTX *ctx)
 		return SMFIS_ACCEPT;
 	}
 
-	/* extract From: domain */
+	/* extract From: addresses */
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
 	status = dmarcf_mail_parse_multi(addrbuf, &users, &domains);
 	if (status == 0 && (users[0] != NULL || domains[0] != NULL))
 	{
-		/* extract user and domain only if there was exactly one */
-		if (users[1] != NULL || domains[1] != NULL)
-		{
-			if (conf->conf_dolog)
-			{
-				for (c = 0;
-				     users[c] != NULL && domains[c] != NULL;
-				     c++)
-					continue;
+		/*
+		**  Enact special handling for a multi-valued from if
+		**  the domains are not all the same.
+		*/
 
+		for (c = 1; users[c] != NULL; c++)
+		{
+			if (strcasecmp(domains[0], domains[c]) != 0)
+			{
 				syslog(LOG_ERR,
-				       "%s: multi-valued From field detected (%d values found)",
-				       dfc->mctx_jobid, c);
+				       "%s: multi-valued From field detected",
+				       dfc->mctx_jobid);
 			}
 
 			if (conf->conf_reject_multi_from)
@@ -2410,12 +2489,11 @@ mlfi_eom(SMFICTX *ctx)
 			else
 				return SMFIS_ACCEPT;
 		}
-		else
-		{
-			user = users[0];
-			domain = domains[0];
-		}
+
+		user = users[0];
+		domain = domains[0];
 	}
+
 	if (status != 0 || user == NULL || domain == NULL)
 	{
 		if (conf->conf_dolog)
@@ -2446,7 +2524,7 @@ mlfi_eom(SMFICTX *ctx)
 	strncpy(dfc->mctx_fromdomain, domain, sizeof dfc->mctx_fromdomain - 1);
 
 	ostatus = opendmarc_policy_store_from_domain(cc->cctx_dmarc,
-	                                             from->hdr_value);
+	                                             dfc->mctx_fromdomain);
 	if (ostatus != DMARC_PARSE_OKAY)
 	{
 		if (conf->conf_dolog)
@@ -2643,11 +2721,45 @@ mlfi_eom(SMFICTX *ctx)
 #endif
 			)
 			{
+				_Bool envfrom_match = FALSE;
 				int spfmode;
+				int i;
 
 				dfc->mctx_spfresult = ar.ares_result[c].result_result;
 
 				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+					continue;
+
+				/*
+				**  Confirm the method used was "smtp.mailfrom"
+				**  and it matches our envelope sender.
+				*/
+
+				for (i = 0;
+				     i < ar.ares_result[c].result_props;
+				     i++)
+				{
+					if (ar.ares_result[c].result_ptype[i] == ARES_PTYPE_SMTP &&
+					    strcasecmp(ar.ares_result[c].result_property[i],
+					               "mailfrom") == 0)
+					{
+						char *d;
+
+						d = strchr(ar.ares_result[c].result_value[i],
+						           '@');
+						if (d == NULL)
+							d = ar.ares_result[c].result_value[i];
+
+						if (strcasecmp(d,
+						               dfc->mctx_envdomain) == 0)
+						{
+							envfrom_match = TRUE;
+							break;
+						}
+					}
+				}
+
+				if (!envfrom_match)
 					continue;
 
 				spfaddr = NULL;
@@ -2802,16 +2914,18 @@ mlfi_eom(SMFICTX *ctx)
 			else if (ar.ares_result[c].result_method == ARES_METHOD_ARC)
 			{
 				/*
-				** NOTE: If we arrive here with a trusted A-R header with
-				** arc=none, per draft-ietf-dmarc-arc-protocol there is
-				** nothing else to do because arc=none should only appear
-				** when i=1.
+				**  NOTE: If we arrive here with a trusted A-R
+				**  header field with "arc=none", per
+				**  draft-ietf-dmarc-arc-protocol there is
+				**  nothing else to do because "arc=none"
+				**  should only appear when i=1.
 				*/
 
 				/*
-				** If we already countered a trusted A-R header with arc=pass
-				** we need to fail.
+				**  If we already countered a trusted A-R
+				**  header with "arc=pass", we need to fail.
 				*/
+
 				if (ar.ares_result[c].result_result == ARES_RESULT_PASS)
 				{
 					dfc->mctx_arcpass = ARES_RESULT_PASS;
@@ -2821,19 +2935,16 @@ mlfi_eom(SMFICTX *ctx)
 				if (dfc->mctx_arcpass == ARES_RESULT_PASS && limit_arc > 1)
 					dfc->mctx_arcpass = ARES_RESULT_FAIL;
 
-				/*
-				** Check arc status against whitelist policy
-				*/
-				if (dfc->mctx_arcpass == ARES_RESULT_PASS && conf->conf_domainwhitelisthashcount > 0)
+				/* check arc status against whitelist policy */
+				if (dfc->mctx_arcpass == ARES_RESULT_PASS &&
+				    conf->conf_domainwhitelisthashcount > 0)
 				{
 					u_char *arcchain = NULL;
 					u_char *arcdomain;
 					int arcchainlen = 0;
 					int arcchainitempass = 0;
-					int result = 0;
 					ENTRY entry;
-					ENTRY *entryptr;
-
+					ENTRY *eptr;
 
 					for (pc = 0;
 					     pc < ar.ares_result[c].result_props;
@@ -2842,6 +2953,7 @@ mlfi_eom(SMFICTX *ctx)
 						if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_ARCCHAIN)
 							arcchain = ar.ares_result[c].result_value[pc];
 					}
+
 					if (arcchain != NULL)
 					{
 						arcchainlen = dmarcf_mkarray(arcchain, ":",
@@ -2854,12 +2966,16 @@ mlfi_eom(SMFICTX *ctx)
 							dmarcf_lowercase(arcdomain);
 
 							entry.key = arcdomain;
-							result = hsearch_r(entry, FIND, &entryptr, conf->conf_domainwhitelisthash);
-							if (result == 0 && errno == ESRCH)
+							pthread_rwlock_rdlock(&hash_lock);
+							eptr = hsearch(entry,
+							               FIND);
+							pthread_rwlock_unlock(&hash_lock);
+							if (eptr == NULL)
 								continue;
 
 							arcchainitempass++;
 						}
+
 						if (arcchainlen == arcchainitempass)
 							dfc->mctx_arcpolicypass = DMARC_ARC_POLICY_RESULT_PASS;
 					}
@@ -2893,7 +3009,8 @@ mlfi_eom(SMFICTX *ctx)
 				else
 					spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 
-				spfres = dmarcf_parse_received_spf(hdr->hdr_value);
+				spfres = dmarcf_parse_received_spf(hdr->hdr_value,
+				                                   dfc->mctx_envdomain);
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n", spfres);
@@ -2967,7 +3084,7 @@ mlfi_eom(SMFICTX *ctx)
 				&used_mfrom);
 			if (used_mfrom == TRUE)
 			{
-				use_domain = dfc->mctx_envfrom;
+				use_domain = dfc->mctx_envdomain;
 				spf_mode   = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 			}
 			else
@@ -2976,10 +3093,10 @@ mlfi_eom(SMFICTX *ctx)
 				spf_mode   = DMARC_POLICY_SPF_ORIGIN_HELO;
 			}
 			ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc, 
-				                                     use_domain,
-				                                     spf_result,
-				                                     spf_mode,
-				                                     human);
+				                             use_domain,
+				                             spf_result,
+				                             spf_mode,
+				                             human);
 			switch (spf_result)
 			{
 			    case DMARC_POLICY_SPF_OUTCOME_PASS:
@@ -3473,7 +3590,9 @@ mlfi_eom(SMFICTX *ctx)
 		aresult = "fail";
 		ret = SMFIS_CONTINUE;
 
-		if (conf->conf_rejectfail && random() % 100 < pct)
+		if (conf->conf_rejectfail &&
+		    conf->conf_holdquarantinedmessages &&
+		    random() % 100 < pct)
 		{
 			snprintf(replybuf, sizeof replybuf,
 			         "quarantined by DMARC policy for %s",
@@ -3509,15 +3628,18 @@ mlfi_eom(SMFICTX *ctx)
 		break;
 	}
 
-	/* ARC override
-	** If DMARC is in failure mode, we will allow the message provided that arc
-	** information is valid: arc=pass, arc.chain is present, and all listed
-	** domains in the chain are whitelisted.
+	/*
+	**  ARC override
 	**
-	** Additional logging is provided when DMARC is in failure mode and arc=pass
-	** but authentication still fails because of an invalid arc.chain to assist
-	** with administrative debugging.
+	**  If DMARC is in failure mode, we will allow the message provided
+	**  that arc information is valid: arc=pass, arc.chain is present,
+	**  and all listed domains in the chain are whitelisted.
+	**
+	**  Additional logging is provided when DMARC is in failure mode
+	**  and arc=pass but authentication still fails because of an invalid
+	**  arc.chain to assist with administrative debugging.
 	*/
+
 	if (result == DMARC_RESULT_REJECT &&
 	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
 	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
@@ -3528,7 +3650,8 @@ mlfi_eom(SMFICTX *ctx)
 		       dfc->mctx_jobid);
 	}
 
-	if (result == DMARC_RESULT_REJECT && dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
+	if (result == DMARC_RESULT_REJECT &&
+	    dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
 	{
 		ret = SMFIS_ACCEPT;
 		result = DMARC_RESULT_ACCEPT;
@@ -3540,13 +3663,14 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
-	/* append arc override to historyfile
+	/*
+ 	**  Append arc override to historyfile.  The format 
 	**
 	**  <reason>
 	**    <type>local_policy</type>
 	**	  <comment>
-	**	    arc=[status] as[N].d=dN.example.com as[N].s=sN
-	**          .. as[1].d=d1.example.com as[1].s=s1 client-ip[1]=10.10.10.13
+	**	    arc=[status] as[N].d=dN.example as[N].s=sN
+	**          .. as[1].d=d1.example as[1].s=s1 client-ip[1]=10.10.10.13
 	**	  </comment>
 	**  </reason>
 	**
@@ -3556,39 +3680,44 @@ mlfi_eom(SMFICTX *ctx)
 	**                         { i=1, d = d1.example, s = s1, ip = addr1 }
 	**                     ]
 	*/
+
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "arc %d\n",
 	                      dfc->mctx_arcpass);
 
 	/*
-	** iterate through arcseal headers and add results to report
+	**  Iterate through ARC-Seal headers and add results to report.
 	*/
-	u_char arcseal_str[HIST_MAX_ARCSEAL_LIST_LEN + 1] = { '\0' };
-	u_char arcseal_buf[HIST_MAX_ARCSEAL_LEN + 1];
+
 	struct arcares arcares;
 	struct arcares_arc_field arcares_arc_field;
+
+	dmarcf_dstring_printf(dfc->mctx_histbuf,
+	                      "arc_policy %d json:[",
+	                      dfc->mctx_arcpolicypass);
 
 	for (as_hdr = dfc->mctx_ashead, c = 0;
 	     dfc->mctx_aarhead != NULL && as_hdr != NULL;
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
 		/* fetch smtp.client_ip from aar */
-		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance, dfc->mctx_aarhead, &arcares) == 0)
-			(void) opendmarc_arcares_arc_parse(arcares.arc, &arcares_arc_field);
+		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance,
+		                                 dfc->mctx_aarhead,
+		                                 &arcares) == 0)
+		{
+			(void) opendmarc_arcares_arc_parse(arcares.arc,
+			                                   &arcares_arc_field);
+		}
 
-		snprintf(arcseal_buf, sizeof arcseal_buf,
-		         "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\", \"ip\":\"%s\" }",
-		         (c > 0) ? ", " : "",
-		         as_hdr->arcseal.instance,
-		         as_hdr->arcseal.signature_domain,
-		         as_hdr->arcseal.signature_selector,
-			 arcares_arc_field.smtpclientip);
-		strlcat(arcseal_str, (const char *)arcseal_buf, sizeof arcseal_str);
+		dmarcf_dstring_printf(dfc->mctx_histbuf,
+		                      "%s{ \"i\": %d, \"d\":\"%s\", \"s\":\"%s\", \"ip\":\"%s\" }",
+		                      (c > 0) ? ", " : "",
+		                      as_hdr->arcseal.instance,
+		                      as_hdr->arcseal.signature_domain,
+		                      as_hdr->arcseal.signature_selector,
+			              arcares_arc_field.smtpclientip);
 	}
 
-	dmarcf_dstring_printf(dfc->mctx_histbuf,
-	                      "arc_policy %d json:[%s]\n",
-	                      dfc->mctx_arcpolicypass,
-	                      arcseal_str);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "]\n");
 
 	/* prepare human readable dispositon string for later processing */
 	switch (result)
@@ -4043,15 +4172,15 @@ dmarcf_config_free(struct dmarcf_config *conf)
 	if (conf->conf_authservid != NULL)
 		free(conf->conf_authservid);
 
-	if (conf->conf_domainwhitelisthash != NULL)
+	if (conf->conf_domainwhitelisthashcount > 0)
 	{
 		/*
-		** conf_domainwhitelist manages memory for entries in domain
-		** whitelist hash so we just free that allocation here.
-		 */
+		**  conf_domainwhitelist manages memory for entries in domain
+		**  whitelist hash so we just free that allocation here.
+		*/
+
 		dmarcf_freelist(conf->conf_domainwhitelist);
-		hdestroy_r(conf->conf_domainwhitelisthash);
-		free(conf->conf_domainwhitelisthash);
+		hdestroy();
 	}
 
 	free(conf);
@@ -5064,6 +5193,7 @@ main(int argc, char **argv)
 	}
 
 	pthread_mutex_init(&conf_lock, NULL);
+	pthread_rwlock_init(&hash_lock, NULL);
 
 	/* initialize libopendmarc */
 	(void) memset(&libopendmarc, '\0', sizeof libopendmarc);

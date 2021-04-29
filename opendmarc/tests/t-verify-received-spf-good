@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# Test a message with a Received-SPF header that appears trustworthy
+#
+# DMARC only wants SPF results based on MAIL FROM.  This is the positive
+# case where we have a Received-SPF that is definitely what we want.
+
+if [ x"$srcdir" = x"" ]
+then
+	srcdir=`pwd`
+fi
+
+miltertest -s $srcdir/t-verify-received-spf-good.lua

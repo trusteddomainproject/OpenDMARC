@@ -1,8 +1,11 @@
 /*************************************************************************
 ** The user interface to the rest of this library.
 **
-**  Copyright (c) 2012-2016, 2018, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2016, 2018, 2021, The Trusted Domain Project.
+**    All rights reserved.
 **************************************************************************/
+
+#include <ctype.h>
 
 #include "opendmarc_internal.h"
 #include "dmarc.h"
@@ -21,6 +24,33 @@
 #ifdef USE_DMARCSTRL_H
 # include <opendmarc_strl.h>
 #endif /* USE_DMARCSTRL_H */
+
+/*
+**  CHECK_DOMAIN -- check for syntactical validity of a domain name
+**
+**  Parameters:
+**  	domain -- domain name to check
+**
+**  Return value:
+**  	TRUE if the syntax was fine, FALSE otherwise.
+*/
+
+bool check_domain(u_char *domain)
+{
+	u_char *dp;
+
+	for (dp = domain; *dp != '\0'; dp++)
+	{
+		if (!(isalpha(*dp) ||
+		      isdigit(*dp) ||
+		      *dp == '.' ||
+		      *dp == '-' ||
+		      *dp == '_'))
+			return FALSE;
+	}
+
+	return TRUE;
+}
 
 /**************************************************************************
 ** OPENDMARC_POLICY_LIBRARY_INIT -- Initialize The Library
@@ -388,6 +418,8 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 	dp = opendmarc_util_finddomain(domain, domain_buf, sizeof domain_buf);
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
+	if (!check_domain(dp))
+		return DMARC_PARSE_ERROR_BAD_VALUE;
 	if (human_readable != NULL)
 		pctx->spf_human_outcome = strdup((char *)human_readable);
 	pctx->spf_domain = strdup((char *)dp);
@@ -457,6 +489,8 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 		return DMARC_PARSE_ERROR_EMPTY;
 	if (pctx->from_domain == NULL)
 		return DMARC_FROM_DOMAIN_ABSENT;
+	if (!check_domain(d_equal_domain))
+		return DMARC_PARSE_ERROR_BAD_VALUE;
 
 	switch (dkim_result)
 	{
@@ -632,7 +666,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 			continue;
 		}
 	}
-	if (dns_reply == NETDB_SUCCESS && buf != NULL)
+	if (dns_reply == NETDB_SUCCESS && strcmp( buf, "&" ) != 0)
 	{
 		/* Must include DMARC version */
 		if (strncasecmp((char *)buf, "v=DMARC1", sizeof buf) == 0)
@@ -661,7 +695,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 			continue;
 		}
 	}
-	if (dns_reply == NETDB_SUCCESS && buf != NULL)
+	if (dns_reply == NETDB_SUCCESS && strcmp( buf, "&" ) != 0)
 	{
 		/* Must include DMARC version */
 		if (strncasecmp((char *)buf, "v=DMARC1", sizeof buf) == 0)

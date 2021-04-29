@@ -1,23 +1,23 @@
--- Copyright (c) 2012, 2021, The Trusted Domain Project.  All rights reserved.
+-- Copyright (c) 2021, The Trusted Domain Project.  All rights reserved.
 
--- Test message from paypal.com with no DKIM or SPF DATA
+-- Test message with a not-valid (the way DMARC wants it) Received-SPF field
 -- 
--- Confirms that a message with no authentication data claiming to be from a
--- "p=reject" domain will provoke a rejection.  This variant confirms failure
--- by checking for an appropriate Authentication-Results field.
+-- Confirms that a message with a Received-SPF field that indicates a "pass"
+-- but does not include "identity=mailfrom" and "envelope-from" with the
+-- right value will not be trusted.
 
-mt.echo("*** no data reject test (Authentication-Results)")
+mt.echo("*** Received-SPF test (bad)")
 
 -- setup
-sock = "unix:" .. mt.getcwd() .. "/t-verify-nodata.sock"
+sock = "unix:" .. mt.getcwd() .. "/t-verify-received-spf-bad.sock"
 binpath = mt.getcwd() .. "/.."
 if os.getenv("srcdir") ~= nil then
 	mt.chdir(os.getenv("srcdir"))
 end
 
 -- try to start the filter
-mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-nodata.conf",
-               "-p", sock)
+mt.startfilter(binpath .. "/opendmarc", "-l",
+               "-c", "t-verify-received-spf-bad.conf", "-p", sock)
 
 -- try to connect to it
 conn = mt.connect(sock, 40, 0.05)
@@ -36,8 +36,8 @@ end
 
 -- send envelope macros and sender data
 -- mt.helo() is called implicitly
-mt.macro(conn, SMFIC_MAIL, "i", "t-verify-nodata")
-if mt.mailfrom(conn, "user@paypal.com") ~= nil then
+mt.macro(conn, SMFIC_MAIL, "i", "t-verify-received-spf-bad")
+if mt.mailfrom(conn, "user@trusteddomain.org") ~= nil then
 	error("mt.mailfrom() failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then
@@ -46,7 +46,13 @@ end
 
 -- send headers
 -- mt.rcptto() is called implicitly
-if mt.header(conn, "From", "user@paypal.com") ~= nil then
+if mt.header(conn, "Received-SPF", "pass") ~= nil then
+	error("mt.header(Received-SPF) failed")
+end
+if mt.getreply(conn) ~= SMFIR_CONTINUE then
+	error("mt.header(Received-SPF) unexpected reply")
+end
+if mt.header(conn, "From", "user@trusteddomain.org") ~= nil then
 	error("mt.header(From) failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then
@@ -83,7 +89,7 @@ end
 if mt.eom(conn) ~= nil then
 	error("mt.eom() failed")
 end
-if mt.getreply(conn) ~= SMFIR_CONTINUE then
+if mt.getreply(conn) ~= SMFIR_ACCEPT then
 	error("mt.eom() unexpected reply")
 end
 
@@ -93,7 +99,7 @@ if not mt.eom_check(conn, MT_HDRINSERT, "Authentication-Results") and
 	error("no Authentication-Results added")
 end
 
--- verify that a DMARC fail result was added
+-- verify that a DMARC pass result was added
 n = 0
 found = 0
 while true do

@@ -172,18 +172,39 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 			cp += k;
 			continue;
 		}
-		if (type != type)
+		else if (type != sought)
 		{
+			/* not a type we want; skip the rest and continue */
 			cp += l;
 			continue;
 		}
+		else if (type == T_A)
+		{
+			GETLONG(a, cp);
+			a = htonl(a);
+			(void) memcpy(&in.s_addr, &a, sizeof(uint32_t));
+			(void) memset(hbuf, '\0', sizeof hbuf);
+			(void) strncpy(hbuf, inet_ntoa(in), sizeof hbuf);
+			ary = opendmarc_util_pushnargv(hbuf, ary, cnt);
+		}
+#ifdef T_AAAA
+		else if (type == T_AAAA)
+		{
+			struct in6_addr s6;
 
-		GETLONG(a, cp);
-		(void) memcpy(&in.s_addr, &a, sizeof(uint32_t));
-		in.s_addr = ntohl(in.s_addr);
-		(void) memset(hbuf, '\0', sizeof hbuf);
-		(void) strncpy(hbuf, inet_ntoa(in), sizeof hbuf);
-		ary = opendmarc_util_pushnargv(hbuf, ary, cnt);
+			/* just to be sure... */
+			if (l != sizeof s6.s6_addr)
+			{
+				cp += l;
+				continue;
+			}
+
+			(void) memcpy(&s6.s6_addr, cp, sizeof s6.s6_addr);
+			(void) memset(hbuf, '\0', sizeof hbuf);
+			inet_ntop(AF_INET6, &s6.s6_addr, hbuf, sizeof hbuf - 1);
+			ary = opendmarc_util_pushnargv(hbuf, ary, cnt);
+		}
+#endif /* T_AAAA */
 	}
 	return ary;
 }
@@ -197,7 +218,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 **	cnt		-- Pointer to count of lines in array
 ** Returns:
 **	ary	-- on success
-**	NULL	-- otherise, and place the h_errno error into reply
+**	NULL	-- otherwise, and place the h_errno error into reply
 ** Side Effects:
 **	Makes a connection to the local name server and blocks
 **	waiting for a reply.
@@ -205,13 +226,27 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 char **
 opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 {
-	char **retp;
+	bool found = FALSE;
+	char **a_retp;
+	char **aaaa_retp;
 
-	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
+	a_retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
+	if (a_retp != (char **) NULL)
+	{
+		ary = a_retp;
+		found = TRUE;
+	}
+
 #ifdef T_AAAA
-	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAAA, ary, cnt);
+	aaaa_retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAAA, ary, cnt);
+	if (aaaa_retp != (char **) NULL)
+	{
+		ary = aaaa_retp;
+		found = TRUE;
+	}
 #endif /* T_AAAA */
-	return retp;
+
+	return *cnt > 0 ? ary : NULL;
 }
 
 /***************************************************************************************************

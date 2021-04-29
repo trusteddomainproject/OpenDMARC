@@ -1,6 +1,6 @@
 ## opendmarc.conf -- configuration file for OpenDMARC filter
 ##
-## Copyright (c) 2012-2015, 2018, The Trusted Domain Project.
+## Copyright (c) 2012-2015, 2018, 2021, The Trusted Domain Project.
 ##   All rights reserved.
 
 ## DEPRECATED CONFIGURATION OPTIONS
@@ -263,7 +263,8 @@
 ##  will be used to compute the Organizational Domain for a given domain name,
 ##  as described in the DMARC specification.  If not provided, the filter will
 ##  not be able to determine the Organizational Domain and only the presented
-##  domain will be evaluated.
+##  domain will be evaluated.  This file should be periodically updated.
+##  One location to retrieve the file from is https://publicsuffix.org/list/
 #
 # PublicSuffixList path
 
@@ -292,11 +293,10 @@
 ##  	default "false"
 ##
 ##  If set, messages with multiple addresses in the From: field of the message
-##  ill be rejected.  They will otherwise be ignored by the filter (the
-##  default).
+##  will be rejected unless all domains in the field are the same.  They will
+##  otherwise be ignored by the filter (the default).
 # 
 # RejectMultiValueFrom false
-
 
 ##  ReportCommand string
 ##  	default "/usr/sbin/sendmail -t"

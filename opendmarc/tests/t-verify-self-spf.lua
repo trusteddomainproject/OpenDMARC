@@ -1,22 +1,22 @@
--- Copyright (c) 2012, 2021, The Trusted Domain Project.  All rights reserved.
+-- Copyright (c) 2021, The Trusted Domain Project.  All rights reserved.
 
--- Test message from paypal.com with no DKIM or SPF DATA
+-- Test message from trusteddomain.org
 -- 
--- Confirms that a message with no authentication data claiming to be from a
--- "p=reject" domain will provoke a rejection.  This variant confirms failure
--- by checking for an appropriate Authentication-Results field.
+-- Confirms that a message purporting to be from trusteddomain.org
+-- with an unauthorized client IP address causes the right 
+-- Authentication-Results field to be added.
 
-mt.echo("*** no data reject test (Authentication-Results)")
+mt.echo("*** self-SPF test")
 
 -- setup
-sock = "unix:" .. mt.getcwd() .. "/t-verify-nodata.sock"
+sock = "unix:" .. mt.getcwd() .. "/t-verify-self-spf.sock"
 binpath = mt.getcwd() .. "/.."
 if os.getenv("srcdir") ~= nil then
 	mt.chdir(os.getenv("srcdir"))
 end
 
 -- try to start the filter
-mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-nodata.conf",
+mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-self-spf.conf",
                "-p", sock)
 
 -- try to connect to it
@@ -27,7 +27,7 @@ end
 
 -- send connection information
 -- mt.negotiate() is called implicitly
-if mt.conninfo(conn, "localhost2", "127.0.0.2") ~= nil then
+if mt.conninfo(conn, "localhost2", "66.220.149.251") ~= nil then
 	error("mt.conninfo() failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then
@@ -36,8 +36,8 @@ end
 
 -- send envelope macros and sender data
 -- mt.helo() is called implicitly
-mt.macro(conn, SMFIC_MAIL, "i", "t-verify-nodata")
-if mt.mailfrom(conn, "user@paypal.com") ~= nil then
+mt.macro(conn, SMFIC_MAIL, "i", "t-verify-self-spf")
+if mt.mailfrom(conn, "user@trusteddomain.org") ~= nil then
 	error("mt.mailfrom() failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then
@@ -46,7 +46,7 @@ end
 
 -- send headers
 -- mt.rcptto() is called implicitly
-if mt.header(conn, "From", "user@paypal.com") ~= nil then
+if mt.header(conn, "From", "user@trusteddomain.org") ~= nil then
 	error("mt.header(From) failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then
@@ -83,7 +83,7 @@ end
 if mt.eom(conn) ~= nil then
 	error("mt.eom() failed")
 end
-if mt.getreply(conn) ~= SMFIR_CONTINUE then
+if mt.getreply(conn) ~= SMFIR_ACCEPT then
 	error("mt.eom() unexpected reply")
 end
 
@@ -101,14 +101,15 @@ while true do
 	if ar == nil then
 		break
 	end
-	if string.find(ar, "dmarc=fail", 1, true) ~= nil then
+	if string.find(ar, "spf=fail", 1, true) ~= nil and
+	   string.find(ar, "smtp.mailfrom=trusteddomain.org", 1, true) ~= nil
+	then
 		found = 1
-		break
 	end
 	n = n + 1
 end
 if found == 0 then
-	error("incorrect DMARC result")
+	error("malformed SPF result attached")
 end
 
 mt.disconnect(conn)

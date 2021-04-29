@@ -1,12 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright (c) 2012-2017, 2018, The Trusted Domain Project.
+# Copyright (c) 2012-2017, 2018, 2021, The Trusted Domain Project.
 #	All rights reserved.
-
-# Acceptable arguments to configure are:
-# 	The usual CC= etc.
-# 	--with-wall forces CC=gcc -Wall
 
 # SPF support:
 # Define --with-spf to include either internal OR libspf2 support.  For libspf2
@@ -17,6 +13,7 @@
 #
 # Setup
 #
+AC_CONFIG_AUX_DIR([build-aux])
 AC_PREREQ(2.61)
 
 #
@@ -24,7 +21,7 @@ AC_PREREQ(2.61)
 #
 m4_define([VERSION_RELEASE], 1)
 m4_define([VERSION_MAJOR_REV], 4)
-m4_define([VERSION_MINOR_REV], 0)
+m4_define([VERSION_MINOR_REV], 1)
 m4_define([VERSION_PATCH], 0)
 
 #
@@ -34,19 +31,40 @@ m4_define([VERSION_PATCH], 0)
 #
 
 m4_define([LIBVERSION_CURRENT], 2)
-m4_define([LIBVERSION_REVISION], 2)
+m4_define([LIBVERSION_REVISION], 3)
 m4_define([LIBVERSION_AGE], 0)
 
 #
 # Autotools setup
 #
-AC_INIT([OpenDMARC], [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV], [bcx+libdmarc@bcx.com])
+AC_INIT([OpenDMARC],
+        [VERSION_RELEASE.VERSION_MAJOR_REV.VERSION_MINOR_REV],
+        [msk@trusteddomain.org])
 AC_CONFIG_AUX_DIR(build-aux)
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([.])
 AC_CONFIG_HEADERS(build-config.h)
 
 AC_CONFIG_MACRO_DIR([m4])
+
+AC_HEADER_RESOLV
+AC_CHECK_TYPES([ns_type], [], [], [[
+#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#  include <netinet/in.h>   /* inet_ functions / structs */
+#endif
+#ifdef HAVE_ARPA_NAMESER_H
+#  include <arpa/nameser.h> /* DNS HEADER struct */
+#endif
+#ifdef HAVE_NETDB_H
+#  include <netdb.h>
+#endif
+#include <resolv.h>
+]])
 
 #
 # Hexadecimal version, for use in generating dmarc.h
@@ -55,6 +73,16 @@ HEX_VERSION=$(printf %08x $(( ((VERSION_RELEASE << 8 | VERSION_MAJOR_REV) << 8 |
 AC_SUBST([HEX_VERSION])
 
 #
+# version string for GitHub assets
+# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0.tar.gz
+# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0-Beta1.tar.gz
+# Beta tag is passed to RPM by downstream packagers and expanded there.
+#
+GITHUB_VERSION=$(printf %d-%d-%d VERSION_RELEASE VERSION_MAJOR_REV VERSION_MINOR_REV)
+AC_SUBST([GITHUB_VERSION])
+
+
+# 
 # library version, passed to libtool
 #
 LIBOPENDMARC_VERSION_INFO=$(printf %d:%d:%d LIBVERSION_CURRENT LIBVERSION_REVISION LIBVERSION_AGE)
@@ -64,14 +92,13 @@ AC_SUBST([LIBOPENDMARC_VERSION_INFO])
 # Checks for programs
 #
 AC_PROG_CC
-AC_PROG_CC_C99
 AM_PROG_CC_C_O
-AC_PROG_LIBTOOL
+LT_INIT
 
 PKG_PROG_PKG_CONFIG
 
 AC_ARG_WITH([installdir],
-        AC_HELP_STRING([--with-installdir=/path], [(default =/usr/local)]),
+        AS_HELP_STRING([--with-installdir=/path], [(default =/usr/local)]),
 		LIBDMARC_BASE=$withval, LIBDMARC_BASE=/usr/local/)
 AC_SUBST(LIBDMARC_DIR, $LIBDMARC_BASE)
 
@@ -80,9 +107,6 @@ AC_SUBST(LIBDMARC_DIR, $LIBDMARC_BASE)
 #
 AX_PTHREAD
 
-
-AC_HEADER_STDC
-AC_HEADER_TIME
 AC_CHECK_HEADERS(stdio.h)
 AC_CHECK_HEADERS(syslog.h)
 AC_CHECK_HEADERS(sysexits.h)
@@ -137,18 +161,16 @@ m4_rename([AC_LANG_CALL], [saved_AC_LANG_CALL])
 m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
                                            [return res_ninit(NULL);])])
 AC_SEARCH_LIBS(res_ninit, resolv,
-	AC_DEFINE(HAVE_RES_NINIT, 1,
-	[Define to 1 if you have the `res_ninit()' function.]))
+        AC_DEFINE(HAVE_RES_NINIT, 1,
+        [Define to 1 if you have the `res_ninit()' function.]))
+
+# Same as above, but for res_ndestroy.
+m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
+                                            [res_ndestroy(NULL);])])
 AC_SEARCH_LIBS(res_ndestroy, resolv,
         AC_DEFINE(HAVE_RES_NDESTROY, 1,
         [Define to 1 if you have the `res_ndestroy()' function.]))
-AC_SEARCH_LIBS(__res_ninit, resolv,
-        AC_DEFINE(HAVE_RES_NINIT, 1,
-        [Define to 1 if you have the `__res_ninit()' function.]))
-AC_SEARCH_LIBS(__res_ndestroy, resolv,
-        AC_DEFINE(HAVE_RES_NDESTROY, 1,
-        [Define to 1 if you have the `__res_ndestroy()' function.]))
- 
+
 m4_rename_force([saved_AC_LANG_CALL], [AC_LANG_CALL])
 AC_CHECK_LIB(idn, idn_free)
 AC_CHECK_LIB(rt, nanosleep)
@@ -236,11 +258,6 @@ AC_PROG_LN_S
 AC_CHECK_PROG(miltertest, miltertest, "yes", "no")
 AC_SUBST(ac_aux_dir)
 
-AC_ARG_WITH([wall],
-	AC_HELP_STRING([--with-wall], [(no default)]),
-	CC="gcc -Wall",)
-
-
 #
 # See if we will need -lresolv
 #
@@ -296,18 +313,19 @@ AC_SUBST(SQL_BACKEND)
 AC_DEFINE_UNQUOTED(SQL_BACKEND, "$SQL_BACKEND", [default SQL back-end])
 
 AC_ARG_WITH([spf],
-	AC_HELP_STRING([--with-spf], [enable SPF checking]),
+	AS_HELP_STRING([--with-spf], [enable SPF checking]),
 	AC_DEFINE(WITH_SPF, 1, [Define to 1 if you want SPF support.]),
 	[])
 
 AC_ARG_WITH([spf2-include],
-	AC_HELP_STRING([--with-spf2-include], [path to libspf2 includes]),
+	AS_HELP_STRING([--with-spf2-include], [path to libspf2 includes]),
 	SPF2_INCLUDE="$withval",
 	[])
 AC_ARG_WITH([spf2-lib],
-	AC_HELP_STRING([--with-spf2-lib], [path to libspf2 libraries]),
+	AS_HELP_STRING([--with-spf2-lib], [path to libspf2 libraries]),
 	SPF2_LIB="$withval",
 	[])
+
 use_spf="no"
 if test "x$SPF2_INCLUDE" != "x" -a "x$SPF2_LIB" != "x"
 then
@@ -326,7 +344,7 @@ then
 	AC_SEARCH_LIBS(SPF_server_new, spf2)
 fi
 
-AM_CONDITIONAL([USE_SPF], [test x"$use_spf" = x"yes"])
+AM_CONDITIONAL([TEST_SPF], [test x"$with_spf" = x"yes"])
 
 #
 # opendmarc
@@ -356,13 +374,6 @@ if test x"$enable_filter_tests" = x"yes" -a x"$miltertest" != x"yes"
 then
 	AC_MSG_ERROR([miltertest is required for filter tests])
 fi
-
-# whitelist debugging implemented on linux only
-AC_ARG_ENABLE([whitelist-debug],
-            AS_HELP_STRING([--enable-whitelist-debug],
-                           [debug DomainWhitelist (linux only)]),
-            AC_DEFINE(DEBUG_WHITELIST, 1, [Define to 1 if you want DomainWhitelist debugging.]),
-            [])
 
 AC_CHECK_HEADERS(math.h, [], [AC_MSG_FAILURE([missing header '$ac_header'])])
 AC_SEARCH_LIBS([floor], [m])
@@ -501,7 +512,7 @@ AC_SUBST([SYSCONFDIR])
 #
 # Generate files
 #
-AC_OUTPUT([ Makefile
+AC_CONFIG_FILES([ Makefile
 	contrib/Makefile
 	contrib/init/Makefile
 	contrib/init/generic/Makefile
@@ -513,7 +524,6 @@ AC_OUTPUT([ Makefile
 	contrib/spec/Makefile
 		contrib/spec/opendmarc.spec
 	db/Makefile
-	docs/Makefile
 	libopendmarc/Makefile
 	libopendmarc/tests/Makefile
 	libopendmarc/tests/testfiles/Makefile
@@ -534,5 +544,5 @@ AC_OUTPUT([ Makefile
 		reports/opendmarc-reports
 		reports/opendmarc-reports.8
 	])
-
+AC_OUTPUT()
 # @end1
