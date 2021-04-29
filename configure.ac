@@ -31,7 +31,7 @@ m4_define([VERSION_PATCH], 0)
 #
 
 m4_define([LIBVERSION_CURRENT], 2)
-m4_define([LIBVERSION_REVISION], 2)
+m4_define([LIBVERSION_REVISION], 3)
 m4_define([LIBVERSION_AGE], 0)
 
 #
