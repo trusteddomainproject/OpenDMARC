@@ -100,7 +100,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 		*++bp = '.';
 	*++bp = '\0';
 	/* 
-	 * Make user host does not begin with a dot.
+	 * Make sure host does not begin with a dot.
 	 */
 	bp = hbuf;
 	if (*bp == '.')
@@ -165,6 +165,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 		GETSHORT(l, cp);
 		if (type == T_CNAME)
 		{
+			/* CNAME; walk past the expanded name and continue */
 			char cname[MAXDNSHOSTNAME + 1];
 
 			k = dn_expand((u_char *) &a_buf, eom, cp,
