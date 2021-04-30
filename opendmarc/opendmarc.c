@@ -565,14 +565,6 @@ dmarcf_parse_received_spf(char *str, char *envdomain)
 		}
 	}
 
-	{
-		FILE *f;
-
-		f = fopen("/tmp/msk", "w");
-		fprintf(f, "%s\n%s\n", spf_envdomain, envdomain);
-		fclose(f);
-	}
-	
 	if (strcasecmp(identity, "mailfrom") != 0 ||
             strcasecmp(spf_envdomain, envdomain) != 0)
 	{
