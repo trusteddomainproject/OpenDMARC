@@ -205,6 +205,7 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 	int	quotes[OPENDMARC_MAX_QUOTES + 1];
 	int	numquotes = 0;
 	size_t  len;
+	int indqoute = 0;
 
 	if (raw == NULL)
 		return NULL;
@@ -242,10 +243,32 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 				continue;
 			}
 		}
+		/*
+		 * handle quoted-pair inside quoted-string (see 3.2.4 in RFC5322)
+		 * Prevents "From: "\"Foo, Inc.\"" <a@a.com>" from breaking.
+		 */
+		if (indqoute  && *cp == '\\' )
+		{
+			++cp;
+			if (*cp == '\0')
+				break;
+			if ((*cp == '"') || (*cp == '\\' ))
+			{
+				*cp = ' ';
+				continue;
+			}
+		}
 		if (*cp == '"' || *cp == '\'' || *cp == '(')
 		{
 			if (*cp == '(')
 				*cp = ')';
+			else if (*cp == '"')
+			{
+				if (!indqoute)
+					indqoute = 1;
+				else if (*cp == quotes[numquotes -1])
+					indqoute = 0;
+			}
 			if (numquotes == 0)
 			{
 				quotes[numquotes] = *cp;
