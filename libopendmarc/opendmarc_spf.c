@@ -1466,7 +1466,7 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 				char **	app;
 				char 	abuf[BUFSIZ];
 
-				if (vp == NULL || split == SPLIT_SLASH)
+				if (strcasecmp(SPF_SP, "a") == 0 && (vp == NULL || split == SPLIT_SLASH))
 				{
 
 					/*
