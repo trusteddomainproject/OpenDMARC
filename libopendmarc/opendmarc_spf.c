@@ -18,6 +18,8 @@
 # include <opendmarc_strl.h>
 #endif /* USE_DMARCSTRL_H */
 
+#include <stdarg.h>
+
 # include "dmarc.h"
 
 #if WITH_SPF
@@ -271,7 +273,7 @@ opendmarc_spf_status_to_msg(SPF_CTX_T *spfctx, int status)
 		break;
 #define SPF_RETURN_DASH_FORCED_HARD_FAIL    (9)
 	    case SPF_RETURN_DASH_FORCED_HARD_FAIL:
-		r = "Required 'A' bu no 'A' records with -a specified";
+		r = "Required 'A' but no 'A' records with -a specified";
 		break;
 #define SPF_RETURN_A_BUT_BAD_SYNTAX     (10)
 	    case SPF_RETURN_A_BUT_BAD_SYNTAX:
@@ -293,16 +295,16 @@ opendmarc_spf_status_to_msg(SPF_CTX_T *spfctx, int status)
 	    case SPF_RETURN_REDIRECT_NO_DOMAIN:
 		r = "'REDIRECT' Domain Lookup Failed";
 		break;
-#define SPF_RETURN_DASH_ALL_HARD_FAIL   (15)
-	    case SPF_RETURN_DASH_ALL_HARD_FAIL:
+#define SPF_RETURN_FAIL   (15)
+	    case SPF_RETURN_FAIL:
 		r = "Hard Fail: Reject";
 		break;
-#define SPF_RETURN_TILDE_ALL_SOFT_FAIL  (16)
-	    case SPF_RETURN_TILDE_ALL_SOFT_FAIL:
+#define SPF_RETURN_SOFTFAIL  (16)
+	    case SPF_RETURN_SOFTFAIL:
 		r = "Soft Fail: Subject to Policy";
 		break;
-#define SPF_RETURN_QMARK_ALL_NEUTRAL    (17)
-	    case SPF_RETURN_QMARK_ALL_NEUTRAL:
+#define SPF_RETURN_NEUTRAL    (17)
+	    case SPF_RETURN_NEUTRAL:
 		r = "Neutral Fail: Subject to Policy";
 		break;
 #define SPF_RETURN_UNKNOWN_KEYWORD      (18)
@@ -393,13 +395,13 @@ opendmarc_spf_status_to_pass(int status, int none_pass)
 	    case SPF_RETURN_REDIRECT_NO_DOMAIN:
 		r = 0;
 		break;
-	    case SPF_RETURN_DASH_ALL_HARD_FAIL:
+	    case SPF_RETURN_FAIL:
 		r = 0;
 		break;
-	    case SPF_RETURN_TILDE_ALL_SOFT_FAIL:
+	    case SPF_RETURN_SOFTFAIL:
 		r = -1;
 		break;
-	    case SPF_RETURN_QMARK_ALL_NEUTRAL:
+	    case SPF_RETURN_NEUTRAL:
 		r = 1;
 		break;
 	    case SPF_RETURN_UNKNOWN_KEYWORD:
@@ -1234,6 +1236,26 @@ opendmarc_spf_macro_expand(SPF_CTX_T *spfctx, char *str, char *buf, size_t bufle
 }
 
 
+/**************************************************************
+** __xbuf_append - append multiple arguments to buf
+**
+** Arguments:
+**	buf			-- buffer to write to
+**	buf_len	-- size of buffer
+**	...				-- NULL-terminated list of const char * that should be appended
+*/
+static void __strlcat_multi(char *buf, size_t buf_len, ...)
+{
+	va_list ap;
+	const char *curr = NULL;
+	va_start(ap, buf_len);
+	while (NULL != (curr = va_arg(ap, const char *))) {
+		(void) strlcat(buf, curr, buf_len);
+	}
+}
+/* define a macro to avoid forgetting the final NULL */
+#define strlcat_multi(buf, buf_len, ...) __strlcat_multi(buf, buf_len, __VA_ARGS__, NULL)
+
 /***************************************************************
 ** libspf_parse -- parse the record
 **
@@ -1258,6 +1280,9 @@ typedef struct {
 	char *sp;
 	char *ep;
 	char *esp;
+	char redirect[MAXDNSHOSTNAME];
+	char prefix;
+	int result;
 } SPF_STACK_T;
 
 #define SPF_SP  (stack[s].sp)
@@ -1271,7 +1296,6 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 	char *vp	= NULL;
 	int   i;
 	size_t len;
-	int	prefix;
 	u_long ip	= 0;
 	int split	= 0;
 #define SPLIT_COLON (1)
@@ -1330,6 +1354,7 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 	SPF_SP  = stack[s].spf;
 	SPF_EP  = stack[s].spf + strlen(stack[s].spf);
 	SPF_ESP = stack[s].spf - 1;
+	stack[s].result = SPF_RETURN_UNDECIDED;
 	up = TRUE;
 
 	while (s >= 0)
@@ -1338,8 +1363,7 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 		{
 			(void) memset(xbuf, '\0', xbuf_len);
 			(void) strlcpy(xbuf, stack[s].domain, xbuf_len);
-			(void) strlcat(xbuf, ": ", xbuf_len);
-			(void) strlcat(xbuf, stack[s].spf, xbuf_len);
+			strlcat_multi(xbuf, xbuf_len, ": ", stack[s].spf);
 			PUSHLINE
 		}
 
@@ -1351,45 +1375,160 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 				PUSHLINE
 				return spfctx->status = SPF_RETURN_TOO_MANY_DNS_QUERIES;
 			}
-			if (SPF_ESP >= SPF_EP-1)
-			{
-				--s;
-				up = FALSE;
-				break;
-			}
-			SPF_SP = SPF_ESP + 1;
 
-			while (isspace((int)*SPF_SP) && *SPF_SP != '\0' && SPF_SP < SPF_EP)
-				++SPF_SP;
-			if (*SPF_SP == '\0' || SPF_SP >= SPF_EP)
-			{
-				--s;
-				up = FALSE;
-				break;
+			if (stack[s].result != SPF_RETURN_UNDECIDED) {
+
+				/* apply qualifier if we had a match or error in the last iteration */
+				switch (stack[s].result) {
+					/* on match, check qualfier */
+					case SPF_RETURN_OK_PASSED:
+						switch(stack[s].prefix) {
+							case '~':
+								strlcat_multi(xbuf, xbuf_len, " (qualifier '~') --> ", s == 0 ? "SOFTFAIL" : "NOMATCH");
+								stack[s].result = SPF_RETURN_SOFTFAIL;
+								break;
+							case '-':
+								strlcat_multi(xbuf, xbuf_len, " (qualifier '-') --> ", s == 0 ? "FAIL" : "NOMATCH");
+								stack[s].result = SPF_RETURN_FAIL;
+								break;
+							case '?':
+								strlcat_multi(xbuf, xbuf_len, " (qualifier '?') --> ", s == 0 ? "NEUTRAL" : "NOMATCH");
+								stack[s].result = SPF_RETURN_NEUTRAL;
+								break;
+							case '+':
+							case '\0':
+								strlcat_multi(xbuf, xbuf_len, " (qualifier ", stack[s].result == '\0' ? "<none>" : "'+'", ") --> ", s == 0 ? "PASS" : "MATCH");
+								stack[s].result = SPF_RETURN_OK_PASSED;
+								break;
+						}
+				}
+
+				/* evaluate result in context of an include:
+				 *   pass -> "match"; also apply qualifiers of the include,
+				 *   fail/neutral/softfail -> "nomatch",
+				 *   tmperror -> tmperror,
+				 *   permerror -> permerror
+				 **/
+				while (s > 0 && stack[s].result != SPF_RETURN_UNDECIDED) {
+					int result = stack[s].result;
+					s--;
+					up = FALSE;
+					switch (result) {
+						case SPF_RETURN_OK_PASSED:
+							switch(stack[s].prefix) {
+								case '~':
+									(void) strlcat(xbuf, " include: SOFTFAIL", xbuf_len);
+									stack[s].result = SPF_RETURN_SOFTFAIL;
+									break;
+								case '-':
+									(void) strlcat(xbuf, " include: FAIL", xbuf_len);
+									stack[s].result = SPF_RETURN_FAIL;
+									break;
+								case '?':
+									(void) strlcat(xbuf, " include: NEUTRAL", xbuf_len);
+									stack[s].result = SPF_RETURN_NEUTRAL;
+									break;
+								case '+':
+								case '\0':
+									(void) strlcat(xbuf, " include: PASS", xbuf_len);
+									stack[s].result = SPF_RETURN_OK_PASSED;
+									break;
+								default:
+									(void) strlcat(xbuf, " include: INTERNAL ERROR", xbuf_len);
+									stack[s].result = SPF_RETURN_INTERNAL_ERROR;
+									break;
+							}
+							break;
+						case SPF_RETURN_FAIL:
+						case SPF_RETURN_SOFTFAIL:
+						case SPF_RETURN_NEUTRAL:
+							(void) strlcat(xbuf, " include: NOMATCH", xbuf_len);
+							/* "no match" --> do not change the UNDECIDED result
+							 *  and continue processing where the include left off */
+							break;
+						default:
+							/* all other error (!) cases (temperror/permerror) are directly returned as they are */
+							(void) strlcat(xbuf, " include: PROPAGATE ERROR", xbuf_len);
+							stack[s].result = result;
+              break;
+					}
+				}
+
+				/* if we have a result at the toplevel, return it, otherwise,
+				 * continue where we stopped */
+				if (s == 0 && stack[s].result != SPF_RETURN_UNDECIDED) {
+					PUSHLINE
+					return spfctx->status = stack[s].result;
+				}
 			}
 
-			/* find the next space delimit point */
-			SPF_ESP = SPF_SP;
-			while(! isspace((int)*SPF_ESP) && *SPF_ESP != '\0' && SPF_ESP < SPF_EP)
-				++SPF_ESP;
-			if (SPF_ESP > SPF_EP)
-			{
-				--s;
-				up = FALSE;
-				break;
+			int reached_end = FALSE;
+			if (SPF_ESP >= SPF_EP-1) {
+				reached_end = TRUE;
+			} else {
+				SPF_SP = SPF_ESP + 1;
+				while (isspace((int)*SPF_SP) && *SPF_SP != '\0' && SPF_SP < SPF_EP)
+					++SPF_SP;
+				if (*SPF_SP == '\0' || SPF_SP >= SPF_EP) {
+					reached_end = TRUE;
+				} else {
+					SPF_ESP = SPF_SP;
+					while(! isspace((int)*SPF_ESP) && *SPF_ESP != '\0' && SPF_ESP < SPF_EP)
+						++SPF_ESP;
+					if (SPF_ESP > SPF_EP) {
+						reached_end = TRUE;
+					} else {
+						*SPF_ESP = '\0';
+					}
+				}
 			}
-			*SPF_ESP = '\0';
+
+			if (reached_end) {
+				if (stack[s].redirect[0] != '\0') {
+					char *  spf_ret;
+					char	spfbuf[SPF_MAX_SPF_RECORD_LEN];
+					char	cname[MAXDNSHOSTNAME];
+					int	reply;
+					/* redirect */
+					spf_ret = opendmarc_spf_dns_get_record(stack[s].redirect, &reply, spfbuf, sizeof spfbuf, cname, sizeof cname, TRUE);
+					if (spf_ret == NULL)
+					{
+						strlcat_multi(xbuf, xbuf_len, vp, " lacked an SPF record: FAILED");
+						PUSHLINE
+						stack[s].result = SPF_RETURN_BAD_SYNTAX_REDIRECT;
+					}
+					else
+					{
+						(void) memset(stack[s].domain, '\0', MAXDNSHOSTNAME);
+						(void) strlcpy(stack[s].domain, stack[s].redirect, MAXDNSHOSTNAME);
+						(void) memset(stack[s].spf, '\0', SPF_MAX_SPF_RECORD_LEN);
+						(void) strlcpy(stack[s].spf, spfbuf, SPF_MAX_SPF_RECORD_LEN);
+						SPF_SP  = stack[s].spf;
+						SPF_EP  = stack[s].spf + strlen(stack[s].spf);
+						SPF_ESP = stack[s].spf - 1;
+						stack[s].result = SPF_RETURN_UNDECIDED;
+						up = TRUE;
+
+						/* start parsing loop from beginning */
+						break;
+					}
+				} else {
+					--s;
+					up = FALSE;
+					break;
+				}
+			}
 
 			/* show each step */
 			(void) memset(xbuf, '\0', xbuf_len);
 			(void) strlcpy(xbuf, stack[s].domain, xbuf_len);
 			(void) strlcat(xbuf, ": ", xbuf_len);
 
-			/* ignore the qualifiers for now */
-			prefix = '\0';
+			/* remember current qualifier for next iteration to decide handling of a MATCH */
+			stack[s].prefix = '\0';
 			if (*SPF_SP == '+' || *SPF_SP == '?' || *SPF_SP == '~' || *SPF_SP == '-')
 			{
-				prefix = *SPF_SP;
+				stack[s].prefix = *SPF_SP;
 				++SPF_SP;
 			}
 
@@ -1430,22 +1569,21 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 				{
 					(void) strlcat(xbuf, " Expected \"v=spf1\": FAILED", xbuf_len);
 					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_SYNTAX_VERSION;
+					stack[s].result = SPF_RETURN_BAD_SYNTAX_VERSION;
 				}
-				/* version was okay */
-				continue;
 			}
-			if (strncasecmp(SPF_SP, "spf2.0", 6) == 0)
-				continue;
-
-			if (strcasecmp("a", SPF_SP) == 0 || strcasecmp("ip4", SPF_SP) == 0)
+			else if (strncasecmp(SPF_SP, "spf2.0", 6) == 0)
+			{
+				/* accept deprecated syntax */
+			}
+			else if (strcasecmp("a", SPF_SP) == 0 || strcasecmp("ip4", SPF_SP) == 0)
 			{
 				char **	ary = NULL;
 				int	ary_len = 0;
 				char **	app;
 				char 	abuf[BUFSIZ];
 
-				if (vp == NULL || split == SPLIT_SLASH)
+				if (strcasecmp(SPF_SP, "a") == 0 && (vp == NULL || split == SPLIT_SLASH))
 				{
 
 					/*
@@ -1458,42 +1596,34 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 					ary = opendmarc_spf_dns_lookup_a(stack[s].domain, ary, &ary_len);
 					if (ary != NULL)
 					{
-						for (app = ary; *app != NULL; ++app)
+						int match = FALSE;
+						for (app = ary; *app != NULL && !match; ++app)
 						{
 							(void) memset(abuf, '\0', sizeof abuf);
 							(void) strlcpy(abuf, *app, sizeof abuf);
 							if (vp != NULL)
 							{
-								(void) strlcat(abuf, "/", sizeof abuf);
-								(void) strlcat(abuf, vp, sizeof abuf);
+								strlcat_multi(abuf, sizeof abuf, "/", vp);
 							}
 							spfctx->iplist = opendmarc_util_pushnargv(abuf, spfctx->iplist, &(spfctx->ipcount));
 							if (opendmarc_spf_cidr_address(ip, abuf) == TRUE)
 							{
-								(void) strlcat(xbuf, " ", xbuf_len);
-								(void) strlcat(xbuf, ipnum, xbuf_len);
-								(void) strlcat(xbuf, " was found in ", xbuf_len);
-								(void) strlcat(xbuf, abuf, xbuf_len);
-								(void) strlcat(xbuf, ": PASSED", xbuf_len);
-								PUSHLINE
+								strlcat_multi(xbuf, xbuf_len, " ", ipnum, " was found in ", abuf, ": MATCH");
 								ary = opendmarc_util_freenargv(ary, &ary_len);
-								return spfctx->status = SPF_RETURN_OK_PASSED;
+								stack[s].result = SPF_RETURN_OK_PASSED;
+								match = TRUE;
 							}
 						}
 						ary = opendmarc_util_freenargv(ary, &ary_len);
-						continue;
 					}
-					(void) strlcat(xbuf, " ", xbuf_len);
-					(void) strlcat(xbuf, stack[s].domain, xbuf_len);
-					(void) strlcat(xbuf, " had no A records: FAILED", xbuf_len);
-					if (s == 0 && prefix == '-')
+					else
 					{
-						return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
+						strlcat_multi(xbuf, xbuf_len, " ", stack[s].domain, " had no A records: FAILED");
+						PUSHLINE
+						stack[s].result = SPF_RETURN_A_BUT_NO_A_RECORD;
 					}
-					PUSHLINE
-					return spfctx->status = SPF_RETURN_A_BUT_NO_A_RECORD;
 				}
-				if (strcasecmp("a", SPF_SP) == 0 && vp != NULL)
+				else if (strcasecmp("a", SPF_SP) == 0 && vp != NULL)
 				{
 					char *  slashp  = NULL;
 					char ** a_ary   = NULL;
@@ -1505,71 +1635,52 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 					a_ary = (char **)opendmarc_spf_dns_lookup_a(a_abuf, a_ary, &a_ary_len);
 					if (a_ary == NULL)
 					{
-						(void) strlcat(xbuf, " ", xbuf_len);
-						(void) strlcat(xbuf, vp, xbuf_len);
-						(void) strlcat(xbuf, " had no A records: FAILED", xbuf_len);
-						if (s == 0 && prefix == '-')
-						{
-							return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-						}
+						strlcat_multi(xbuf, xbuf_len, " ", vp, "had no A records: FAILED");
 						PUSHLINE
-						return spfctx->status = SPF_RETURN_A_BUT_NO_A_RECORD;
+						stack[s].result = SPF_RETURN_A_BUT_NO_A_RECORD;
 					}
-
-					for (a_app = a_ary; *a_app != NULL; ++a_app)
+					else
 					{
-						(void) memset(a_abuf, '\0', sizeof a_abuf);
-						(void) strlcpy(a_abuf, *a_app, sizeof a_abuf);
-						if (slashp != NULL)
+						int match = FALSE;
+						for (a_app = a_ary; *a_app != NULL && !match; ++a_app)
 						{
-							(void) strlcat(a_abuf, "/", sizeof a_abuf);
-							(void) strlcat(a_abuf, slashp+1, sizeof a_abuf);
+							(void) memset(a_abuf, '\0', sizeof a_abuf);
+							(void) strlcpy(a_abuf, *a_app, sizeof a_abuf);
+							if (slashp != NULL)
+							{
+								strlcat_multi(a_abuf, sizeof a_abuf, "/", slashp+1);
+							}
+							spfctx->iplist = opendmarc_util_pushnargv(a_abuf, spfctx->iplist, &(spfctx->ipcount));
+							if (opendmarc_spf_cidr_address(ip, a_abuf) == TRUE)
+							{
+								strlcat_multi(xbuf, xbuf_len, " ", ipnum, " was found: MATCH");
+								a_ary = opendmarc_util_freenargv(a_ary, &ary_len);
+								stack[s].result = SPF_RETURN_OK_PASSED;
+								match = TRUE;
+							}
 						}
-						spfctx->iplist = opendmarc_util_pushnargv(a_abuf, spfctx->iplist, &(spfctx->ipcount));
-						if (opendmarc_spf_cidr_address(ip, a_abuf) == TRUE)
-						{
-							(void) strlcat(xbuf, " ", xbuf_len);
-							(void) strlcat(xbuf, ipnum, xbuf_len);
-							(void) strlcat(xbuf, " was found: PASSED", xbuf_len);
-							PUSHLINE
-							a_ary = opendmarc_util_freenargv(a_ary, &ary_len);
-							return spfctx->status = SPF_RETURN_OK_PASSED;
-						}
-						if (s == 0 && prefix == '-')
-						{
-							return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-						}
+						a_ary = opendmarc_util_freenargv(a_ary, &ary_len);
 					}
-					a_ary = opendmarc_util_freenargv(a_ary, &ary_len);
-					continue;
 				}
-				if (strcasecmp("ip4", SPF_SP) == 0 && vp != NULL)
+				else if (strcasecmp("ip4", SPF_SP) == 0 && vp != NULL)
 				{
 					spfctx->iplist = opendmarc_util_pushnargv(vp, spfctx->iplist, &(spfctx->ipcount));
 					ret = opendmarc_spf_cidr_address(ip, vp);
 					if (ret == TRUE)
 					{
-						(void) strlcat(xbuf, " ", xbuf_len);
-						(void) strlcat(xbuf, ipnum, xbuf_len);
-						(void) strlcat(xbuf, " was found: PASSED", xbuf_len);
-						PUSHLINE
-						return spfctx->status = SPF_RETURN_OK_PASSED;
+						strlcat_multi(xbuf, xbuf_len, " ", ipnum, " was found: MATCH");
+						stack[s].result = SPF_RETURN_OK_PASSED;
 					}
-					if (s == 0 && prefix == '-')
-					{
-						return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-					}
-					continue;
 				}
-				if (vp == NULL)
+				else if (vp == NULL)
+				{
 					vp = "<nil>";
-				(void) strlcat(xbuf, " ", xbuf_len);
-				(void) strlcat(xbuf, vp, xbuf_len);
-				(void) strlcat(xbuf, " Badly formed: FAILED", xbuf_len);
-				PUSHLINE
-				return spfctx->status = SPF_RETURN_A_BUT_BAD_SYNTAX;
+					strlcat_multi(xbuf, xbuf_len, " ", vp, " Badly formed: FAILED");
+					PUSHLINE
+					stack[s].result = SPF_RETURN_A_BUT_BAD_SYNTAX;
+				}
 			}
-			if (strcasecmp("mx", SPF_SP) == 0)
+			else if (strcasecmp("mx", SPF_SP) == 0)
 			{
 				char **	ary = NULL;
 				int	ary_len = 0;
@@ -1584,166 +1695,107 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 				ary = opendmarc_spf_dns_lookup_mx(mxbuf, ary, &ary_len);
 				if (ary == NULL)
 				{
-					(void) strlcat(xbuf, mxbuf, xbuf_len);
-					(void) strlcat(xbuf, ": MX listed but no MX records", xbuf_len);
-					if (s == 0 && prefix == '-')
-					{
-						return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-					}
+					strlcat_multi(xbuf, xbuf_len, mxbuf, ": MX listed but no MX records");
 					PUSHLINE
-					continue;
 				}
-				for (app = ary; *app != NULL; ++app)
+				else
 				{
-					spfctx->iplist = opendmarc_util_pushnargv(*app, spfctx->iplist, &(spfctx->ipcount));
-					if (opendmarc_spf_cidr_address(ip, *app) == TRUE)
+					int match = FALSE;
+					for (app = ary; *app != NULL && !match; ++app)
 					{
-						(void) strlcat(xbuf, " ", xbuf_len);
-						(void) strlcat(xbuf, ipnum, xbuf_len);
-						(void) strlcat(xbuf, " was found: PASSED", xbuf_len);
-						PUSHLINE
-						ary = opendmarc_util_freenargv(ary, &ary_len);
-						return spfctx->status = SPF_RETURN_OK_PASSED;
+						spfctx->iplist = opendmarc_util_pushnargv(*app, spfctx->iplist, &(spfctx->ipcount));
+						if (opendmarc_spf_cidr_address(ip, *app) == TRUE)
+						{
+							strlcat_multi(xbuf, xbuf_len, " ", ipnum, " was found in MX record: MATCH");
+							ary = opendmarc_util_freenargv(ary, &ary_len);
+							stack[s].result = SPF_RETURN_OK_PASSED;
+							match = TRUE;
+						}
 					}
+					ary = opendmarc_util_freenargv(ary, &ary_len);
 				}
-				ary = opendmarc_util_freenargv(ary, &ary_len);
-				if (s == 0 && prefix == '-')
-				{
-					return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-				}
-				continue;
 			}
-			if (strcasecmp("include", SPF_SP) == 0)
+			else if (strcasecmp("include", SPF_SP) == 0)
 			{
 				char	*spf_ret;
-				char	spfbuf[SPF_MAX_SPF_RECORD_LEN];
-				char	cname[MAXDNSHOSTNAME];
 				char	query[MAXDNSHOSTNAME];
 				int	reply;
+				char	cname[128];
+				char	spfbuf[BUFSIZ];
 
 				if (vp == NULL || strlen(vp) == 0)
 				{
 					(void) strlcat(xbuf, "\"include:\" Lacked a domain specification.", xbuf_len);
-					if (s == 0 && prefix == '-')
-					{
-						return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-					}
 					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_SYNTAX_INCLUDE;
+					stack[s].result = SPF_RETURN_BAD_SYNTAX_INCLUDE;
 				}
-				(void) memset(query, '\0', sizeof query);
-				(void) strlcpy(query, vp, sizeof query);
-				(void) memset(cname, '\0', sizeof cname);
-				(void) memset(spfbuf, '\0', sizeof spfbuf);
-				++dns_count;
-				spf_ret = opendmarc_spf_dns_get_record(query, &reply, spfbuf, sizeof spfbuf, cname, sizeof cname, TRUE);
-				if (spf_ret == NULL)
+				else
 				{
-					(void) strlcat(xbuf, vp, xbuf_len);
-					(void) strlcat(xbuf, " Lacked lacked an SPF record: FAILED", xbuf_len);
-					if (s == 0 && prefix == '-')
+					(void) memset(query, '\0', sizeof query);
+					(void) strlcpy(query, vp, sizeof query);
+					(void) memset(cname, '\0', sizeof cname);
+					(void) memset(spfbuf, '\0', sizeof spfbuf);
+					++dns_count;
+					spf_ret = opendmarc_spf_dns_get_record(query, &reply, spfbuf, sizeof spfbuf, cname, sizeof cname, TRUE);
+					if (spf_ret == NULL)
 					{
-						return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-					}
-					PUSHLINE
-					return spfctx->status = SPF_RETURN_INCLUDE_NO_DOMAIN;
-				}
-				if (s+1 >= MAX_SPF_STACK_DEPTH)
-				{
-					char nbuf[16];
-
-					(void) strlcat(xbuf, stack[s].domain, xbuf_len);
-					(void) strlcat(xbuf, " Too many levels of includes, ", xbuf_len);
-					(void) opendmarc_util_ultoa(MAX_SPF_STACK_DEPTH, nbuf, sizeof nbuf);
-					(void) strlcat(xbuf, nbuf, xbuf_len);
-					(void) strlcat(xbuf, " Max", xbuf_len);
-					if (s == 0 && prefix == '-')
-					{
-						return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-					}
-					PUSHLINE
-					continue;
-				}
-				if (s > 0)
-				{
-					for (i = 0; i < s; i++)
-					{
-						if (strcasecmp(vp, stack[i].domain) == 0)
-							break;
-					}
-					if (i < s)
-					{
-						(void) strlcat(xbuf, query, xbuf_len);
-						(void) strlcat(xbuf, " Include LOOP detected and supressed", xbuf_len);
+						strlcat_multi(xbuf, xbuf_len, vp, " lacked an SPF record: FAILED");
 						PUSHLINE
-						continue;
+						stack[s].result = SPF_RETURN_INCLUDE_NO_DOMAIN;
 					}
-				}
-				s += 1;
-				up = TRUE;
-				(void) memset(stack[s].domain, '\0', MAXDNSHOSTNAME);
-				(void) strlcpy(stack[s].domain, vp, MAXDNSHOSTNAME);
-				(void) memset(stack[s].spf, '\0', SPF_MAX_SPF_RECORD_LEN);
-				(void) strlcpy(stack[s].spf, spfbuf, SPF_MAX_SPF_RECORD_LEN);
-				SPF_SP  = stack[s].spf;
-				SPF_EP  = stack[s].spf + strlen(stack[s].spf);
-				SPF_ESP = stack[s].spf - 1;
-				if (s == 0 && prefix == '-')
-				{
-					return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-				}
-				break;
-			}
-			if (strcasecmp("all", SPF_SP) == 0)
-			{
-				char p[2];
-
-				p[0] = prefix;
-				p[1] = '\0';
-				(void) memset(xbuf, '\0', xbuf_len);
-				(void) strlcpy(xbuf, stack[s].domain, xbuf_len);
-				(void) strlcat(xbuf, ": ", xbuf_len);
-				(void) strlcat(xbuf, p, xbuf_len);
-				(void) strlcat(xbuf, "all, status=", xbuf_len);
-
-				if (s == 0)
-				{
-					if (prefix == '-')
+					else if (s+1 >= MAX_SPF_STACK_DEPTH)
 					{
-						(void) strlcat(xbuf, " ", xbuf_len);
-						(void) strlcat(xbuf, ipnum, xbuf_len);
-						(void) strlcat(xbuf, " Not found, so: FAILED", xbuf_len);
+						char nbuf[16];
+						(void) opendmarc_util_ultoa(MAX_SPF_STACK_DEPTH, nbuf, sizeof nbuf);
+						strlcat_multi(xbuf, xbuf_len, stack[s].domain, " Too many levels of includes, ", nbuf, " Max");
 						PUSHLINE
-						return spfctx->status = SPF_RETURN_DASH_ALL_HARD_FAIL;
-					}
-					if (prefix == '~')
-					{
-						(void) strlcat(xbuf, " ", xbuf_len);
-						(void) strlcat(xbuf, ipnum, xbuf_len);
-						(void) strlcat(xbuf, " Not found, so: SOFT-FAILED", xbuf_len);
-						PUSHLINE
-						return spfctx->status = SPF_RETURN_TILDE_ALL_SOFT_FAIL;
-					}
-					if (prefix == '?')
-					{
-						(void) strlcat(xbuf, " ", xbuf_len);
-						(void) strlcat(xbuf, ipnum, xbuf_len);
-						(void) strlcat(xbuf, " Not found, but: NEUTRAL", xbuf_len);
-						PUSHLINE
-						return spfctx->status = SPF_RETURN_QMARK_ALL_NEUTRAL;
 					}
 					else
 					{
-						(void) strlcat(xbuf, " ", xbuf_len);
-						(void) strlcat(xbuf, ipnum, xbuf_len);
-						(void) strlcat(xbuf, " Not found, but: PASS", xbuf_len);
-						PUSHLINE
-						return spfctx->status = SPF_RETURN_OK_PASSED;
+						i = 0;
+						if (s > 0) {
+							for (i = 0; i < s; i++)
+							{
+								if (strcasecmp(vp, stack[i].domain) == 0)
+									break;
+							}
+						}
+
+						if (i < s)
+						{
+							strlcat_multi(xbuf, xbuf_len, query, " Include LOOP detected and suppressed");
+							PUSHLINE
+						}
+						else
+						{
+							s += 1;
+							up = TRUE;
+							(void) memset(stack[s].domain, '\0', MAXDNSHOSTNAME);
+							(void) strlcpy(stack[s].domain, vp, MAXDNSHOSTNAME);
+							(void) memset(stack[s].spf, '\0', SPF_MAX_SPF_RECORD_LEN);
+							(void) strlcpy(stack[s].spf, spfbuf, SPF_MAX_SPF_RECORD_LEN);
+							(void) memset(stack[s].redirect, '\0', MAXDNSHOSTNAME);
+							SPF_SP  = stack[s].spf;
+							SPF_EP  = stack[s].spf + strlen(stack[s].spf);
+							SPF_ESP = stack[s].spf - 1;
+							stack[s].prefix = '\0';
+							stack[s].result = SPF_RETURN_UNDECIDED;
+
+							/* break out of inner record-parsing loop */
+							break;
+						}
 					}
 				}
-				continue;
 			}
-			if (strcasecmp("ip6", SPF_SP) == 0)
+			else if (strcasecmp("all", SPF_SP) == 0)
+			{
+
+				(void) memset(xbuf, '\0', xbuf_len);
+				(void) strlcpy(xbuf, stack[s].domain, xbuf_len);
+				strlcat_multi(xbuf, xbuf_len, ": ", ipnum, " matched by all: MATCH");
+				stack[s].result = SPF_RETURN_OK_PASSED;
+			}
+			else if (strcasecmp("ip6", SPF_SP) == 0)
 			{
 				int ret;
 				/*
@@ -1754,30 +1806,22 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 				ret = opendmarc_spf_ipv6_cidr_check(spfctx->ip_address, vp);
 				if (ret == TRUE)
 				{
-					return spfctx->status = SPF_RETURN_OK_PASSED;
+					strlcat_multi(xbuf, xbuf_len, " ", ipnum, " was found: MATCH");
+					stack[s].result = spfctx->status = SPF_RETURN_OK_PASSED;
 				}
-				if (s == 0 && prefix == '-')
-				{
-					return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-				}
-				continue;
 			}
-			if (strcasecmp("ptr", SPF_SP) == 0)
+			else if (strcasecmp("ptr", SPF_SP) == 0)
 			{
 				int	good;
 
 				good = opendmarc_spf_ptr_domain(spfctx, vp);
 				if (good == TRUE)
 				{
-					return spfctx->status = SPF_RETURN_OK_PASSED;
+					strlcat_multi(xbuf, xbuf_len, ": ", ipnum, " matches ptr: ", vp, ": MATCH");
+					stack[s].result = SPF_RETURN_OK_PASSED;
 				}
-				if (s == 0 && prefix == '-')
-				{
-					return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
-				}
-				continue;
 			}
-			if (strcasecmp("exists", SPF_SP) == 0)
+			else if (strcasecmp("exists", SPF_SP) == 0)
 			{
 				char *	xp;
 				char **	ary	 = NULL;
@@ -1788,43 +1832,45 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 				{
 					(void) strlcpy(xbuf, "\"exists:\" Lacked a domain specification.", xbuf_len);
 					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_SYNTAX_EXISTS;
+					stack[s].result = SPF_RETURN_BAD_SYNTAX_EXISTS;
 				}
-				/* see http://old.openspf.org/macros.html for macros */
-				/* altavista.net uses +exists:CL.%{i}.FR.%{s}.HE.%{h}.null.spf.altavista.com */
-				xp = opendmarc_spf_macro_expand(spfctx, vp, xbuf, xbuf_len, TRUE);
-				if (xp == NULL)
+				else
 				{
-					(void) strlcpy(xbuf, "\"exists:\" record had syntactially bad macros:" , xbuf_len);
-					(void) strlcat(xbuf, vp, xbuf_len);
-					(void) strlcat(xbuf, ": FAILED", xbuf_len);
-					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_MACRO_SYNTAX;
+					/* see http://old.openspf.org/macros.html for macros */
+					/* altavista.net uses +exists:CL.%{i}.FR.%{s}.HE.%{h}.null.spf.altavista.com */
+					xp = opendmarc_spf_macro_expand(spfctx, vp, xbuf, xbuf_len, TRUE);
+					if (xp == NULL)
+					{
+						(void) strlcpy(xbuf, "\"exists:\" record had syntactially bad macros:" , xbuf_len);
+						strlcat_multi(xbuf, xbuf_len, vp, ": FAILED");
+						PUSHLINE
+						stack[s].result = SPF_RETURN_BAD_MACRO_SYNTAX;
+					}
+					else
+					{
+						++dns_count;
+						if (ary != NULL)
+							ary = opendmarc_util_freenargv(ary, &ary_len);
+						ary = opendmarc_spf_dns_lookup_a(xbuf, ary, &ary_len);
+						if (ary != NULL)
+						{
+							int match = FALSE;
+							for (app = ary; *app != NULL && !match; ++app)
+							{
+								if (strcmp(spfctx->ip_address, *app) == 0)
+								{
+									(void) strlcpy(xbuf, "\"exists:\" record lookup: ", xbuf_len);
+									strlcat_multi(xbuf, xbuf_len, vp, " existed: MATCH");
+									stack[s].result = SPF_RETURN_OK_PASSED;
+									match = TRUE;
+								}
+							}
+							ary = opendmarc_util_freenargv(ary, &ary_len);
+						}
+					}
 				}
-				++dns_count;
-				if (ary != NULL)
-					ary = opendmarc_util_freenargv(ary, &ary_len);
-				ary = opendmarc_spf_dns_lookup_a(xbuf, ary, &ary_len);
-				if (ary == NULL)
-				{
-					/* lookup failed */
-					if (prefix != '-')
-						continue;
-					(void) strlcpy(xbuf, "\"exists:\" record lookup: ", xbuf_len);
-					(void) strlcat(xbuf, vp, xbuf_len);
-					(void) strlcat(xbuf, ": FAILED", xbuf_len);
-					PUSHLINE
-					return spfctx->status = SPF_RETURN_NOT_EXISTS_HARDFAIL;
-				}
-				for (app = ary; *app != NULL; ++app)
-				{
-					if (strcmp(spfctx->ip_address, *app) == 0)
-						return spfctx->status = SPF_RETURN_OK_PASSED;
-				}
-				ary = opendmarc_util_freenargv(ary, &ary_len);
-				continue;
 			}
-			if (strcasecmp("exp", SPF_SP) == 0)
+			else if (strcasecmp("exp", SPF_SP) == 0)
 			{
 				char *	xp;
 
@@ -1832,83 +1878,65 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 				{
 					(void) strlcpy(xbuf, "\"exp:\" Lacked a domain specification.", xbuf_len);
 					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_SYNTAX_EXP;
+					stack[s].result = SPF_RETURN_BAD_SYNTAX_EXP;
 				}
-				xp = opendmarc_spf_macro_expand(spfctx, vp, xbuf, xbuf_len, FALSE);
-				if (xp == NULL)
+				else
 				{
-					(void) strlcpy(xbuf, "\"exists:\" record had syntactially bad macros:" , xbuf_len);
-					(void) strlcat(xbuf, vp, xbuf_len);
-					(void) strlcat(xbuf, ": FAILED", xbuf_len);
-					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_MACRO_SYNTAX;
+					xp = opendmarc_spf_macro_expand(spfctx, vp, xbuf, xbuf_len, FALSE);
+					if (xp == NULL)
+					{
+						(void) strlcpy(xbuf, "\"exists:\" record had syntactially bad macros:" , xbuf_len);
+						strlcat_multi(xbuf, xbuf_len, vp, ": FAILED");
+						PUSHLINE
+						stack[s].result = SPF_RETURN_BAD_MACRO_SYNTAX;
+					}
+					else
+					{
+						(void) memset(spfctx->exp_buf, '\0', sizeof spfctx->exp_buf);
+						(void) strlcpy(spfctx->exp_buf, xp, sizeof spfctx->exp_buf);
+						spfctx->did_get_exp = TRUE;
+					}
 				}
-				(void) memset(spfctx->exp_buf, '\0', sizeof spfctx->exp_buf);
-				(void) strlcpy(spfctx->exp_buf, xp, sizeof spfctx->exp_buf);
-				spfctx->did_get_exp = TRUE;
-				continue;
 			}
-			if (strcasecmp("redirect", SPF_SP) == 0)
+			else if (strcasecmp("redirect", SPF_SP) == 0)
 			{
 				/*
 				 * Some people think that redirect and include are the same.
 				 * Rather than fail due to that belief, there is really no harm
 				 * in treating them the same.
 				 */
-				int	reply;
 				char *	xp;
 				char	query[MAXDNSHOSTNAME];
-				char *  spf_ret;
-				char	cname[128];
-				char	spfbuf[BUFSIZ];
 
 				if (vp == NULL)
 				{
 					(void) strlcat(xbuf, " Lacked a domain specification: FAILED", xbuf_len);
 					PUSHLINE
-					return spfctx->status = SPF_RETURN_REDIRECT_NO_DOMAIN;
+					stack[s].result = SPF_RETURN_REDIRECT_NO_DOMAIN;
 				}
-				(void) memset(query, '\0', sizeof query);
-				xp = opendmarc_spf_macro_expand(spfctx, vp, query, sizeof query, TRUE);
-				if (xp == NULL)
+				else
 				{
-					(void) strlcpy(xbuf, "\"redirect:\" record had syntactially bad macros:" , xbuf_len);
-					(void) strlcat(xbuf, vp, xbuf_len);
-					(void) strlcat(xbuf, ": FAILED", xbuf_len);
-					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_MACRO_SYNTAX;
-				}
-				++dns_count;
-				spf_ret = opendmarc_spf_dns_get_record(query, &reply, spfbuf, sizeof spfbuf, cname, sizeof cname, TRUE);
-				if (spf_ret == NULL)
-				{
-					(void) strlcat(xbuf, vp, xbuf_len);
-					(void) strlcat(xbuf, " Lacked lacked an SPF record: FAILED", xbuf_len);
-					if (s == 0 && prefix == '-')
+					(void) memset(query, '\0', sizeof query);
+					xp = opendmarc_spf_macro_expand(spfctx, vp, query, sizeof query, TRUE);
+					if (xp == NULL)
 					{
-						return spfctx->status = SPF_RETURN_DASH_FORCED_HARD_FAIL;
+						(void) strlcpy(xbuf, "\"redirect:\" record had syntactially bad macros:" , xbuf_len);
+						strlcat_multi(xbuf, xbuf_len, vp, ": FAILED");
+						PUSHLINE
+						stack[s].result = SPF_RETURN_BAD_MACRO_SYNTAX;
 					}
-					PUSHLINE
-					return spfctx->status = SPF_RETURN_BAD_SYNTAX_REDIRECT;
+					else
+					{
+						++dns_count;
+						(void) strlcpy(stack[s].redirect, query, MAXDNSHOSTNAME);
+					}
 				}
-				(void) memset(stack[s].domain, '\0', MAXDNSHOSTNAME);
-				(void) strlcpy(stack[s].domain, vp, MAXDNSHOSTNAME);
-				(void) memset(stack[s].spf, '\0', SPF_MAX_SPF_RECORD_LEN);
-				(void) strlcpy(stack[s].spf, spfbuf, SPF_MAX_SPF_RECORD_LEN);
-				SPF_SP  = stack[s].spf;
-				SPF_EP  = stack[s].spf + strlen(stack[s].spf);
-				SPF_ESP = stack[s].spf - 1;
-				up = TRUE;
-				break;
 			}
-			if (strlen(SPF_SP) > 0)
+			else if (strlen(SPF_SP) > 0)
 			{
-				(void) strlcat(xbuf, "\"", xbuf_len);
-				(void) strlcat(xbuf, SPF_SP, xbuf_len);
-				(void) strlcat(xbuf, "\": Unrecognized SPF keyword, WARNING", xbuf_len);
+				strlcat_multi(xbuf, xbuf_len, "\"", SPF_SP, "\": Unrecognized SPF keyword, WARNING");
 				PUSHLINE
 				/* return spfctx->status = SPF_RETURN_UNKNOWN_KEYWORD; */
-				continue;
 			}
 		}
 	}
@@ -1940,7 +1968,9 @@ opendmarc_spf_free_ctx(SPF_CTX_T *spfctx)
 	for (i = 0; i < spfctx->nlines; i++)
 	{
 		if (spfctx->lines[i] != NULL)
+		{
 			(void) free(spfctx->lines[i]);
+		}
 	}
 	spfctx->iplist = opendmarc_util_freenargv(spfctx->iplist, &(spfctx->ipcount));
 	(void) free(spfctx);
@@ -2167,8 +2197,8 @@ opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, 
 		switch (ret)
 		{
 		    case SPF_RETURN_UNDECIDED:
-		    case SPF_RETURN_QMARK_ALL_NEUTRAL:
-		    case SPF_RETURN_TILDE_ALL_SOFT_FAIL:
+		    case SPF_RETURN_NEUTRAL:
+		    case SPF_RETURN_SOFTFAIL:
 			if (softfail_okay_flag == TRUE)
 				return DMARC_POLICY_SPF_OUTCOME_PASS;
 			else

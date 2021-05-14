@@ -73,11 +73,11 @@ opendmarc_spf_test_records(void)
 		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", NULL,                                             DMARC_POLICY_SPF_OUTCOME_PASS}, /* force a lookup */
 		{"149.20.68.142",           "<>",            "gushi.org", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check with helo*/
 		{"149.20.68.142",           "MAILER_DAEMON", "gushi.org", "v=spf1 mx  -all",                                DMARC_POLICY_SPF_OUTCOME_PASS}, /* mx check with helo*/
-		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 -ip4:1.2.3.4 ip4:149.20.68.145 -all",    DMARC_POLICY_SPF_OUTCOME_FAIL}, /* fail before success */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 -ip4:1.2.3.4 ip4:149.20.68.145 -all",    DMARC_POLICY_SPF_OUTCOME_PASS}, /* '-'-qualfied ip4 not matching -> pass on matching ip4 */
 		{"204.152.184.1",            "<foo@gushi.org>", "gushi.org", "v=spf1 include:isc.org  -all",      DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with include */
 		{"149.20.68.145",           "<foo@sf1.gushi.org>", "sf1.gushi.org", "v=spf1 include:gushi.org       -all",      DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with include */
 		{"149.30.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 include:isc.org               -all",      DMARC_POLICY_SPF_OUTCOME_FAIL}, /* fail with include */
-		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 -a",                                      DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 -a",                                      DMARC_POLICY_SPF_OUTCOME_FAIL}, /* matching a record with '-' qualifier*/
 		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1  a -all",                                 DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
 		{"204.14.152.227",           "<foo@gushi.org>", "gushi.org", "v=spf1 -a",                                      DMARC_POLICY_SPF_OUTCOME_FAIL}, /* a record test fail */
 		{"149.20.68.142",           "<foo@gushi.org>", "gushi.org", "v=spf1 a:prime.gushi.org -all",                      DMARC_POLICY_SPF_OUTCOME_PASS}, /* a record test pass */
@@ -85,7 +85,11 @@ opendmarc_spf_test_records(void)
 		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 ptr:defaultsite.gushi.org -all",                        DMARC_POLICY_SPF_OUTCOME_PASS}, /* ptr record test pass */
 		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 exists:%s -all",                          DMARC_POLICY_SPF_OUTCOME_FAIL}, /* exists bad syntax */
 		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 exists:%{s} -all",                        DMARC_POLICY_SPF_OUTCOME_PASS}, /* exits good record */
-		{"149.20.68.145",           "<foo@prime.gushi.org>", "prime.gushi.org", "v=spf1 redirect:gushi.org       -all",     DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with redirect */
+		{"149.20.68.145",           "<foo@prime.gushi.org>", "prime.gushi.org", "v=spf1 redirect:gushi.org -all",     DMARC_POLICY_SPF_OUTCOME_FAIL}, /* redirect MUST be ignored if all is present */
+		{"149.20.68.145",           "<foo@prime.gushi.org>", "prime.gushi.org", "v=spf1 redirect:gushi.org ",         DMARC_POLICY_SPF_OUTCOME_PASS}, /* pass with correctly used redirect */
+		{"149.30.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 include:isc.org ip4:149.30.68.145 -all",  DMARC_POLICY_SPF_OUTCOME_PASS}, /* matching ip4 after non-matching include */
+		{"149.30.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 include:isc.org -ip4:149.30.68.145 +all", DMARC_POLICY_SPF_OUTCOME_FAIL}, /* explicit fail for given IP after include */
+		{"149.20.68.145",           "<foo@gushi.org>", "gushi.org", "v=spf1 -ip4:149.20.68.145 a ~all",               DMARC_POLICY_SPF_OUTCOME_FAIL}, /* fail before success */
 		{NULL, NULL, NULL, NULL, 0},
 	};
 	SL *	sp;
@@ -93,14 +97,15 @@ opendmarc_spf_test_records(void)
 	int	success, failures;
 	int	use_mfrom;
 	char	human[BUFSIZ];
+	int i;
 
 	success = failures = 0;
-	for (sp = spflist; sp->ip != NULL; ++sp)
+	for (sp = spflist, i = 0; sp->ip != NULL; ++sp, ++i)
 	{
 		status = opendmarc_spf_test(sp->ip, sp->mfrom, sp->helo, sp->spfrecord, FALSE, human, sizeof human, &use_mfrom);
 		if (status != sp->status)
 		{
-			printf("Error: ip=\"%s\", mfrom=\"%s\", helo=\"%s\", spf=\"%s\", error(%d)= %s\n", sp->ip, sp->mfrom, sp->helo, 
+			printf("Error[%d]: ip=\"%s\", mfrom=\"%s\", helo=\"%s\", spf=\"%s\", error(%d)= %s\n", i, sp->ip, sp->mfrom, sp->helo, 
 				sp->spfrecord == NULL ? "NULL" : sp->spfrecord, status, human);
 			++failures;
 			continue;
