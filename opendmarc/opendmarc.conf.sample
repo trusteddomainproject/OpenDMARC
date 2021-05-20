@@ -219,7 +219,7 @@
 ##  If set, the milter will signal to the mta that messages with
 ##  p=quarantine, which fail dmarc authentication, should be held in
 ##  the MTA's "Hold" or "Quarantine" queue.  The name varies by MTA.
-##  If false, messsages will be accepted and passed along with the 
+##  If false, messages will be accepted and passed along with the
 ##  regular mail flow, and the quarantine will be left up to downstream
 ##  MTA/MDA/MUA filters, if any, to handle by re-evaluating the headers,
 ##  including the Authentication-Results header added by OpenDMARC
@@ -233,20 +233,6 @@
 ##  SMTP AUTH) to be ignored by the filter.
 #
 # IgnoreAuthenticatedClients false
-
-## HoldQuarantinedMessages { true | false }
-##  	default "false"
-##
-##  If set, the milter will signal to the mta that messages with
-##  p=quarantine, which fail dmarc authentication, should be held in
-##  the MTA's "Hold" or "Quarantine" queue.  The name varies by MTA.
-##  If false, messsages will be accepted and passed along with the 
-##  regular mail flow, and the quarantine will be left up to downstream
-##  MTA/MDA/MUA filters, if any, to handle by re-evaluating the headers,
-##  including the Authentication-Results header added by OpenDMARC
-#
-# HoldQuarantinedMessages false
-
 
 ##  IgnoreHosts path
 ##  	default (internal)
