@@ -3135,7 +3135,7 @@ mlfi_eom(SMFICTX *ctx)
 					 authservid, pass_fail, use_domain);
 			}
 
-			if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+			if (dmarcf_insheader(ctx, 0, AUTHRESULTSHDR,
 					     header) == MI_FAILURE)
 			{
 				if (conf->conf_dolog)
@@ -3200,7 +3200,7 @@ mlfi_eom(SMFICTX *ctx)
 		         "%s; dmarc=permerror header.from=%s",
 		         authservid, dfc->mctx_fromdomain);
 
-		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+		if (dmarcf_insheader(ctx, 0, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
 		{
 			if (conf->conf_dolog)
@@ -3749,7 +3749,7 @@ mlfi_eom(SMFICTX *ctx)
 		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",
 		         aresult, apolicy, adisposition, dfc->mctx_fromdomain);
 
-		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+		if (dmarcf_insheader(ctx, 0, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
 		{
 			if (conf->conf_dolog)
@@ -3841,7 +3841,7 @@ mlfi_eom(SMFICTX *ctx)
 		         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
 		                                 : JOBIDUNKNOWN);
 
-		if (dmarcf_insheader(ctx, 1, SWHEADERNAME,
+		if (dmarcf_insheader(ctx, 0, SWHEADERNAME,
 		                     header) == MI_FAILURE)
 		{
 			if (conf->conf_dolog)
