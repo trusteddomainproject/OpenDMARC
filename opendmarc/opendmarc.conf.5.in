@@ -288,6 +288,14 @@ failing this test are rejected without further processing.  A From:
 field from which no domain name could be extracted will also be rejected.
 
 .TP
+.I RequiredFrom (Boolean)
+If set, the filter will reject without further processing messages that lack a
+From: field from which a domain name could be extracted. This options is
+without effect if
+.I RequiredHeaders
+is set to "true".
+
+.TP
 .I Socket (string)
 Specifies the socket that should be established by the filter to receive
 connections from

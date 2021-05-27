@@ -344,6 +344,15 @@
 #
 # RequiredHeaders false
 
+##  RequiredFrom { true | false }
+##  	default "false"
+##
+##  If set, the filter will reject without further processing messages that 
+##  lack a From: field from which a domain name could be extracted. This 
+##  options is without effect if RequiredHeaders is set to "true".
+#
+# RequiredFrom false
+
 ##  Socket socketspec
 ##  	default (none)
 ##
