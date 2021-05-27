@@ -1,15 +1,12 @@
 # Pass --define "BETA 3" to build name-version.0.Beta3.1.arch
-# GitHubVersion will be determined by autoconf
-
-%global BetaTag %{?BETA:.Beta%{BETA}}
-%global GitHubVersion @GITHUB_VERSION@
+%define BetaTag %{?BETA:.Beta%{BETA}}
 
 Summary: DMARC milter and library
 Name: opendmarc
 Version: @VERSION@
 Release: %{?BETA:0%{BetaTag}.}1%{?dist}
 License: BSD and Sendmail
-URL: http://www.trusteddomain.org/opendmarc.html
+URL: http://http://www.trusteddomain.org/opendmarc.html
 Group: System Environment/Daemons
 Requires: lib%{name} = %{version}-%{release}
 Requires (pre): shadow-utils
@@ -18,9 +15,7 @@ Requires (preun): chkconfig, initscripts
 Requires (postun): initscripts
 BuildRequires: sendmail-devel, openssl-devel, libtool, pkgconfig
 BuildRequires: mysql-devel
-# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0.tar.gz
-# https://github.com/trusteddomainproject/OpenDMARC/archive/rel-opendmarc-1-4-0-Beta1.tar.gz
-Source0: https://github.com/trusteddomainproject/%{name}/rel-%{name}-%{GitHubVersion}%{BetaTag}.tar.gz
+Source0: http://downloads.sourceforge.net/%{name}/%{name}-%{version}%{BetaTag}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description

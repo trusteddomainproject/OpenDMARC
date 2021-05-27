@@ -15,11 +15,11 @@ Release procedures for OpenDMARC
 	% make distcheck
 
    This will produce an opendmarc-(version).tar.gz tarball after running
-   all unit tests.  (Although we leave it to github to create these for us now)
+   all unit tests.
 
-3) Commit changes made to RELEASE_NOTES to the GitHub repository.
+3) Commit changes made to RELEASE_NOTES to the SourceForge git repository.
    Be sure to include any open feature requests, patches or bug fixes
-   from the GitHub issue list.
+   from the SourceForge trackers.
 
 4) Prepare a release announcement by using the file "announcement" from git
    as your template.  Change the From: to the name and address of the person
@@ -28,7 +28,7 @@ Release procedures for OpenDMARC
    or two at the top highlighting the interesting changes and indicating
    what the main focus of this release is (new features, bug fixes, etc.),
    and then the full RELEASE_NOTES block for the new release.  Commit this
-   to GitHub.
+   to git.
 
 5) Merge the "develop" branch to the "master" branch, as follows:
 
@@ -37,11 +37,15 @@ Release procedures for OpenDMARC
 	[massage in and commit any conflicts]
 	% git push
 
-6) Create a new release on GitHub per github docs:
-   https://docs.github.com/en/github/administering-a-repository/managing-releases-in-a-repository
+6) Deploy all needed files to SourceForge by doing 'make push'.  This will
+   also place the release tag.
 
-   (This will create both the GitHub "tag" as well as the "release")
+7) Via the SourceForge UI, make the latest tarball the default download for
+   all operating systems.
 
-7) Send the release announcement:
+8) Send the release announcement:
 
 	% sendmail -t < announcement
+
+9) Mark any bug fixes or feature requests, etc. as closed if this release
+   contained them.
