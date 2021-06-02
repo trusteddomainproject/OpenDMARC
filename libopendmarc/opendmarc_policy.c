@@ -35,7 +35,7 @@
 **  	TRUE if the syntax was fine, FALSE otherwise.
 */
 
-bool check_domain(u_char *domain)
+static bool check_domain(u_char *domain)
 {
 	u_char *dp;
 
