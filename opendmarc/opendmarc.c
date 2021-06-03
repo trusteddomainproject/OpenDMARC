@@ -2479,12 +2479,12 @@ mlfi_eom(SMFICTX *ctx)
 				syslog(LOG_ERR,
 				       "%s: multi-valued From field detected",
 				       dfc->mctx_jobid);
-			}
 
-			if (conf->conf_reject_multi_from)
-				return SMFIS_REJECT;
-			else
-				return SMFIS_ACCEPT;
+				if (conf->conf_reject_multi_from)
+					return SMFIS_REJECT;
+				else
+					return SMFIS_ACCEPT;
+			}
 		}
 
 		user = users[0];
