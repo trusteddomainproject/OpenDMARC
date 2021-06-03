@@ -2476,9 +2476,12 @@ mlfi_eom(SMFICTX *ctx)
 		{
 			if (strcasecmp(domains[0], domains[c]) != 0)
 			{
-				syslog(LOG_ERR,
-				       "%s: multi-valued From field detected",
-				       dfc->mctx_jobid);
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "%s: multi-valued From field detected",
+					       dfc->mctx_jobid);
+				}
 
 				if (conf->conf_reject_multi_from)
 					return SMFIS_REJECT;
