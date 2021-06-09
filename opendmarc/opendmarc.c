@@ -2474,17 +2474,22 @@ mlfi_eom(SMFICTX *ctx)
 
 		for (c = 1; users[c] != NULL; c++)
 		{
-			if (strcasecmp(domains[0], domains[c]) != 0)
+			if (domains[0] != NULL
+			    && domains[c] != NULL
+			    && strcasecmp(domains[0], domains[c]) != 0)
 			{
-				syslog(LOG_ERR,
-				       "%s: multi-valued From field detected",
-				       dfc->mctx_jobid);
-			}
+				if (conf->conf_dolog)
+				{
+					syslog(LOG_ERR,
+					       "%s: multi-valued From field detected",
+					       dfc->mctx_jobid);
+				}
 
-			if (conf->conf_reject_multi_from)
-				return SMFIS_REJECT;
-			else
-				return SMFIS_ACCEPT;
+				if (conf->conf_reject_multi_from)
+					return SMFIS_REJECT;
+				else
+					return SMFIS_ACCEPT;
+			}
 		}
 
 		user = users[0];
