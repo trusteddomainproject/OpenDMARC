@@ -2474,7 +2474,9 @@ mlfi_eom(SMFICTX *ctx)
 
 		for (c = 1; users[c] != NULL; c++)
 		{
-			if (strcasecmp(domains[0], domains[c]) != 0)
+			if (domains[0] != NULL
+			    && domains[c] != NULL
+			    && strcasecmp(domains[0], domains[c]) != 0)
 			{
 				if (conf->conf_dolog)
 				{
