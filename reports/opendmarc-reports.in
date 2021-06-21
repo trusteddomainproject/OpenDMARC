@@ -65,6 +65,7 @@ my $domainset;
 my $forcedomain;
 my @skipdomains;
 
+my $poldomain;
 my $policy;
 my $spolicy;
 my $policystr;
@@ -447,7 +448,7 @@ foreach (@$domainset)
 		next;
 	}
 
-	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, requests.policy, spolicy, pct, UNIX_TIMESTAMP(lastsent), domains.name FROM requests JOIN messages ON messages.from_domain=requests.domain LEFT JOIN domains ON messages.policy_domain = domains.id WHERE domain = ? GROUP BY policy_domain");
 	if (!$dbi_s->execute($domainid))
 	{
 		print STDERR "$progname: can't get reporting URI for domain $domain: " . $dbi_h->errstr . "\n";
@@ -457,6 +458,7 @@ foreach (@$domainset)
 	}
 
 	undef $repuri;
+	$poldomain = $domain;
 
 	while ($dbi_a = $dbi_s->fetchrow_arrayref())
 	{
@@ -487,6 +489,10 @@ foreach (@$domainset)
 		if (defined($dbi_a->[6]))
 		{
 			$lastsent = $dbi_a->[6];
+		}
+		if (defined($dbi_a->[7]))
+		{
+			$poldomain = $dbi_a->[7];
 		}
 	}
 
@@ -570,7 +576,7 @@ foreach (@$domainset)
 	print $tmpout "    </report_metadata>\n";
 
 	print $tmpout "    <policy_published>\n";
-	print $tmpout "        <domain>$domain</domain>\n";
+	print $tmpout "        <domain>$poldomain</domain>\n";
 	print $tmpout "        <adkim>$adkimstr</adkim>\n";
 	print $tmpout "        <aspf>$aspfstr</aspf>\n";
 	print $tmpout "        <p>$policystr</p>\n";
