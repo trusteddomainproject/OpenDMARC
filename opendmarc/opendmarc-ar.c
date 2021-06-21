@@ -359,7 +359,6 @@ ares_xconvert(struct lookup *table, int code)
 int
 ares_parse(u_char *hdr, struct authres *ar)
 {
-	_Bool quoted;
 	int n;
 	int ntoks;
 	int c;
@@ -382,8 +381,6 @@ ares_parse(u_char *hdr, struct authres *ar)
 	prevstate = -1;
 	state = 0;
 	n = 0;
-
-	quoted = FALSE;
 
 	for (c = 0; c < ntoks; c++)
 	{

@@ -1165,7 +1165,6 @@ dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 
 	if (ip->sa_family == AF_INET)
 	{
-		_Bool exists;
 		int c;
 		int bits;
 		struct in_addr addr;
@@ -1174,9 +1173,6 @@ dmarcf_checkip(_SOCK_ADDR *ip, struct list *list)
 
 		memcpy(&sin, ip, sizeof sin);
 		memcpy(&addr.s_addr, &sin.sin_addr, sizeof addr.s_addr);
-
-		/* try the IP address directly */
-		exists = FALSE;
 
 		ipbuf[0] = '!';
 		(void) dmarcf_inet_ntoa(addr, &ipbuf[1], sizeof ipbuf - 1);
@@ -1976,7 +1972,6 @@ sfsistat
 mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 {
 	DMARCF_CONNCTX cc;
-	struct dmarcf_config *conf;
 
 	dmarcf_config_reload();
 
@@ -2015,15 +2010,9 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 		cc->cctx_config = curconf;
 		curconf->conf_refcnt++;
 
-		conf = curconf;
-
 		pthread_mutex_unlock(&conf_lock);
 
 		dmarcf_setpriv(ctx, cc);
-	}
-	else
-	{
-		conf = cc->cctx_config;
 	}
 
 	if (host != NULL)
