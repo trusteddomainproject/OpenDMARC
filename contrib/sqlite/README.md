@@ -63,6 +63,5 @@ work with both.
 This code is offered **_as is_**.  I disclaim any ownership of my changes.  
 I don't offer any support so please don't contact me.  *Caveat:*  This hasn't been
 rigorously tested and I don't have a way to test MySQL.
-way to test MySQL...
 
 -- cc
