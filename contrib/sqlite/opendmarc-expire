@@ -1,0 +1,759 @@
+#!/usr/bin/env -S perl
+#
+# Copyright (c) 2010-2012, 2014-2016, 2018, The Trusted Domain Project.
+# All rights reserved.
+#
+# Script to age out OpenDMARC aggregate report data
+
+###
+### Setup
+###
+
+use strict;
+use warnings;
+
+use File::Basename;
+
+BEGIN {
+
+    my $me = basename($0);      # local to block
+    
+    use constant MYSQL  => 0;
+    use constant SQLITE => 1;    
+    
+    if ( ! (MYSQL || SQLITE) )
+    {
+        print STDERR "$me: You must set one of MYSQL or SQLITE.\n";
+        exit(1);
+    }
+    
+    if ( MYSQL && SQLITE )
+    {
+        print STDERR "$me: You must set ONLY one of MYSQL or SQLITE.\n";
+        exit(1);
+    }
+
+}
+
+use DBI;
+use Getopt::Long;
+use IO::Handle;
+use POSIX;
+
+# require the right stuff
+#
+### begin DB dependent
+#
+if ( MYSQL )  { require DBD::mysql;  }
+if ( SQLITE ) { require DBD::SQLite; }
+#
+### end DB dependent
+
+# general
+#
+my $progname      = basename($0);
+my $version       = "1.4.1";
+my $verbose       = 0;
+my $helponly      = 0;
+my $showversion   = 0;
+
+my $minmsg;
+my $rowcount;
+
+my $dbi_s;
+my $dbi_h;
+my $dbi_a;
+
+# DB parameters
+#
+#   defaults
+#
+my $def_dbhost   = undef;
+my $def_dbname   = undef;
+my $def_dbuser   = undef;
+my $def_dbpasswd = undef;
+my $def_dbport   = undef;
+
+my $dbscheme     = undef;
+
+#       database variables
+#
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $def_dbhost    = "localhost";
+    $def_dbname    = "opendmarc";
+    $def_dbuser    = "opendmarc";
+    $def_dbpasswd  = "opendmarc";
+    $def_dbport    = "3306";
+
+    $dbscheme      = "mysql";
+}
+
+if ( SQLITE )
+{
+    $def_dbname    = "opendmarc.sqlite";
+
+    $dbscheme      = "SQLite";
+}
+#
+### end DB dependent
+
+#       misc other defaults
+#
+my $def_maxage    = 180;
+
+# command-line variables
+#
+my $dbhost;
+my $dbname;
+my $dbuser;
+my $dbpasswd;
+my $dbport;
+
+# operational variables
+#
+my $alltables = 0;
+my $maxage;
+
+my $rows;
+
+###
+### NO user-serviceable parts beyond this point
+###
+
+sub usage
+{
+    ### begin DB dependent
+    #
+    if ( MYSQL )
+    {
+        print STDERR "$progname: usage: $progname [options]\n";
+        print STDERR "\t--alltables        expire rows from all tables\n";
+        print STDERR "\t--dbhost=host      database host [$def_dbhost]\n";
+        print STDERR "\t--dbname=name      database name [$def_dbname]\n";
+        print STDERR "\t--dbpasswd=passwd  database password [$def_dbpasswd]\n";
+        print STDERR "\t--dbport=port      database port [$def_dbport]\n";
+        print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
+        print STDERR "\t--expire=days      expiration time, in days [$def_maxage]\n";
+        print STDERR "\t--help             print help and exit\n";
+        print STDERR "\t--verbose          verbose output\n";
+        print STDERR "\t--version          print version and exit\n";
+    }
+	    
+    if ( SQLITE )
+    {
+        print STDERR "$progname: usage: $progname [options]\n";
+        print STDERR "\t--alltables        expire rows from all tables\n";
+        print STDERR "\t--dbname=name      database name [$def_dbname]\n";
+        print STDERR "\t--expire=days      expiration time, in days [$def_maxage]\n";
+        print STDERR "\t--help             print help and exit\n";
+        print STDERR "\t--verbose          verbose output\n";
+        print STDERR "\t--version          print version and exit\n";
+    }
+    #
+    ### end DB dependent
+}
+
+# parse command line arguments
+#
+my $opt_retval = undef;
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $opt_retval = &Getopt::Long::GetOptions (
+                                                'alltables!' => \$alltables,
+                                                'dbhost=s' => \$dbhost,
+                                                'dbname=s' => \$dbname,
+                                                'dbpasswd=s' => \$dbpasswd,
+                                                'dbport=s' => \$dbport,
+                                                'dbuser=s' => \$dbuser,
+                                                'expire=i' => \$maxage,
+                                                'help!' => \$helponly,
+                                                'verbose!' => \$verbose,
+                                                'version!' => \$showversion,
+                                            );
+}
+
+if ( SQLITE )
+{
+    $opt_retval = &Getopt::Long::GetOptions (
+                                                'alltables!' => \$alltables,
+                                                'dbname=s' => \$dbname,
+                                                'expire=i' => \$maxage,
+                                                'help!' => \$helponly,
+                                                'verbose!' => \$verbose,
+                                                'version!' => \$showversion,
+                                           );
+}
+#
+### end DB dependent
+
+if ($showversion)
+{
+    print STDOUT "$progname v$version\n";
+    exit(0);
+}
+
+if (!$opt_retval || $helponly)
+{
+    usage();
+
+    if ($helponly)
+    {
+        exit(0);
+    }
+    else
+    {
+        exit(1);
+    }
+}
+
+# apply defaults
+#
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    if (!defined($dbhost))
+    {
+        if (defined($ENV{'OPENDMARC_DBHOST'}))
+        {
+            $dbhost = $ENV{'OPENDMARC_DBHOST'};
+        }
+        else
+        {
+            $dbhost = $def_dbhost;
+        }
+    }
+
+    if (!defined($dbname))
+    {
+        if (defined($ENV{'OPENDMARC_DB'}))
+        {
+            $dbname = $ENV{'OPENDMARC_DB'};
+        }
+        else
+        {
+            $dbname = $def_dbname;
+        }
+    }
+
+    if (!defined($dbpasswd))
+    {
+        if (defined($ENV{'OPENDMARC_PASSWORD'}))
+        {
+            $dbpasswd = $ENV{'OPENDMARC_PASSWORD'};
+        }
+        else
+        {
+            $dbpasswd = $def_dbpasswd;
+        }
+    }
+
+    if (!defined($dbport))
+    {
+        if (defined($ENV{'OPENDMARC_PORT'}))
+        {
+            $dbport = $ENV{'OPENDMARC_PORT'};
+        }
+        else
+        {
+            $dbport = $def_dbport;
+        }
+    }
+
+    if (!defined($dbuser))
+    {
+        if (defined($ENV{'OPENDMARC_USER'}))
+        {
+            $dbuser = $ENV{'OPENDMARC_USER'};
+        }
+        else
+        {
+            $dbuser = $def_dbuser;
+        }
+    }
+}
+
+if ( SQLITE )
+{
+    if (!defined($dbname))
+    {
+        $dbname = $def_dbname;
+    }
+}
+#
+### end DB dependent
+
+if (!defined($maxage))
+{
+    if (defined($ENV{'OPENDMARC_MAXAGE'}))
+    {
+        $maxage = $ENV{'OPENDMARC_MAXAGE'};
+    }
+    else
+    {
+        $maxage = $def_maxage;
+    }
+}
+
+# sanity check
+#
+if ($maxage <= 0)
+{
+    print STDERR "$progname: invalid expiration time\n";
+    exit(1);
+}
+
+# Let's go!
+#
+
+if ($verbose)
+{
+    print STDERR "$progname: started at " . localtime() . "\n";
+}
+
+my $dbi_dsn = undef;
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
+               ";host=" . $dbhost . ";port=" . $dbport;
+
+    $dbi_h = DBI->connect($dbi_dsn, $dbuser, $dbpasswd, { PrintError => 0 });
+}
+if ( SQLITE )
+{
+    $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname;
+
+    $dbi_h = DBI->connect($dbi_dsn, "", "", { PrintError => 0 });
+}
+#
+### end DB dependent
+
+if (!defined($dbi_h))
+{
+    print STDERR "$progname: unable to connect to database: $DBI::errstr\n";
+    exit(1);
+}
+
+if ($verbose)
+{
+    print STDERR "$progname: connected to database\n";
+}
+
+# Expire messages
+#
+
+if ($verbose)
+{
+    print STDERR "$progname: expiring messages older than $maxage day(s)\n";
+}
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $dbi_s = $dbi_h->prepare("DELETE FROM messages WHERE " . 
+                                "date <= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? DAY)");
+}
+if ( SQLITE )
+{
+    $dbi_s = $dbi_h->prepare("DELETE FROM messages WHERE " . 
+                                        "date <= (strftime('%s', 'NOW') - (? * 86400))");
+}
+#
+### end DB dependent
+
+$rows = $dbi_s->execute($maxage);
+if (!$rows)
+{
+    print STDERR "$progname: DELETE failed: " . $dbi_h->errstr;
+    $dbi_s->finish;
+    $dbi_h->disconnect;
+    exit(1);
+}
+elsif ($verbose)
+{
+    if ($rows eq '0E0')
+    {
+        print STDOUT "$progname: no rows deleted\n";
+    }
+    else
+    {
+        print STDOUT "$progname: $rows row(s) deleted\n";
+    }
+}
+
+$dbi_s->finish;
+
+# Expire signatures
+#
+$dbi_s = $dbi_h->prepare("SELECT MIN(id) FROM messages");
+
+if (!$dbi_s->execute)
+{
+    print STDERR "$progname: SELECT failed: " . $dbi_h->errstr;
+    $dbi_s->finish;
+    $dbi_h->disconnect;
+    exit(1);
+}
+
+while ($dbi_a = $dbi_s->fetchrow_arrayref())
+{
+    $minmsg = $dbi_a->[0];
+}
+
+# We might have emptied the messages table
+#
+$dbi_s->finish;
+
+if (!defined($minmsg))
+{
+    $dbi_s = $dbi_h->prepare("SELECT COUNT(id) FROM messages");
+    if (!$dbi_s->execute)
+    {
+        print STDERR "$progname: SELECT failed: " . $dbi_h->errstr;
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+
+    while ($dbi_a = $dbi_s->fetchrow_arrayref())
+    {
+        $rowcount = $dbi_a->[0];
+    }
+
+    $dbi_s->finish;
+
+    ### begin DB dependent
+    #
+    if ( MYSQL )
+    {
+        if (defined($rowcount) && $rowcount == 0)
+        {
+              $dbi_s = $dbi_h->prepare("TRUNCATE TABLE signatures");
+            if (!$dbi_s->execute)
+            {
+                print STDERR "$progname: TRUNCATE failed: " . $dbi_h->errstr;
+                $dbi_s->finish;
+                $dbi_h->disconnect;
+                exit(1);
+            }
+
+            $dbi_s->finish;
+
+            $dbi_s = $dbi_h->prepare("TRUNCATE TABLE arcauthresults");
+            if (!$dbi_s->execute)
+            {
+                print STDERR "$progname: TRUNCATE failed: " . $dbi_h->errstr;
+                $dbi_s->finish;
+                $dbi_h->disconnect;
+                exit(1);
+            }
+
+            $dbi_s->finish;
+
+            $dbi_s = $dbi_h->prepare("TRUNCATE TABLE arcseals");
+            if (!$dbi_s->execute)
+            {
+                print STDERR "$progname: TRUNCATE failed: " . $dbi_h->errstr;
+                $dbi_s->finish;
+                $dbi_h->disconnect;
+                exit(1);
+            }
+
+            $dbi_s->finish;
+        }
+
+        $dbi_h->disconnect;
+        exit(1);    
+    }
+    #
+    ### end DB dependent
+    
+}
+else
+{
+    if ($verbose)
+    {
+        print STDERR "$progname: expiring signatures on expired messages (id < $minmsg)\n";
+    }
+
+    $dbi_s = $dbi_h->prepare("DELETE FROM signatures WHERE message < ?");
+    $rows = $dbi_s->execute($minmsg);
+    if (!$rows)
+    {
+        print STDERR "$progname: DELETE failed: " . $dbi_h->errstr;
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+    elsif ($verbose)
+    {
+        if ($rows eq '0E0')
+        {
+            print STDOUT "$progname: no rows deleted\n";
+        }
+        else
+        {
+            print STDOUT "$progname: $rows row(s) deleted\n";
+        }
+    }
+
+    $dbi_s->finish;
+
+    if ($verbose)
+    {
+        print STDERR "$progname: expiring arcauthresults on expired messages (id < $minmsg)\n";
+    }
+
+    $dbi_s = $dbi_h->prepare("DELETE FROM arcauthresults WHERE message < ?");
+    $rows = $dbi_s->execute($minmsg);
+    if (!$rows)
+    {
+        print STDERR "$progname: DELETE failed: " . $dbi_h->errstr;
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+    elsif ($verbose)
+    {
+        if ($rows eq '0E0')
+        {
+            print STDOUT "$progname: no rows deleted\n";
+        }
+        else
+        {
+            print STDOUT "$progname: $rows row(s) deleted\n";
+        }
+    }
+
+    if ($verbose)
+    {
+        print STDERR "$progname: expiring arcseals on expired messages (id < $minmsg)\n";
+    }
+
+    $dbi_s = $dbi_h->prepare("DELETE FROM arcseals WHERE message < ?");
+    $rows = $dbi_s->execute($minmsg);
+    if (!$rows)
+    {
+        print STDERR "$progname: DELETE failed: " . $dbi_h->errstr;
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+    elsif ($verbose)
+    {
+        if ($rows eq '0E0')
+        {
+            print STDOUT "$progname: no rows deleted\n";
+        }
+        else
+        {
+            print STDOUT "$progname: $rows row(s) deleted\n";
+        }
+    }
+}
+
+# Expire request data
+#
+
+if ($verbose)
+{
+    print STDERR "$progname: expiring request data older than $maxage days\n";
+}
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $dbi_s = $dbi_h->prepare("DELETE FROM requests WHERE " . 
+            "lastsent <= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? DAY) " . 
+            "AND NOT lastsent = '0000-00-00 00:00:00'");
+}
+if ( SQLITE )
+{
+    $dbi_s = $dbi_h->prepare("DELETE FROM requests WHERE " . 
+                "lastsent <= (strftime('%s', 'NOW') - (? * 86400)) AND NOT lastsent = 0");
+}
+#
+### end DB dependent
+
+$rows = $dbi_s->execute($maxage);
+if (!$rows)
+{
+    print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
+    $dbi_s->finish;
+    $dbi_h->disconnect;
+    exit(1);
+}
+elsif ($verbose)
+{
+    if ($rows eq '0E0')
+    {
+        print STDOUT "$progname: no rows deleted\n";
+    }
+    else
+    {
+        print STDOUT "$progname: $rows row(s) deleted\n";
+    }
+}
+
+$dbi_s->finish;
+
+if ($alltables)
+{
+    if ($verbose)
+    {
+        print STDERR "$progname: expiring unneeded selector data\n";
+    }
+
+    $dbi_s = $dbi_h->prepare(q{
+                     DELETE FROM selectors
+                     WHERE id NOT IN (SELECT DISTINCT selector FROM signatures)
+                        AND id NOT IN (SELECT DISTINCT selector FROM arcseals)
+    });
+    $rows = $dbi_s->execute();
+    if (!$rows)
+    {
+        print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+    elsif ($verbose)
+    {
+        if ($rows eq '0E0')
+        {
+            print STDOUT "$progname: no rows deleted\n";
+        }
+        else
+        {
+            print STDOUT "$progname: $rows row(s) deleted\n";
+        }
+    }
+
+    if ($verbose)
+    {
+        print STDERR "$progname: expiring unneeded domain data\n";
+    }
+
+    $dbi_s = $dbi_h->prepare(q{
+                         DELETE FROM domains
+                         WHERE id NOT IN (SELECT DISTINCT domain FROM requests)
+                            AND id NOT IN (SELECT DISTINCT from_domain FROM messages)
+                            AND id NOT IN (SELECT DISTINCT env_domain FROM messages)
+                            AND id NOT IN (SELECT DISTINCT policy_domain FROM messages)
+                            AND id NOT IN (SELECT DISTINCT domain FROM signatures)
+                            AND id NOT IN (SELECT DISTINCT domain FROM arcseals)
+    });
+    
+    $rows = $dbi_s->execute();
+    if (!$rows)
+    {
+        print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+    elsif ($verbose)
+    {
+        if ($rows eq '0E0')
+        {
+            print STDOUT "$progname: no rows deleted\n";
+        }
+        else
+        {
+            print STDOUT "$progname: $rows row(s) deleted\n";
+        }
+    }
+
+    if ($verbose)
+    {
+        print STDERR "$progname: expiring unneeded IP data\n";
+    }
+
+    $dbi_s = $dbi_h->prepare("DELETE FROM ipaddr WHERE id NOT IN " . 
+                                                    "(SELECT DISTINCT ip FROM messages)");
+    $rows = $dbi_s->execute();
+    if (!$rows)
+    {
+        print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+    elsif ($verbose)
+    {
+        if ($rows eq '0E0')
+        {
+            print STDOUT "$progname: no rows deleted\n";
+        }
+        else
+        {
+            print STDOUT "$progname: $rows row(s) deleted\n";
+        }
+    }
+
+    if ($verbose)
+    {
+        print STDERR "$progname: expiring unneeded reporter data\n";
+    }
+
+    $dbi_s = $dbi_h->prepare("DELETE FROM reporters WHERE id NOT IN " .
+                                                "(SELECT DISTINCT reporter FROM messages)");
+    $rows = $dbi_s->execute();
+    if (!$rows)
+    {
+        print STDERR "$progname: DELETE failed: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+    elsif ($verbose)
+    {
+        if ($rows eq '0E0')
+        {
+            print STDOUT "$progname: no rows deleted\n";
+        }
+        else
+        {
+            print STDOUT "$progname: $rows row(s) deleted\n";
+        }
+    }
+}
+
+# All done!
+
+### begin DB dependent
+#
+if ( SQLITE )
+{
+    $dbi_s = $dbi_h->prepare("VACUUM");
+    if (!$dbi_s->execute)
+    {
+        print STDERR "$progname: VACUUM failed: " . $dbi_h->errstr;
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+}
+#
+### end DB dependent
+
+if ($verbose)
+{
+	print STDERR "$progname: terminating at " . localtime() . "\n";
+}
+
+$dbi_h->disconnect;
+
+exit(0);

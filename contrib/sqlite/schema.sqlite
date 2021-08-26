@@ -1,0 +1,173 @@
+-- OpenDMARC database schema (sqlite3)
+--
+-- Copyright (c) 2012, 2016, 2018, 2021, The Trusted Domain Project.
+-- 	All rights reserved.
+
+BEGIN TRANSACTION;
+
+-- A table for mapping domain names and their DMARC policies to IDs
+--
+
+DROP TABLE IF EXISTS domains;
+
+CREATE TABLE IF NOT EXISTS domains (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    firstseen INTEGER NOT NULL DEFAULT (strftime('%s', 'NOW'))
+);
+
+DROP INDEX IF EXISTS domains_name;
+CREATE INDEX domains_name ON domains(name);
+
+-- A table for logging encountered ARC selectors
+--
+
+DROP TABLE IF EXISTS selectors;
+
+CREATE TABLE IF NOT EXISTS selectors (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    domain INTEGER NOT NULL,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    firstseen INTEGER NOT NULL DEFAULT (strftime('%s', 'NOW')),
+--
+    UNIQUE(name, domain)
+);
+
+DROP INDEX IF EXISTS selectors_name;
+CREATE INDEX selectors_name ON selectors(name);
+
+-- A table for logging ARC-Authentication-Results information
+--
+
+DROP TABLE IF EXISTS arcauthresults;
+
+CREATE TABLE IF NOT EXISTS arcauthresults (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    message INTEGER NOT NULL DEFAULT 0 CHECK(message >= 0),
+    instance INTEGER NOT NULL DEFAULT 0 CHECK(instance >= 0),
+    arc_client_addr VARCHAR(255) NOT NULL DEFAULT '',
+--
+    UNIQUE(message, instance)
+);
+
+DROP INDEX IF EXISTS arcauthresults_message;
+CREATE INDEX arcauthresults_message ON arcauthresults(message);
+
+-- A table for logging ARC-Seal information
+--
+
+DROP TABLE IF EXISTS arcseals;
+
+CREATE TABLE IF NOT EXISTS arcseals (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    message INTEGER NOT NULL DEFAULT 0 CHECK(message >= 0),
+    domain INTEGER NOT NULL DEFAULT 0 CHECK(domain >= 0),
+    selector INTEGER NOT NULL DEFAULT 0 CHECK(selector >= 0),
+    instance INTEGER NOT NULL DEFAULT 0 CHECK(instance >= 0),
+    firstseen INTEGER NOT NULL DEFAULT (strftime('%s', 'NOW')),
+--
+    UNIQUE(message, domain, selector, instance)
+);
+
+DROP INDEX IF EXISTS arcseals_message;
+CREATE INDEX arcseals_message ON arcseals(message);
+
+-- A table for logging reporting requests
+--
+
+DROP TABLE IF EXISTS requests;
+
+CREATE TABLE IF NOT EXISTS requests (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    domain INTEGER UNIQUE NOT NULL,
+    repuri VARCHAR(255) NOT NULL DEFAULT '',
+    adkim INTEGER NOT NULL DEFAULT 0,
+    aspf INTEGER NOT NULL DEFAULT 0,
+    policy INTEGER NOT NULL DEFAULT 0,
+    spolicy INTEGER NOT NULL DEFAULT 0,
+    pct INTEGER NOT NULL DEFAULT 0,
+    locked INTEGER NOT NULL DEFAULT '0',
+    firstseen INTEGER NOT NULL DEFAULT (strftime('%s', 'NOW')),
+    lastsent INTEGER NOT NULL DEFAULT 0
+);
+
+DROP INDEX IF EXISTS requests_lastsent;
+CREATE INDEX requests_lastsent ON requests(lastsent);
+
+-- A table for reporting hosts
+--
+
+DROP TABLE IF EXISTS reporters;
+
+CREATE TABLE IF NOT EXISTS reporters (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    firstseen INTEGER NOT NULL DEFAULT (strftime('%s', 'NOW'))
+);
+
+DROP INDEX IF EXISTS reporters_name;
+CREATE INDEX reporters_name ON reporters(name);
+
+-- A table for connecting client IP addresses
+--
+
+DROP TABLE IF EXISTS ipaddr;
+
+CREATE TABLE IF NOT EXISTS ipaddr (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    addr VARCHAR(255) UNIQUE NOT NULL,
+    firstseen INTEGER NOT NULL DEFAULT (strftime('%s', 'NOW'))
+);
+
+DROP INDEX IF EXISTS ipaddr_addr;
+CREATE INDEX ipaddr_addr ON ipaddr(addr);
+
+-- A table for messages
+--
+
+DROP TABLE IF EXISTS messages;
+
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    date INTEGER NOT NULL DEFAULT (strftime('%s', 'NOW')),
+    jobid VARCHAR(128) NOT NULL,
+    reporter INTEGER NOT NULL DEFAULT 0 CHECK(reporter >= 0),
+    policy INTEGER NOT NULL DEFAULT 0 CHECK(policy >= 0),
+    disp INTEGER NOT NULL DEFAULT 0 CHECK(disp >= 0),
+    ip INTEGER NOT NULL DEFAULT 0 CHECK(ip >= 0),
+    env_domain INTEGER NOT NULL DEFAULT 0 CHECK(env_domain >= 0),
+    from_domain INTEGER NOT NULL DEFAULT 0 CHECK(from_domain >= 0),
+    policy_domain INTEGER NOT NULL DEFAULT 0 CHECK(policy_domain >= 0),
+    spf INTEGER NOT NULL,
+    align_dkim INTEGER NOT NULL DEFAULT 0 CHECK(align_dkim >= 0),
+    align_spf INTEGER NOT NULL DEFAULT 0 CHECK(align_spf >= 0),
+    sigcount INTEGER NOT NULL DEFAULT 0 CHECK(sigcount >= 0),
+    arc INTEGER NOT NULL DEFAULT 0 CHECK(arc >= 0),
+    arc_policy INTEGER NOT NULL DEFAULT 0 CHECK(arc_policy >= 0),
+--
+    UNIQUE(reporter, date, jobid)
+);
+
+DROP INDEX IF EXISTS messages_date;
+CREATE INDEX messages_date ON messages(date);
+
+-- A table for signatures
+--
+
+DROP TABLE IF EXISTS signatures;
+
+CREATE TABLE IF NOT EXISTS signatures (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    message INTEGER NOT NULL DEFAULT 0 CHECK(message >= 0),
+    domain INTEGER NOT NULL DEFAULT 0 CHECK(domain >= 0),
+    selector INTEGER NOT NULL DEFAULT 0 CHECK(selector >= 0),
+    pass INTEGER NOT NULL DEFAULT 0 CHECK(pass >= 0),
+    error INTEGER NOT NULL DEFAULT 0 CHECK(error >= 0)
+);
+
+DROP INDEX IF EXISTS signatures_message;
+CREATE INDEX signatures_message ON signatures(message);
+
+COMMIT;
+
+VACUUM;

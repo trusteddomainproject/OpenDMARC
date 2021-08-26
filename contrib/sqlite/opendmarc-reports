@@ -1,0 +1,1382 @@
+#!/usr/bin/env -S perl
+#
+# Copyright (c) 2012-2016, 2017-2018, The Trusted Domain Project.
+#   All rights reserved.
+#
+# Script to generate regular DMARC reports.
+
+###
+### Setup
+###
+
+use strict;
+use warnings;
+
+use File::Basename;
+
+BEGIN {
+
+    my $me = basename($0);      # local to block
+    
+    use constant MYSQL  => 0;
+    use constant SQLITE => 1;    
+    
+    if ( ! (MYSQL || SQLITE) )
+    {
+        print STDERR "$me: You must set one of MYSQL or SQLITE.\n";
+        exit(1);
+    }
+    
+    if ( MYSQL && SQLITE )
+    {
+        print STDERR "$me: You must set ONLY one of MYSQL or SQLITE.\n";
+        exit(1);
+    }
+
+}
+
+use Switch;
+
+use DBI;
+use File::Temp;
+use Net::Domain qw(hostfqdn hostdomain);
+use Getopt::Long;
+use IO::Handle;
+use IO::Compress::Zip qw(zip);
+use POSIX;
+use MIME::Base64;
+use Net::SMTP;
+use Time::Local;
+
+# require the right stuff
+#
+### begin DB dependent
+#
+if ( MYSQL )  { require DBD::mysql;  }
+if ( SQLITE ) { require DBD::SQLite; }
+#
+### end DB dependent
+
+require HTTP::Request;
+
+# general
+my $progname      = basename($0);
+my $version       = "1.4.1";
+my $verbose       = 0;
+my $helponly      = 0;
+my $showversion   = 0;
+
+my $interval;
+
+my $gen;
+my $uri;
+
+my $buf;
+
+my $mailout;
+my $boundary;
+
+my $tmpout;
+
+my $repfile;
+my $zipfile;
+
+my $zipin;
+
+my $now = time();
+
+my $repstart;
+my $repend;
+
+my $domain;
+my $domainid;
+my $domainset;
+my $forcedomain;
+my @skipdomains;
+
+my $policy;
+my $spolicy;
+my $policystr;
+my $spolicystr;
+my $pct;
+
+my $repuri;
+my @repuris;
+my $lastsent;
+
+my $aspf;
+my $aspfstr;
+my $adkim;
+my $adkimstr;
+my $align_dkim;
+my $align_dkimstr;
+my $align_spf;
+my $align_spfstr;
+my $spfresult;
+my $dkimresult;
+my $disp;
+my $spfresultstr;
+my $dkimresultstr;
+my $dispstr;
+my $ipaddr;
+my $fromdomain;
+my $envdomain;
+my $dkimdomain;
+my $dkimselector;
+my $arc;
+my $arcstr;
+my $arcpolicy;
+my $arcpolicystr;
+
+my $repdest;
+
+my $smtpstatus;
+my $smtpfail;
+
+my $doupdate = 1;
+my $testmode = 0;
+my $keepfiles = 0;
+my $use_utc = 0;
+my $daybound = 0;
+my $report_maxbytes_global = 15728640; # default: 15M, per spec
+
+my $msgid;
+
+my $rowcount;
+
+my $dbi_h;
+my $dbi_s;
+my $dbi_s2;
+my $dbi_a;
+my $dbi_hash;
+
+# DB parameters
+#
+#   defaults
+#
+my $def_dbhost   = undef;
+my $def_dbname   = undef;
+my $def_dbuser   = undef;
+my $def_dbpasswd = undef;
+my $def_dbport   = undef;
+
+my $dbscheme     = undef;
+
+#       database variables
+#
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $def_dbhost    = "localhost";
+    $def_dbname    = "opendmarc";
+    $def_dbuser    = "opendmarc";
+    $def_dbpasswd  = "opendmarc";
+    $def_dbport    = "3306";
+
+    $dbscheme      = "mysql";
+}
+
+if ( SQLITE )
+{
+    $def_dbname    = "opendmarc.sqlite";
+
+    $dbscheme      = "SQLite";
+}
+#
+### end DB dependent
+
+#       misc other defaults
+#
+my $def_interval  = "86400";
+
+# command-line variables
+#
+my $dbhost;
+my $dbname;
+my $dbuser;
+my $dbpasswd;
+my $dbport;
+
+my $dbi_dsn;
+
+my $repdom       = hostdomain();
+my $repemail     = "postmaster@" . $repdom;
+
+my $smtp_server  = '127.0.0.1';
+my $smtp_port    = 25;
+my $smtp;
+
+my $answer;
+
+###
+### NO user-serviceable parts beyond this point
+###
+
+sub usage
+{
+    ### begin DB dependent
+    #
+    if ( MYSQL )
+    {
+        print STDERR "$progname: usage: $progname [options]\n";
+        print STDERR "\t--day               send yesterday's data\n";
+        print STDERR "\t--dbhost=host       database host [$def_dbhost]\n";
+        print STDERR "\t--dbname=name       database name [$def_dbname]\n";
+        print STDERR "\t--dbpasswd=passwd   database password [$def_dbpasswd]\n";
+        print STDERR "\t--dbport=port       database port [$def_dbport]\n";
+        print STDERR "\t--dbuser=user       database user [$def_dbuser]\n";
+        print STDERR "\t--domain=name       force a report for named domain\n";
+        print STDERR "\t--help              print help and exit\n";
+        print STDERR "\t--interval=secs     report interval [$def_interval]\n";
+        print STDERR "\t--keepfiles         keep xml files (in local directory)\n";
+        print STDERR "\t--nodomain=name     omit a report for named domain\n";
+        print STDERR "\t--noupdate          don't record report transmission\n";
+        print STDERR "\t--report-email      reporting contact [$repemail]\n";
+        print STDERR "\t--report-org        reporting organization [$repdom]\n";
+        print STDERR "\t--smtp-port         smtp server port [$smtp_port]\n";
+        print STDERR "\t--smtp-server       smtp server [$smtp_server]\n";
+        print STDERR "\t-n|--dry-run|--test don't send reports\n";
+        print STDERR "\t                    (implies --keepfiles --noupdate)\n";
+        print STDERR "\t--utc               operate in UTC\n";
+        print STDERR "\t--verbose           verbose output\n";
+        print STDERR "\t                    (repeat for increased output)\n";
+        print STDERR "\t--version           print version and exit\n";
+    }
+	    
+    if ( SQLITE )
+    {
+        print STDERR "$progname: usage: $progname [options]\n";
+        print STDERR "\t--day               send yesterday's data\n";
+        print STDERR "\t--dbname=name       database name [$def_dbname]\n";
+        print STDERR "\t--domain=name       force a report for named domain\n";
+        print STDERR "\t--help              print help and exit\n";
+        print STDERR "\t--interval=secs     report interval [$def_interval]\n";
+        print STDERR "\t--keepfiles         keep xml files (in local directory)\n";
+        print STDERR "\t--nodomain=name     omit a report for named domain\n";
+        print STDERR "\t--noupdate          don't record report transmission\n";
+        print STDERR "\t--report-email      reporting contact [$repemail]\n";
+        print STDERR "\t--report-org        reporting organization [$repdom]\n";
+        print STDERR "\t--smtp-port         smtp server port [$smtp_port]\n";
+        print STDERR "\t--smtp-server       smtp server [$smtp_server]\n";
+        print STDERR "\t-n|--dry-run|--test don't send reports\n";
+        print STDERR "\t                    (implies --keepfiles --noupdate)\n";
+        print STDERR "\t--utc               operate in UTC\n";
+        print STDERR "\t--verbose           verbose output\n";
+        print STDERR "\t                    (repeat for increased output)\n";
+    }
+    #
+    ### end DB dependent
+}
+
+# set locale
+setlocale(LC_ALL, 'C');
+
+# parse command line arguments
+#
+my $opt_retval = undef;
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $opt_retval = &Getopt::Long::GetOptions (
+                                                'day!' => \$daybound,
+                                                'dbhost=s' => \$dbhost,
+                                                'dbname=s' => \$dbname,
+                                                'dbpasswd=s' => \$dbpasswd,
+                                                'dbport=s' => \$dbport,
+                                                'dbuser=s' => \$dbuser,
+                                                'domain=s' => \$forcedomain,
+                                                'help!' => \$helponly,
+                                                'interval=i' => \$interval,
+                                                'keepfiles' => \$keepfiles,
+                                                'n|dry-run|test' => \$testmode,
+                                                'nodomain=s' => \@skipdomains,
+                                                'report-email=s' => \$repemail,
+                                                'report-org=s' => \$repdom,
+                                                'smtp-server=s' => \$smtp_server,
+                                                'smtp-port=i' => \$smtp_port,
+                                                'update!' => \$doupdate,
+                                                'utc!' => \$use_utc,
+                                                'verbose+' => \$verbose,
+                                                'version!' => \$showversion,
+                                            );
+}
+
+if ( SQLITE )
+{
+    $opt_retval = &Getopt::Long::GetOptions (
+                                                'day!' => \$daybound,
+                                                'dbname=s' => \$dbname,
+                                                'domain=s' => \$forcedomain,
+                                                'help!' => \$helponly,
+                                                'interval=i' => \$interval,
+                                                'keepfiles' => \$keepfiles,
+                                                'n|dry-run|test' => \$testmode,
+                                                'nodomain=s' => \@skipdomains,
+                                                'report-email=s' => \$repemail,
+                                                'report-org=s' => \$repdom,
+                                                'smtp-server=s' => \$smtp_server,
+                                                'smtp-port=i' => \$smtp_port,
+                                                'update!' => \$doupdate,
+                                                'utc!' => \$use_utc,
+                                                'verbose+' => \$verbose,
+                                                'version!' => \$showversion,
+                                            );
+}
+#
+### end DB dependent
+
+if ($showversion)
+{
+    print STDOUT "$progname v$version\n";
+    exit(0);
+}
+
+if (!$opt_retval || $helponly)
+{
+    usage();
+
+    if ($helponly)
+    {
+        exit(0);
+    }
+    else
+    {
+        exit(1);
+    }
+}
+
+# apply defaults
+#
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    if (!defined($dbhost))
+    {
+        if (defined($ENV{'OPENDMARC_DBHOST'}))
+        {
+            $dbhost = $ENV{'OPENDMARC_DBHOST'};
+        }
+        else
+        {
+            $dbhost = $def_dbhost;
+        }
+    }
+
+    if (!defined($dbname))
+    {
+        if (defined($ENV{'OPENDMARC_DB'}))
+        {
+            $dbname = $ENV{'OPENDMARC_DB'};
+        }
+        else
+        {
+            $dbname = $def_dbname;
+        }
+    }
+
+    if (!defined($dbpasswd))
+    {
+        if (defined($ENV{'OPENDMARC_PASSWORD'}))
+        {
+            $dbpasswd = $ENV{'OPENDMARC_PASSWORD'};
+        }
+        else
+        {
+            $dbpasswd = $def_dbpasswd;
+        }
+    }
+
+    if (!defined($dbport))
+    {
+        if (defined($ENV{'OPENDMARC_PORT'}))
+        {
+            $dbport = $ENV{'OPENDMARC_PORT'};
+        }
+        else
+        {
+            $dbport = $def_dbport;
+        }
+    }
+
+    if (!defined($dbuser))
+    {
+        if (defined($ENV{'OPENDMARC_USER'}))
+        {
+            $dbuser = $ENV{'OPENDMARC_USER'};
+        }
+        else
+        {
+            $dbuser = $def_dbuser;
+        }
+    }
+}
+
+if ( SQLITE )
+{
+    if (!defined($dbname))
+    {
+        $dbname = $def_dbname;
+    }
+}
+#
+### end DB dependent
+
+if (defined($interval) && $daybound)
+{
+    print STDERR "$progname: WARN: --day overrides --interval\n";
+}
+
+if (!defined($interval) || $daybound)
+{
+    $interval = $def_interval;
+}
+
+# Test mode requested, don't update last sent and keep xml files
+#
+$doupdate  = ($testmode == 1) ? 0 : $doupdate;
+$keepfiles = ($testmode == 1) ? 1 : $keepfiles;
+
+if ($verbose)
+{
+    print STDERR "$progname: started at " . localtime($now) . "\n";
+}
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
+               ";host=" . $dbhost . ";port=" . $dbport;
+
+    $dbi_h = DBI->connect($dbi_dsn, $dbuser, $dbpasswd, { PrintError => 0 });
+}
+if ( SQLITE )
+{
+    $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname;
+
+    $dbi_h = DBI->connect($dbi_dsn, "", "", { PrintError => 0 });
+}
+#
+### end DB dependent
+
+if (!defined($dbi_h))
+{
+    print STDERR "$progname: unable to connect to database: $DBI::errstr\n";
+    exit(1);
+}
+
+if ($verbose >= 2)
+{
+    print STDERR "$progname: connected to database\n";
+}
+
+### begin DB dependent
+#
+if ( MYSQL )
+{
+    if ($use_utc)
+    {
+        $dbi_s = $dbi_h->prepare("SET TIME_ZONE='+00:00'");
+
+        if (!$dbi_s->execute())
+        {
+            print STDERR "$progname: failed to change to UTC: " . $dbi_h->errstr . "\n";
+            $dbi_s->finish;
+            $dbi_h->disconnect;
+            exit(1);
+        }
+    }
+}
+#
+### end DB dependent
+
+# Select domains on which to report
+#
+
+if ($verbose >= 2)
+{
+    print STDERR "$progname: selecting target domains\n";
+}
+
+if (defined($forcedomain))
+{
+    $dbi_s = $dbi_h->prepare("SELECT name FROM domains WHERE name = ?");
+
+    if (!$dbi_s->execute($forcedomain))
+    {
+        print STDERR "$progname: failed to test for database entry: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+}
+elsif ($daybound)
+{
+    ### begin DB dependent
+    #
+    if ( MYSQL )
+    {
+        $dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests " . 
+                    "JOIN domains ON requests.domain = domains.id WHERE " . 
+                    "DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
+    }
+
+    if ( SQLITE )
+    {
+        $dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests " . 
+                    "JOIN domains ON requests.domain = domains.id WHERE lastsent < ?");
+    }
+    #
+    ### end DB dependent
+
+    if (!$dbi_s->execute($now))
+    {
+        print STDERR "$progname: failed to collect domain names: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+}
+else
+{
+    ### begin DB dependent
+    #
+    if ( MYSQL )
+    {
+        $dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests " . 
+            "JOIN domains ON requests.domain = domains.id WHERE " . 
+            "lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
+    }
+
+    if ( SQLITE )
+    {
+        $dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests " . 
+            "JOIN domains ON requests.domain = domains.id WHERE lastsent <= (? - ?)");
+    }
+    #
+    ### end DB dependent
+  
+    if (!$dbi_s->execute($now, $interval))
+    {
+        print STDERR "$progname: failed to collect domain names: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+}
+
+$domainset = $dbi_s->fetchall_arrayref([0]);
+$dbi_s->finish;
+
+if ($verbose)
+{
+    print STDERR "$progname: selected " . scalar(@$domainset) . " domain(s)\n";
+}
+
+#
+# For each domain:
+# 	-- extract reporting address
+# 	-- extract messages/signatures to report
+# 	-- generate and send report
+# 	-- update "last sent" timestamp
+#
+
+# n.b. this won't work if $smtp_server requires authentication
+#
+$smtp = Net::SMTP->new($smtp_server,
+                       'Port' => $smtp_port,
+                       'Hello' => hostfqdn());
+
+if (!defined($smtp))
+{
+    print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
+    exit(1);
+}
+
+foreach (@$domainset)
+{
+    $domain = $_->[0];
+
+    if (!defined($domain))
+    {
+        next;
+    }
+
+    if (@skipdomains && grep({$_ eq $domain} @skipdomains) != 0)
+    {
+        next;
+    }
+
+    if ($verbose >= 2)
+    {
+        print STDERR "$progname: processing $domain\n";
+    }
+
+    # extract this domain's reporting parameters
+    #
+    $dbi_s = $dbi_h->prepare("SELECT id FROM domains WHERE name = ?");
+    if (!$dbi_s->execute($domain))
+    {
+        print STDERR "$progname: can't get ID for domain $domain: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+
+    undef $domainid;
+    while ($dbi_a = $dbi_s->fetchrow_arrayref())
+    {
+        if (defined($dbi_a->[0]))
+        {
+            $domainid = $dbi_a->[0];
+        }
+    }
+    $dbi_s->finish;
+
+    if (!defined($domainid))
+    {
+        print STDERR "$progname: ID for domain $domain not found\n";
+        next;
+    }
+
+    ### begin DB dependent
+    #
+    if ( MYSQL )
+    {
+        $dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, " . 
+                                "UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+    }
+
+    if ( SQLITE )
+    {
+        $dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, " . 
+                                    "lastsent FROM requests WHERE domain = ?");
+    }
+    #
+    ### end DB dependent
+
+    if (!$dbi_s->execute($domainid))
+    {
+        print STDERR "$progname: can't get reporting URI for domain $domain: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+
+    undef $repuri;
+
+    while ($dbi_a = $dbi_s->fetchrow_arrayref())
+    {
+        if (defined($dbi_a->[0]))
+        {
+            $repuri = $dbi_a->[0];
+        }
+        if (defined($dbi_a->[1]))
+        {
+            $adkim = $dbi_a->[1];
+        }
+        if (defined($dbi_a->[2]))
+        {
+            $aspf = $dbi_a->[2];
+        }
+        if (defined($dbi_a->[3]))
+        {
+            $policy = $dbi_a->[3];
+        }
+        if (defined($dbi_a->[4]))
+        {
+            $spolicy = $dbi_a->[4];
+        }
+        if (defined($dbi_a->[5]))
+        {
+            $pct = $dbi_a->[5];
+        }
+        if (defined($dbi_a->[6]))
+        {
+            $lastsent = $dbi_a->[6];
+        }
+    }
+
+    $dbi_s->finish;
+
+    if (!defined($repuri) || ("" eq $repuri))
+    {
+        if ($verbose >= 2)
+        {
+            print STDERR "$progname: no reporting URI for domain $domain; skipping\n";
+        }
+
+        next;
+    }
+
+    if ($daybound)
+    {
+        my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($now - $interval);
+        $repstart = timelocal(0, 0, 0, $mday, $mon, $year);
+        ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($now);
+        $repend = timelocal(0, 0, 0, $mday, $mon, $year);
+    }
+    else
+    {
+        $repstart = $now - $interval;
+        $repend = $now;
+    }
+
+    # construct the temporary file
+    #
+    $repfile = $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml";
+    $zipfile = $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".zip";
+    if (!open($tmpout, ">", $repfile))
+    {
+        print STDERR "$progname: can't create report file for domain $domain\n";
+        next;
+    }
+
+    switch ($adkim)
+    {
+        case ord("r")	{ $adkimstr = "r"; }
+        case ord("s")	{ $adkimstr = "s"; }
+        else		{ $adkimstr = "unknown"; }
+    }
+
+    switch ($aspf)
+    {
+        case ord("r")	{ $aspfstr = "r"; }
+        case ord("s")	{ $aspfstr = "s"; }
+        else		{ $aspfstr = "unknown"; }
+    }
+
+    switch ($policy)
+    {
+        case ord("n")	{ $policystr = "none"; }
+        case ord("q")	{ $policystr = "quarantine"; }
+        case ord("r")	{ $policystr = "reject"; }
+        else		{ $policystr = "unknown"; }
+    }
+
+    switch ($spolicy)
+    {
+        case 0		{ $spolicystr = $policystr; }
+        case ord("n")	{ $spolicystr = "none"; }
+        case ord("q")	{ $spolicystr = "quarantine"; }
+        case ord("r")	{ $spolicystr = "reject"; }
+        else		{ $spolicystr = "unknown"; }
+    }
+
+    print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
+    print $tmpout "<feedback>\n";
+
+    print $tmpout "    <report_metadata>\n";
+    print $tmpout "        <org_name>$repdom</org_name>\n";
+    print $tmpout "         <email>$repemail</email>\n";
+    print $tmpout "         <report_id>$domain:$now</report_id>\n";
+    print $tmpout "         <date_range>\n";
+    print $tmpout "         <begin>$repstart</begin>\n";
+    print $tmpout "         <end>$repend</end>\n";
+    print $tmpout "         </date_range>\n";
+    print $tmpout "    </report_metadata>\n";
+
+    print $tmpout "    <policy_published>\n";
+    print $tmpout "        <domain>$domain</domain>\n";
+    print $tmpout "        <adkim>$adkimstr</adkim>\n";
+    print $tmpout "        <aspf>$aspfstr</aspf>\n";
+    print $tmpout "        <p>$policystr</p>\n";
+    print $tmpout "        <sp>$spolicystr</sp>\n";
+    print $tmpout "        <pct>$pct</pct>\n";
+    print $tmpout "    </policy_published>\n";
+
+    if ($daybound)
+    {
+
+        ### begin DB dependent
+        #
+        if ( MYSQL )
+        {
+            $dbi_s = $dbi_h->prepare(
+                    q{
+                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
+                                messages.spf, messages.align_spf, messages.align_dkim,
+                                messages.arc, messages.arc_policy 
+                         FROM messages 
+                         JOIN ipaddr ON messages.ip = ipaddr.id 
+                         JOIN domains d1 ON messages.from_domain = d1.id 
+                         JOIN domains d2 ON messages.env_domain = d2.id 
+                         WHERE messages.from_domain = ? 
+                                AND DATE(messages.date) >= DATE(FROM_UNIXTIME(?)) 
+                                AND DATE(messages.date) < DATE(FROM_UNIXTIME(?)) 
+                     });
+
+        }
+
+        if ( SQLITE )
+        {
+            # Couldn't get q{} to work right...
+            #
+            $dbi_s = $dbi_h->prepare(
+                     "SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, " .
+                     "       messages.spf, messages.align_spf, messages.align_dkim, " .
+                     "       messages.arc, messages.arc_policy " .
+                     "FROM messages " . 
+                     "JOIN ipaddr ON messages.ip = ipaddr.id " . 
+                     "JOIN domains d1 ON messages.from_domain = d1.id " . 
+                     "JOIN domains d2 ON messages.env_domain = d2.id " . 
+                     "WHERE messages.from_domain = ? " . 
+                      "         AND messages.date >= ? " .
+                      "         AND messages.date < ?"
+                                    );
+        }
+        #
+        ### end DB dependent
+
+    }
+    else
+    {
+        ### begin DB dependent
+        #
+        if ( MYSQL )
+        {
+            $dbi_s = $dbi_h->prepare(
+                            q{
+                                 SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
+                                        messages.spf, messages.align_spf, messages.align_dkim,
+                                        messages.arc, messages.arc_policy 
+                                 FROM messages 
+                                 JOIN ipaddr ON messages.ip = ipaddr.id 
+                                 JOIN domains d1 ON messages.from_domain = d1.id 
+                                 JOIN domains d2 ON messages.env_domain = d2.id 
+                                 WHERE messages.from_domain = ? 
+                                         AND messages.date > FROM_UNIXTIME(?) 
+                                         AND messages.date <= FROM_UNIXTIME(?) 
+                             });
+        }
+
+        if ( SQLITE )
+        {
+            # Couldn't get q{} to work right...
+            #
+            $dbi_s = $dbi_h->prepare(
+                        "SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, " .
+                        "       messages.spf, messages.align_spf, messages.align_dkim, " .
+                        "       messages.arc, messages.arc_policy " . 
+                        "FROM messages " .
+                        "JOIN ipaddr ON messages.ip = ipaddr.id " . 
+                        "JOIN domains d1 ON messages.from_domain = d1.id " . 
+                        "JOIN domains d2 ON messages.env_domain = d2.id " . 
+                        "WHERE messages.from_domain = ? " . 
+                        "         AND messages.date > ? " . 
+                        "         AND messages.date <= ?"
+                                    );
+        }
+        #
+        ### end DB dependent
+    }
+
+    if (!$dbi_s->execute($domainid, $repstart, $repend))
+    {
+        print STDERR "$progname: can't extract report for domain $domain: " . $dbi_h->errstr . "\n";
+        $dbi_s->finish;
+        $dbi_h->disconnect;
+        exit(1);
+    }
+
+    $rowcount = 0;
+
+    while ($dbi_a = $dbi_s->fetchrow_arrayref())
+    {
+        undef $msgid;
+
+        if (defined($dbi_a->[0]))
+        {
+            $msgid = $dbi_a->[0];
+        }
+        if (defined($dbi_a->[1]))
+        {
+            $ipaddr = $dbi_a->[1];
+        }
+        if (defined($dbi_a->[2]))
+        {
+            $disp = $dbi_a->[2];
+        }
+        if (defined($dbi_a->[3]))
+        {
+            $fromdomain = $dbi_a->[3];
+        }
+        if (defined($dbi_a->[4]))
+        {
+            $envdomain = $dbi_a->[4];
+        }
+        if (defined($dbi_a->[5]))
+        {
+            $spfresult = $dbi_a->[5];
+        }
+        if (defined($dbi_a->[6]))
+        {
+            $align_spf = $dbi_a->[6];
+        }
+        if (defined($dbi_a->[7]))
+        {
+            $align_dkim = $dbi_a->[7];
+        }
+        if (defined($dbi_a->[8]))
+        {
+            $arc = $dbi_a->[8];
+        }
+        if (defined($dbi_a->[9]))
+        {
+            $arcpolicy = $dbi_a->[9];
+        }
+
+        if (!defined($msgid))
+        {
+            next;
+        }
+
+        $rowcount++;
+
+        switch ($disp)
+        {
+            case 0	{ $dispstr = "reject"; }
+            case 1	{ $dispstr = "reject"; }
+            case 2	{ $dispstr = "none"; }
+            case 4	{ $dispstr = "quarantine"; }
+            else	{ $dispstr = "unknown"; }
+        }
+
+        switch ($spfresult)
+        {
+            case 0	{ $spfresultstr = "pass"; }
+            case 2	{ $spfresultstr = "softfail"; }
+            case 3	{ $spfresultstr = "neutral"; }
+            case 4	{ $spfresultstr = "temperror"; }
+            case 5	{ $spfresultstr = "permerror"; }
+            case 6	{ $spfresultstr = "none"; }
+            case 7	{ $spfresultstr = "fail"; }
+            case 8	{ $spfresultstr = "policy"; }
+            case 9	{ $spfresultstr = "nxdomain"; }
+            case 10	{ $spfresultstr = "signed"; }
+            case 12	{ $spfresultstr = "discard"; }
+            else	{ $spfresultstr = "unknown"; }
+        }
+
+        switch ($align_dkim)
+        {
+            case 4	{ $align_dkimstr = "pass"; }
+            case 5	{ $align_dkimstr = "fail"; }
+            else	{ $align_dkimstr = "unknown"; }
+        }
+
+        switch ($align_spf)
+        {
+            case 4	{ $align_spfstr = "pass"; }
+            case 5	{ $align_spfstr = "fail"; }
+            else	{ $align_spfstr = "unknown"; }
+        }
+
+        switch ($arc)
+        {
+            case 1	{ $arcstr = "pass"; }
+            else	{ $arcstr = "fail"; }
+        }
+
+        switch ($arcpolicy)
+        {
+            case 0	{ $arcpolicystr = "pass"; }
+            else	{ $arcpolicystr = "fail"; }
+        }
+
+        # retrieve arc_policy seals, join arcauthresults.arc_client_addr (smtp.client_ip)
+        #
+        $dbi_s2 = $dbi_h->prepare(q{
+                                  SELECT arcseals.instance, domains.name AS domain,
+                        selectors.name AS selector,
+                        arcauthresults.arc_client_addr as client_ip
+                                  FROM arcseals
+                                  JOIN domains on arcseals.domain = domains.id
+                                  JOIN selectors on arcseals.selector = selectors.id
+                      JOIN arcauthresults on arcseals.message = arcauthresults.message
+                        AND arcseals.instance = arcauthresults.instance
+                                  WHERE arcseals.message = ?
+                                  ORDER BY arcseals.instance DESC
+                                    });
+                                    
+        if (!$dbi_s2->execute($msgid))
+        {
+            print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
+            $dbi_s2->finish;
+            $dbi_s->finish;
+            $dbi_h->disconnect;
+            exit(1);
+        }
+
+        my $arc_policy_output = "arc=$arcpolicystr";
+        while ($dbi_hash = $dbi_s2->fetchrow_hashref())
+        {
+            $arc_policy_output .= " as[$dbi_hash->{instance}].d=$dbi_hash->{domain}";
+            $arc_policy_output .= " as[$dbi_hash->{instance}].s=$dbi_hash->{selector}";
+            if ($dbi_hash->{instance} == 1 && (defined($dbi_hash->{client_ip}) && $dbi_hash->{client_ip} ne ""))
+            {
+                $arc_policy_output .= " client-ip[$dbi_hash->{instance}]=$dbi_hash->{client_ip}";
+            }
+        }
+
+        $dbi_s2->finish;
+ 
+        print $tmpout "    <record>\n";
+        print $tmpout "        <row>\n";
+        print $tmpout "            <source_ip>$ipaddr</source_ip>\n";
+        print $tmpout "            <count>1</count>\n";
+        print $tmpout "            <policy_evaluated>\n";
+        print $tmpout "                <disposition>$dispstr</disposition>\n";
+        print $tmpout "                <dkim>$align_dkimstr</dkim>\n";
+        print $tmpout "                <spf>$align_spfstr</spf>\n";
+        print $tmpout "                <reason>\n";
+        print $tmpout "                    <type>local_policy</type>\n";
+        print $tmpout "                    <comment>$arc_policy_output</comment>\n";
+        print $tmpout "                </reason>\n";
+        print $tmpout "            </policy_evaluated>\n";
+        print $tmpout "        </row>\n";
+        print $tmpout "        <identifiers>\n";
+        print $tmpout "            <header_from>$fromdomain</header_from>\n";
+        print $tmpout "        </identifiers>\n";
+        print $tmpout "        <auth_results>\n";
+        print $tmpout "            <spf>\n";
+        print $tmpout "                <domain>$envdomain</domain>\n";
+        print $tmpout "                <result>$spfresultstr</result>\n";
+        print $tmpout "            </spf>\n";
+
+        $dbi_s2 = $dbi_h->prepare(q{
+                          SELECT domains.name, selectors.name, pass
+                          FROM signatures
+                          JOIN domains ON signatures.domain = domains.id
+                          JOIN selectors ON signatures.selector = selectors.id
+                          WHERE signatures.message = ?
+                                    });
+        if (!$dbi_s2->execute($msgid))
+        {
+            print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
+            $dbi_s2->finish;
+            $dbi_s->finish;
+            $dbi_h->disconnect;
+            exit(1);
+        }
+
+        my %dkim_domain_result_cache = ();
+        while ($dbi_a = $dbi_s2->fetchrow_arrayref())
+        {
+            undef $dkimdomain;
+
+            if (defined($dbi_a->[0]))
+            {
+                $dkimdomain = $dbi_a->[0];
+            }
+            if (defined($dbi_a->[1]))
+            {
+                $dkimselector = $dbi_a->[1];
+            }
+            if (defined($dbi_a->[2]))
+            {
+                $dkimresult = $dbi_a->[2];
+            }
+
+            if (!defined($dkimdomain))
+            {
+                next;
+            }
+            if (defined($dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}))
+            {
+                next; # no duplicate per-record auth_result dkim sections
+            }
+            $dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}++;
+
+            switch ($dkimresult)
+            {
+                case 0	{ $dkimresultstr = "pass"; }
+                case 2	{ $dkimresultstr = "softfail"; }
+                case 3	{ $dkimresultstr = "neutral"; }
+                case 4	{ $dkimresultstr = "temperror"; }
+                case 5	{ $dkimresultstr = "permerror"; }
+                case 6	{ $dkimresultstr = "none"; }
+                case 7	{ $dkimresultstr = "fail"; }
+                case 8	{ $dkimresultstr = "policy"; }
+                case 9	{ $dkimresultstr = "nxdomain"; }
+                case 10	{ $dkimresultstr = "signed"; }
+                case 12	{ $dkimresultstr = "discard"; }
+                else	{ $dkimresultstr = "unknown"; }
+            }
+
+            print $tmpout "            <dkim>\n";
+            print $tmpout "                <domain>$dkimdomain</domain>\n";
+            print $tmpout "                <selector>$dkimselector</selector>\n";
+            print $tmpout "                <result>$dkimresultstr</result>\n";
+            print $tmpout "            </dkim>\n";
+        }
+
+        $dbi_s2->finish;
+
+        print $tmpout "        </auth_results>\n";
+        print $tmpout "    </record>\n";
+    }
+
+    $dbi_s->finish;
+
+    print $tmpout "</feedback>\n";
+
+    close($tmpout);
+
+    if ($rowcount == 0)
+    {
+        if ($verbose >= 2)
+        {
+            print STDERR "$progname: no activity selected for $domain; skipping\n";
+        }
+
+        unlink($repfile);
+        next;
+    }
+
+    # zip the report
+    if (!zip [ $repfile ] => $zipfile)
+    {
+        print STDERR "$progname: can't zip report for domain $domain: $!\n";
+        next;
+    }
+
+    if ($keepfiles)
+    {
+        print STDERR "$progname: keeping report file \"$repfile\"\n";
+    }
+
+    @repuris = split(',', $repuri);
+
+    for $repuri (@repuris)
+    {
+        $uri = URI->new($repuri);
+        if (!defined($uri) ||
+            !defined($uri->scheme) ||
+            $uri->opaque eq "")
+        {
+            print STDERR "$progname: can't parse reporting URI for domain $domain\n";
+            next;
+        }
+
+        $repdest = $uri->opaque;
+        my $report_maxbytes = $report_maxbytes_global;
+
+        # check for max report size
+        if ($repdest =~ m/^(\S+)!(\d{1,15})([kmgt])?$/i)
+        {
+            $repdest = $1;
+            $report_maxbytes = $2;
+            if ($3)
+            {
+                my $letter = lc($3);
+                if ($letter eq 'k')
+                {
+                    $report_maxbytes = $report_maxbytes * 1024;
+                }
+                if ($letter eq 'm')
+                {
+                    $report_maxbytes = $report_maxbytes * 1048576;
+                }
+                if ($letter eq 'g')
+                {
+                    $report_maxbytes = $report_maxbytes * (2**30);
+                }
+                if ($letter eq 't')
+                {
+                    $report_maxbytes = $report_maxbytes * (2**40);
+                }
+            }
+        }
+    }
+    
+    # Test mode, just report what would have been done
+    #
+    if ($testmode)
+    {
+        print STDERR "$progname: would email $domain report for " .
+                     "$rowcount records to " .  $uri->opaque . "\n";
+    }
+    # ensure a scheme is present
+    elsif (!defined($uri->scheme))
+    {
+        if ($verbose >= 2)
+        {
+            print STDERR "$progname: unknown URI scheme in '$repuri' for domain $domain\n";
+        }
+        next;
+    }
+    # send/post report
+    elsif ($uri->scheme eq "mailto")
+    {
+        my $datestr;
+        my $report_id;
+
+        if (!open($zipin, $zipfile))
+        {
+            print STDERR "$progname: can't read zipped report for $domain: $!\n";
+            next;
+        }
+
+        $boundary = "report_section";
+
+        $report_id = $domain . "-" . $now . "@" . $repdom;
+
+        ### begin DB dependent
+        #
+        if ( MYSQL )
+        {
+            $datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",localtime);
+        }
+
+        if ( SQLITE )
+        {
+            $datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",
+                            ( $use_utc ? gmtime() : localtime() ) );
+        }
+        #
+        ### end DB dependent
+
+        $mailout  = "To: $repdest\n";
+        $mailout .= "From: $repemail\n";
+        $mailout .= "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
+        $mailout .= "X-Mailer: " . $progname . " v" . $version ."\n";
+        $mailout .= "Date: " . $datestr . "\n";
+        $mailout .= "Message-ID: <$report_id>\n";
+        $mailout .= "Auto-Submitted: auto-generated\n";
+        $mailout .= "MIME-Version: 1.0\n";
+        $mailout .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
+        $mailout .= "\n";
+        $mailout .= "This is a MIME-encapsulated message.\n";
+        $mailout .= "\n";
+        $mailout .= "--$boundary\n";
+        $mailout .= "Content-Type: text/plain;\n";
+        $mailout .= "\n";
+        $mailout .= "This is a DMARC aggregate report for $domain\n";
+    
+        ### begin DB dependent
+        #
+        if ( MYSQL )
+        {
+            $mailout .= "generated at " . localtime() . "\n";
+        }
+
+        if ( SQLITE )
+        {
+            $mailout .= "generated at " . ( $use_utc ? gmtime() : localtime() ) . "\n";
+        }
+        #
+        ### end DB dependent
+
+        $mailout .= "\n";
+        $mailout .= "--$boundary\n";
+        $mailout .= "Content-Type: application/zip\n";
+        $mailout .= "Content-Disposition: attachment; filename=\"$zipfile\"\n";
+        $mailout .= "Content-Transfer-Encoding: base64\n";
+        $mailout .= "\n";
+
+        while (read($zipin, $buf, 60*57))
+        {
+            $mailout .= encode_base64($buf);
+        }
+
+        close($zipin);
+  
+        $mailout .= "\n";
+        $mailout .= "--$boundary--\n";
+        my $reportsize = length($mailout);
+        
+        if ($reportsize > $report_maxbytes_global)
+        {
+            # XXX -- generate an error report here
+            print STDERR "$progname: report was too large ($reportsize bytes) per " . 
+                            "limitation of URI " . $uri->opaque . " for domain $domain\n";
+        }
+        else
+        {
+            $smtpstatus = "sent";
+            $smtpfail = 0;
+            if (
+                !$smtp->mail($repemail) ||
+                !$smtp->to($repdest) ||
+                !$smtp->data() ||
+                !$smtp->datasend($mailout) ||
+                !$smtp->dataend())
+            {
+                $smtpfail = 1;
+                $smtpstatus = "failed to send";
+            }
+
+            if ($verbose || $smtpfail)
+            {
+                # now perl voodoo:
+                $answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
+                chomp($answer);
+                print STDERR "$progname: $smtpstatus report for $domain to $repdest ($answer)\n";
+                $smtp->reset();
+            }
+        }
+    }
+    else
+    {
+        print STDERR "$progname: unsupported reporting URI scheme " . $uri->scheme . " for domain $domain\n";
+        next;
+    }
+
+    # update "last sent" timestamp
+    #
+    if ($doupdate)
+    {
+        ### begin DB dependent
+        #
+        if ( MYSQL )
+        {
+            $dbi_s = $dbi_h->prepare("UPDATE requests SET lastsent = FROM_UNIXTIME(?) WHERE domain = ?");
+        }
+
+        if ( SQLITE )
+        {
+            $dbi_s = $dbi_h->prepare("UPDATE requests SET lastsent = ? WHERE domain = ?");
+        }
+        #
+        ### end DB dependent
+        
+        if (!$dbi_s->execute($repend, $domainid))
+        {
+            print STDERR "$progname: can't update last sent time for domain $domain: " . $dbi_h->errstr . "\n";
+            $dbi_s->finish;
+            $dbi_h->disconnect;
+            exit(1);
+        }
+    }
+
+    unlink($zipfile);
+    
+    if (!$keepfiles)
+    {
+        unlink($repfile);
+    }
+    
+}  # foreach (@domainset)
+
+$smtp->quit();
+
+#
+# all done!
+#
+
+$dbi_s->finish;
+
+if ($verbose)
+{
+    print STDERR "$progname: terminating at " . localtime() . "\n";
+}
+
+$dbi_h->disconnect;
+
+exit(0);
