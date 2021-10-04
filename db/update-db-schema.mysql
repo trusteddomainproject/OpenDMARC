@@ -1,0 +1,12 @@
+use opendmarc;
+SET TIME_ZONE="+00:00";
+ALTER TABLE ipaddr MODIFY COLUMN addr VARCHAR(64) NOT NULL;
+DELETE FROM ipaddr WHERE addr = NULL;
+ALTER TABLE messages MODIFY COLUMN spf TINYINT NOT NULL;
+ALTER TABLE requests ALTER COLUMN locked SET DEFAULT '0';
+ALTER TABLE requests ALTER COLUMN lastsent SET DEFAULT '1970-01-01 00:00:01';
+ALTER TABLE requests ADD UNIQUE KEY domain (domain);
+ALTER TABLE requests ADD KEY lastsent (lastsent);
+ALTER TABLE messages ADD KEY date (date);
+ALTER TABLE signatures ADD KEY message (message);
+

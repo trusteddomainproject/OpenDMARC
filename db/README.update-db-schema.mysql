@@ -1,0 +1,8 @@
+
+To update your database to the current state use this script like this:
+
+  mysql -u <user> -p <passwd> --force < update-db-schema.mysql
+
+You might receive up to four errors about duplicate keys - this is expected if your database
+already has these keys (because you used the MySQL schema in the db sub-direcory instead of
+the obsolete schema in the reports sub-dirctory).
