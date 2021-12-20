@@ -8,4 +8,4 @@ then
 	srcdir=`pwd`
 fi
 
-miltertest -s $srcdir/t-verify-multi-from-fail.lua -v -v -v
+miltertest -s $srcdir/t-verify-multi-from-reject.lua

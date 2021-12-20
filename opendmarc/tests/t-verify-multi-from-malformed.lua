@@ -13,8 +13,7 @@ if os.getenv("srcdir") ~= nil then
 end
 
 -- try to start the filter
-mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-multi-from-malformed.conf",
-               "-p", sock)
+mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-multi-from-malformed.conf", "-p", sock)
 
 -- try to connect to it
 conn = mt.connect(sock, 40, 0.05)
@@ -43,7 +42,7 @@ end
 
 -- send headers
 -- mt.rcptto() is called implicitly
-if mt.header(conn, "From", "user1@example.com, user2, user3@example.com") ~= nil then
+if mt.header(conn, "From", "user1@blackops.org, user2, user3@blackops.org") ~= nil then
 	error("mt.header(From) failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then

@@ -6,15 +6,14 @@
 mt.echo("*** multi-valued From test")
 
 -- setup
-sock = "unix:" .. mt.getcwd() .. "/t-verify-multi-from-fail.sock"
+sock = "unix:" .. mt.getcwd() .. "/t-verify-multi-from-reject.sock"
 binpath = mt.getcwd() .. "/.."
 if os.getenv("srcdir") ~= nil then
 	mt.chdir(os.getenv("srcdir"))
 end
 
 -- try to start the filter
-mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-multi-from-fail.conf",
-               "-p", sock)
+mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-multi-from-reject.conf", "-p", sock)
 
 -- try to connect to it
 conn = mt.connect(sock, 40, 0.05)
@@ -33,7 +32,7 @@ end
 
 -- send envelope macros and sender data
 -- mt.helo() is called implicitly
-mt.macro(conn, SMFIC_MAIL, "i", "t-verify-multi-from-fail")
+mt.macro(conn, SMFIC_MAIL, "i", "t-verify-multi-from-reject")
 if mt.mailfrom(conn, "user@paypal.com") ~= nil then
 	error("mt.mailfrom() failed")
 end
@@ -43,7 +42,7 @@ end
 
 -- send headers
 -- mt.rcptto() is called implicitly
-if mt.header(conn, "From", "user1@example.com, user2@example.org, user3@example.com") ~= nil then
+if mt.header(conn, "From", "user1@eleet.org, user2@blackops.org, user3@eleet.org") ~= nil then
 	error("mt.header(From) failed")
 end
 if mt.getreply(conn) ~= SMFIR_CONTINUE then
