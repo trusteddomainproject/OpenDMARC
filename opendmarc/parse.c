@@ -484,6 +484,7 @@ dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
 **  	line -- input line
 **  	users_out -- array of pointers to "local-part" (returned)
 **  	domains_out -- array of pointers to hostname (returned)
+**  	out -- count of entries of the above arrays, not including the NULL
 **
 **  Return value:
 **  	0 on success, or an DKIM_MAILPARSE_ERR_* on failure.
@@ -494,13 +495,13 @@ dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
 
 int
 dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
-                        unsigned char ***domains_out)
+                        unsigned char ***domains_out, unsigned int *out)
 {
 	_Bool escaped = FALSE;
 	_Bool quoted = FALSE;
 	_Bool done = FALSE;
 	int a = 0;
-	int n = 0;
+	unsigned int n = 0;
 	int status;
 	int parens = 0;
 	char *p;
@@ -625,6 +626,7 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 
 	*users_out = uout;
 	*domains_out = dout;
+	*out = n;
 
 	return 0;
 }
