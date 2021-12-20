@@ -3,6 +3,12 @@
 This listing shows the versions of the OpenDMARC package, the date of
 release, and a summary of the changes in that release.
 
+1.4.2		2021/12/19
+	Fix issue #175: Don't reject a multi-valued From when all of the
+		domains match.
+	Fix issue #179: Don't crash when a value in a multi-valued From field
+		is missing a domain name.
+
 1.4.1		2021/04/29
 	NOTE: In response to CVE-2019-20790, opendmarc has changed
 		how it evaluates headers added by previous
