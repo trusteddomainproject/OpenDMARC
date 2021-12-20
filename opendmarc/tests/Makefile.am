@@ -3,8 +3,10 @@
 check_SCRIPTS = 
 
 if LIVE_TESTS
-check_SCRIPTS += t-verify-nodata t-verify-nodata-reject t-verify-unspec \
-	t-verify-received-spf-good t-verify-received-spf-bad \
+check_SCRIPTS += t-verify-multi-from-pass t-verify-multi-from-fail \
+	t-verify-multi-from-malformed \
+	t-verify-nodata t-verify-nodata-reject \
+	t-verify-unspec t-verify-received-spf-good t-verify-received-spf-bad \
 	t-verify-self-spf
 endif
 
@@ -19,6 +21,12 @@ EXTRA_DIST = \
 		t-verify-received-spf-good.lua \
 	t-verify-received-spf-bad t-verify-received-spf-bad.conf \
 		t-verify-received-spf-bad.lua \
-	t-verify-self-spf t-verify-self-spf.conf t-verify-self-spf.lua
+	t-verify-self-spf t-verify-self-spf.conf t-verify-self-spf.lua \
+	t-verify-multi-from-pass t-verify-multi-from-pass.conf \
+		t-verify-multi-from-pass.lua \
+	t-verify-multi-from-fail t-verify-multi-from-fail.conf \
+		t-verify-multi-from-fail.lua \
+	t-verify-multi-from-malformed t-verify-multi-from-malformed.conf \
+		t-verify-multi-from-malformed.lua
 
 MOSTLYCLEANFILES=

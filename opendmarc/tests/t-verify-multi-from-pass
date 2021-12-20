@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Test a multi-valued From field.
+#
+
+if [ x"$srcdir" = x"" ]
+then
+	srcdir=`pwd`
+fi
+
+miltertest -s $srcdir/t-verify-multi-from-pass.lua -v -v -v

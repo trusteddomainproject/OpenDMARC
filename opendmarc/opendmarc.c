@@ -2320,6 +2320,7 @@ mlfi_eom(SMFICTX *ctx)
 	int align_spf;
 	int limit_arc = 0;
 	int result;
+	u_int froms;
 	sfsistat ret;
 	OPENDMARC_STATUS_T ostatus;
 	OPENDMARC_STATUS_T apused;
@@ -2464,17 +2465,19 @@ mlfi_eom(SMFICTX *ctx)
 	/* extract From: addresses */
 	memset(addrbuf, '\0', sizeof addrbuf);
 	strncpy(addrbuf, from->hdr_value, sizeof addrbuf - 1);
-	status = dmarcf_mail_parse_multi(addrbuf, &users, &domains);
-	if (status == 0 && (users[0] != NULL || domains[0] != NULL))
+	status = dmarcf_mail_parse_multi(addrbuf, &users, &domains, &froms);
+	if (status == 0 && domains[0] != NULL)
 	{
 		/*
 		**  Enact special handling for a multi-valued from if
-		**  the domains are not all the same.
+		**  the domains are not all the same.  This presumes the
+		**  first value had a domain in it.
 		*/
 
-		for (c = 1; users[c] != NULL; c++)
+		for (c = 1; c < froms; c++)
 		{
-			if (strcasecmp(domains[0], domains[c]) != 0)
+			if (domains[c] != NULL &&
+			    strcasecmp(domains[0], domains[c]) != 0)
 			{
 				syslog(LOG_ERR,
 				       "%s: multi-valued From field detected",
