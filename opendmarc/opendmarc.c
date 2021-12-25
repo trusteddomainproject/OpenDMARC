@@ -5258,8 +5258,11 @@ main(int argc, char **argv)
 			n -= status;
 		}
 
-		syslog(LOG_INFO, "%s v%s starting (%s)", DMARCF_PRODUCT,
-		       VERSION, argstr);
+		syslog(LOG_INFO, "%s v%s starting%s%s%s", DMARCF_PRODUCT,
+		       VERSION,
+		       strlen(argstr) == 0 ? "" : " (",
+		       argstr,
+		       strlen(argstr) == 0 ? "" : ")");
 
 		memset(argstr, '\0', sizeof argstr);
 		strlcpy(argstr, "(none)", sizeof argstr);
