@@ -160,7 +160,7 @@ opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen)
 {
 	char *sp, *ep;
 
-	if (str == NULL || buf == NULL || strlen((char *)str) > buflen)
+	if (str == NULL || buf == NULL || strlen((char *)str) >= buflen)
 	{
 		errno = EINVAL;
 		return NULL;
