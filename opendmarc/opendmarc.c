@@ -2405,13 +2405,17 @@ mlfi_eom(SMFICTX *ctx)
 	from = dmarcf_findheader(dfc, "From", 0);
 
 	/* verify RFC5322-required headers (RFC5322 3.6) */
-	if (from == NULL ||
-	    dmarcf_findheader(dfc, "From", 1) != NULL)
-		reqhdrs_error = "not exactly one From field";
+	if (from == NULL)
+		reqhdrs_error = "missing From field";
 
-	if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
-	    dmarcf_findheader(dfc, "Date", 1) != NULL)
-		reqhdrs_error = "not exactly one Date field";
+	if (dmarcf_findheader(dfc, "From", 1) != NULL)
+		reqhdrs_error = "multiple From fields";
+
+	if (dmarcf_findheader(dfc, "Date", 0) == NULL)
+		reqhdrs_error = "missing Date field";
+
+	if (dmarcf_findheader(dfc, "Date", 1) != NULL)
+		reqhdrs_error = "multiple Date fields";
 
 	if (dmarcf_findheader(dfc, "Reply-To", 1) != NULL)
 		reqhdrs_error = "multiple Reply-To fields";
