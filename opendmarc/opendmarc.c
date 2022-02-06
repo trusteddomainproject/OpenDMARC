@@ -2446,6 +2446,12 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, reqhdrs_error);
 		}
 
+		snprintf(replybuf, sizeof replybuf,
+		         "RFC5322 requirement error: %s", reqhdrs_error);
+
+		status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
+		                         DMARC_REJECT_ESC, replybuf);
+
 		return SMFIS_REJECT;
 	}
 
