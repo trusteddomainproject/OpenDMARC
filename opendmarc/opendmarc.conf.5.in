@@ -290,7 +290,7 @@ field from which no domain name could be extracted will also be rejected.
 .TP
 .I RequiredFrom (Boolean)
 If set, the filter will reject without further processing messages that lack a
-From: field from which a domain name could be extracted. This options is
+From: field from which a domain name could be extracted. This option is
 without effect if
 .I RequiredHeaders
 is set to "true".
