@@ -100,7 +100,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 		*++bp = '.';
 	*++bp = '\0';
 	/* 
-	 * Make user host does not begin with a dot.
+	 * Make sure host does not begin with a dot.
 	 */
 	bp = hbuf;
 	if (*bp == '.')
@@ -108,7 +108,11 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 
 #ifdef HAVE_RES_NINIT
 	k = res_nquery(&resp, bp, C_IN, sought, a_buf, sizeof a_buf);
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
 	k = res_query(bp, C_IN, sought, a_buf, sizeof a_buf);
 #endif /* HAVE_RES_NINIT */
@@ -161,6 +165,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 		GETSHORT(l, cp);
 		if (type == T_CNAME)
 		{
+			/* CNAME; walk past the expanded name and continue */
 			char cname[MAXDNSHOSTNAME + 1];
 
 			k = dn_expand((u_char *) &a_buf, eom, cp,
@@ -168,18 +173,39 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 			cp += k;
 			continue;
 		}
-		if (type != type)
+		else if (type != sought)
 		{
+			/* not a type we want; skip the rest and continue */
 			cp += l;
 			continue;
 		}
+		else if (type == T_A)
+		{
+			GETLONG(a, cp);
+			a = htonl(a);
+			(void) memcpy(&in.s_addr, &a, sizeof(uint32_t));
+			(void) memset(hbuf, '\0', sizeof hbuf);
+			(void) strncpy(hbuf, inet_ntoa(in), sizeof hbuf);
+			ary = opendmarc_util_pushnargv(hbuf, ary, cnt);
+		}
+#ifdef T_AAAA
+		else if (type == T_AAAA)
+		{
+			struct in6_addr s6;
 
-		GETLONG(a, cp);
-		(void) memcpy(&in.s_addr, &a, sizeof(uint32_t));
-		in.s_addr = ntohl(in.s_addr);
-		(void) memset(hbuf, '\0', sizeof hbuf);
-		(void) strncpy(hbuf, inet_ntoa(in), sizeof hbuf);
-		ary = opendmarc_util_pushnargv(hbuf, ary, cnt);
+			/* just to be sure... */
+			if (l != sizeof s6.s6_addr)
+			{
+				cp += l;
+				continue;
+			}
+
+			(void) memcpy(&s6.s6_addr, cp, sizeof s6.s6_addr);
+			(void) memset(hbuf, '\0', sizeof hbuf);
+			inet_ntop(AF_INET6, &s6.s6_addr, hbuf, sizeof hbuf - 1);
+			ary = opendmarc_util_pushnargv(hbuf, ary, cnt);
+		}
+#endif /* T_AAAA */
 	}
 	return ary;
 }
@@ -193,7 +219,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 **	cnt		-- Pointer to count of lines in array
 ** Returns:
 **	ary	-- on success
-**	NULL	-- otherise, and place the h_errno error into reply
+**	NULL	-- otherwise, and place the h_errno error into reply
 ** Side Effects:
 **	Makes a connection to the local name server and blocks
 **	waiting for a reply.
@@ -201,13 +227,27 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 char **
 opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 {
-	char **retp;
+	bool found = FALSE;
+	char **a_retp;
+	char **aaaa_retp;
 
-	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
+	a_retp = opendmarc_spf_dns_lookup_a_actual(domain, T_A, ary, cnt); 
+	if (a_retp != (char **) NULL)
+	{
+		ary = a_retp;
+		found = TRUE;
+	}
+
 #ifdef T_AAAA
-	retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAAA, ary, cnt);
+	aaaa_retp = opendmarc_spf_dns_lookup_a_actual(domain, T_AAAA, ary, cnt);
+	if (aaaa_retp != (char **) NULL)
+	{
+		ary = aaaa_retp;
+		found = TRUE;
+	}
 #endif /* T_AAAA */
-	return retp;
+
+	return *cnt > 0 ? ary : NULL;
 }
 
 /***************************************************************************************************
@@ -253,7 +293,11 @@ opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt)
         memset(&resp, '\0', sizeof resp);
 	res_ninit(&resp);
 	k = res_nquery(&resp, domain, C_IN, T_MX, (u_char *) &q, sizeof(q));
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
 	k = res_query(domain, C_IN, T_MX, (u_char *) &q, sizeof(q));
 #endif /* HAVE_RES_NINIT */
@@ -366,7 +410,11 @@ opendmarc_spf_dns_lookup_ptr(char *ip, char **ary, int *cnt)
         memset(&resp, '\0', sizeof resp);
 	res_ninit(&resp);
 	k = res_nquery(&resp, (char *)buf, C_IN, T_PTR, (u_char *) &q, sizeof(q));
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
 	k = res_query((char *)buf, C_IN, T_PTR, (u_char *) &q, sizeof(q));
 #endif /* HAVE_RES_NINIT */
@@ -461,7 +509,11 @@ opendmarc_spf_dns_does_domain_exist(char *domain, int *reply)
         (void) res_nquery(&resp, domain, C_IN, T_AAAA, aaaa_q, sizeof aaaa_q);  
 #endif /* T_AAAA */
         (void) res_nquery(&resp, domain, C_IN, T_MX, mx_q, sizeof mx_q);  
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
         (void) res_query(domain, C_IN, T_A, a_q, sizeof a_q);  
 #ifdef T_AAAA
@@ -603,13 +655,21 @@ opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen,
 		}
 		*rp = h_errno;
 #ifdef HAVE_RES_NINIT 
+#ifdef HAVE_RES_NDESTROY
+		res_ndestroy(&resp);
+#else
 		res_nclose(&resp);
+#endif
 #endif /* HAVE_RES_NINIT */
 		return NULL;
 	}
 got_spf_record:
 #ifdef HAVE_RES_NINIT 
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #endif /* HAVE_RES_NINIT */
 
 	if (k > (int)(sizeof txt_buf))

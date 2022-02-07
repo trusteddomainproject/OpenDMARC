@@ -2,7 +2,7 @@
 **  Copyright (c) 2007-2009 Sendmail, Inc. and its suppliers.
 **	All rights reserved.
 **
-**  Copyright (c) 2009, 2011-2014, The Trusted Domain Project.
+**  Copyright (c) 2009, 2011-2014, 2018, The Trusted Domain Project.
 **  	All rights reserved.
 */
 
@@ -56,6 +56,7 @@ struct lookup
 
 struct lookup methods[] =
 {
+	{ "arc",		ARES_METHOD_ARC },
 	{ "auth",		ARES_METHOD_AUTH },
 	{ "dkim",		ARES_METHOD_DKIM },
 	{ "dkim-adsp",		ARES_METHOD_DKIMADSP },
@@ -92,6 +93,7 @@ struct lookup ptypes[] =
 	{ "header",		ARES_PTYPE_HEADER },
 	{ "body",		ARES_PTYPE_BODY },
 	{ "policy",		ARES_PTYPE_POLICY },
+	{ "arc",		ARES_PTYPE_ARCCHAIN },
 	{ NULL,			ARES_PTYPE_UNKNOWN }
 };
 
@@ -602,7 +604,19 @@ ares_parse(u_char *hdr, struct authres *ar)
 			ar->ares_result[n - 1].result_props = r;
 
 			prevstate = state;
-			state = 9;
+			if (c < ntoks - 1 && tokens[c + 1][1] == '\0')
+			{
+				if (tokens[c + 1][0] == ';')
+					state = 2;
+				else if (tokens[c + 1][0] == '=')
+					r--;
+				else
+					state = 9;
+			}
+			else
+			{
+				state = 9;
+			}
 
 			break;
 		}

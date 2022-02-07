@@ -10,6 +10,11 @@ domains		A table that maps domain names to unique integer IDs.
 		Automatically tracks a "first seen" timestamp, and includes
 		a column to record when the last report was sent.
 
+selectors	A table that maps selector names to unique integer IDs.
+		Automatically tracks a "first seen" timestamp. Also references the
+		foreign key (into the domains table) for the domain that owns the
+		selector.
+
 reporters	A table mapping reporting hosts to unique integer IDs.
 		Intended for use by multi-MX systems so it's possible to tell
 		where an inbound message landed.
@@ -26,7 +31,7 @@ messages	A table tracking salient properties of all messages received.
 		RFC5322.From domain.
 
 signatures	A table tracking DKIM signatures, each of which refers to
-		a rown in the "messages" table.  Tracks the signing domain,
+		a row  in the "messages" table.  Tracks the signing domain,
 		whether the signature passed, whether there was a verification
 		error other than a broken signature, and whether or not the
 		signing domain aligned with the RFC5322.From domain.
@@ -36,4 +41,4 @@ requests	A table containing a cache of DMARC reporting requests.
 		reports is recorded along with a "last report sent" timestamp.
 
 --
-Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012, 2018, The Trusted Domain Project.  All rights reserved.

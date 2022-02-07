@@ -1,5 +1,5 @@
 /*
-**  Copyright (c) 2012, 2013, 2015, The Trusted Domain Project.
+**  Copyright (c) 2012, 2013, 2015, 2018, The Trusted Domain Project.
 **  	All rights reserved.
 */
 
@@ -53,6 +53,10 @@
 #define	DMARC_RESULT_TEMPFAIL	3
 #define	DMARC_RESULT_QUARANTINE	4
 
+#define	DMARC_ARC_POLICY_RESULT_PASS	0
+#define	DMARC_ARC_POLICY_RESULT_UNUSED	1
+#define	DMARC_ARC_POLICY_RESULT_FAIL	2
+
 /* prototypes, etc., exported for test.c */
 extern char *progname;
 
@@ -66,5 +70,8 @@ extern sfsistat mlfi_eoh __P((SMFICTX *));
 extern sfsistat mlfi_eom __P((SMFICTX *));
 extern sfsistat mlfi_abort __P((SMFICTX *));
 extern sfsistat mlfi_close __P((SMFICTX *));
+
+#define MAX_OF(x, y) ((x) >= (y)) ? (x) : (y)
+#define MIN_OF(x, y) ((x) <= (y)) ? (x) : (y)
 
 #endif /* _OPENDMARC_H_ */

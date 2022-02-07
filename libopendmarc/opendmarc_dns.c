@@ -3,7 +3,8 @@
 **	DMARC_DNS_GET_RECORD -- looks up and returns the txt record
 **	DMARC_DNS_TEST_RECORD -- hook to test
 ** 
-**  Copyright (c) 2012-2016, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2016, 2021, The Trusted Domain Project.
+**    All rights reserved.
 ************************************************************************/ 
 
 #ifndef BIND_8_COMPAT
@@ -112,11 +113,11 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	int		ch	= 0;
 	short		cur_len	= 0;
 	HEADER		header;
-	int		class	= -1;
 	int		acnt	= -1;
 	int		qdcnt	= -1;
-	u_short		type	= 0;
-	u_long		ttl	= 0;
+	uint16_t	class	= 0;
+	uint16_t	type	= 0;
+	uint32_t	ttl	= 0;
 	char *		bp	= NULL;
 	int		fake_reply	= 0;
 	int *		reply_ptr	= NULL;
@@ -202,18 +203,21 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		++bp;
 
 #ifdef HAVE_RES_NINIT   
-	memset(&resp, '\0', sizeof resp);
-	resp.options |= RES_DEFAULT;
-#if defined RES_USE_DNSSEC
+	res_ninit(&resp);
+#ifdef RES_USE_DNSSEC
 	resp.options |= RES_USE_DNSSEC;
 #endif
-	res_ninit(&resp);
 	(void) opendmarc_policy_library_dns_hook(&resp.nscount,
-                                                 &resp.nsaddr_list);
+                                                 &resp.nsaddr_list[0]);
 	answer_len = res_nquery(&resp, bp, C_IN, T_TXT, answer_buf, sizeof answer_buf);
+#ifdef HAVE_RES_NDESTROY
+	res_ndestroy(&resp);
+#else
 	res_nclose(&resp);
+#endif
 #else /* HAVE_RES_NINIT */
-#if defined RES_USE_DNSSEC
+	res_init();
+#ifdef RES_USE_DNSSEC
 	_res.options |= RES_USE_DNSSEC;
 #endif
 	(void) opendmarc_policy_library_dns_hook(&_res.nscount,
@@ -281,52 +285,20 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 
 		if (cur_ptr + INT16SZ + INT16SZ > end_ptr)
 		{
-			/* currupt answer */
+			/* corrupt answer */
 			*reply_ptr = NO_DATA;
 			return NULL;
 		}
 		GETSHORT(type, cur_ptr);
 		GETSHORT(class, cur_ptr);
-		/* we may want to use the ttl later */
 		GETLONG(ttl, cur_ptr);
 
-		if (type == T_CNAME)
+		if (type != T_TXT)
 		{
-			/*
-			 * Copy the cname just incase the resolver
-			 * didn't also follow it an give us the text
-			 * record.
-			 */
-
-			if (got_txtbuf[0] == '\0')
-			{
-				(void) memset(got_txtbuf, '\0', got_txtlen);
-				answer_len = dn_expand((unsigned char *)&answer_buf,
-						end_ptr, cur_ptr,
-						got_txtbuf, got_txtlen);
-				cur_ptr += answer_len;
-			}
-			else
-			{
-				cur_ptr += dn_skipname(end_ptr, cur_ptr);
-			}
-
-			continue;
-		}
-#ifdef T_RRSIG
-		else if (type == T_RRSIG)
-		{
+			/* skip RRTYPEs we don't know */
 			GETSHORT(answer_len, cur_ptr);
 			cur_ptr += answer_len;
-		}
-#endif /* T_RRSIG */
-		else if (type != T_TXT)
-		{
-			/*
-			 * TODO: Fail or should we ignore it?
-			 */
-			*reply_ptr = NO_DATA;
-			return NULL;
+			continue;
 		}
 
 		if (cur_ptr + INT16SZ > end_ptr)
@@ -337,6 +309,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 			*reply_ptr = NO_DATA;
 			return NULL;
 		}
+
 		GETSHORT(cur_len, cur_ptr);
 
 		if (cur_ptr + cur_len > end_ptr)

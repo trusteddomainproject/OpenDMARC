@@ -1,4 +1,4 @@
--- Copyright (c) 2012, The Trusted Domain Project.  All rights reserved.
+-- Copyright (c) 2012, 2021, The Trusted Domain Project.  All rights reserved.
 
 -- Test message from paypal.com with no DKIM or SPF DATA
 -- 
@@ -16,7 +16,7 @@ if os.getenv("srcdir") ~= nil then
 end
 
 -- try to start the filter
-mt.startfilter(binpath .. "/opendmarc", "-c", "t-verify-nodata.conf",
+mt.startfilter(binpath .. "/opendmarc", "-l", "-c", "t-verify-nodata.conf",
                "-p", sock)
 
 -- try to connect to it

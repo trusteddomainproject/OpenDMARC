@@ -22,7 +22,7 @@ complete that process before continuing with the next section.
 CONFIGURING OPENDMARC
 =====================
 
-(1) Take a look at the opendmarc.conf.sample as an example configuration file 
+(1) Take a look at the opendmarc.conf.sample as an example configuration file
     for your domain.  If you wish to run with anything other than default
     settings, copy that file to /etc/mail/opendmarc.conf and make your changes
     there.
@@ -49,9 +49,9 @@ CONFIGURING OPENDMARC
 
 	    INPUT_MAIL_FILTER(`opendmarc', `S=inet:8893@localhost')
 
-        Note that this must come after filters that do DKIM and SPF evaluation,
-        as this filter relies on the addition of authentication results data
-        to the header by upstream filters.
+        Note that this must come after filters that do DKIM, SPF, and ARC
+        evaluation, as this filter relies on the addition of authentication
+        results data to the header by upstream filters.
 
     (c) Rebuild your sendmail.cf in the usual way
 
@@ -59,7 +59,7 @@ CONFIGURING OPENDMARC
 
     (a) Choose a socket at which the MTA and the filter will rendezvous.
         Be careful with UNIX domain sockets as on some distributions and setups
-	the smtpd process is running in a chroot environment.  A UNIX socket 
+	the smtpd process is running in a chroot environment.  A UNIX socket
 	will need to be visible to the chrooted smtpd process.
 
     (b) Add the following lines like this example to your postfix main.cf using
@@ -67,7 +67,7 @@ CONFIGURING OPENDMARC
 
 	    smtpd_milters = inet:localhost:8893
 	    non_smtpd_milters = inet:localhost:8893
-	
+
         Note that this must come after filters that do DKIM and SPF evaluation,
         as this filter relies on the addition of authentication results data
         to the header by upstream filters.
@@ -90,6 +90,12 @@ CONFIGURING OPENDMARC
 	...or the following if master.cf was changed:
 
 	/etc/init.d/postfix restart
+
+(9) Depending on your settings, mail sent with a policy of p=quarantine
+    may wind up in your MTA's "Hold" or "Quarantine" queue.
+
+	The setting "HoldQuarantinedMessages" (defaults to false) can be used
+	to control this feature.
 
 
 TESTING AND DEBUGGING
@@ -158,8 +164,7 @@ their encodings, but there are only a few of them:
 	spf		SPF evaluation (0 = pass, 2 = fail, 6 = none,
 			-1 = not evaluated)
 
-	dkim		DKIM evaluation (same as SPF, followed by the signing
-			domain name)
+	dkim		DKIM evaluation (signing domain, selector, evaluation - same as SPF)
 
 	pdomain		policy domain (the "organizational" domain,
 			the one asserting policy)
@@ -175,6 +180,40 @@ their encodings, but there are only a few of them:
 			17 = quarantine
 			18 = none
 
+	arc		ARC evaluation (0 = pass, 2 = fail)
+
+	arc_policy	ARC local policy evaluation (evaluation -- same as ARC, ARC seal
+			data - JSON-encoded array of governing arc seal fields: instance,
+			domain, selector)
+
+ARC Evaluation by OpenDMARC
+===========================
+
+Mailing lists and some forwarders can break authentication of valid
+messages, resulting in false positive DMARC failures.  ARC allows such
+intermediaries to encapsulate the authentication information they saw, so that
+a downstream MTA can more properly evaluate the message and deliver around an
+otherwise false positive result.
+
+OpenDMARC uses ARC information to deliver a message around a failure in a very
+specific and limited fashion.  OpenDMARC does not evaluate the ARC status of a
+message; it relies on other ARC-aware software (such as OpenARC) to make a
+determination about the validity of any ARC information on the message, and
+attach those results in the Authentication-Results for the local
+TrustedAuthservID.  At a high level (explained further below), OpenDMARC then
+reviews those trusted results, makes a determination as to whether it trusts
+the domains that sealed the chain, and decides whether to override the
+original message disposition. The results of this evaluation are then recorded
+and returned in the "local_policy" comment to the sending domain owner.
+
+OpenDMARC makes its limited determination about delivering around a DMARC
+failure in the following way: When DMARC fails, and there is one and only one
+ARC status in the Authentication-Results for the local TrustedAuthservID, and
+that ARC status is "pass", and all sealers are on the DomainWhitelist, then
+the message will be delivered instead of being subject to the DMARC policy of
+the sending domain.
+
+
 SUPPORT
 =======
 
@@ -187,5 +226,5 @@ subscribe to one or both of the following:
 
 These can be accessed via http://www.trusteddomain.org/mailman/listinfo.
 
-To report bugs and feature requests, you can access the SourceForge "tracker"
-facilities at http://sourceforge.net/projects/opendmarc.
+To report bugs and feature requests, you can access the GitHub "tracker"
+facilities at https://github.com/trusteddomainproject/OpenDMARC/issues.

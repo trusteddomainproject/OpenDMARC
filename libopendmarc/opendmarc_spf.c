@@ -430,16 +430,28 @@ opendmarc_spf_status_to_pass(int status, int none_pass)
 	return r;
 }
 
+/*
+**  OPENDMARC_SPF_CIDR_ADDRESS -- see if an IP address is covered by a CIDR
+**  	expression
+**
+**  Parameters:
+**  	ip -- IP address to test, in network byte order
+**  	cidr_addr -- CIDR expression to which to compare it
+**
+**  Return value:
+**  	TRUE iff "ip" is inside (or equal to) "cidr_addr".
+*/
+
 int
-opendmarc_spf_cidr_address(u_long ip, char *cidr_addr)
+opendmarc_spf_cidr_address(uint32_t ip, char *cidr_addr)
 {
 	char *cidr;
 	char *cp, *ep;
 	char buf[BUFSIZ];
-	u_long i;
-	u_long bits;
-	u_long mask;
-	u_long high, low;
+	uint32_t i;
+	uint32_t bits;
+	uint32_t mask;
+	uint32_t high, low;
 	struct sockaddr_in sin;
 
 	if (cidr_addr == NULL)
@@ -453,8 +465,8 @@ opendmarc_spf_cidr_address(u_long ip, char *cidr_addr)
 	{
 		if (inet_aton(cidr_addr, &sin.sin_addr) != 0)
 		{
-			(void)memcpy(&low, &sin.sin_addr, sizeof(sin.sin_addr));
-			(void)memcpy(&high, &sin.sin_addr, sizeof(sin.sin_addr));
+			(void)memcpy(&low, &sin.sin_addr.s_addr, sizeof(sin.sin_addr.s_addr));
+			(void)memcpy(&high, &sin.sin_addr.s_addr, sizeof(sin.sin_addr.s_addr));
 			if (ip >= low && ip <= high)
 				return TRUE;
 		}
@@ -492,6 +504,7 @@ opendmarc_spf_cidr_address(u_long ip, char *cidr_addr)
 	low = i & mask;
 	high = i | (~mask & 0xFFFFFFFF);
 
+	ip = ntohl(ip);
 	if (ip >= low && ip <= high)
 		return TRUE;
 	return FALSE;
@@ -534,7 +547,7 @@ opendmarc_spf_reverse(char *str, char *buf, size_t buflen)
 
 	dotp = strchr(dupe, '.');
 	if (dotp != NULL)
-		dotorcolon = ',';
+		dotorcolon = '.';
 	else
 	{
 		dotp = strchr(dupe, ':');
@@ -1098,10 +1111,9 @@ opendmarc_spf_macro_expand(SPF_CTX_T *spfctx, char *str, char *buf, size_t bufle
 		{
 			num = strtoul(xp, &xp, 10);
 		}
+		char * cp;
 		switch ((int)*sp)
 		{
-		    char * cp;
-
 		    case 's':
 			if (rev == TRUE)
 				(void) opendmarc_spf_reverse(spfctx->mailfrom_domain, scratch, MAXDNSHOSTNAME);
@@ -1313,7 +1325,6 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 	(void) memset(ipnum, '\0', sizeof ipnum);
 	(void) strlcpy(ipnum, spfctx->ip_address, sizeof ipnum);
 	ip = inet_addr(ipnum);
-	ip = htonl(ip);
 
 	(void) strlcpy(stack[s].spf, spfctx->spf_record, SPF_MAX_SPF_RECORD_LEN);
 	SPF_SP  = stack[s].spf;

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2012-2016, 2017, The Trusted Domain Project.
+# Copyright (c) 2012-2016, 2017-2018, The Trusted Domain Project.
 #   All rights reserved.
 #
 # Script to generate regular DMARC reports.
@@ -93,6 +93,11 @@ my $ipaddr;
 my $fromdomain;
 my $envdomain;
 my $dkimdomain;
+my $dkimselector;
+my $arc;
+my $arcstr;
+my $arcpolicy;
+my $arcpolicystr;
 
 my $repdest;
 
@@ -110,10 +115,11 @@ my $msgid;
 
 my $rowcount;
 
-my $dbi_s;
 my $dbi_h;
+my $dbi_s;
+my $dbi_s2;
 my $dbi_a;
-my $dbi_d;
+my $dbi_hash;
 
 # DB parameters
 my $def_dbhost    = "localhost";
@@ -553,32 +559,54 @@ foreach (@$domainset)
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 	print $tmpout "<feedback>\n";
 
-	print $tmpout " <report_metadata>\n";
-	print $tmpout "  <org_name>$repdom</org_name>\n";
-	print $tmpout "  <email>$repemail</email>\n";
-	print $tmpout "  <report_id>$domain:$now</report_id>\n";
-	print $tmpout "  <date_range>\n";
-	print $tmpout "   <begin>$repstart</begin>\n";
-	print $tmpout "   <end>$repend</end>\n";
-	print $tmpout "  </date_range>\n";
-	print $tmpout " </report_metadata>\n";
+	print $tmpout "    <report_metadata>\n";
+	print $tmpout "        <org_name>$repdom</org_name>\n";
+	print $tmpout "         <email>$repemail</email>\n";
+	print $tmpout "         <report_id>$domain:$now</report_id>\n";
+	print $tmpout "         <date_range>\n";
+	print $tmpout "         <begin>$repstart</begin>\n";
+	print $tmpout "         <end>$repend</end>\n";
+	print $tmpout "         </date_range>\n";
+	print $tmpout "    </report_metadata>\n";
 
-	print $tmpout " <policy_published>\n";
-	print $tmpout "  <domain>$domain</domain>\n";
-	print $tmpout "  <adkim>$adkimstr</adkim>\n";
-	print $tmpout "  <aspf>$aspfstr</aspf>\n";
-	print $tmpout "  <p>$policystr</p>\n";
-	print $tmpout "  <sp>$spolicystr</sp>\n";
-	print $tmpout "  <pct>$pct</pct>\n";
-	print $tmpout " </policy_published>\n";
+	print $tmpout "    <policy_published>\n";
+	print $tmpout "        <domain>$domain</domain>\n";
+	print $tmpout "        <adkim>$adkimstr</adkim>\n";
+	print $tmpout "        <aspf>$aspfstr</aspf>\n";
+	print $tmpout "        <p>$policystr</p>\n";
+	print $tmpout "        <sp>$spolicystr</sp>\n";
+	print $tmpout "        <pct>$pct</pct>\n";
+	print $tmpout "    </policy_published>\n";
 
 	if ($daybound)
 	{
-		$dbi_s = $dbi_h->prepare("SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, messages.align_spf, messages.align_dkim FROM messages JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id WHERE messages.from_domain = ? AND DATE(messages.date) >= DATE(FROM_UNIXTIME(?)) AND DATE(messages.date) < DATE(FROM_UNIXTIME(?))");
+		$dbi_s = $dbi_h->prepare(q{
+		                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
+		                                 messages.spf, messages.align_spf, messages.align_dkim,
+		                                 messages.arc, messages.arc_policy
+		                         FROM messages
+		                         JOIN ipaddr ON messages.ip = ipaddr.id
+		                         JOIN domains d1 ON messages.from_domain = d1.id
+		                         JOIN domains d2 ON messages.env_domain = d2.id
+		                         WHERE messages.from_domain = ?
+		                                 AND DATE(messages.date) >= DATE(FROM_UNIXTIME(?))
+		                                 AND DATE(messages.date) < DATE(FROM_UNIXTIME(?))
+		});
 	}
 	else
 	{
-		$dbi_s = $dbi_h->prepare("SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name, messages.spf, messages.align_spf, messages.align_dkim FROM messages JOIN ipaddr ON messages.ip = ipaddr.id JOIN domains d1 ON messages.from_domain = d1.id JOIN domains d2 ON messages.env_domain = d2.id WHERE messages.from_domain = ? AND messages.date > FROM_UNIXTIME(?) AND messages.date <= FROM_UNIXTIME(?)");
+		$dbi_s = $dbi_h->prepare(q{
+		                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
+		                                 messages.spf, messages.align_spf, messages.align_dkim,
+		                                 messages.arc, messages.arc_policy
+		                         FROM messages
+		                         JOIN ipaddr ON messages.ip = ipaddr.id
+		                         JOIN domains d1 ON messages.from_domain = d1.id
+		                         JOIN domains d2 ON messages.env_domain = d2.id
+		                         WHERE messages.from_domain = ?
+		                                 AND messages.date > FROM_UNIXTIME(?)
+		                                 AND messages.date <= FROM_UNIXTIME(?)
+		});
 	}
 
 	if (!$dbi_s->execute($domainid, $repstart, $repend))
@@ -627,6 +655,14 @@ foreach (@$domainset)
 		{
 			$align_dkim = $dbi_a->[7];
 		}
+		if (defined($dbi_a->[8]))
+		{
+			$arc = $dbi_a->[8];
+		}
+		if (defined($dbi_a->[9]))
+		{
+			$arcpolicy = $dbi_a->[9];
+		}
 
 		if (!defined($msgid))
 		{
@@ -674,36 +710,94 @@ foreach (@$domainset)
 			else	{ $align_spfstr = "unknown"; }
 		}
 
-		print $tmpout " <record>\n";
-		print $tmpout "  <row>\n";
-		print $tmpout "   <source_ip>$ipaddr</source_ip>\n";
-		print $tmpout "   <count>1</count>\n";
-		print $tmpout "   <policy_evaluated>\n";
-		print $tmpout "    <disposition>$dispstr</disposition>\n";
-		print $tmpout "    <dkim>$align_dkimstr</dkim>\n";
-		print $tmpout "    <spf>$align_spfstr</spf>\n";
-		print $tmpout "   </policy_evaluated>\n";
-		print $tmpout "  </row>\n";
-		print $tmpout "  <identifiers>\n";
-		print $tmpout "   <header_from>$fromdomain</header_from>\n";
-		print $tmpout "  </identifiers>\n";
-		print $tmpout "  <auth_results>\n";
-		print $tmpout "   <spf>\n";
-		print $tmpout "    <domain>$envdomain</domain>\n";
-		print $tmpout "    <result>$spfresultstr</result>\n";
-		print $tmpout "   </spf>\n";
+		switch ($arc)
+		{
+			case 1	{ $arcstr = "pass"; }
+			else	{ $arcstr = "fail"; }
+		}
 
-		$dbi_d = $dbi_h->prepare("SELECT domains.name, pass FROM signatures JOIN domains ON signatures.domain = domains.id WHERE signatures.message = ?");
-		if (!$dbi_d->execute($msgid))
+		switch ($arcpolicy)
+		{
+			case 0	{ $arcpolicystr = "pass"; }
+			else	{ $arcpolicystr = "fail"; }
+		}
+
+		# retrieve arc_policy seals, join arcauthresults.arc_client_addr (smtp.client_ip)
+		$dbi_s2 = $dbi_h->prepare(q{
+		                          SELECT arcseals.instance, domains.name AS domain,
+						selectors.name AS selector,
+						arcauthresults.arc_client_addr as client_ip
+		                          FROM arcseals
+		                          JOIN domains on arcseals.domain = domains.id
+		                          JOIN selectors on arcseals.selector = selectors.id
+					  JOIN arcauthresults on arcseals.message = arcauthresults.message
+					  	AND arcseals.instance = arcauthresults.instance
+		                          WHERE arcseals.message = ?
+		                          ORDER BY arcseals.instance DESC
+		});
+		if (!$dbi_s2->execute($msgid))
 		{
 			print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
+			$dbi_s2->finish;
 			$dbi_s->finish;
-			$dbi_d->finish;
 			$dbi_h->disconnect;
 			exit(1);
 		}
 
-		while ($dbi_a = $dbi_d->fetchrow_arrayref())
+		my $arc_policy_output = "arc=$arcpolicystr";
+		while ($dbi_hash = $dbi_s2->fetchrow_hashref())
+		{
+			$arc_policy_output .= " as[$dbi_hash->{instance}].d=$dbi_hash->{domain}";
+			$arc_policy_output .= " as[$dbi_hash->{instance}].s=$dbi_hash->{selector}";
+			if ($dbi_hash->{instance} == 1 && (defined($dbi_hash->{client_ip}) && $dbi_hash->{client_ip} ne ""))
+			{
+				$arc_policy_output .= " client-ip[$dbi_hash->{instance}]=$dbi_hash->{client_ip}";
+			}
+		}
+
+		$dbi_s2->finish;
+
+		print $tmpout "    <record>\n";
+		print $tmpout "        <row>\n";
+		print $tmpout "            <source_ip>$ipaddr</source_ip>\n";
+		print $tmpout "            <count>1</count>\n";
+		print $tmpout "            <policy_evaluated>\n";
+		print $tmpout "                <disposition>$dispstr</disposition>\n";
+		print $tmpout "                <dkim>$align_dkimstr</dkim>\n";
+		print $tmpout "                <spf>$align_spfstr</spf>\n";
+		print $tmpout "                <reason>\n";
+		print $tmpout "                    <type>local_policy</type>\n";
+		print $tmpout "                    <comment>$arc_policy_output</comment>\n";
+		print $tmpout "                </reason>\n";
+		print $tmpout "            </policy_evaluated>\n";
+		print $tmpout "        </row>\n";
+		print $tmpout "        <identifiers>\n";
+		print $tmpout "            <header_from>$fromdomain</header_from>\n";
+		print $tmpout "        </identifiers>\n";
+		print $tmpout "        <auth_results>\n";
+		print $tmpout "            <spf>\n";
+		print $tmpout "                <domain>$envdomain</domain>\n";
+		print $tmpout "                <result>$spfresultstr</result>\n";
+		print $tmpout "            </spf>\n";
+
+		$dbi_s2 = $dbi_h->prepare(q{
+		                          SELECT domains.name, selectors.name, pass
+		                          FROM signatures
+		                          JOIN domains ON signatures.domain = domains.id
+		                          JOIN selectors ON signatures.selector = selectors.id
+		                          WHERE signatures.message = ?
+		});
+		if (!$dbi_s2->execute($msgid))
+		{
+			print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
+			$dbi_s2->finish;
+			$dbi_s->finish;
+			$dbi_h->disconnect;
+			exit(1);
+		}
+
+		my %dkim_domain_result_cache = ();
+		while ($dbi_a = $dbi_s2->fetchrow_arrayref())
 		{
 			undef $dkimdomain;
 
@@ -713,14 +807,22 @@ foreach (@$domainset)
 			}
 			if (defined($dbi_a->[1]))
 			{
-				$dkimresult = $dbi_a->[1];
+				$dkimselector = $dbi_a->[1];
 			}
-
+			if (defined($dbi_a->[2]))
+			{
+				$dkimresult = $dbi_a->[2];
+			}
 
 			if (!defined($dkimdomain))
 			{
 				next;
 			}
+			if (defined($dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}))
+			{
+				next; # no duplicate per-record auth_result dkim sections
+			}
+			$dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}++;
 
 			switch ($dkimresult)
 			{
@@ -738,16 +840,17 @@ foreach (@$domainset)
 				else	{ $dkimresultstr = "unknown"; }
 			}
 
-			print $tmpout "   <dkim>\n";
-			print $tmpout "    <domain>$dkimdomain</domain>\n";
-			print $tmpout "    <result>$dkimresultstr</result>\n";
-			print $tmpout "   </dkim>\n";
+			print $tmpout "            <dkim>\n";
+			print $tmpout "                <domain>$dkimdomain</domain>\n";
+			print $tmpout "                <selector>$dkimselector</selector>\n";
+			print $tmpout "                <result>$dkimresultstr</result>\n";
+			print $tmpout "            </dkim>\n";
 		}
 
-		$dbi_d->finish;
+		$dbi_s2->finish;
 
-		print $tmpout "  </auth_results>\n";
-		print $tmpout " </record>\n";
+		print $tmpout "        </auth_results>\n";
+		print $tmpout "    </record>\n";
 	}
 
 	$dbi_s->finish;

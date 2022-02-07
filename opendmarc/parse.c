@@ -2,7 +2,7 @@
 **  Copyright (c) 2005, 2007, 2008 Sendmail, Inc. and its suppliers.
 **    All rights reserved.
 **
-**  Copyright (c) 2009, 2010, 2012, The Trusted Domain Project.
+**  Copyright (c) 2009, 2010, 2012, 2021, The Trusted Domain Project.
 **    All rights reserved.
 */
 
@@ -12,9 +12,17 @@
 #include <string.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* opendmarc includes */
 #include "util.h"
+
+#ifndef FALSE
+# define FALSE	0
+#endif /* ! FALSE */
+#ifndef TRUE
+# define TRUE	1
+#endif /* ! TRUE */
 
 /* types */
 typedef unsigned long cmap_elem_type;
@@ -24,6 +32,7 @@ typedef unsigned long cmap_elem_type;
 #define MAILPARSE_ERR_PUNBALANCED	1	/* unbalanced parentheses */
 #define MAILPARSE_ERR_QUNBALANCED	2	/* unbalanced quotes */
 #define MAILPARSE_ERR_SUNBALANCED	3	/* unbalanced sq. brackets */
+#define MAILPARSE_ERR_MULTIVALUE	4	/* multiple possible values */
 
 /* a bitmap for the "specials" character class */
 #define	CMAP_NBITS	 	(sizeof(cmap_elem_type) * CHAR_BIT)
@@ -248,7 +257,7 @@ dmarcf_mail_first_special(u_char *p, u_char *e, u_char **special_out)
 
 static int
 dmarcf_mail_token(u_char *s, u_char *e, int *type_out, u_char **start_out,
-                u_char **end_out, int *uncommented_whitespace)
+                  u_char **end_out, int *uncommented_whitespace)
 {
 	u_char *p;
 	int err = 0;
@@ -355,7 +364,7 @@ dmarcf_mail_token(u_char *s, u_char *e, int *type_out, u_char **start_out,
 
 int
 dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
-                unsigned char **domain_out)
+                  unsigned char **domain_out)
 {
 	int type;
 	int ws;
@@ -387,7 +396,7 @@ dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
 			for (;;)
 			{
 				err = dmarcf_mail_token(line, e, &type, &tok_s,
-				                      &tok_e, &ws);
+				                        &tok_e, &ws);
 				if (err != 0)
 					return err;
 
@@ -430,7 +439,7 @@ dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
 			for (;;)
 			{
 				err = dmarcf_mail_token(line, e, &type, &tok_s,
-				                      &tok_e, &ws);
+				                        &tok_e, &ws);
 				if (err != 0)
 					return err;
 
@@ -466,12 +475,174 @@ dmarcf_mail_parse(unsigned char *line, unsigned char **user_out,
 	}
 }
 
+/*
+**  DMARCF_MAIL_PARSE_MULTI -- extract the local-part and hostname from a mail
+**                             header field that might contain multiple
+**                             values, e.g. "To:", "Cc:"
+**
+**  Parameters:
+**  	line -- input line
+**  	users_out -- array of pointers to "local-part" (returned)
+**  	domains_out -- array of pointers to hostname (returned)
+**
+**  Return value:
+**  	0 on success, or an DKIM_MAILPARSE_ERR_* on failure.
+**
+**  Notes:
+**  	Input string is modified.
+*/
+
+int
+dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
+                        unsigned char ***domains_out)
+{
+	_Bool escaped = FALSE;
+	_Bool quoted = FALSE;
+	_Bool done = FALSE;
+	int a = 0;
+	int n = 0;
+	int status;
+	int parens = 0;
+	char *p;
+	char *addr;
+	unsigned char **uout = NULL;
+	unsigned char **dout = NULL;
+	unsigned char *u;
+	unsigned char *d;
+
+	/* walk the input string looking for unenclosed commas */
+	addr = line;
+	for (p = line; !done; p++)
+	{
+		if (escaped)
+		{
+			escaped = FALSE;
+			continue;
+		}
+
+		switch (*p)
+		{
+		  case '\\':
+			escaped = TRUE;
+			continue;
+
+		  case '"':
+			quoted = !quoted;
+			continue;
+
+		  case '(':
+			parens++;
+			continue;
+
+		  case ')':
+			parens--;
+			continue;
+
+		  case ',':
+			/* skip it if it's quoted or in a comment */
+			if (parens != 0 || quoted)
+				continue;
+			/* FALLTHROUGH */
+
+		  case '\0':
+			if (*p == '\0')
+				done = TRUE;
+			else
+				*p = '\0';
+
+			status = dmarcf_mail_parse(addr, &u, &d);
+			if (status != 0)
+			{
+				if (uout != NULL)
+				{
+					free(uout);
+					free(dout);
+				}
+
+				return status;
+			}
+
+			if (n == 0)
+			{
+				size_t newsize = 2 * sizeof(unsigned char *);
+
+				uout = (unsigned char **) malloc(newsize);
+				if (uout == NULL)
+					return -1;
+
+				dout = (unsigned char **) malloc(newsize);
+				if (dout == NULL)
+				{
+					free(uout);
+					return -1;
+				}
+
+				a = 2;
+			}
+			else if (n + 1 == a)
+			{
+				unsigned char **new;
+
+				size_t newsize = a * 2 * sizeof(unsigned char *);
+
+				new = (unsigned char **) realloc(uout, newsize);
+				if (new == NULL)
+				{
+					free(uout);
+					free(dout);
+					return -1;
+				}
+
+				uout = new;
+
+				new = (unsigned char **) realloc(dout, newsize);
+				if (new == NULL)
+				{
+					free(uout);
+					free(dout);
+					return -1;
+				}
+
+				dout = new;
+
+				a *= 2;
+			}
+
+			uout[n] = u;
+			dout[n++] = d;
+
+			uout[n] = (char *) NULL;
+			dout[n] = (char *) NULL;
+
+			addr = p + 1;
+
+			break;
+
+		  default:
+			break;
+		}
+	}
+
+	*users_out = uout;
+	*domains_out = dout;
+
+	return 0;
+}
+
 #ifdef MAILPARSE_TEST
+char *string_or_null(char *str)
+{
+	if (str == (char *) NULL)
+		return "null";
+	else
+		return str;
+}
+
 int
 main(int argc, char **argv)
 {
 	int err;
-	char *domain, *user;
+	unsigned char **domains, **users;
 
 	if (argc != 2)
 	{
@@ -479,7 +650,7 @@ main(int argc, char **argv)
 		exit(64);
 	}
 
-	err = dmarcf_mail_parse(argv[1], &user, &domain);
+	err = dmarcf_mail_parse_multi(argv[1], &users, &domains);
 
 	if (err)
 	{
@@ -487,9 +658,14 @@ main(int argc, char **argv)
 	}
 	else
 	{
-		printf("user: '%s'\ndomain: '%s'\n", 
-			user ? dmarcf_mail_unescape(user) : "null",
-			domain ? dmarcf_mail_unescape(domain) : "null");
+		int n;
+
+		for (n = 0; domains[n] != (unsigned char *) NULL; n++)
+		{
+			printf("user: '%s'\ndomain: '%s'\n", 
+				string_or_null(users[n]),
+				string_or_null(domains[n]));
+		}
 	}
 
 	return 0;

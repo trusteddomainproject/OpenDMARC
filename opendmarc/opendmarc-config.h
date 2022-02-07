@@ -1,5 +1,6 @@
 /*
-**  Copyright (c) 2012-2015, The Trusted Domain Project.  All rights reserved.
+**  Copyright (c) 2012-2015, 2018, 2021, The Trusted Domain Project.
+**		All rights reserved.
 */
 
 #ifndef _OPENDMARC_CONFIG_H_
@@ -26,12 +27,16 @@ struct configdef dmarcf_config[] =
 	{ "ChangeRootDirectory",	CONFIG_TYPE_STRING,	FALSE },
 	{ "CopyFailuresTo",		CONFIG_TYPE_STRING,	FALSE },
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
+	{ "DomainWhitelist",		CONFIG_TYPE_STRING,	FALSE },
+	{ "DomainWhitelistFile",	CONFIG_TYPE_STRING,	FALSE },
+	{ "DomainWhitelistSize",	CONFIG_TYPE_INTEGER,	FALSE },
 	{ "EnableCoredumps",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReports",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReportsBcc",		CONFIG_TYPE_STRING,	FALSE },
 	{ "FailureReportsOnNone",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "FailureReportsSentBy",	CONFIG_TYPE_STRING,	FALSE },
 	{ "HistoryFile",		CONFIG_TYPE_STRING,	FALSE },
+	{ "HoldQuarantinedMessages",    CONFIG_TYPE_BOOLEAN,    FALSE },
 	{ "IgnoreAuthenticatedClients",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "IgnoreHosts",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreMailFrom",		CONFIG_TYPE_STRING,	FALSE },
@@ -42,6 +47,7 @@ struct configdef dmarcf_config[] =
 	{ "RequiredHeaders",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "RequiredFrom",		CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "RejectFailures",		CONFIG_TYPE_BOOLEAN,	FALSE },
+	{ "RejectMultiValueFrom",	CONFIG_TYPE_BOOLEAN,	FALSE },
 	{ "ReportCommand",		CONFIG_TYPE_STRING,	FALSE },
 	{ "Socket",			CONFIG_TYPE_STRING,	FALSE },
 	{ "SoftwareHeader",		CONFIG_TYPE_BOOLEAN,	FALSE },

@@ -2,7 +2,7 @@
 **  Copyright (c) 2007-2009 Sendmail, Inc. and its suppliers.
 **	All rights reserved.
 **
-**  Copyright (c) 2009, 2012, 2014, The Trusted Domain Project.
+**  Copyright (c) 2009, 2012, 2014, 2018, The Trusted Domain Project.
 **  	All rights reserved.
 */
 
@@ -36,6 +36,7 @@ typedef int ares_method_t;
 #define	ARES_METHOD_DKIMATPS	7
 #define	ARES_METHOD_SMIME	8
 #define	ARES_METHOD_RRVS	9
+#define	ARES_METHOD_ARC		10
 
 /* ARES_RESULT_T -- type for specifying an authentication result */
 typedef int ares_result_t;
@@ -63,6 +64,7 @@ typedef int ares_ptype_t;
 #define	ARES_PTYPE_HEADER	1
 #define	ARES_PTYPE_BODY		2
 #define	ARES_PTYPE_POLICY	3
+#define	ARES_PTYPE_ARCCHAIN	4
 
 /* RESULT structure -- a single result */
 struct result
