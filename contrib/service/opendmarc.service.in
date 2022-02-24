@@ -4,10 +4,9 @@ Documentation=man:opendmarc(8) man:opendmarc.conf(5) man:opendmarc-import(8) man
 After=network.target nss-lookup.target syslog.target
 
 [Service]
-Type=forking
-PIDFile=@localstatedir@/run/opendmarc/opendmarc.pid
+Type=simple
 EnvironmentFile=-@sysconfdir@/sysconfig/opendmarc
-ExecStart=@sbindir@/opendmarc $OPTIONS
+ExecStart=@sbindir@/opendmarc -f $OPTIONS
 ExecReload=/bin/kill -USR1 $MAINPID
 User=opendmarc
 Group=opendmarc
