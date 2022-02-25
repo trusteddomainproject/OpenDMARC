@@ -8,6 +8,7 @@ Type=simple
 EnvironmentFile=-@sysconfdir@/sysconfig/opendmarc
 ExecStart=@sbindir@/opendmarc -f $OPTIONS
 ExecReload=/bin/kill -USR1 $MAINPID
+Restart=on-abnormal
 User=opendmarc
 Group=opendmarc
 
