@@ -223,7 +223,7 @@ main(int argc, char **argv)
 		rua = opendmarc_policy_fetch_rua(dmarc, NULL, 0, 1);
 		ruf = opendmarc_policy_fetch_ruf(dmarc, NULL, 0, 1);
 
-		fprintf(stdout, "DMARC record for %s:\n", argv[1]);
+		fprintf(stdout, "DMARC record for %s:\n", argv[c]);
 		fprintf(stdout, "\tSample percentage: %d\n", pct);
 		fprintf(stdout, "\tDKIM alignment: %s\n", adkim);
 		fprintf(stdout, "\tSPF alignment: %s\n", aspf);
