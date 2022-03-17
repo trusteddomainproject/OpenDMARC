@@ -589,8 +589,8 @@ foreach (@$domainset)
 		                         JOIN domains d1 ON messages.from_domain = d1.id
 		                         JOIN domains d2 ON messages.env_domain = d2.id
 		                         WHERE messages.from_domain = ?
-		                                 AND DATE(messages.date) >= DATE(FROM_UNIXTIME(?))
-		                                 AND DATE(messages.date) < DATE(FROM_UNIXTIME(?))
+		                                 AND TIMESTAMP(messages.date) >= TIMESTAMP(FROM_UNIXTIME(?))
+		                                 AND TIMESTAMP(messages.date) < TIMESTAMP(FROM_UNIXTIME(?))
 		});
 	}
 	else
