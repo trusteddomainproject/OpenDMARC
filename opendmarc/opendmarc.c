@@ -564,7 +564,7 @@ dmarcf_parse_received_spf(char *str, char *envdomain)
 			p++;
 		}
 	}
-	
+
 	if (strcasecmp(identity, "mailfrom") != 0 ||
             strcasecmp(spf_envdomain, envdomain) != 0)
 	{

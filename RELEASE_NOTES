@@ -71,8 +71,8 @@ release, and a summary of the changes in that release.
 		schema.mysql file).
 	Add experimental support for reporting of ARC local policy overrides.
 	Add support for recording and reporting of DKIM selectors.
-	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction with
-		an ARC policy pass.
+	Override a DMARC "fail" if an ARC "pass" is recorded in conjunction
+		with an ARC policy pass.
 	Add "RejectMultiValueFrom" configuration option to reject messages
 		with multi-valued From fields, unless all domains in that
 		field are the same.
@@ -111,7 +111,8 @@ release, and a summary of the changes in that release.
 	Feature request #139: Include the client host name if known
 		in failure reports.  Suggested by Roland Turner;
 		patch by Andreas Schulze.
-	Fix bug #95: Assume IPv6 for SPF operations.  Patch from Juri Haberland.
+	Fix bug #95: Assume IPv6 for SPF operations.  Patch from Juri
+		Haberland.
 	Fix bug #120: Fix control logic around the SPF result.
 		Reported by Christophe Wolfhugel; patch from Andreas Schulze.
 	Fix bug #122: Don't skip the HELO milter phase when SPF is enabled.

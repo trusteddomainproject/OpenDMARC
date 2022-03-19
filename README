@@ -106,15 +106,11 @@ lists are:
 
 	opendmarc-code		Automated source code change announcements.
 
-Bug tracking is done via the trackers on GitHub at:
+Bug tracking is done via the trackers on SourceForge at
+http://sourceforge.net/projects/opendmarc.  You can enter new bug
+reports there, but please check first for older bugs already open,
+or even already closed, before opening a new issue.
 
-https://github.com/trusteddomainproject/OpenDMARC/issues  
-
-You can enter new bug reports there, but please check first for older bugs 
-already open, or even already closed, before opening a new issue.
-
-Note that development is being moved away from SourceForge, Freshmeat, or
-other sites.
 
 +---------------------+
 | DIRECTORY STRUCTURE |
@@ -183,11 +179,11 @@ MTA timeouts
 
 Other OpenDMARC issues:
 
-Bug tracking is done via the trackers on GitHub at:
+ Report any bugs to the email address opendmarc-users@trusteddomain.org or to
+ the SourceForge issue tracker accessible at:
+ 
+ http://sourceforge.net/p/opendmarc/tickets/
 
-https://github.com/trusteddomainproject/OpenDMARC/issues  
-
-Please report them there, after checking for prior reports.
 
 +-----------------+
 | FURTHER READING |
