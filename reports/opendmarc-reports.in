@@ -608,7 +608,7 @@ foreach (@$domainset)
 		$dbi_s = $dbi_h->prepare(q{
 		                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
 		                                 messages.spf, messages.spfscope, messages.align_spf,
-																		 messages.align_dkim, messages.arc, messages.arc_policy
+		                                 messages.align_dkim, messages.arc, messages.arc_policy
 		                         FROM messages
 		                         JOIN ipaddr ON messages.ip = ipaddr.id
 		                         JOIN domains d1 ON messages.from_domain = d1.id
