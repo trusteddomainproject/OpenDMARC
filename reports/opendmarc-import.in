@@ -77,6 +77,7 @@ my $ipaddr;
 my $jobid;
 my $p;
 my $pct;
+my $fo;
 my $pdomain;
 my $policy;
 my $received;
@@ -85,6 +86,7 @@ my $repuri;
 my $sigcount = 0;
 my $sp;
 my $spf;
+my $spf_scope;
 my @rua;
 
 ###
@@ -248,16 +250,16 @@ sub update_db
 	$dbi_s = $dbi_h->prepare(q{
 	                         INSERT INTO messages(
 	                                 date, jobid, reporter, policy, disp, ip, env_domain, from_domain,
-	                                 policy_domain, spf, align_spf, align_dkim, sigcount, arc, arc_policy
+	                                 policy_domain, spf, spf_scope, align_spf, align_dkim, sigcount, arc, arc_policy
 	                         )
 	                         VALUES(
-	                                 FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	                                 FROM_UNIXTIME(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 	                         )
 	});
 
 	if (!$dbi_s->execute(
 			$received, $jobid, $rep_id, $policy, $action, $ipaddr_id, $envfrom_id, $from_id,
-			$pdomain_id, $spf, $align_spf, $align_dkim, $sigcount, $arc, $arc_policy
+			$pdomain_id, $spf, $spf_scope, $align_spf, $align_dkim, $sigcount, $arc, $arc_policy
 		))
 	{
 		print STDERR "$progname: failed to insert message: " . $dbi_h->errstr . "\n";
@@ -400,9 +402,9 @@ sub update_db
 			$dbi_s->finish;
 		}
 
-		$dbi_s = $dbi_h->prepare("UPDATE requests SET adkim = ?, aspf = ?, policy = ?, spolicy = ?, pct = ? WHERE id = ?");
+		$dbi_s = $dbi_h->prepare("UPDATE requests SET adkim = ?, aspf = ?, policy = ?, spolicy = ?, pct = ?, fo = ? WHERE id = ?");
 
-		if (!$dbi_s->execute($adkim, $aspf, $p, $sp, $pct, $request_id))
+		if (!$dbi_s->execute($adkim, $aspf, $p, $sp, $pct, $fo, $request_id))
 		{
 			print STDERR "$progname: failed to update policy data for $fdomain: " . $dbi_h->errstr . "\n";
 			$dbi_s->finish;
@@ -673,6 +675,7 @@ while (<$inputfh>)
 						undef $jobid;
 						undef $p;
 						undef $pct;
+						undef $fo;
 						undef $pdomain;
 						undef $policy;
 						undef $received;
@@ -681,6 +684,7 @@ while (<$inputfh>)
 						$sigcount = 0;
 						undef $sp;
 						undef $spf;
+						undef $spf_scope;
 					}
 
 					$jobid = $value;
@@ -700,6 +704,10 @@ while (<$inputfh>)
 
 	  case "pct"		{
 					$pct = $value;
+				}
+
+	  case "fo"		{
+					$fo = $value;
 				}
 
 	  case "pdomain"	{
@@ -731,6 +739,10 @@ while (<$inputfh>)
 
 	  case "spf"		{
 					$spf = $value;
+				}
+
+	  case "spf_scope"		{
+					$spf_scope = $value;
 				}
 
 	  else			{

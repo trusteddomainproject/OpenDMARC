@@ -2314,6 +2314,7 @@ mlfi_eom(SMFICTX *ctx)
 	int adkim;
 	int aspf;
 	int pct;
+	int fo;
 	int p;
 	int sp;
 	int align_dkim;
@@ -2856,6 +2857,9 @@ mlfi_eom(SMFICTX *ctx)
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n",
 				                      dfc->mctx_spfresult);
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf_scope %d\n",
+				                      spfmode);
 				wspf = TRUE;
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
@@ -3244,6 +3248,9 @@ mlfi_eom(SMFICTX *ctx)
 
 	opendmarc_policy_fetch_pct(cc->cctx_dmarc, &pct);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "pct %d\n", pct);
+
+	opendmarc_policy_fetch_fo(cc->cctx_dmarc, &fo);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "fo %d\n", fo);
 
 	opendmarc_policy_fetch_adkim(cc->cctx_dmarc, &adkim);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "adkim %d\n", adkim);
