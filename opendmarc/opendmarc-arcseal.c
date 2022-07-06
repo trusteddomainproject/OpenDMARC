@@ -29,7 +29,7 @@
 #include "opendmarc.h"
 
 #define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN 255
-#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      512
+#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      768
 
 /* tables */
 struct opendmarc_arcseal_lookup
