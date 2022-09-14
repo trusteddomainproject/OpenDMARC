@@ -222,7 +222,7 @@
 ##  If false, messsages will be accepted and passed along with the 
 ##  regular mail flow, and the quarantine will be left up to downstream
 ##  MTA/MDA/MUA filters, if any, to handle by re-evaluating the headers,
-##  including the Authentication-Results header added by OpenDMARC
+##  including the Authentication-Results header added by OpenDMARC.
 #
 # HoldQuarantinedMessages false
 
@@ -277,7 +277,7 @@
 ##  as described in the DMARC specification.  If not provided, the filter will
 ##  not be able to determine the Organizational Domain and only the presented
 ##  domain will be evaluated.  This file should be periodically updated.
-##  One location to retrieve the file from is https://publicsuffix.org/list/
+##  One location to retrieve the file from is https://publicsuffix.org/list/.
 #
 # PublicSuffixList path
 
