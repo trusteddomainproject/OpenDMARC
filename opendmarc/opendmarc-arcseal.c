@@ -29,7 +29,7 @@
 #include "opendmarc.h"
 
 #define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN 255
-#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      512
+#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      768
 
 /* tables */
 struct opendmarc_arcseal_lookup
@@ -167,7 +167,12 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		if (*token_ptr == '\0')
 			return 0;
 		tag_label = strsep(&token_ptr, "=");
+		if (token_ptr == NULL)
+			return 0;
+
 		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
+		if (tag_value == NULL)
+			return 0;
 
 		tag_code = opendmarc_arcseal_convert(as_tags, tag_label);
 

@@ -32,7 +32,7 @@
 /* max header tag value length (short) */
 #define OPENDMARC_ARCSEAL_MAX_SHORT_VALUE_LEN 256
 /* max header tag value length (long) */
-#define OPENDMARC_ARCSEAL_MAX_LONG_VALUE_LEN  512
+#define OPENDMARC_ARCSEAL_MAX_LONG_VALUE_LEN  768
 
 /* names and field labels */
 #define OPENDMARC_ARCSEAL_HDRNAME	"ARC-Seal"
