@@ -208,7 +208,7 @@ got_xn:
 /**************************************************************************************
 ** OPENDMARC_TLD_SHUTDOWN -- Free the tld hash and return
 ** Arguments:
-**		none 	--- void agrguments
+**		none 	--- void arguments
 ** Returns:
 **	0		-- Always
 ** Side Effect:

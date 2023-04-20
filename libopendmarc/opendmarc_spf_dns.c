@@ -43,7 +43,7 @@
 **	cnt		-- Pointer to count of lines in array
 ** Returns:
 **	ary	-- on success
-**	NULL	-- otherise, and place the h_errno error into reply
+**	NULL	-- otherwise, and place the h_errno error into reply
 ** Side Effects:
 **	Makes a connection to the local name server and blocks
 **	waiting for a reply.
@@ -73,7 +73,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 #endif /* HAVE_RES_NINIT */
 
 	/*
-	 * If a null or empy domain was given to us, just say it
+	 * If a null or empty domain was given to us, just say it
 	 * was not found.
 	 */
 	if (domain == NULL || *domain == '\0')
@@ -86,7 +86,7 @@ opendmarc_spf_dns_lookup_a_actual(char *domain, int sought, char **ary, int *cnt
 	res_ninit(&resp);
 #endif /* HAVE_RES_NINIT */
 	/*
-	 * Copy the domain so we can scribble on it. The orginal
+	 * Copy the domain so we can scribble on it. The original
 	 * may point to a static string.
 	 */
 	(void) memcpy(hbuf, domain, sizeof hbuf);
@@ -260,7 +260,7 @@ opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt)
 **	cnt		-- Pointer to count of lines in array
 ** Returns:
 **	ary	-- on success
-**	NULL	-- otherise, and place the h_errno error into reply
+**	NULL	-- otherwise, and place the h_errno error into reply
 ** Side Effects:
 **	Makes a connection to the local name server and blocks
 **	waiting for a reply.
@@ -352,7 +352,7 @@ opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt)
 **	cnt		-- Pointer to count of lines in array
 ** Returns:
 **	ary	-- on success
-**	NULL	-- otherise, and place the h_errno error into reply
+**	NULL	-- otherwise, and place the h_errno error into reply
 ** Side Effects:
 **	Makes a connection to the local name server and blocks
 **	waiting for a reply.
@@ -467,7 +467,7 @@ opendmarc_spf_dns_lookup_ptr(char *ip, char **ary, int *cnt)
 **
 ** Returns:
 **	TRUE	-- if any of those records existed.
-**	FALSE	-- otherise, and place the h_errno error
+**	FALSE	-- otherwise, and place the h_errno error
 **		   into reply
 **
 ** Side Effects:
@@ -554,7 +554,7 @@ opendmarc_spf_dns_does_domain_exist(char *domain, int *reply)
 **
 ** Returns:
 **	txt	-- on success
-**	NULL	-- otherise, and place the h_errno error
+**	NULL	-- otherwise, and place the h_errno error
 **		   into reply
 **	NULL	-- if no data, but cname may still contain a hostname
 **
@@ -594,7 +594,7 @@ opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen,
 		rp = reply;
 
 	/*
-	 * If a null or empy domain was given to us, just say it
+	 * If a null or empty domain was given to us, just say it
 	 * was not found.
 	 */
 	*rp = 0;
@@ -608,7 +608,7 @@ opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen,
 		(void) memset(cname, '\0', cnamelen);
 
 	/*
-	 * Copy the domain so we can scribble on it. The orginal
+	 * Copy the domain so we can scribble on it. The original
 	 * may point to a static string.
 	 */
 	(void) memcpy(hbuf, domain, sizeof hbuf);
@@ -640,7 +640,7 @@ opendmarc_spf_dns_get_record(char *domain, int *reply, char *txt, size_t txtlen,
 	if (k < 0)
 	{
 		/*
-		 * TXT records apppear more common than SPF records, so
+		 * TXT records appear more common than SPF records, so
 		 * we fall back to SPF instead of looking up SPF first.
 		 */
 		if (h_errno == NO_DATA || h_errno == NXDOMAIN)
@@ -720,7 +720,7 @@ got_spf_record:
 
 		if (cp + INT16SZ + INT16SZ > eom)
 		{
-			/* currupt answer */
+			/* corrupt answer */
 			*rp = NO_DATA;
 			return NULL;
 		}
@@ -729,7 +729,7 @@ got_spf_record:
 		if (type == T_CNAME)
 		{
 			/*
-			 * CNAMEs are supposed to be invisible, but somtimes
+			 * CNAMEs are supposed to be invisible, but sometimes
 			 * a CNAME points to a TXT record that times out, so
 			 * all we get on the initial query is the CNAME.
 			 */

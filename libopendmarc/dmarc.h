@@ -63,7 +63,7 @@ extern "C" {
 #define DMARC_PARSE_ERROR_BAD_VALUE		(4)	/* Bad token value like p=bob */
 #define DMARC_PARSE_ERROR_NO_REQUIRED_P		(5)	/* Required p= missing */
 #define DMARC_PARSE_ERROR_NO_DOMAIN		(6)	/* No domain, e.g. <>  */
-#define DMARC_PARSE_ERROR_NO_ALLOC		(7)	/* Memory Allocation Faliure */
+#define DMARC_PARSE_ERROR_NO_ALLOC		(7)	/* Memory Allocation Failure */
 #define DMARC_PARSE_ERROR_BAD_SPF_MACRO		(8)	/* Was not a macro from above */
 #define DMARC_PARSE_ERROR_BAD_DKIM_MACRO	DMARC_PARSE_ERROR_BAD_SPF_MACRO
 #define DMARC_DNS_ERROR_NO_RECORD		(9)	/* No DMARC record was found */

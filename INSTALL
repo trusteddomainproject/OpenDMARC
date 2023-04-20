@@ -47,7 +47,7 @@ doesn't find it, you will need to specify the location with
 --with-sql-backend
 		Names the SQL backend in use on your system.  The default
 		is "mysql".  You can also specify "--without-sql-backend"
-		to suppres building of SQL support.
+		to suppress building of SQL support.
 
 FEATURES
 ========

@@ -1117,7 +1117,7 @@ tv.im
 
 // in : http://en.wikipedia.org/wiki/.in
 // see also: http://www.inregistry.in/policies/
-// Please note, that nic.in is not an offical eTLD, but used by most
+// Please note, that nic.in is not an official eTLD, but used by most
 // government institutions.
 in
 co.in
@@ -6306,7 +6306,7 @@ lib.wi.us
 lib.wy.us
 
 // k12.ma.us contains school districts in Massachusetts. The 4LDs are
-//  managed indepedently except for private (PVT), charter (CHTR) and
+//  managed independently except for private (PVT), charter (CHTR) and
 //  parochial (PAROCH) schools.  Those are delegated dorectly to the
 //  5LD operators.   <k12-ma-hostmaster _ at _ rsuc.gweep.net>
 pvt.k12.ma.us

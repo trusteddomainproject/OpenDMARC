@@ -105,7 +105,7 @@ release, and a summary of the changes in that release.
 	Feature request #127: Log SPF results when rejecting.  Requested
 		by Patrick Wagner; patch from Andreas Schulze, follow-up
 		patch from Juri Haberland.
-	Feature request #138: Inculde policy and disposition information
+	Feature request #138: Include policy and disposition information
 		in an Authentication-Results comment.  Based on a patch
 		from Juri Haberland.
 	Feature request #139: Include the client host name if known
@@ -368,7 +368,7 @@ release, and a summary of the changes in that release.
 		reported by Todd Lyons.
 
 0.2.2		2012/09/14
-	Fix bug #25: Use locks to co-ordinate between the filter writing
+	Fix bug #25: Use locks to coordinate between the filter writing
 		to the history file and opendmarc-import consuming it.
 		Problem noted by Marcos Vieira.
 	Don't use dmarcf_dstring_printf() where dmarcf_dstring_cat() suffices.

@@ -434,7 +434,7 @@ opendmarc_util_pushnargv(char *str, char **ary, int *num)
 }
 
 /*      
-** Convert a decimal unsigned long interger into a string.
+** Convert a decimal unsigned long integer into a string.
 ** Returns a pointer to the passed buffer.
 */
 char *  

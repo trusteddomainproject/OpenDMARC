@@ -97,7 +97,7 @@ opendmarc_policy_library_init(OPENDMARC_LIB_T *lib_init)
 }
 
 /**************************************************************************
-** OPENDMARC_POLICY_LIBRARY_SHUTDOWN -- Shutdown The Libarary
+** OPENDMARC_POLICY_LIBRARY_SHUTDOWN -- Shutdown The Library
 **	Parameters:
 **		lib_init	-- The prior DMARC_LIB_T strucgture
 **	Returns:
@@ -116,7 +116,7 @@ opendmarc_policy_library_shutdown(OPENDMARC_LIB_T *lib_init)
 /**************************************************************************
 ** OPENDMARC_POLICY_CONNECT_INIT -- Get policy context for connection
 **	Parameters:
-**		ip_addr	-- An IP addresss in string form.
+**		ip_addr	-- An IP address in string form.
 **		is_ipv6 -- Zero for IPv4, non-zero for IPv6
 **	Returns:
 **		pctx 	-- An allocated and initialized context pointer.
@@ -208,8 +208,8 @@ opendmarc_policy_connect_clear(DMARC_POLICY_T *pctx)
 
 /**************************************************************************
 ** OPENDMARC_POLICY_CONNECT_RSET -- Rset for another message
-**	Usefull if there is more than a single envelope per connection.
-**	Usefull during an SMTP  RSET
+**	Useful if there is more than a single envelope per connection.
+**	Useful during an SMTP  RSET
 **
 **	Parameters:
 **		pctx	-- The context to rset.
@@ -346,7 +346,7 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 **	The domain is needed to perform alignment checks.
 
 **	Parameters:
-**		pctx		-- The context to uptdate
+**		pctx		-- The context to update
 **		from_domain 	-- A string
 **	Returns:
 **		DMARC_PARSE_OKAY		-- On success
@@ -384,7 +384,7 @@ opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *from_domain)
 **	Okay to supply the raw MAIL From: data
 **
 **	Parameters:
-**		pctx	-- The context to uptdate
+**		pctx	-- The context to update
 **		domain 	-- The domain used to verify SPF
 **		result 	-- DMARC_POLICY_SPF_OUTCOME_NONE
 **			or DMARC_POLICY_SPF_OUTCOME_PASS
@@ -591,7 +591,7 @@ set_final:
 ** OPENDMARC_POLICY_QUERY_DMARC_XDOMAIN -- Verify that we have permission
 **										to send to domain
 **	Parameters:
-**		pctx	-- The context to uptdate
+**		pctx	-- The context to update
 **		uri		-- URI listed in DMARC record
 **	Returns:
 **		DMARC_PARSE_OKAY		-- On success, and fills pctx
@@ -727,7 +727,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 **					specified domain. If not found
 **				  	try the organizational domain.
 **	Parameters:
-**		pctx	-- The context to uptdate
+**		pctx	-- The context to update
 **		domain 	-- The domain for which to lookup the DMARC record
 **	Returns:
 **		DMARC_PARSE_OKAY		-- On success, and fills pctx
@@ -747,7 +747,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 **		looks up topmost domain under tld. If this later is found
 **		updates pctx->organizational_domain with the result.
 **	Warning:
-**		If no TLD file has been loaded, will silenty not do that
+**		If no TLD file has been loaded, will silently not do that
 **		fallback lookup.
 ** 
 ***************************************************************************/
@@ -988,7 +988,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			continue;
 		}
 		/*
-		 * cp nwo points to the token, and
+		 * cp now points to the token, and
 		 * vp now points to the token's value 
 		 * both with all surronding whitepace removed.
 		 */
@@ -1017,7 +1017,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				pctx->p = DMARC_RECORD_P_QUARANTINE;
 			else
 			{
-				/* A totaly unknown value */
+				/* A totally unknown value */
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
 		}
@@ -1035,7 +1035,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				pctx->sp = DMARC_RECORD_P_QUARANTINE;
 			else
 			{
-				/* A totaly unknown value */
+				/* A totally unknown value */
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
 		}
@@ -1051,7 +1051,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				pctx->adkim = DMARC_RECORD_A_RELAXED;
 			else
 			{
-				/* A totaly unknown value */
+				/* A totally unknown value */
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
 		}
@@ -1067,7 +1067,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				pctx->aspf = DMARC_RECORD_A_RELAXED;
 			else
 			{
-				/* A totaly unknown value */
+				/* A totally unknown value */
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
 		}
@@ -1128,7 +1128,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 						pctx->aspf |= DMARC_RECORD_RF_IODEF;
 					else
 					{
-						/* A totaly unknown value */
+						/* A totally unknown value */
 						return DMARC_PARSE_ERROR_BAD_VALUE;
 					}
 				}
@@ -1543,7 +1543,7 @@ opendmarc_policy_fetch_rf(DMARC_POLICY_T *pctx, int *rf)
 **		DMARC_PARSE_OKAY		-- On success
 **		DMARC_PARSE_ERROR_NULL_CTX	-- If context NULL
 **		DMARC_PARSE_ERROR_EMPTY 	-- If buf null or buflen 0 sized
-**		DMARC_PARSE_ERROR_NO_DOMAIN 	-- If neigher address is available
+**		DMARC_PARSE_ERROR_NO_DOMAIN 	-- If neither address is available
 **/
 OPENDMARC_STATUS_T
 opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen)
@@ -1579,7 +1579,7 @@ opendmarc_policy_fetch_utilized_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t
 **		DMARC_PARSE_OKAY		-- On success
 **		DMARC_PARSE_ERROR_NULL_CTX	-- If context NULL
 **		DMARC_PARSE_ERROR_EMPTY 	-- If buf null or buflen 0 sized
-**		DMARC_PARSE_ERROR_NO_DOMAIN 	-- If neigher address is available
+**		DMARC_PARSE_ERROR_NO_DOMAIN 	-- If neither address is available
 **/
 OPENDMARC_STATUS_T
 opendmarc_policy_fetch_from_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buflen)
