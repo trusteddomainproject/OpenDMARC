@@ -511,7 +511,7 @@ opendmarc_spf_cidr_address(uint32_t ip, char *cidr_addr)
 }
 
 /**************************************************************
-** opendmarc_spf_reverse -- Reverse doman name on dot or ip address
+** opendmarc_spf_reverse -- Reverse domain name on dot or ip address
 **			on dot or colon	boundaries
 **			   e.g. a.b.c becomes c.b.a
 **			   and FFFF::EEEE becomes EEEE::FFFF
@@ -821,7 +821,7 @@ opendmarc_spf_ipv6_cidr_check(char *ipv6_str, char *cidr_string)
 	if (cidr_bits == 0)
 	{
 		/*
-		 * Requre an exact match.
+		 * Require an exact match.
 		 */
 		for (i = 0; i < base_iary.nvalues; i++)
 		{
@@ -1674,7 +1674,7 @@ opendmarc_spf_parse(SPF_CTX_T *spfctx, int dns_count, char *xbuf, size_t xbuf_le
 					if (i < s)
 					{
 						(void) strlcat(xbuf, query, xbuf_len);
-						(void) strlcat(xbuf, " Include LOOP detected and supressed", xbuf_len);
+						(void) strlcat(xbuf, " Include LOOP detected and suppressed", xbuf_len);
 						PUSHLINE
 						continue;
 					}

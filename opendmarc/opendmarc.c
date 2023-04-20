@@ -887,7 +887,7 @@ dmarcf_eatspaces(char *str)
 **  Parameters:
 **  	a -- array to destroy
 **
-**  Return vaule:
+**  Return value:
 ** 	None.
 */
 
@@ -1326,7 +1326,7 @@ dmarcf_findheader(DMARCF_MSGCTX dfc, char *hname, int instance)
 /*
 **  DMARCF_CONFIG_LOAD -- load a configuration handle based on file content
 **
-**  Paramters:
+**  Parameters:
 **  	data -- configuration data loaded from config file
 **  	conf -- configuration structure to load
 **  	err -- where to write errors

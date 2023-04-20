@@ -96,7 +96,7 @@ opendmarc_dns_fake_record(const char *name, const char *answer)
 **
 ** Return Values:
 **	got_txtbuf		-- pointer to got_txtbuf on success
-**	NULL			-- otherise, and place the h_errno error into reply
+**	NULL			-- otherwise, and place the h_errno error into reply
 **
 ** Side Effects:
 **	Makes a connection to the local (or specified)
@@ -138,7 +138,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		reply_ptr = reply;
 
 	/*
-	 * If a null or empy domain was given to us, just say that it
+	 * If a null or empty domain was given to us, just say that it
 	 * was not found.
 	 */
 	*reply_ptr = 0;
@@ -180,7 +180,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 	}
 
 	/*
-	 * Copy the domain so we can scribble on it. The orginal
+	 * Copy the domain so we can scribble on it. The original
 	 * may point to a static string.
 	 * We should use strlcpy(), but not all systems have it.
 	 */

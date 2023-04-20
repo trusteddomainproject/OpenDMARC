@@ -21,7 +21,7 @@ variety of operating systems.
   we believe resolved, but want to confirm are fixed for the original
   reporter.  If you run an environment similar to the reporter, and can
   reproduce the failure mode, more testing is useful, especially in the
-  case where the origninal reporter has not responded.
+  case where the original reporter has not responded.
 
 * Reporting compiler warnings on your platform (along with the platform and 
   version) is helpful.  Our goal is for a zero-warnings compile on most
