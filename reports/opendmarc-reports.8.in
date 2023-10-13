@@ -80,7 +80,7 @@ responsible for the report.  This is used to create the archive filename
 and is included in the report content.  The default is the hostname of
 the host generating the report.
 .TP
-.I --smtp-host=host
+.I --smtp-server=host
 Causes reports to be sent by transmitting them using SMTP to the named
 .I host
 which can be an IP address or a hostname.  The default is "127.0.0.1".
