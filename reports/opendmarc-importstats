@@ -6,8 +6,8 @@
 ##
 ## This is intended to be used via a crontab.  If import is successful,
 ## this code exits quietly so there's no output.  If it fails, it does
-## "ls -l" on the temporary file, so that cron generates mail to whever
-## ran the job.
+## "ls -l" on the temporary file, so that cron generates mail to
+## whoever ran the job.
 
 ## setup
 statsdb="/var/tmp/dmarc.dat"
