@@ -158,14 +158,38 @@ AC_CHECK_LIB(resolv, inet_aton, , , [-lnsl -lsocket])
 # only thing for it is to include resolv.h, don't redeclare res_ninit(),
 # and use the proper type signature when calling it.
 m4_rename([AC_LANG_CALL], [saved_AC_LANG_CALL])
-m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
+m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#  include <netinet/in.h>   /* inet_ functions / structs */
+#endif
+#ifdef HAVE_ARPA_NAMESER_H
+#  include <arpa/nameser.h> /* DNS HEADER struct */
+#endif
+#ifdef HAVE_NETDB_H
+#  include <netdb.h>
+#endif
+#include <resolv.h>],
                                            [return res_ninit(NULL);])])
 AC_SEARCH_LIBS(res_ninit, resolv,
         AC_DEFINE(HAVE_RES_NINIT, 1,
         [Define to 1 if you have the `res_ninit()' function.]))
 
 # Same as above, but for res_ndestroy.
-m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
+m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#  include <netinet/in.h>   /* inet_ functions / structs */
+#endif
+#ifdef HAVE_ARPA_NAMESER_H
+#  include <arpa/nameser.h> /* DNS HEADER struct */
+#endif
+#ifdef HAVE_NETDB_H
+#  include <netdb.h>
+#endif
+#include <resolv.h>],
                                             [res_ndestroy(NULL);])])
 AC_SEARCH_LIBS(res_ndestroy, resolv,
         AC_DEFINE(HAVE_RES_NDESTROY, 1,
