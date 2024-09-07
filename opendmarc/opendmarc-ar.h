@@ -88,6 +88,24 @@ struct authres
 };
 
 /*
+**  ARES_TOKENIZE -- tokenize a string
+**
+**  Parameters:
+**  	input -- input string
+**  	outbuf -- output buffer
+**  	outbuflen -- number of bytes available at "outbuf"
+**  	tokens -- array of token pointers
+**  	ntokens -- number of token pointers available at "tokens"
+**
+**  Return value:
+**  	-1 -- not enough space at "outbuf" for tokenizing
+**  	other -- number of tokens identified; may be greater than
+**  	"ntokens" if there were more tokens found than there were
+**  	pointers available.
+*/
+extern int ares_tokenize __P((u_char *input, u_char *outbuf, size_t outbuflen,
+                              u_char **tokens, int ntokens));
+/*
 **  ARES_PARSE -- parse an Authentication-Results: header, return a
 **                structure containing a parsed result
 **

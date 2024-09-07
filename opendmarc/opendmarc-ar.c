@@ -114,7 +114,7 @@ struct lookup ptypes[] =
 **  	pointers available.
 */
 
-static int
+int
 ares_tokenize(u_char *input, u_char *outbuf, size_t outbuflen,
               u_char **tokens, int ntokens)
 {
