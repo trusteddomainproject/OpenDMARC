@@ -691,8 +691,6 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 **  	EX_USAGE or EX_OK
 */
 
-# define NTOKENS 256
-
 int
 main(int argc, char **argv)
 {
@@ -703,7 +701,7 @@ main(int argc, char **argv)
 	char *progname;
 	struct authres ar;
 	u_char buf[1024];
-	u_char *toks[NTOKENS];
+	u_char *toks[ARES_MAXTOKENS];
 
 	progname = (p = strrchr(argv[0], '/')) == NULL ? argv[0] : p + 1;
 
