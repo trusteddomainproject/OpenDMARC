@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 #ifdef ARTEST
 # include <sysexits.h>
 #endif /* ARTEST */
@@ -45,7 +46,7 @@
 #define	ARES_TOKENS		";=."
 #define	ARES_TOKENS2		"=."
 
-#define	ARES_MAXTOKENS		512
+#define	ARES_MAXTOKENS		1536
 
 /* tables */
 struct lookup
@@ -357,7 +358,7 @@ ares_xconvert(struct lookup *table, int code)
 */
 
 int
-ares_parse(u_char *hdr, struct authres *ar)
+authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 {
 	_Bool quoted;
 	int n;
@@ -380,7 +381,7 @@ ares_parse(u_char *hdr, struct authres *ar)
 		return -1;
 
 	prevstate = -1;
-	state = 0;
+	state = (instance == NULL)?0:20;
 	n = 0;
 
 	quoted = FALSE;
@@ -619,6 +620,53 @@ ares_parse(u_char *hdr, struct authres *ar)
 			}
 
 			break;
+
+		  case 20:				/* start state of AAR; instance */
+			if (tokens[c][0] != 'i' ||
+			    tokens[c][1] != '\0')
+				return -1;
+
+			prevstate = state;
+			state = 21;
+
+			break;
+
+		  case 21:				/* = */
+			if (tokens[c][0] != '=' ||
+			    tokens[c][1] != '\0')
+				return -1;
+
+			prevstate = state;
+			state = 22;
+
+			break;
+
+		  case 22:				/* position */
+			if (!isascii(tokens[c][0]) ||
+				!isdigit(tokens[c][0]) ||
+				!(tokens[c][1] == '\0' ||
+			      isascii(tokens[c][1]) &&
+			      isdigit(tokens[c][1]) &&
+			      tokens[c][2] == '\0'))
+				return -1;
+
+			*instance = (u_int)strtol(tokens[c], NULL, 10);
+
+			prevstate = state;
+			state = 23;
+
+			break;
+
+		  case 23:				/* ; */
+			if (tokens[c][0] != ';' ||
+			    tokens[c][1] != '\0')
+				return -1;
+
+			prevstate = state;
+			state = 0;
+
+			break;
+
 		}
 	}
 

@@ -18,7 +18,7 @@
 
 /* limits */
 #define	AUTHRESHDRNAME	"Authentication-Results"
-#define	MAXARESULTS	16
+#define	MAXARESULTS	32
 #define	MAXPROPS	16
 #define	MAXAVALUE	256
 
@@ -106,6 +106,24 @@ struct authres
 extern int ares_tokenize __P((u_char *input, u_char *outbuf, size_t outbuflen,
                               u_char **tokens, int ntokens));
 /*
+**  AUTHRES_PARSE -- parse an Authentication-Results: or
+**                ARC-Authenticaion-Results:header, return a
+**                structure containing a parsed result
+**
+**  Parameters:
+**  	hdr -- NULL-terminated contents of an Authentication-Results:
+**  	       header field
+**  	ar -- a pointer to a (struct authres) loaded by values after parsing
+** 	instance -- a pointer to store instance ID for AAR header.
+** 	            If it is NULL, parse the header field as of AR.
+** 	            If it is not NULL, parse the header field as of AAR.
+**  
+**  Return value:
+**  	0 on success, -1 on failure.
+*/
+extern int authres_parse __P((u_char *hdr, struct authres *ar,
+                              u_int *instance));
+/*
 **  ARES_PARSE -- parse an Authentication-Results: header, return a
 **                structure containing a parsed result
 **
@@ -118,6 +136,8 @@ extern int ares_tokenize __P((u_char *input, u_char *outbuf, size_t outbuflen,
 **  	0 on success, -1 on failure.
 */
 
-extern int ares_parse __P((u_char *hdr, struct authres *ar));
-
+inline int ares_parse __P((u_char *hdr, struct authres *ar))
+{
+	return authres_parse(hdr, ar, NULL);
+}
 #endif /* _OPENDMARC_AR_H_ */
