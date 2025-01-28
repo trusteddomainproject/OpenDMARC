@@ -330,7 +330,7 @@ use_spf="no"
 if test "x$SPF2_INCLUDE" != "x" -a "x$SPF2_LIB" != "x"
 then
 	use_spf="yes"
-	if test -f ${SPF2_INCLUDE}/spf.h
+	if test -f ${SPF2_INCLUDE}/spf2/spf.h
 	then
 		AC_DEFINE(HAVE_SPF2_H, 1,
 			[Define to 1 if you have libspf2's `spf.h'])
