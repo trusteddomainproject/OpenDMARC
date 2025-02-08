@@ -22,6 +22,9 @@
 #define	MAXPROPS	16
 #define	MAXAVALUE	256
 
+/* buffer to cache a single header */
+#define OPENDMARC_ARCARES_MAXHEADER_LEN       4096
+
 /* ARES_METHOD_T -- type for specifying an authentication method */
 typedef int ares_method_t;
 

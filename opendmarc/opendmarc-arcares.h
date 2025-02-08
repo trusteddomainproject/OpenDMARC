@@ -27,8 +27,6 @@
 ** limits
 */
 
-/* buffer to cache a single header */
-#define OPENDMARC_ARCARES_MAXHEADER_LEN       4096
 /* max header tag value length (short) */
 #define OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN 256
 /* max header tag value length (long) */
