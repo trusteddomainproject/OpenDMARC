@@ -64,12 +64,8 @@ struct arcares_field
 /* ARCARES structure -- the single header parsed */
 struct arcares
 {
-	int instance;
-	u_char authserv_id[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
-	u_char arc[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
-	u_char dkim[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
-	u_char dmarc[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
-	u_char spf[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
+	u_int instance;
+	struct authres payload;
 };
 
 /* ARCARES_HEADER -- a node for a linked list of arcares structs */
@@ -82,7 +78,7 @@ struct arcares_header
 
 struct arcares_arc_field
 {
-	u_char arcresult[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
+	struct result arcresult;
 	u_char smtpclientip[OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN + 1];
 	u_char arcchain[OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN + 1];
 };
@@ -103,13 +99,13 @@ struct arcares_arc_field
 extern int opendmarc_arcares_parse __P((u_char *hdr, struct arcares *aar));
 
 /*
-** OPENDMARC_ARCARES_ARC+PARSE -- parse an ARC-Authentication-Results: header
-**                                ARC field, return a structure containing parse
-**                                result
+** OPENDMARC_ARCARES_ARC_PARSE -- retrieve ARC result from a parsed
+**                                ARC-Authentication-Results: header result,
+**                                return a structure ARC specific parse
+**                                result(especially client-ip)
 **
 ** Parameters:
-** 	hdr_arc -- NULL-terminated contents of an ARC-Authentication-Results:
-**                 header ARC field
+** 	aar -- a parse result structure parsed by opendmarc_arcares_parse
 ** 	arc -- a pointer to a struct (arcares_arc_field) loaded by values after
 **             parsing
 **
@@ -117,7 +113,7 @@ extern int opendmarc_arcares_parse __P((u_char *hdr, struct arcares *aar));
 **  	0 on success, -1 on failure
 **/
 
-extern int opendmarc_arcares_arc_parse __P((u_char *hdr_arc,
+extern int opendmarc_arcares_arc_parse __P((struct arcares *aar,
                                             struct arcares_arc_field *arc));
 
 /*
