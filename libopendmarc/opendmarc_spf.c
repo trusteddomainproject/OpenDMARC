@@ -745,7 +745,15 @@ opendmarc_spf_ipv6_explode(char *str, TXT_ARY_T *ap)
 			}
 			i+= 1;
 		}
-		cp = ep+1;
+		/*
+		* If strchr() did not find another ':' we have reached the
+		* last chunk of the IPv6 literal.  Advancing the pointer
+		* when ep is NULL would yield (NULL + 1) and lead to a
+		* segmentation fault on the next iteration.
+		*/
+		if (ep == NULL)
+			break;
+		cp = ep + 1;
 	}
 	ap->nstrs = 8 - i;
 	return 0;
