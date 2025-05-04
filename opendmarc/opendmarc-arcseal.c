@@ -167,7 +167,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		if (*token_ptr == '\0')
 			return 0;
 		tag_label = strsep(&token_ptr, "=");
-		if (token_ptr == NULL)
+		if (tag_label == NULL)
 			return 0;
 
 		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
