@@ -93,6 +93,20 @@ Causes reports to be sent by transmitting them using SMTP to the specified
 .I port.
 The default is 25.
 .TP
+.I --smtp-user=username
+Used with 
+.I --smtp-pass
+Causes reports to be sent with a SMTP SASL authenticated session using 
+.I username
+as login.
+.TP
+.I --smtp-pass=password
+Used with 
+.I --smtp-user
+Causes reports to be sent with a SMTP SASL authenticated session using 
+.I password
+as password.
+.TP
 .I --utc
 Instructs the database to change to the UTC timezone when generating output.
 Otherwise, the database default is used.

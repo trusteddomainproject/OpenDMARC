@@ -140,6 +140,8 @@ my $repemail     = "postmaster@" . $repdom;
 
 my $smtp_server  = '127.0.0.1';
 my $smtp_port    = 25;
+my $smtp_user    = undef;
+my $smtp_pass    = undef;
 my $smtp;
 
 my $answer;
@@ -169,6 +171,8 @@ sub usage
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
+	print STDERR "\t--smtp-user        smtp SASL username\n";
+	print STDERR "\t--smtp-pass        smtp SASL password\n";
 	print STDERR "\t--test             don't send reports\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--utc              operate in UTC\n";
@@ -198,6 +202,8 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'report-org=s' => \$repdom,
                                             'smtp-server=s' => \$smtp_server,
                                             'smtp-port=i' => \$smtp_port,
+                                            'smtp-user=s' => \$smtp_user,
+                                            'smtp-pass=s' => \$smtp_pass,
                                             'update!' => \$doupdate,
                                             'utc!' => \$use_utc,
                                             'verbose+' => \$verbose,
@@ -406,6 +412,17 @@ if (!defined($smtp))
 {
 	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
 	exit(1);
+}
+
+
+if ( defined ($smtp_user) && defined ($smtp_pass) )
+{
+	# perform STARTTLS initialization
+	if (! $smtp->auth($smtp_user,$smtp_pass) )
+	{
+		print STDERR "$progname: SASL Auth for user $smtp_user on $smtp_server:$smtp_port failed\n";
+		exit(1);
+	}
 }
 
 foreach (@$domainset)
