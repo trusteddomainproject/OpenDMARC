@@ -334,11 +334,8 @@ then
 	then
 		AC_DEFINE(HAVE_SPF2_H, 1,
 			[Define to 1 if you have libspf2's `spf.h'])
-		spf2_include="-I $SPF2_INCLUDE"
-		saved_CFLAGS="$CFLAGS"
-		saved_LDFLAGS="$LDFLAGS"
-		CFLAGS="$spf2_include $saved_CFLAGS"
-		LDFLAGS="$saved_LDFLAGS -L${SPF2_LIB}"
+		CPPFLAGS="$CPPFLAGS -I${SPF2_INCLUDE}"
+		LDFLAGS="$LDFLAGS -L${SPF2_LIB}"
 	fi
 	AC_SEARCH_LIBS(SPF_record_new, spf2)
 	AC_SEARCH_LIBS(SPF_server_new, spf2)
