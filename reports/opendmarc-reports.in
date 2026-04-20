@@ -360,7 +360,7 @@ if (defined($forcedomain))
 }
 elsif ($daybound)
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
 
 	if (!$dbi_s->execute($now))
 	{
@@ -372,7 +372,7 @@ elsif ($daybound)
 }
 else
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
 
 	if (!$dbi_s->execute($now, $interval))
 	{
