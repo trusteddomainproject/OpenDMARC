@@ -159,6 +159,7 @@ typedef struct dmarc_policy_t {
 	 */
 	u_char *	from_domain;		/* Input: From: header domain */
 	u_char *	organizational_domain;
+	int		org_domain_from_fallback; /* Non-zero if PSL was absent and label-walk was used */
 
 	/*
 	 * Found in the _dmarc record or supplied to us.

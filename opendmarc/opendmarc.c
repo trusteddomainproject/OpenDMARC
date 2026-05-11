@@ -3137,6 +3137,22 @@ mlfi_eom(SMFICTX *ctx)
 	                                       pdomain, sizeof pdomain);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "pdomain %s\n", pdomain);
 
+	/*
+	 * Warn when the organizational domain was guessed by walking up the
+	 * label tree rather than determined via the public suffix list.
+	 * This means the result may not be RFC 7489-compliant.
+	 */
+	if (cc->cctx_dmarc->org_domain_from_fallback && conf->conf_dolog)
+	{
+		syslog(LOG_WARNING,
+		       "%s: no PublicSuffixList configured; guessed "
+		       "organizational domain \"%s\" for \"%s\" by walking "
+		       "up the label tree -- set PublicSuffixList in "
+		       "opendmarc.conf for RFC 7489-compliant behavior",
+		       dfc->mctx_jobid, pdomain,
+		       dfc->mctx_fromdomain);
+	}
+
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);
 	if (ostatus == DMARC_DNS_ERROR_NO_RECORD)
 		policy = DMARC_POLICY_ABSENT;
