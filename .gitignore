@@ -22,3 +22,4 @@ opendmarc*.gz.asc
 HOURS
 tags
 .vscode
+libopendmarc/dmarc.h
