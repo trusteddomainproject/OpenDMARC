@@ -197,6 +197,45 @@ main(int argc, char **argv)
 	CHECK("arcseal_parse overlong d= field: domain stored",
 	      strlen((char *)as.signature_domain) > 0);
 
+	/* ------------------------------------------------------------------ */
+	/* arcares_parse: unknown auth method — real-world regression (#238)  */
+	/*                                                                     */
+	/* Gmail ARC headers include "dara=pass" (DKIM Authorized Resigners). */
+	/* Before the fix, any unknown method in the top-level AAR parser set */
+	/* result = -1, causing the entire header to be rejected. Known fields*/
+	/* like dkim=, spf=, dmarc= were silently discarded.                  */
+	/* After the fix, unknown methods are skipped; known fields are kept.  */
+	/* ------------------------------------------------------------------ */
+
+	ret = opendmarc_arcares_parse(
+	    (u_char *)"i=1; mx.google.com; "
+	              "dkim=pass header.i=@gmail.com; "
+	              "spf=pass smtp.mailfrom=foo@gmail.com; "
+	              "dmarc=pass header.from=gmail.com; "
+	              "dara=pass header.i=@gmail.com",
+	    &aar);
+	CHECK("arcares_parse unknown method (dara): returns 0",  ret == 0);
+	CHECK("arcares_parse unknown method (dara): instance set", aar.instance == 1);
+	CHECK("arcares_parse unknown method (dara): dkim stored",
+	      strlen((char *)aar.dkim) > 0);
+	CHECK("arcares_parse unknown method (dara): dmarc stored",
+	      strlen((char *)aar.dmarc) > 0);
+
+	/* ------------------------------------------------------------------ */
+	/* arcares_parse: CRLF folding (\r\n) in header — regression (#238)   */
+	/*                                                                     */
+	/* Multi-line headers have \r\n before continuation whitespace.       */
+	/* strspn used " \n\t" but omitted \r, leaving a stray \r in tokens.  */
+	/* ------------------------------------------------------------------ */
+
+	ret = opendmarc_arcares_parse(
+	    (u_char *)"i=1; mx.google.com;\r\n\tdkim=pass header.i=@gmail.com;\r\n\tdmarc=pass header.from=gmail.com",
+	    &aar);
+	CHECK("arcares_parse CRLF folding: returns 0",    ret == 0);
+	CHECK("arcares_parse CRLF folding: instance set", aar.instance == 1);
+	CHECK("arcares_parse CRLF folding: dkim stored",
+	      strlen((char *)aar.dkim) > 0);
+
 	printf("ARC header parsing: pass=%d, fail=%d\n", pass, fail);
 	return fail;
 }

@@ -155,7 +155,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		char *tag_label;
 		char *tag_value;
 
-		leading_space_len = strspn(token, " \n\t");
+		leading_space_len = strspn(token, " \r\n\t");
 		token_ptr = token + leading_space_len;
 		if (*token_ptr == '\0')
 			return 0;
@@ -196,7 +196,6 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 			break;
 
 		  default:
-			result = -1;
 			break;
 		}
 	}
