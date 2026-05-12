@@ -28,7 +28,6 @@
 
 #include "opendmarc-ar.h"
 #include "opendmarc-arcares.h"
-#include "opendmarc.h"
 
 #define OPENDMARC_ARCARES_MAX_FIELD_NAME_LEN 255
 #define OPENDMARC_ARCARES_MAX_TOKEN_LEN      512
