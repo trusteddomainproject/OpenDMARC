@@ -32,7 +32,7 @@
 /* max header tag value length (short) */
 #define OPENDMARC_ARCARES_MAX_SHORT_VALUE_LEN 256
 /* max header tag value length (long) */
-#define OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN  512
+#define OPENDMARC_ARCARES_MAX_LONG_VALUE_LEN  2048
 
 /* names and field labels */
 #define OPENDMARC_ARCARES_HDRNAME	"ARC-Authentication-Results"
