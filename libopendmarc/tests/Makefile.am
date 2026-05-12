@@ -8,7 +8,8 @@ check_PROGRAMS		 = test_tld \
 			   test_dmarc_fetch \
 			   test_xml_parse \
 			   test_parse_to_buf \
-			   test_alignment
+			   test_alignment \
+			   test_arcares
 if LIVE_TESTS
 #check_PROGRAMS           += test_dns_lookup
 #test_dns_lookup_SOURCES  = test_dns_lookup.c
@@ -32,6 +33,11 @@ test_xml_parse_SOURCES   = test_xml_parse.c
 
 
 test_alignment_SOURCES   = test_alignment.c
+
+test_arcares_SOURCES  = test_arcares.c \
+	$(top_srcdir)/opendmarc/opendmarc-arcares.c \
+	$(top_srcdir)/opendmarc/opendmarc-arcseal.c
+test_arcares_CPPFLAGS = -I$(top_srcdir)/opendmarc -I.. -I../..
 
 TESTS = $(check_PROGRAMS)
 

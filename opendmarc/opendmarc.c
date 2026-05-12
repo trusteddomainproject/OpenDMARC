@@ -2578,6 +2578,7 @@ mlfi_eom(SMFICTX *ctx)
 			syslog(LOG_WARNING,
 			       "%s: ignoring invalid %s header \"%s\"",
 			       dfc->mctx_jobid, hdr->hdr_name, hdr->hdr_value);
+			free(aar_hdr_new);
 			continue;
 		}
 
@@ -2621,7 +2622,10 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* parse it */
 		if (opendmarc_arcseal_parse(hdr->hdr_value, &as_hdr_new->arcseal) != 0)
+		{
+			free(as_hdr_new);
 			continue;
+		}
 
 		if (dfc->mctx_ashead == NULL)
 		{
