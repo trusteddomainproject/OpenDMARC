@@ -369,6 +369,7 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 	int prevstate;
 	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 2];
 	u_char *tokens[ARES_MAXTOKENS];
+	_Bool ignore_res;
 
 	assert(hdr != NULL);
 	assert(ar != NULL);
@@ -453,11 +454,18 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 			break;
 
 		  case 3:				/* method */
-			n++;
-			r = 0;
+			ignore_res = TRUE;
+			if (n < MAXARESULTS)
+			{
+				int method = ares_convert(methods, (char *) tokens[c]);
+				if (method != ARES_METHOD_UNKNOWN)
+				{
+					ar->ares_result[n++].result_method = method;
+					ignore_res = FALSE;
+				}
+			}
 
-			ar->ares_result[n - 1].result_method = ares_convert(methods,
-			                                                    (char *) tokens[c]);
+			r = 0;
 			prevstate = state;
 			state = 4;
 
@@ -474,8 +482,11 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 			break;
 
 		  case 5:				/* result */
-			ar->ares_result[n - 1].result_result = ares_convert(aresults,
-			                                                    (char *) tokens[c]);
+			if (!ignore_res)
+			{
+				ar->ares_result[n - 1].result_result
+				        = ares_convert(aresults, (char *) tokens[c]);
+			}
 			prevstate = state;
 			state = 6;
 
@@ -492,9 +503,12 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 			break;
 
 		  case 8:
-			strlcpy((char *) ar->ares_result[n - 1].result_reason,
-			        (char *) tokens[c],
-			        sizeof ar->ares_result[n - 1].result_reason);
+			if (!ignore_res)
+			{
+				strlcpy((char *) ar->ares_result[n - 1].result_reason,
+				        (char *) tokens[c],
+				        sizeof ar->ares_result[n - 1].result_reason);
+			}
 
 			prevstate = state;
 			state = 9;
@@ -533,9 +547,12 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 			{
 				r--;
 
-				strlcat((char *) ar->ares_result[n - 1].result_value[r],
-				        (char *) tokens[c],
-				        sizeof ar->ares_result[n - 1].result_value[r]);
+				if (!ignore_res)
+				{
+					strlcat((char *) ar->ares_result[n - 1].result_value[r],
+					        (char *) tokens[c],
+					        sizeof ar->ares_result[n - 1].result_value[r]);
+				}
 
 				prevstate = state;
 				state = 13;
@@ -559,7 +576,10 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 				if (x == ARES_PTYPE_UNKNOWN)
 					return -1;
 
-				ar->ares_result[n - 1].result_ptype[r] = x;
+				if (!ignore_res)
+				{
+					ar->ares_result[n - 1].result_ptype[r] = x;
+				}
 
 				prevstate = state;
 				state = 10;
@@ -578,9 +598,12 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 			break;
 
 		  case 11:				/* property */
-			strlcpy((char *) ar->ares_result[n - 1].result_property[r],
-			        (char *) tokens[c],
-			        sizeof ar->ares_result[n - 1].result_property[r]);
+			if (!ignore_res)
+			{
+				strlcpy((char *) ar->ares_result[n - 1].result_property[r],
+				        (char *) tokens[c],
+				        sizeof ar->ares_result[n - 1].result_property[r]);
+			}
 
 			prevstate = state;
 			state = 12;
@@ -598,11 +621,14 @@ authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 			break;
 
 		  case 13:				/* value */
-			strlcat((char *) ar->ares_result[n - 1].result_value[r],
-			        (char *) tokens[c],
-			        sizeof ar->ares_result[n - 1].result_value[r]);
 			r++;
-			ar->ares_result[n - 1].result_props = r;
+			if (!ignore_res)
+			{
+				strlcat((char *) ar->ares_result[n - 1].result_value[r - 1],
+				        (char *) tokens[c],
+				        sizeof ar->ares_result[n - 1].result_value[r - 1]);
+				ar->ares_result[n - 1].result_props = r;
+			}
 
 			prevstate = state;
 			if (c < ntoks - 1 && tokens[c + 1][1] == '\0')
