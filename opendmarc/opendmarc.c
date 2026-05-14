@@ -4597,6 +4597,7 @@ main(int argc, char **argv)
 	else if (!testmode)
 	{
 		dmarcf_addlist("127.0.0.1", &ignore);
+		dmarcf_addlist("::1", &ignore);
 	}
 
 	if (!gotp && !testmode)
