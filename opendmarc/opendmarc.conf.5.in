@@ -211,7 +211,7 @@ SMTP AUTH) to be ignored by the filter.  The default is "false".
 .I IgnoreHosts (string)
 Specifies the path to a file that contains a list of hostnames, IP addresses,
 and/or CIDR expressions identifying hosts whose SMTP connections are to be
-ignored by the filter.  If not specified, defaults to "127.0.0.1" only.
+ignored by the filter.  If not specified, defaults to "127.0.0.1" and "::1".
 
 .TP
 .I IgnoreMailFrom (string)
