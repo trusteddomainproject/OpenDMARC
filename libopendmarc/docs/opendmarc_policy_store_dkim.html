@@ -14,7 +14,7 @@ $Id: opendmarc_policy_store_dkim.html,v 1.5 2010/07/24 04:52:15 cm-msk Exp $
 #include &lt;dmarc.h&gt;
 <a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * opendmarc_policy_store_dkim(
 	<a href="dmarc_policy_t.html"><tt>DMARC_POLICY_T</tt></a> * pctx,
-	u_char *d_equal_domain, int dkim_result, u_char *human_result
+	u_char *d_equal_domain, u_char *s_equal_selector, int dkim_result, u_char *human_result
 );
 </pre>
 Once you have found the outcome of each DKIM check, no matter how many,
@@ -43,6 +43,10 @@ decision.
     <tr valign="top"><td>d_equal_domain</td>
 	<td>A pointer to an unsigned string containing the domain found in
 	the <tt>d=</tt> record of the <tt>DKIM</tt> signature.
+	</td></tr>
+    <tr valign="top"><td>s_equal_selector</td>
+	<td>A pointer to an unsigned string containing the selector found in
+	the <tt>s=</tt> record of the <tt>DKIM</tt> signature.
 	</td></tr>
     <tr valign="top"><td>dkim_result</td>
 	<td>Integer specifying the result of the <tt>DKIM</tt> check. Choose from one of:
