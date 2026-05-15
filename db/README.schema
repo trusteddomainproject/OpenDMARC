@@ -15,6 +15,10 @@ selectors	A table that maps selector names to unique integer IDs.
 		foreign key (into the domains table) for the domain that owns the
 		selector.
 
+arcautchresults	A table for logging ARC-Authentication-Results information.
+
+arcseals	A table for logging ARC-Seal information.
+
 reporters	A table mapping reporting hosts to unique integer IDs.
 		Intended for use by multi-MX systems so it's possible to tell
 		where an inbound message landed.
