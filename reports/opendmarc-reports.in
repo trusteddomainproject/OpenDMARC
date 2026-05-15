@@ -722,7 +722,7 @@ foreach (@$domainset)
 
 		switch ($arc)
 		{
-			case 1	{ $arcstr = "pass"; }
+			case 0	{ $arcstr = "pass"; }
 			else	{ $arcstr = "fail"; }
 		}
 
