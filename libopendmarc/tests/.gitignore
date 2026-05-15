@@ -11,3 +11,8 @@ test_xml_parse
 test_alignment
 test_dmarc_fetch
 test_parse_to_buf
+test_arcares
+test_spf_parse
+test_subdomain_fallback
+*.log
+*.trs
