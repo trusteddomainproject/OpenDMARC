@@ -97,8 +97,19 @@ The default is 25.
 Instructs the database to change to the UTC timezone when generating output.
 Otherwise, the database default is used.
 .TP
+.I --keepfiles
+Keep the generated XML report files in the local directory rather than
+deleting them after sending.
+.TP
+.I --test (-n)
+Do not send reports.  Implies
+.I --keepfiles
+and
+.I --noupdate.
+.TP
 .I --verbose
-Increase the amount of verbosity written to standard output.
+Increase the amount of verbosity written to standard output.  May be
+repeated for further increased output.
 .TP
 .I --version
 Print version number and exit.
