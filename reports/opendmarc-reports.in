@@ -68,6 +68,8 @@ my $spolicy;
 my $policystr;
 my $spolicystr;
 my $pct;
+my $fo;
+my $fostr;
 
 my $repuri;
 my @repuris;
@@ -82,6 +84,8 @@ my $align_dkimstr;
 my $align_spf;
 my $align_spfstr;
 my $spfresult;
+my $spf_scope;
+my $spf_scopestr;
 my $dkimresult;
 my $disp;
 my $spfresultstr;
@@ -338,6 +342,26 @@ if ($use_utc)
 }
 
 #
+# Check schema is current
+#
+
+$dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'messages' AND COLUMN_NAME = 'spf_scope'");
+if ($dbi_s->execute() && !(my $row = $dbi_s->fetchrow_arrayref()))
+{
+	print STDERR "$progname: WARNING: messages.spf_scope column is missing; schema needs upgrading.\n";
+	print STDERR "$progname: WARNING: Run: ALTER TABLE messages ADD COLUMN spf_scope TINYINT NOT NULL DEFAULT '-1' AFTER spf;\n";
+}
+$dbi_s->finish;
+
+$dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'requests' AND COLUMN_NAME = 'fo'");
+if ($dbi_s->execute() && !(my $row = $dbi_s->fetchrow_arrayref()))
+{
+	print STDERR "$progname: WARNING: requests.fo column is missing; schema needs upgrading.\n";
+	print STDERR "$progname: WARNING: Run: ALTER TABLE requests ADD COLUMN fo TINYINT NOT NULL DEFAULT '0' AFTER pct;\n";
+}
+$dbi_s->finish;
+
+#
 # Select domains on which to report
 #
 
@@ -453,7 +477,7 @@ foreach (@$domainset)
 		next;
 	}
 
-	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, fo, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
         $dbi_s->bind_param(1, $domainid, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
 	{
@@ -493,7 +517,11 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[6]))
 		{
-			$lastsent = $dbi_a->[6];
+			$fo = $dbi_a->[6];
+		}
+		if (defined($dbi_a->[7]))
+		{
+			$lastsent = $dbi_a->[7];
 		}
 	}
 
@@ -562,6 +590,21 @@ foreach (@$domainset)
  		else		{ $spolicystr = "unknown"; }
  	}
 
+	{
+		my @fo_values;
+		if (!defined($fo) || $fo == 0)
+		{
+			$fostr = "0";
+		}
+		else
+		{
+			push @fo_values, "0" if ($fo & 0x1);
+			push @fo_values, "1" if ($fo & 0x2);
+			push @fo_values, "d" if ($fo & 0x4);
+			push @fo_values, "s" if ($fo & 0x8);
+			$fostr = @fo_values ? join(":", @fo_values) : "0";
+		}
+	}
 
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 	print $tmpout "<feedback>\n";
@@ -584,13 +627,14 @@ foreach (@$domainset)
 	print $tmpout "        <p>$policystr</p>\n";
 	print $tmpout "        <sp>$spolicystr</sp>\n";
 	print $tmpout "        <pct>$pct</pct>\n";
+	print $tmpout "        <fo>$fostr</fo>\n";
 	print $tmpout "    </policy_published>\n";
 
 	if ($daybound)
 	{
 		$dbi_s = $dbi_h->prepare(q{
 		                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
-		                                 messages.spf, messages.align_spf, messages.align_dkim,
+		                                 messages.spf, messages.spf_scope, messages.align_spf, messages.align_dkim,
 		                                 messages.arc, messages.arc_policy
 		                         FROM messages
 		                         JOIN ipaddr ON messages.ip = ipaddr.id
@@ -605,7 +649,7 @@ foreach (@$domainset)
 	{
 		$dbi_s = $dbi_h->prepare(q{
 		                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
-		                                 messages.spf, messages.align_spf, messages.align_dkim,
+		                                 messages.spf, messages.spf_scope, messages.align_spf, messages.align_dkim,
 		                                 messages.arc, messages.arc_policy
 		                         FROM messages
 		                         JOIN ipaddr ON messages.ip = ipaddr.id
@@ -660,19 +704,23 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[6]))
 		{
-			$align_spf = $dbi_a->[6];
+			$spf_scope = $dbi_a->[6];
 		}
 		if (defined($dbi_a->[7]))
 		{
-			$align_dkim = $dbi_a->[7];
+			$align_spf = $dbi_a->[7];
 		}
 		if (defined($dbi_a->[8]))
 		{
-			$arc = $dbi_a->[8];
+			$align_dkim = $dbi_a->[8];
 		}
 		if (defined($dbi_a->[9]))
 		{
-			$arcpolicy = $dbi_a->[9];
+			$arc = $dbi_a->[9];
+		}
+		if (defined($dbi_a->[10]))
+		{
+			$arcpolicy = $dbi_a->[10];
 		}
 
 		if (!defined($msgid))
@@ -790,9 +838,19 @@ foreach (@$domainset)
 		}
 		print $tmpout "            <header_from>$fromdomain</header_from>\n";
 		print $tmpout "        </identifiers>\n";
+		if (!defined($spf_scope) || $spf_scope == 2)
+		{
+			$spf_scopestr = "helo";
+		}
+		else
+		{
+			$spf_scopestr = "mfrom";
+		}
+
 		print $tmpout "        <auth_results>\n";
 		print $tmpout "            <spf>\n";
 		print $tmpout "                <domain>$envdomain</domain>\n";
+		print $tmpout "                <scope>$spf_scopestr</scope>\n";
 		print $tmpout "                <result>$spfresultstr</result>\n";
 		print $tmpout "            </spf>\n";
 
