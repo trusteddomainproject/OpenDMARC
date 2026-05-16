@@ -565,6 +565,7 @@ foreach (@$domainset)
 
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 	print $tmpout "<feedback>\n";
+	print $tmpout "    <version>1</version>\n";
 
 	print $tmpout "    <report_metadata>\n";
 	print $tmpout "        <org_name>$repdom</org_name>\n";
@@ -783,6 +784,10 @@ foreach (@$domainset)
 		print $tmpout "            </policy_evaluated>\n";
 		print $tmpout "        </row>\n";
 		print $tmpout "        <identifiers>\n";
+		if (defined($envdomain) && $envdomain ne "")
+		{
+			print $tmpout "            <envelope_from>$envdomain</envelope_from>\n";
+		}
 		print $tmpout "            <header_from>$fromdomain</header_from>\n";
 		print $tmpout "        </identifiers>\n";
 		print $tmpout "        <auth_results>\n";
