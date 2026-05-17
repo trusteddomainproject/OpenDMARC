@@ -104,6 +104,7 @@ my $arcpolicystr;
 my $pdomain;
 
 my $repdest;
+my $repbcc;
 
 my $smtpstatus;
 my $smtpfail;
@@ -177,6 +178,7 @@ sub usage
 	print STDERR "\t -n                synonym for --test\n";
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
+	print STDERR "\t--report-bcc       bcc address for aggregate reports\n";
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--smtp-password    smtp authentication password\n";
@@ -211,6 +213,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'workdir=s' => \$workdir,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
+                                            'report-bcc=s' => \$repbcc,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
                                             'smtp-password=s' => \$smtp_password,
@@ -1087,6 +1090,7 @@ foreach (@$domainset)
 			                    localtime);
 
 			$mailout  = "To: $repdest\n";
+			$mailout .= "Bcc: $repbcc\n" if defined($repbcc);
 			$mailout .= "From: $repemail\n";
 			$mailout .= "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
 			$mailout .= "X-Mailer: " . $progname . " v" . $version ."\n";
@@ -1130,6 +1134,7 @@ foreach (@$domainset)
 				$smtpfail = 0;
 				if (!$smtp->mail($repemail) ||
 				    !$smtp->to($repdest) ||
+				    (defined($repbcc) && !$smtp->to($repbcc)) ||
 				    !$smtp->data() ||
 				    !$smtp->datasend($mailout) ||
 				    !$smtp->dataend())

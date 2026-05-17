@@ -32,6 +32,11 @@ SMTPPASSWD=
 SMTPSSL=
 SMTPCAFILE=
 
+# Set REPORTBCC to send a blind copy of all aggregate reports to an address.
+# Leave empty to disable.
+#REPORTBCC=dmarc-reports@example.com
+REPORTBCC=
+
 DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
 
 # Rotate the history file atomically before importing so that opendmarc
@@ -48,4 +53,5 @@ ${REPORTS} ${DBOPTS} ${DOMAIN:+--domain ${DOMAIN}} --workdir ${WORKDIR} \
     ${SMTPUSER:+--smtp-username ${SMTPUSER}} \
     ${SMTPPASSWD:+--smtp-password ${SMTPPASSWD}} \
     ${SMTPSSL} \
-    ${SMTPCAFILE:+--smtp-ssl-ca-file ${SMTPCAFILE}}
+    ${SMTPCAFILE:+--smtp-ssl-ca-file ${SMTPCAFILE}} \
+    ${REPORTBCC:+--report-bcc ${REPORTBCC}}
