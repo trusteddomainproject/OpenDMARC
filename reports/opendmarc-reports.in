@@ -27,6 +27,7 @@ use Net::SMTP;
 use Time::Local;
 
 require HTTP::Request;
+require LWP::UserAgent;
 
 # general
 my $progname      = basename($0);
@@ -1059,8 +1060,9 @@ foreach (@$domainset)
 		# Test mode, just report what would have been done
 		if ($testmode)
 		{
-			print STDERR "$progname: would email $domain report for " .
-			             "$rowcount records to " .  $uri->opaque . "\n";
+			my $verb = ($uri->scheme eq "mailto") ? "email" : "post";
+			print STDERR "$progname: would $verb $domain report for " .
+			             "$rowcount records to " . $uri->opaque . "\n";
 		}
 		# ensure a scheme is present
 		elsif (!defined($uri->scheme))
@@ -1155,6 +1157,48 @@ foreach (@$domainset)
 			$smtp->reset();
 
 			close($zipin);
+		}
+		elsif ($uri->scheme eq "http" || $uri->scheme eq "https")
+		{
+			if (!open($zipin, $zipfile))
+			{
+				print STDERR "$progname: can't read zipped report for $domain: $!\n";
+				next;
+			}
+
+			my $zipdata;
+			{
+				local $/;
+				$zipdata = <$zipin>;
+			}
+			close($zipin);
+
+			my $reportsize = length($zipdata);
+			if ($reportsize > $report_maxbytes)
+			{
+				print STDERR "$progname: report was too large ($reportsize bytes) per limitation of URI " . $uri->opaque . " for domain $domain\n";
+				next;
+			}
+
+			my $req = HTTP::Request->new(POST => $repuri);
+			$req->content_type('application/gzip');
+			$req->content($zipdata);
+
+			my $ua = LWP::UserAgent->new;
+			$ua->agent("$progname/$version");
+			my $resp = $ua->request($req);
+
+			if ($resp->is_success)
+			{
+				if ($verbose)
+				{
+					print STDERR "$progname: posted report for $domain to $repuri (" . $resp->status_line . ")\n";
+				}
+			}
+			else
+			{
+				print STDERR "$progname: failed to post report for $domain to $repuri (" . $resp->status_line . ")\n";
+			}
 		}
 		else
 		{
