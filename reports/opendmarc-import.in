@@ -234,7 +234,38 @@ sub update_db
 	$envfrom_id = get_table_id($envdomain, "domains");
 	$pdomain_id = get_table_id($pdomain, "domains");
 	$ipaddr_id = get_table_id($ipaddr, "ipaddr", "addr");
-	$request_id = get_table_id($from_id, "requests", "domain");
+	$dbi_t = $dbi_h->prepare("SELECT id FROM requests WHERE domain = ?");
+	if (!$dbi_t->execute($from_id))
+	{
+		print STDERR "$progname: failed to retrieve request ID: " . $dbi_h->errstr . "\n";
+		return;
+	}
+	undef $request_id;
+	while ($dbi_a = $dbi_t->fetchrow_arrayref())
+	{
+		$request_id = $dbi_a->[0] if defined($dbi_a->[0]);
+	}
+	$dbi_t->finish;
+	if (!defined($request_id))
+	{
+		$dbi_t = $dbi_h->prepare("INSERT INTO requests (domain, repuri) VALUES(?, '')");
+		if (!$dbi_t->execute($from_id))
+		{
+			print STDERR "$progname: failed to create request record: " . $dbi_h->errstr . "\n";
+			return;
+		}
+		$dbi_t = $dbi_h->prepare("SELECT LAST_INSERT_ID()");
+		if (!$dbi_t->execute())
+		{
+			print STDERR "$progname: failed to retrieve request ID: " . $dbi_h->errstr . "\n";
+			return;
+		}
+		while ($dbi_a = $dbi_t->fetchrow_arrayref())
+		{
+			$request_id = $dbi_a->[0] if defined($dbi_a->[0]);
+		}
+		$dbi_t->finish;
+	}
 
 	if (!defined($rep_id) ||
 	    !defined($from_id) ||
