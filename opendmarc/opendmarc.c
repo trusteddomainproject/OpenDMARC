@@ -2448,6 +2448,8 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, reqhdrs_error);
 		}
 
+		dmarcf_setreply(ctx, DMARC_REJECT_SMTP, DMARC_REJECT_ESC,
+		                reqhdrs_error);
 		return SMFIS_REJECT;
 	}
 
