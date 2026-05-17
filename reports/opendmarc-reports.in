@@ -147,6 +147,9 @@ my $repemail     = "postmaster@" . $repdom;
 
 my $smtp_server  = '127.0.0.1';
 my $smtp_port    = 25;
+my $smtp_username;
+my $smtp_password;
+my $smtp_ssl     = 0;
 my $smtp;
 
 my $answer;
@@ -175,8 +178,11 @@ sub usage
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
+	print STDERR "\t--smtp-password    smtp authentication password\n";
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
+	print STDERR "\t--smtp-ssl         use SSL/TLS for SMTP connection\n";
+	print STDERR "\t--smtp-username    smtp authentication username\n";
 	print STDERR "\t--test             don't send reports\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--utc              operate in UTC\n";
@@ -205,8 +211,11 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'nodomain=s' => \@skipdomains,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
-                                            'smtp-server=s' => \$smtp_server,
+                                            'smtp-password=s' => \$smtp_password,
                                             'smtp-port=i' => \$smtp_port,
+                                            'smtp-server=s' => \$smtp_server,
+                                            'smtp-ssl!' => \$smtp_ssl,
+                                            'smtp-username=s' => \$smtp_username,
                                             'update!' => \$doupdate,
                                             'utc!' => \$use_utc,
                                             'verbose+' => \$verbose,
@@ -430,12 +439,22 @@ if ($verbose)
 #
 
 $smtp = Net::SMTP->new($smtp_server,
-                       'Port' => $smtp_port,
-                       'Hello' => hostfqdn());
+                       'Port'  => $smtp_port,
+                       'Hello' => hostfqdn(),
+                       'SSL'   => $smtp_ssl);
 if (!defined($smtp))
 {
 	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
 	exit(1);
+}
+
+if (defined($smtp_username) && defined($smtp_password))
+{
+	if (!$smtp->auth($smtp_username, $smtp_password))
+	{
+		print STDERR "$progname: SMTP authentication failed\n";
+		exit(1);
+	}
 }
 
 foreach (@$domainset)
