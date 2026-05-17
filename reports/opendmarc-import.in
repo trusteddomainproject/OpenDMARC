@@ -84,8 +84,8 @@ my $repuri;
 my $sigcount = 0;
 my $sp;
 my $spf;
-my $spf_scope;
-my $fo;
+my $spf_scope = -1;
+my $fo = 0;
 my @rua;
 
 ###
@@ -689,8 +689,8 @@ while (<$inputfh>)
 						$sigcount = 0;
 						undef $sp;
 						undef $spf;
-						undef $spf_scope;
-						undef $fo;
+						$spf_scope = -1;
+						$fo = 0;
 					}
 
 					$jobid = $value;
