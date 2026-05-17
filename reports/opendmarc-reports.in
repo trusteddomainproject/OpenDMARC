@@ -388,8 +388,8 @@ if (defined($forcedomain))
 elsif ($daybound)
 {
 	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent < FROM_UNIXTIME(?)");
-
-	if (!$dbi_s->execute($now))
+	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
+	if (!$dbi_s->execute())
 	{
 		print STDERR "$progname: failed to collect domain names: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
@@ -400,8 +400,9 @@ elsif ($daybound)
 else
 {
 	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
-
-	if (!$dbi_s->execute($now, $interval))
+	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
+	$dbi_s->bind_param(2, $interval, {TYPE => SQL_INTEGER});
+	if (!$dbi_s->execute())
 	{
 		print STDERR "$progname: failed to collect domain names: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
