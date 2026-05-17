@@ -387,7 +387,7 @@ if (defined($forcedomain))
 }
 elsif ($daybound)
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent < FROM_UNIXTIME(?)");
 
 	if (!$dbi_s->execute($now))
 	{
@@ -644,8 +644,8 @@ foreach (@$domainset)
 		                         JOIN domains d1 ON messages.from_domain = d1.id
 		                         JOIN domains d2 ON messages.env_domain = d2.id
 		                         WHERE messages.from_domain = ?
-		                                 AND DATE(messages.date) >= DATE(FROM_UNIXTIME(?))
-		                                 AND DATE(messages.date) < DATE(FROM_UNIXTIME(?))
+		                                 AND messages.date >= FROM_UNIXTIME(?)
+		                                 AND messages.date < FROM_UNIXTIME(?)
 		});
 	}
 	else
