@@ -149,7 +149,8 @@ my $smtp_server  = '127.0.0.1';
 my $smtp_port    = 25;
 my $smtp_username;
 my $smtp_password;
-my $smtp_ssl     = 0;
+my $smtp_ssl        = 0;
+my $smtp_ssl_ca_file;
 my $smtp;
 
 my $answer;
@@ -182,6 +183,7 @@ sub usage
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
 	print STDERR "\t--smtp-ssl         use SSL/TLS for SMTP connection\n";
+	print STDERR "\t--smtp-ssl-ca-file path to CA bundle for SSL certificate verification\n";
 	print STDERR "\t--smtp-username    smtp authentication username\n";
 	print STDERR "\t--test             don't send reports\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
@@ -215,6 +217,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'smtp-port=i' => \$smtp_port,
                                             'smtp-server=s' => \$smtp_server,
                                             'smtp-ssl!' => \$smtp_ssl,
+                                            'smtp-ssl-ca-file=s' => \$smtp_ssl_ca_file,
                                             'smtp-username=s' => \$smtp_username,
                                             'update!' => \$doupdate,
                                             'utc!' => \$use_utc,
@@ -439,9 +442,10 @@ if ($verbose)
 #
 
 $smtp = Net::SMTP->new($smtp_server,
-                       'Port'  => $smtp_port,
-                       'Hello' => hostfqdn(),
-                       'SSL'   => $smtp_ssl);
+                       'Port'    => $smtp_port,
+                       'Hello'   => hostfqdn(),
+                       'SSL'     => $smtp_ssl,
+                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
 if (!defined($smtp))
 {
 	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";

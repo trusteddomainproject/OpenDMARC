@@ -25,9 +25,12 @@ DOMAIN=
 # SMTP authentication.  Leave SMTPUSER and SMTPPASSWD empty for unauthenticated
 # submission (the default, suitable for a local MTA on 127.0.0.1:25).
 # Set SMTPSSL=--smtp-ssl when connecting to a server that requires SSL/TLS.
+# Set SMTPCAFILE to the path of a CA bundle for servers using a private or
+# self-signed certificate.  Leave empty to use the system CA bundle.
 SMTPUSER=
 SMTPPASSWD=
 SMTPSSL=
+SMTPCAFILE=
 
 DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
 
@@ -44,4 +47,5 @@ ${EXPIRE} ${DBOPTS}
 ${REPORTS} ${DBOPTS} ${DOMAIN:+--domain ${DOMAIN}} --workdir ${WORKDIR} \
     ${SMTPUSER:+--smtp-username ${SMTPUSER}} \
     ${SMTPPASSWD:+--smtp-password ${SMTPPASSWD}} \
-    ${SMTPSSL}
+    ${SMTPSSL} \
+    ${SMTPCAFILE:+--smtp-ssl-ca-file ${SMTPCAFILE}}
