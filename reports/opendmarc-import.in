@@ -59,16 +59,16 @@ my @serialized_data;
 
 my $action;
 my $adkim;
-my $align_dkim;
-my $align_spf;
+my $align_dkim = 5;
+my $align_spf = 5;
 my $aspf;
 my $dkim_align;
 my @dkim_data;
 my $dkim_domain;
 my $dkim_selector;
 my $dkim_result;
-my $arc;
-my $arc_policy;
+my $arc = 0;
+my $arc_policy = 1;
 my @arc_policy_data;
 my $envdomain;
 my $fdomain;
@@ -698,10 +698,10 @@ while (<$inputfh>)
 
 						undef $action;
 						undef $adkim;
-						undef $align_dkim;
-						undef $align_spf;
-						undef $arc;
-						undef $arc_policy;
+						$align_dkim = 5;
+						$align_spf = 5;
+						$arc = 0;
+						$arc_policy = 1;
 						undef $aspf;
 						undef @serialized_data;
 						undef @dkim_data;
