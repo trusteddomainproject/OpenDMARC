@@ -101,6 +101,8 @@ my $arcstr;
 my $arcpolicy;
 my $arcpolicystr;
 
+my $pdomain;
+
 my $repdest;
 
 my $smtpstatus;
@@ -554,6 +556,32 @@ foreach (@$domainset)
 		$repend = $now;
 	}
 
+	# look up the domain where the DMARC record was actually found (RFC 7489
+	# appendix C: policy_published.domain is the record's location, not the
+	# from domain, which may be a subdomain inheriting from the org domain)
+	undef $pdomain;
+	$dbi_s = $dbi_h->prepare(q{
+	                         SELECT d2.name
+	                         FROM messages
+	                         JOIN domains d2 ON messages.policy_domain = d2.id
+	                         WHERE messages.from_domain = ?
+	                           AND messages.date > FROM_UNIXTIME(?)
+	                           AND messages.date <= FROM_UNIXTIME(?)
+	                         LIMIT 1
+	});
+	$dbi_s->bind_param(1, $domainid, {TYPE => SQL_INTEGER});
+	$dbi_s->bind_param(2, $repstart, {TYPE => SQL_INTEGER});
+	$dbi_s->bind_param(3, $repend,   {TYPE => SQL_INTEGER});
+	if ($dbi_s->execute())
+	{
+		if ($dbi_a = $dbi_s->fetchrow_arrayref())
+		{
+			$pdomain = $dbi_a->[0] if defined($dbi_a->[0]);
+		}
+	}
+	$dbi_s->finish;
+	$pdomain = $domain unless defined($pdomain);
+
 	# construct the temporary file
 	$repfile = $workdir . "/" . $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml";
 	$gzipfile = $workdir . "/" . $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml.gz";
@@ -625,7 +653,7 @@ foreach (@$domainset)
 	print $tmpout "    </report_metadata>\n";
 
 	print $tmpout "    <policy_published>\n";
-	print $tmpout "        <domain>$domain</domain>\n";
+	print $tmpout "        <domain>$pdomain</domain>\n";
 	print $tmpout "        <adkim>$adkimstr</adkim>\n";
 	print $tmpout "        <aspf>$aspfstr</aspf>\n";
 	print $tmpout "        <p>$policystr</p>\n";
