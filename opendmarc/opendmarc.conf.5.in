@@ -262,6 +262,18 @@ will be rejected unless all domain names in that field are the same.  They
 will otherwise be ignored by the filter (the default).
 
 .TP
+.I RejectString (string)
+Specifies the SMTP rejection message used when a message is rejected due to
+DMARC policy.  The string may optionally contain one
+.B %s
+which will be replaced by the RFC5322.From domain.  If
+.B %s
+is omitted the string is used as-is.  The string may not contain more than
+one
+.B %s.
+The default is "rejected by DMARC policy for %s".
+
+.TP
 .I ReportCommand (string)
 Indicates the shell command to which failure reports should be passed for
 delivery when

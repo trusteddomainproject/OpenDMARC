@@ -33,6 +33,7 @@
 /* defaults, limits, etc. */
 #define	BUFRSZ		2048
 #define	DEFCONFFILE	CONFIG_BASE "/opendmarc.conf"
+#define	DEFREJECTSTR	"rejected by DMARC policy for %s"
 #define	DEFREPORTCMD	"/usr/sbin/sendmail -t -odq"
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
 #define	MAXARGV		65536

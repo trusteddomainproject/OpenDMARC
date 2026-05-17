@@ -190,6 +190,7 @@ struct dmarcf_config
 	char *			conf_historyfile;
 	char *			conf_pslist;
 	char *			conf_ignorelist;
+	char *			conf_rejectstring;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
 	struct list *		conf_domainwhitelist;
@@ -1419,6 +1420,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_rejectfail,
 		                  sizeof conf->conf_rejectfail);
 
+		(void) config_get(data, "RejectString",
+		                  &conf->conf_rejectstring,
+		                  sizeof conf->conf_rejectstring);
+
 		(void) config_get(data, "RequiredHeaders",
 		                  &conf->conf_reqhdrs,
 		                  sizeof conf->conf_reqhdrs);
@@ -1626,6 +1631,30 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	}
 
 	pthread_rwlock_unlock(&hash_lock);
+
+	if (conf->conf_rejectstring == NULL)
+	{
+		conf->conf_rejectstring = DEFREJECTSTR;
+	}
+	else
+	{
+		int countocc = 0;
+		const char *tmp = conf->conf_rejectstring;
+
+		while ((tmp = strstr(tmp, "%s")) != NULL)
+		{
+			countocc++;
+			tmp++;
+		}
+
+		if (countocc > 1)
+		{
+			snprintf(err, errlen,
+			         "%s: RejectString contains more than one %%s",
+			         basedir);
+			return -1;
+		}
+	}
 
 	return 0;
 }
@@ -3560,8 +3589,12 @@ mlfi_eom(SMFICTX *ctx)
 		if (conf->conf_rejectfail &&
 		    random() % 100 < pct)
 		{
-			snprintf(replybuf, sizeof replybuf,
-			         "rejected by DMARC policy for %s", pdomain);
+			if (strstr(conf->conf_rejectstring, "%s") != NULL)
+				snprintf(replybuf, sizeof replybuf,
+				         conf->conf_rejectstring, pdomain);
+			else
+				snprintf(replybuf, sizeof replybuf,
+				         "%s", conf->conf_rejectstring);
 
 			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
 			                         DMARC_REJECT_ESC, replybuf);

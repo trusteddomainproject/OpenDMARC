@@ -311,6 +311,15 @@
 # 
 # RejectMultiValueFrom false
 
+##  RejectString string
+##      default "rejected by DMARC policy for %s"
+##
+##  Specifies the SMTP rejection message used when a message is rejected due
+##  to DMARC policy.  May contain at most one %s, which is replaced by the
+##  RFC5322.From domain.  If %s is omitted, the string is used as-is.
+#
+# RejectString rejected by DMARC policy for %s
+
 ##  ReportCommand string
 ##  	default "/usr/sbin/sendmail -t"
 ##
