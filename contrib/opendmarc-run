@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Copyright (c) 2026, The Trusted Domain Project.  All rights reserved.
+#
+# Wrapper script to rotate the opendmarc history file, import it, expire
+# old records, and send aggregate reports.  Intended to be run from cron.
+
+HISTFILE=/var/db/opendmarc/opendmarc.dat
+IMPORTFILE=${HISTFILE}.import
+
+IMPORT=/usr/local/sbin/opendmarc-import
+EXPIRE=/usr/local/sbin/opendmarc-expire
+REPORTS=/usr/local/sbin/opendmarc-reports
+
+DBHOST=localhost
+DBUSER=opendmarc
+DBPASSWD=opendmarc
+DBSCHEME=mysql
+DOMAIN=example.com
+
+DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
+
+# Rotate the history file atomically before importing so that opendmarc
+# can immediately start writing new records while we process the old ones.
+if [ -s "${HISTFILE}" ]; then
+	mv "${HISTFILE}" "${IMPORTFILE}" && \
+	    ${IMPORT} ${DBOPTS} --input="${IMPORTFILE}" && \
+	    rm "${IMPORTFILE}"
+fi
+
+${EXPIRE} ${DBOPTS}
+
+${REPORTS} ${DBOPTS} --domain ${DOMAIN}
