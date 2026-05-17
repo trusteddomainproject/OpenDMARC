@@ -16,8 +16,11 @@ DBHOST=localhost
 DBUSER=opendmarc
 DBPASSWD=opendmarc
 DBSCHEME=mysql
-DOMAIN=example.com
 WORKDIR=/var/db/opendmarc
+
+# Set DOMAIN to restrict reporting to a single domain, or leave empty to
+# report for all domains with data in the database.
+DOMAIN=
 
 DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
 
@@ -31,4 +34,4 @@ fi
 
 ${EXPIRE} ${DBOPTS}
 
-${REPORTS} ${DBOPTS} --domain ${DOMAIN} --workdir ${WORKDIR}
+${REPORTS} ${DBOPTS} ${DOMAIN:+--domain ${DOMAIN}} --workdir ${WORKDIR}
