@@ -861,7 +861,7 @@ foreach (@$domainset)
 		                          SELECT domains.name, selectors.name, pass
 		                          FROM signatures
 		                          JOIN domains ON signatures.domain = domains.id
-		                          JOIN selectors ON signatures.selector = selectors.id
+		                          LEFT JOIN selectors ON signatures.selector = selectors.id
 		                          WHERE signatures.message = ?
 		});
                 $dbi_s2->bind_param(1, $msgid, {TYPE => SQL_INTEGER});
@@ -883,10 +883,7 @@ foreach (@$domainset)
 			{
 				$dkimdomain = $dbi_a->[0];
 			}
-			if (defined($dbi_a->[1]))
-			{
-				$dkimselector = $dbi_a->[1];
-			}
+			$dkimselector = defined($dbi_a->[1]) ? $dbi_a->[1] : "";
 			if (defined($dbi_a->[2]))
 			{
 				$dkimresult = $dbi_a->[2];
