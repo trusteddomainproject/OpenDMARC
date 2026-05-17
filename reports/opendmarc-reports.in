@@ -109,6 +109,7 @@ my $smtpfail;
 my $doupdate = 1;
 my $testmode = 0;
 my $keepfiles = 0;
+my $workdir = ".";
 my $use_utc = 0;
 my $daybound = 0;
 my $report_maxbytes_global = 15728640; # default: 15M, per spec
@@ -165,7 +166,8 @@ sub usage
 	print STDERR "\t--domain=name      force a report for named domain\n";
 	print STDERR "\t--help             print help and exit\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
-	print STDERR "\t--keepfiles        keep xml files (in local directory)\n";
+	print STDERR "\t--keepfiles        keep xml files (in working directory)\n";
+	print STDERR "\t--workdir=path     directory for temporary report files [.]\n";
 	print STDERR "\t -n                synonym for --test\n";
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
@@ -196,6 +198,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
                                             'keepfiles' => \$keepfiles,
+                                            'workdir=s' => \$workdir,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
                                             'report-email=s' => \$repemail,
@@ -551,11 +554,11 @@ foreach (@$domainset)
 	}
 
 	# construct the temporary file
-	$repfile = $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml";
-	$gzipfile = $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml.gz";
+	$repfile = $workdir . "/" . $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml";
+	$gzipfile = $workdir . "/" . $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml.gz";
 	if (!open($tmpout, ">", $repfile))
 	{
-		print STDERR "$progname: can't create report file for domain $domain\n";
+		print STDERR "$progname: can't create report file for domain $domain: $!\n";
 		next;
 	}
 

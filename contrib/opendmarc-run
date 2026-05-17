@@ -17,6 +17,7 @@ DBUSER=opendmarc
 DBPASSWD=opendmarc
 DBSCHEME=mysql
 DOMAIN=example.com
+WORKDIR=/var/db/opendmarc
 
 DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
 
@@ -30,4 +31,4 @@ fi
 
 ${EXPIRE} ${DBOPTS}
 
-${REPORTS} ${DBOPTS} --domain ${DOMAIN}
+${REPORTS} ${DBOPTS} --domain ${DOMAIN} --workdir ${WORKDIR}
