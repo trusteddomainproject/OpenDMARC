@@ -3595,17 +3595,8 @@ mlfi_eom(SMFICTX *ctx)
 		    conf->conf_holdquarantinedmessages &&
 		    random() % 100 < pct)
 		{
-			snprintf(replybuf, sizeof replybuf,
-			         "quarantined by DMARC policy for %s",
-			         pdomain);
-
-			status = smfi_quarantine(ctx, replybuf);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_quarantine() failed",
-				       dfc->mctx_jobid);
-			}
-
+			/* quarantine will be deferred to after the ARC policy eval */
+			
 			ret = SMFIS_ACCEPT;
 			result = DMARC_RESULT_QUARANTINE;
 		}
@@ -3641,7 +3632,7 @@ mlfi_eom(SMFICTX *ctx)
 	**  arc.chain to assist with administrative debugging.
 	*/
 
-	if (result == DMARC_RESULT_REJECT &&
+	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
 	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
 	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
 	    conf->conf_dolog)
@@ -3651,7 +3642,7 @@ mlfi_eom(SMFICTX *ctx)
 		       dfc->mctx_jobid);
 	}
 
-	if (result == DMARC_RESULT_REJECT &&
+	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
 	    dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
 	{
 		ret = SMFIS_ACCEPT;
@@ -3663,6 +3654,20 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid);
 		}
 	}
+
+	if (result == DMARC_RESULT_QUARANTINE)
+	{
+		snprintf(replybuf, sizeof replybuf,
+		         "quarantined by DMARC policy for %s",
+		         pdomain);
+
+		status = smfi_quarantine(ctx, replybuf);
+		if (status != MI_SUCCESS && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: smfi_quarantine() failed",
+			       dfc->mctx_jobid);
+		}
+	}	
 
 	/*
  	**  Append arc override to historyfile.  The format 
