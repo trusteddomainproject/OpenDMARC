@@ -128,7 +128,11 @@ output.
 Print the version number and supported canonicalization and signature
 algorithms, and then exit without doing anything else.
 .SH SIGNALS
-Upon receiving SIGUSR1, if the filter was started with a configuration
+Upon receiving
+.B SIGHUP
+or
+.BR SIGUSR1 ,
+if the filter was started with a configuration
 file, it will be re-read and the new values used.  Note that any
 command line overrides provided at startup time will be lost when this is
 done.  Also, the following configuration file values (and their corresponding

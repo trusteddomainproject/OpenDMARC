@@ -3966,12 +3966,12 @@ struct smfiDesc smfilter =
 static void
 dmarcf_sighandler(int sig)
 {
-	if (sig == SIGINT || sig == SIGTERM || sig == SIGHUP)
+	if (sig == SIGINT || sig == SIGTERM)
 	{
 		diesig = sig;
 		die = TRUE;
 	}
-	else if (sig == SIGUSR1)
+	else if (sig == SIGHUP || sig == SIGUSR1)
 	{
 		if (conffile != NULL)
 			reload = TRUE;
