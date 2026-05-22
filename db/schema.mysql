@@ -132,5 +132,20 @@ CREATE TABLE IF NOT EXISTS signatures (
 	KEY(message)
 );
 
+-- A table of reporting addresses and domains to suppress.
+-- Entries may be a full RUA/RUF email address (e.g. dmarc@example.com)
+-- or a bare domain name (e.g. example.com) to suppress all reporting
+-- addresses under that domain.  Can be populated automatically from
+-- VERP bounce processing.
+CREATE TABLE IF NOT EXISTS suppressions (
+	id INT NOT NULL AUTO_INCREMENT,
+	address VARCHAR(255) NOT NULL,
+	added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	reason VARCHAR(255),
+
+	PRIMARY KEY(id),
+	UNIQUE KEY(address)
+);
+
 -- CREATE USER 'opendmarc'@'localhost' IDENTIFIED BY 'changeme';
 -- GRANT ALL ON opendmarc.* to 'opendmarc'@'localhost';

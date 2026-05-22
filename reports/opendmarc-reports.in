@@ -12,13 +12,12 @@
 use strict;
 use warnings;
 
-use Switch;
-
 use DBI qw(:sql_types);
 use File::Basename;
 use File::Temp;
 use Net::Domain qw(hostfqdn hostdomain);
 use Getopt::Long;
+use HTTP::Tiny;
 use IO::Handle;
 use IO::Compress::Gzip qw(gzip);
 use POSIX;
@@ -116,6 +115,11 @@ my $keepfiles = 0;
 my $workdir = ".";
 my $use_utc = 0;
 my $daybound = 0;
+my $forensic = 0;
+my $stale_check = 0;
+my $stale_def_deny = 0;
+my $stale_server = "https://stalemarc.measurement.network/api";
+my $verp = 0;
 my $report_maxbytes_global = 15728640; # default: 15M, per spec
 
 my $msgid;
@@ -127,6 +131,8 @@ my $dbi_s;
 my $dbi_s2;
 my $dbi_a;
 my $dbi_hash;
+
+my %db_suppress;
 
 # DB parameters
 my $def_dbscheme  = "@SQL_BACKEND@";
@@ -161,6 +167,78 @@ my $answer;
 ### NO user-serviceable parts beyond this point
 ###
 
+# Query the StaleMARC RBL.  $type is "domain" or "rua"; $key is the value
+# to look up.  Returns 1 if the report should be skipped, 0 if it should
+# be sent.  On lookup failure we fail open (proceed with sending).
+sub stale_skip
+{
+	my ($type, $key) = @_;
+
+	return 0 unless $stale_check;
+
+	my $endpoint;
+	if ($type eq "domain")
+	{
+		$endpoint = $stale_def_deny ? "checkDomainDefDeny.php" : "checkDomain.php";
+	}
+	else
+	{
+		$endpoint = $stale_def_deny ? "checkRuaDefDeny.php" : "checkRua.php";
+	}
+
+	# Encode '@' for use in a query string (only special char in addresses).
+	(my $enc_key = $key) =~ s/@/%40/g;
+
+	my $url = "$stale_server/$endpoint?key=$enc_key";
+	my $resp = HTTP::Tiny->new(timeout => 10)->get($url);
+
+	if ($resp->{status} == 200)
+	{
+		if ($verbose)
+		{
+			print STDERR "$progname: StaleMARC: skipping $key (listed)\n";
+		}
+		return 1;
+	}
+
+	# 404 = not listed (send), anything else = lookup failed (fail open).
+	if ($verbose >= 2 && $resp->{status} != 404)
+	{
+		print STDERR "$progname: StaleMARC: lookup for $key returned $resp->{status}; proceeding\n";
+	}
+
+	return 0;
+}
+
+# Check the in-memory suppression list loaded from the DB.  $address may be
+# a full email address or a bare domain; both forms are checked for email
+# addresses so either can appear in the suppressions table.
+sub db_skip
+{
+	my ($address) = @_;
+
+	return 0 unless %db_suppress;
+
+	return 1 if exists $db_suppress{lc($address)};
+
+	if ($address =~ /\@(.+)$/)
+	{
+		return 1 if exists $db_suppress{lc($1)};
+	}
+
+	return 0;
+}
+
+# Build a VERP envelope sender encoding $rcpt into $sender.
+# e.g. postmaster@r.example.com + dmarc@target.com -> postmaster+dmarc=target.com@r.example.com
+sub verp_sender
+{
+	my ($sender, $rcpt) = @_;
+	my ($sloc, $sdom) = split(/@/, $sender, 2);
+	(my $enc = $rcpt) =~ s/@/=/;
+	return "$sloc+$enc\@$sdom";
+}
+
 sub usage
 {
 	print STDERR "$progname: usage: $progname [options]\n";
@@ -172,6 +250,8 @@ sub usage
 	print STDERR "\t--dbport=port      database port [$def_dbport]\n";
 	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
 	print STDERR "\t--domain=name      force a report for named domain\n";
+	print STDERR "\t--forensic         read a pre-formed AFRF report from\n";
+	print STDERR "\t                   stdin and send it via SMTP\n";
 	print STDERR "\t--help             print help and exit\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
 	print STDERR "\t--keepfiles        keep xml files (in working directory)\n";
@@ -184,11 +264,19 @@ sub usage
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--smtp-password    smtp authentication password\n";
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
+	print STDERR "\t                   (overrides OPENDMARC_SMTPPORT)\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
+	print STDERR "\t                   (overrides OPENDMARC_SMTPSERVER)\n";
 	print STDERR "\t--smtp-ssl         use SSL/TLS for SMTP connection\n";
 	print STDERR "\t--smtp-ssl-ca-file path to CA bundle for SSL certificate verification\n";
 	print STDERR "\t--smtp-username    smtp authentication username\n";
+	print STDERR "\t--stale-check      skip reports to stale RUA/RUF addresses\n";
+	print STDERR "\t                   via StaleMARC RBL lookup\n";
+	print STDERR "\t--stale-def-deny   treat untested addresses as stale\n";
+	print STDERR "\t--stale-server=url StaleMARC API base URL\n";
 	print STDERR "\t--test             don't send reports\n";
+	print STDERR "\t--verp             use VERP envelope senders so bounces\n";
+	print STDERR "\t                   identify the failing recipient\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--utc              operate in UTC\n";
 	print STDERR "\t--verbose          verbose output\n";
@@ -208,6 +296,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'dbport=s' => \$dbport,
                                             'dbuser=s' => \$dbuser,
                                             'domain=s' => \$forcedomain,
+                                            'forensic!' => \$forensic,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
                                             'keepfiles' => \$keepfiles,
@@ -223,7 +312,11 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'smtp-ssl!' => \$smtp_ssl,
                                             'smtp-ssl-ca-file=s' => \$smtp_ssl_ca_file,
                                             'smtp-username=s' => \$smtp_username,
+                                            'stale-check!' => \$stale_check,
+                                            'stale-def-deny!' => \$stale_def_deny,
+                                            'stale-server=s' => \$stale_server,
                                             'update!' => \$doupdate,
+                                            'verp!' => \$verp,
                                             'utc!' => \$use_utc,
                                             'verbose+' => \$verbose,
                                             'version!' => \$showversion,
@@ -310,6 +403,16 @@ if (!defined($dbuser))
 	}
 }
 
+if ($smtp_server eq '127.0.0.1' && defined($ENV{'OPENDMARC_SMTPSERVER'}))
+{
+	$smtp_server = $ENV{'OPENDMARC_SMTPSERVER'};
+}
+
+if ($smtp_port == 25 && defined($ENV{'OPENDMARC_SMTPPORT'}))
+{
+	$smtp_port = $ENV{'OPENDMARC_SMTPPORT'};
+}
+
 if (defined($interval) && $daybound)
 {
 	print STDERR "$progname: WARN: --day overrides --interval\n";
@@ -327,6 +430,150 @@ $keepfiles = ($testmode == 1) ? 1 : $keepfiles;
 if ($verbose)
 {
 	print STDERR "$progname: started at " . localtime($now) . "\n";
+}
+
+###
+### Forensic (failure) report mode: read a pre-formed AFRF message from
+### stdin and inject it via SMTP, acting as a drop-in replacement for
+### "sendmail -t" as the milter's ReportCommand.
+###
+
+if ($forensic)
+{
+	# Slurp the full message from stdin.
+	my $message = do { local $/; <STDIN> };
+
+	if (!defined($message) || $message eq "")
+	{
+		print STDERR "$progname: --forensic: no message on stdin\n";
+		exit(1);
+	}
+
+	# Split headers from body on the first blank line.
+	my ($hdr_block, $body) = split(/\r?\n\r?\n/, $message, 2);
+
+	# Unfold header continuations so each logical header is one string.
+	(my $unfolded = $hdr_block) =~ s/\r?\n([ \t]+)/ $1/g;
+
+	# Collect recipient addresses from To:, Cc:, and Bcc: headers.
+	my @rcpts;
+	for my $line (split(/\r?\n/, $unfolded))
+	{
+		next unless $line =~ /^(?:To|Cc|Bcc):\s*(.*)/i;
+		my $val = $1;
+
+		# Split on commas that are not inside angle brackets or quotes.
+		# We need to handle: bare addr, "Name" <addr>, Name <addr>
+		my @addrs;
+		while ($val =~ /\G\s*(?:"[^"]*"\s*<([^>]+)>|<([^>]+)>|([^,@\s]+@[^,\s]+))\s*,?\s*/g)
+		{
+			push @addrs, defined($1) ? $1 : defined($2) ? $2 : $3;
+		}
+		push @rcpts, @addrs;
+	}
+
+	if (!@rcpts)
+	{
+		print STDERR "$progname: --forensic: no recipients found in message headers\n";
+		exit(1);
+	}
+
+	# StaleMARC check: remove any recipients that are known-stale.
+	@rcpts = grep { !stale_skip("rua", $_) } @rcpts;
+
+	if (!@rcpts)
+	{
+		print STDERR "$progname: --forensic: all recipients suppressed by StaleMARC check\n";
+		exit(0);
+	}
+
+	if ($testmode)
+	{
+		print STDERR "$progname: --forensic: would send forensic report to " .
+		             join(", ", @rcpts) . "\n";
+		exit(0);
+	}
+
+	if ($verbose)
+	{
+		print STDERR "$progname: --forensic: connecting to $smtp_server:$smtp_port\n";
+	}
+
+	$smtp = Net::SMTP->new($smtp_server,
+	                       'Port' => $smtp_port,
+	                       'Hello' => hostfqdn());
+	if (!defined($smtp))
+	{
+		print STDERR "$progname: --forensic: open SMTP server $smtp_server:$smtp_port failed\n";
+		exit(1);
+	}
+
+	$smtpfail = 0;
+
+	if ($verp)
+	{
+		# VERP: one transaction per recipient so each gets a unique MAIL FROM.
+		for my $rcpt (@rcpts)
+		{
+			my $ok = $smtp->mail(verp_sender($repemail, $rcpt)) &&
+			         $smtp->to($rcpt) &&
+			         $smtp->data() &&
+			         $smtp->datasend($message) &&
+			         $smtp->dataend();
+			if ($verbose || !$ok)
+			{
+				$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
+				chomp($answer);
+				my $status = $ok ? "sent" : "failed to send";
+				print STDERR "$progname: --forensic: $status forensic report to $rcpt ($answer)\n";
+			}
+			$smtpfail = 1 if !$ok;
+			$smtp->reset();
+		}
+	}
+	else
+	{
+		if (!$smtp->mail($repemail))
+		{
+			$smtpfail = 1;
+		}
+		else
+		{
+			for my $rcpt (@rcpts)
+			{
+				if (!$smtp->to($rcpt))
+				{
+					$smtpfail = 1;
+					last;
+				}
+			}
+		}
+
+		if (!$smtpfail)
+		{
+			if (!$smtp->data() ||
+			    !$smtp->datasend($message) ||
+			    !$smtp->dataend())
+			{
+				$smtpfail = 1;
+			}
+		}
+
+		if ($verbose || $smtpfail)
+		{
+			$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
+			chomp($answer);
+			my $status = $smtpfail ? "failed to send" : "sent";
+			print STDERR "$progname: --forensic: $status forensic report to " .
+			             join(", ", @rcpts) . " ($answer)\n";
+		}
+
+		$smtp->reset();
+	}
+
+	$smtp->quit();
+
+	exit($smtpfail ? 1 : 0);
 }
 
 require "DBD/$dbscheme.pm";
@@ -381,6 +628,33 @@ if ($dbi_s->execute() && !(my $row = $dbi_s->fetchrow_arrayref()))
 	print STDERR "$progname: WARNING: Run: ALTER TABLE requests ADD COLUMN fo TINYINT NOT NULL DEFAULT '0' AFTER pct;\n";
 }
 $dbi_s->finish;
+
+#
+# Load reporting suppressions from the database.  Fail open if the table
+# does not exist yet (e.g. pre-migration installs).
+#
+
+{
+	my $s = $dbi_h->prepare("SELECT address FROM suppressions");
+	if ($s && $s->execute())
+	{
+		while (my $row = $s->fetchrow_arrayref())
+		{
+			$db_suppress{lc($row->[0])} = 1;
+		}
+		$s->finish;
+
+		if ($verbose >= 2)
+		{
+			print STDERR "$progname: loaded " . scalar(keys %db_suppress) .
+			             " suppression(s) from database\n";
+		}
+	}
+	elsif ($verbose >= 2)
+	{
+		print STDERR "$progname: no suppressions table found; skipping\n";
+	}
+}
 
 #
 # Select domains on which to report
@@ -475,6 +749,11 @@ foreach (@$domainset)
 	}
 
 	if (@skipdomains && grep({$_ eq $domain} @skipdomains) != 0)
+	{
+		next;
+	}
+
+	if (stale_skip("domain", $domain) || db_skip($domain))
 	{
 		next;
 	}
@@ -618,36 +897,24 @@ foreach (@$domainset)
 		next;
 	}
 
-	switch ($adkim)
-	{
-		case ord("r")	{ $adkimstr = "r"; }
-		case ord("s")	{ $adkimstr = "s"; }
-		else		{ $adkimstr = "unknown"; }
-	}
+	if    ($adkim == ord("r")) { $adkimstr = "r"; }
+	elsif ($adkim == ord("s")) { $adkimstr = "s"; }
+	else                       { $adkimstr = "unknown"; }
 
-	switch ($aspf)
-	{
-		case ord("r")	{ $aspfstr = "r"; }
-		case ord("s")	{ $aspfstr = "s"; }
-		else		{ $aspfstr = "unknown"; }
-	}
+	if    ($aspf == ord("r")) { $aspfstr = "r"; }
+	elsif ($aspf == ord("s")) { $aspfstr = "s"; }
+	else                      { $aspfstr = "unknown"; }
 
-	switch ($policy)
-	{
-		case ord("n")	{ $policystr = "none"; }
-		case ord("q")	{ $policystr = "quarantine"; }
-		case ord("r")	{ $policystr = "reject"; }
-		else		{ $policystr = "unknown"; }
-	}
+	if    ($policy == ord("n")) { $policystr = "none"; }
+	elsif ($policy == ord("q")) { $policystr = "quarantine"; }
+	elsif ($policy == ord("r")) { $policystr = "reject"; }
+	else                        { $policystr = "unknown"; }
 
- 	switch ($spolicy)
- 	{
- 		case 0		{ $spolicystr = $policystr; }
- 		case ord("n")	{ $spolicystr = "none"; }
- 		case ord("q")	{ $spolicystr = "quarantine"; }
- 		case ord("r")	{ $spolicystr = "reject"; }
- 		else		{ $spolicystr = "unknown"; }
- 	}
+	if    ($spolicy == 0)        { $spolicystr = $policystr; }
+	elsif ($spolicy == ord("n")) { $spolicystr = "none"; }
+	elsif ($spolicy == ord("q")) { $spolicystr = "quarantine"; }
+	elsif ($spolicy == ord("r")) { $spolicystr = "reject"; }
+	else                         { $spolicystr = "unknown"; }
 
 	{
 		my @fo_values;
@@ -789,56 +1056,38 @@ foreach (@$domainset)
 
 		$rowcount++;
 
-		switch ($disp)
-		{
-			case 0	{ $dispstr = "reject"; }
-			case 1	{ $dispstr = "reject"; }
-			case 2	{ $dispstr = "none"; }
-			case 4	{ $dispstr = "quarantine"; }
-			else	{ $dispstr = "unknown"; }
-		}
+		if    ($disp == 0) { $dispstr = "reject"; }
+		elsif ($disp == 1) { $dispstr = "reject"; }
+		elsif ($disp == 2) { $dispstr = "none"; }
+		elsif ($disp == 4) { $dispstr = "quarantine"; }
+		else               { $dispstr = "unknown"; }
 
-		switch ($spfresult)
-		{
-			case 0	{ $spfresultstr = "pass"; }
-			case 2	{ $spfresultstr = "softfail"; }
-			case 3	{ $spfresultstr = "neutral"; }
-			case 4	{ $spfresultstr = "temperror"; }
-			case 5	{ $spfresultstr = "permerror"; }
-			case 6	{ $spfresultstr = "none"; }
-			case 7	{ $spfresultstr = "fail"; }
-			case 8	{ $spfresultstr = "policy"; }
-			case 9	{ $spfresultstr = "nxdomain"; }
-			case 10	{ $spfresultstr = "signed"; }
-			case 12	{ $spfresultstr = "discard"; }
-			else	{ $spfresultstr = "unknown"; }
-		}
+		if    ($spfresult ==  0) { $spfresultstr = "pass"; }
+		elsif ($spfresult ==  2) { $spfresultstr = "softfail"; }
+		elsif ($spfresult ==  3) { $spfresultstr = "neutral"; }
+		elsif ($spfresult ==  4) { $spfresultstr = "temperror"; }
+		elsif ($spfresult ==  5) { $spfresultstr = "permerror"; }
+		elsif ($spfresult ==  6) { $spfresultstr = "none"; }
+		elsif ($spfresult ==  7) { $spfresultstr = "fail"; }
+		elsif ($spfresult ==  8) { $spfresultstr = "policy"; }
+		elsif ($spfresult ==  9) { $spfresultstr = "nxdomain"; }
+		elsif ($spfresult == 10) { $spfresultstr = "signed"; }
+		elsif ($spfresult == 12) { $spfresultstr = "discard"; }
+		else                     { $spfresultstr = "unknown"; }
 
-		switch ($align_dkim)
-		{
-			case 4	{ $align_dkimstr = "pass"; }
-			case 5	{ $align_dkimstr = "fail"; }
-			else	{ $align_dkimstr = "unknown"; }
-		}
+		if    ($align_dkim == 4) { $align_dkimstr = "pass"; }
+		elsif ($align_dkim == 5) { $align_dkimstr = "fail"; }
+		else                     { $align_dkimstr = "unknown"; }
 
-		switch ($align_spf)
-		{
-			case 4	{ $align_spfstr = "pass"; }
-			case 5	{ $align_spfstr = "fail"; }
-			else	{ $align_spfstr = "unknown"; }
-		}
+		if    ($align_spf == 4) { $align_spfstr = "pass"; }
+		elsif ($align_spf == 5) { $align_spfstr = "fail"; }
+		else                    { $align_spfstr = "unknown"; }
 
-		switch ($arc)
-		{
-			case 1	{ $arcstr = "pass"; }
-			else	{ $arcstr = "fail"; }
-		}
+		if ($arc == 1) { $arcstr = "pass"; }
+		else           { $arcstr = "fail"; }
 
-		switch ($arcpolicy)
-		{
-			case 0	{ $arcpolicystr = "pass"; }
-			else	{ $arcpolicystr = "fail"; }
-		}
+		if ($arcpolicy == 0) { $arcpolicystr = "pass"; }
+		else                 { $arcpolicystr = "fail"; }
 
 		# retrieve arc_policy seals, join arcauthresults.arc_client_addr (smtp.client_ip)
 		$dbi_s2 = $dbi_h->prepare(q{
@@ -955,21 +1204,18 @@ foreach (@$domainset)
 			}
 			$dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}++;
 
-			switch ($dkimresult)
-			{
-				case 0	{ $dkimresultstr = "pass"; }
-				case 2	{ $dkimresultstr = "softfail"; }
-				case 3	{ $dkimresultstr = "neutral"; }
-				case 4	{ $dkimresultstr = "temperror"; }
-				case 5	{ $dkimresultstr = "permerror"; }
-				case 6	{ $dkimresultstr = "none"; }
-				case 7	{ $dkimresultstr = "fail"; }
-				case 8	{ $dkimresultstr = "policy"; }
-				case 9	{ $dkimresultstr = "nxdomain"; }
-				case 10	{ $dkimresultstr = "signed"; }
-				case 12	{ $dkimresultstr = "discard"; }
-				else	{ $dkimresultstr = "unknown"; }
-			}
+			if    ($dkimresult ==  0) { $dkimresultstr = "pass"; }
+			elsif ($dkimresult ==  2) { $dkimresultstr = "softfail"; }
+			elsif ($dkimresult ==  3) { $dkimresultstr = "neutral"; }
+			elsif ($dkimresult ==  4) { $dkimresultstr = "temperror"; }
+			elsif ($dkimresult ==  5) { $dkimresultstr = "permerror"; }
+			elsif ($dkimresult ==  6) { $dkimresultstr = "none"; }
+			elsif ($dkimresult ==  7) { $dkimresultstr = "fail"; }
+			elsif ($dkimresult ==  8) { $dkimresultstr = "policy"; }
+			elsif ($dkimresult ==  9) { $dkimresultstr = "nxdomain"; }
+			elsif ($dkimresult == 10) { $dkimresultstr = "signed"; }
+			elsif ($dkimresult == 12) { $dkimresultstr = "discard"; }
+			else                      { $dkimresultstr = "unknown"; }
 
 			print $tmpout "            <dkim>\n";
 			print $tmpout "                <domain>$dkimdomain</domain>\n";
@@ -1057,6 +1303,13 @@ foreach (@$domainset)
 			}
 		}
 
+		# Skip if this RUA address is known-stale or locally suppressed.
+		if ($uri->scheme eq "mailto" &&
+		    (stale_skip("rua", $repdest) || db_skip($repdest)))
+		{
+			next;
+		}
+
 		# Test mode, just report what would have been done
 		if ($testmode)
 		{
@@ -1134,7 +1387,8 @@ foreach (@$domainset)
 			{
 				$smtpstatus = "sent";
 				$smtpfail = 0;
-				if (!$smtp->mail($repemail) ||
+				my $mailfrom = $verp ? verp_sender($repemail, $repdest) : $repemail;
+				if (!$smtp->mail($mailfrom) ||
 				    !$smtp->to($repdest) ||
 				    (defined($repbcc) && !$smtp->to($repbcc)) ||
 				    !$smtp->data() ||
@@ -1160,7 +1414,7 @@ foreach (@$domainset)
 		}
 		elsif ($uri->scheme eq "http" || $uri->scheme eq "https")
 		{
-			if (!open($zipin, $zipfile))
+			if (!open($zipin, $gzipfile))
 			{
 				print STDERR "$progname: can't read zipped report for $domain: $!\n";
 				next;
