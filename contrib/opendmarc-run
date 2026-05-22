@@ -8,9 +8,13 @@
 HISTFILE=/var/db/opendmarc/opendmarc.dat
 IMPORTFILE=${HISTFILE}.import
 
-IMPORT=/usr/local/sbin/opendmarc-import
-EXPIRE=/usr/local/sbin/opendmarc-expire
-REPORTS=/usr/local/sbin/opendmarc-reports
+# Optional suffix appended to the tool names.  Set to "-pg" (for example)
+# to use PostgreSQL variants: opendmarc-import-pg, opendmarc-reports-pg, etc.
+SUFFIX=
+
+IMPORT=/usr/local/sbin/opendmarc-import${SUFFIX}
+EXPIRE=/usr/local/sbin/opendmarc-expire${SUFFIX}
+REPORTS=/usr/local/sbin/opendmarc-reports${SUFFIX}
 
 DBHOST=localhost
 DBUSER=opendmarc
@@ -27,15 +31,10 @@ DOMAIN=
 # Set SMTPSSL=--smtp-ssl when connecting to a server that requires SSL/TLS.
 # Set SMTPCAFILE to the path of a CA bundle for servers using a private or
 # self-signed certificate.  Leave empty to use the system CA bundle.
-SMTPUSER=
-SMTPPASSWD=
-SMTPSSL=
-SMTPCAFILE=
 
-# Set REPORTBCC to send a blind copy of all aggregate reports to an address.
-# Leave empty to disable.
-#REPORTBCC=dmarc-reports@example.com
-REPORTBCC=
+# Load local configuration, overriding the defaults above.  This file
+# survives package upgrades since it is not managed by the package.
+[ -f /etc/opendmarc/opendmarc-run.conf ] && . /etc/opendmarc/opendmarc-run.conf
 
 DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
 
@@ -49,9 +48,4 @@ fi
 
 ${EXPIRE} ${DBOPTS}
 
-${REPORTS} ${DBOPTS} ${DOMAIN:+--domain ${DOMAIN}} --workdir ${WORKDIR} \
-    ${SMTPUSER:+--smtp-username ${SMTPUSER}} \
-    ${SMTPPASSWD:+--smtp-password ${SMTPPASSWD}} \
-    ${SMTPSSL} \
-    ${SMTPCAFILE:+--smtp-ssl-ca-file ${SMTPCAFILE}} \
-    ${REPORTBCC:+--report-bcc ${REPORTBCC}}
+${REPORTS} ${DBOPTS} ${DOMAIN:+--domain ${DOMAIN}} --workdir ${WORKDIR}

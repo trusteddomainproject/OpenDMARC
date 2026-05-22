@@ -28,6 +28,29 @@ as the milter's
 .I ReportCommand.
 .SH OPTIONS
 .TP
+.I --config=file
+Read configuration from
+.I file
+instead of the default
+.IR @sysconfdir@/opendmarc/opendmarc-reports.conf .
+The file contains one
+.I key = value
+entry per line; keys are the long option names without the leading
+.IR -- .
+Boolean options accept
+.IR 1 / yes / true
+or
+.IR 0 / no / false .
+Lines beginning with
+.B #
+are treated as comments.  Command-line arguments always take precedence
+over config file settings.  This file is read whether the script is
+invoked from cron or by the milter as
+.IR ReportCommand ,
+so SMTP credentials configured here apply to both aggregate and forensic
+reports without exposing them in
+.IR opendmarc.conf .
+.TP
 .I --day
 Generate reports on day boundaries.  Overrides the value of
 .I --interval

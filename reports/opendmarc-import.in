@@ -185,19 +185,11 @@ sub get_table_id
 			return undef;
 		}
 
-		$dbi_t = $dbi_h->prepare("SELECT LAST_INSERT_ID()");
-		if (!$dbi_t->execute())
+		$out = $dbi_h->last_insert_id(undef, undef, undef, undef);
+		if (!defined($out))
 		{
 			print STDERR "$progname: failed to retrieve created table ID: " . $dbi_h->errstr . "\n";
 			return undef;
-		}
-
-		while ($dbi_a = $dbi_t->fetchrow_arrayref())
-		{
-			if (defined($dbi_a->[0]))
-			{
-				$out = $dbi_a->[0];
-			}
 		}
 
 		$dbi_t->finish;
@@ -254,17 +246,12 @@ sub update_db
 			print STDERR "$progname: failed to create request record: " . $dbi_h->errstr . "\n";
 			return;
 		}
-		$dbi_t = $dbi_h->prepare("SELECT LAST_INSERT_ID()");
-		if (!$dbi_t->execute())
+		$request_id = $dbi_h->last_insert_id(undef, undef, undef, undef);
+		if (!defined($request_id))
 		{
 			print STDERR "$progname: failed to retrieve request ID: " . $dbi_h->errstr . "\n";
 			return;
 		}
-		while ($dbi_a = $dbi_t->fetchrow_arrayref())
-		{
-			$request_id = $dbi_a->[0] if defined($dbi_a->[0]);
-		}
-		$dbi_t->finish;
 	}
 
 	if (!defined($rep_id) ||
@@ -277,6 +264,10 @@ sub update_db
 		return;
 	}
 
+	# MySQL-specific: INSERT IGNORE silently skips duplicate key violations.
+	# SQLite equivalent: INSERT OR IGNORE
+	# MySQL-specific: FROM_UNIXTIME() converts a Unix timestamp to a DATETIME.
+	# SQLite equivalent: datetime(?, 'unixepoch')
 	$dbi_s = $dbi_h->prepare(q{
 	                         INSERT IGNORE INTO messages(
 	                                 date, jobid, reporter, policy, disp, ip, env_domain, from_domain,
@@ -305,20 +296,11 @@ sub update_db
 
 	$dbi_s->finish;
 
-	undef $msg_id;
-	$dbi_s = $dbi_h->prepare("SELECT LAST_INSERT_ID()");
-	if (!$dbi_s->execute())
+	$msg_id = $dbi_h->last_insert_id(undef, undef, undef, undef);
+	if (!defined($msg_id))
 	{
 		print STDERR "$progname: failed to retrieve message ID: " . $dbi_h->errstr . "\n";
 		return;
-	}
-
-	while ($dbi_a = $dbi_s->fetchrow_arrayref())
-	{
-		if (defined($dbi_a->[0]))
-		{
-			$msg_id = $dbi_a->[0];
-		}
 	}
 
 	$dbi_s->finish;

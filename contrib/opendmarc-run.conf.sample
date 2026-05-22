@@ -1,0 +1,31 @@
+# opendmarc-run.conf.sample
+#
+# Local configuration for opendmarc-run.  Copy this file to
+# /etc/opendmarc/opendmarc-run.conf and uncomment/edit the values you
+# want to override.  This file is sourced by opendmarc-run after its
+# built-in defaults, so any variable set here takes precedence.
+#
+# This file is not managed by the package and will survive upgrades.
+#
+# SMTP settings (server, port, auth, SSL) belong in the opendmarc-reports
+# configuration file, not here.
+
+# Path to the opendmarc history file written by the milter.
+#HISTFILE=/var/db/opendmarc/opendmarc.dat
+
+# Directory used for temporary report XML/gzip files.
+#WORKDIR=/var/db/opendmarc
+
+# Database connection parameters.
+#DBHOST=localhost
+#DBUSER=opendmarc
+#DBPASSWD=opendmarc
+#DBSCHEME=mysql
+
+# Optional suffix appended to tool names.  Set to "-pg" to use PostgreSQL
+# variants (opendmarc-import-pg, opendmarc-reports-pg, etc.).
+#SUFFIX=
+
+# Restrict reporting to a single domain.  Leave empty to report for all
+# domains with data in the database.
+#DOMAIN=

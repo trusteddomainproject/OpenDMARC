@@ -1,0 +1,56 @@
+# opendmarc-reports.conf.sample
+#
+# Local configuration for opendmarc-reports.  Copy this file to
+# /etc/opendmarc/opendmarc-reports.conf and uncomment/edit the values
+# you want to set.
+#
+# This file is read by opendmarc-reports at startup whether it is invoked
+# from cron (for aggregate reports) or by the milter as ReportCommand
+# (for forensic reports).  SMTP settings configured here therefore apply
+# to both report types automatically.
+#
+# Format: one "key = value" per line.  Keys are the long option names
+# without the leading "--".  Boolean options accept 1/yes/true or
+# 0/no/false.  Lines beginning with # are comments.
+
+# --- Database ---
+#dbhost = localhost
+#dbname = opendmarc
+#dbuser = opendmarc
+#dbpasswd = opendmarc
+#dbport = 3306
+#dbscheme = mysql
+
+# --- Reporting identity ---
+#report-org = example.com
+#report-email = postmaster@example.com
+
+# --- SMTP relay ---
+#smtp-server = 127.0.0.1
+#smtp-port = 25
+
+# --- SMTP authentication ---
+#smtp-username = reports@example.com
+#smtp-password = secret
+
+# --- SMTP SSL/TLS ---
+# Uncomment smtp-ssl to require SSL/TLS for the SMTP connection.
+#smtp-ssl = 1
+# Path to CA bundle; leave unset to use the system bundle.
+#smtp-ssl-ca-file = /etc/ssl/cert.pem
+
+# --- StaleMARC RBL ---
+# Uncomment to skip reports to addresses with known delivery problems.
+#stale-check = 1
+# Treat untested addresses as stale (default-deny mode).
+#stale-def-deny = 1
+# Override the StaleMARC API base URL.
+#stale-server = https://stalemarc.measurement.network/api
+
+# --- VERP ---
+# Encode recipient into envelope sender so bounces identify failing address.
+#verp = 1
+
+# --- Miscellaneous ---
+#interval = 86400
+#utc = 1
