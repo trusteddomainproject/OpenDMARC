@@ -135,15 +135,29 @@ Normally this would be done to prevent reports from being sent too close
 together.  Implied by
 .IR --test .
 .TP
+.I --report-contact=addr
+Specifies the contact address written into the
+.I <email>
+element of the
+.I <report_metadata>
+block in aggregate reports (RFC 9990 section 3.1.1.3: "Contact to use when
+contacting the Reporting Organization").  If not set, the value of
+.I --report-email
+is used.  This allows the metadata contact address to differ from the
+SMTP envelope sender when required.
+.TP
 .I --report-email=addr
-Generates reports using the specified address, which is used as the SMTP
-envelope sender and in the report content.  In
+Generates reports using the specified address as the SMTP envelope sender
+and the
+.I From:
+header of outgoing report messages.  In
 .I --forensic
 mode this address is also used as the MAIL FROM.  When
 .I --verp
 is enabled the address is further encoded per recipient.  The default is
 "postmaster@HOSTNAME" where HOSTNAME is replaced by the hostname of the
-host generating the report.
+host generating the report.  See also
+.IR --report-contact .
 .TP
 .I --report-org=domain
 Generates reports using the specified domain name as the organization
