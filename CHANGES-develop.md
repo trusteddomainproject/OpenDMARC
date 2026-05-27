@@ -46,6 +46,7 @@ Significant gaps between the generated aggregate report XML and RFC 7489 require
 - **HTTPS/HTTP aggregate report submission**: `opendmarc-reports` now supports `https://` and `http://` URIs in `rua=` tags for report submission per RFC 7489 §7.1, in addition to `mailto:`. (#324, issue #25 partial)
 - **SMTP authentication and SSL for report submission**: New options `--smtp-username`, `--smtp-password`, `--smtp-ssl`, `--smtp-ssl-ca-file` allow `opendmarc-reports` to authenticate to and use TLS with the outbound SMTP server. (#324, issues #269)
 - **`--report-bcc`**: Send blind copies of all aggregate reports to a fixed address, useful for local archiving. (#324, issue #25)
+- **`--report-contact`**: New option to set the `<email>` element in `<report_metadata>` independently of the SMTP envelope sender. RFC 9990 section 3.1.1.3 defines this field as the contact address for the reporting organization, with no requirement that it match the transport addresses. Falls back to `--report-email` if not specified. (#362, issue #285)
 - **`--workdir`**: Specify the directory for temporary report XML files (default `.`). Previously hardcoded. (#324)
 - **`opendmarc-run` wrapper script**: New `contrib/opendmarc-run` script wraps `opendmarc-reports` and `opendmarc-import` with environment-variable-based configuration and sane defaults, suitable for cron or systemd timer use. (#324)
 - **`opendmarc-reports` config file support**: Supports a config file for persistent option storage, reducing cron command-line length. (#324)
