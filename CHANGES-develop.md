@@ -16,6 +16,12 @@ This document summarizes the changes merged into the `develop` branch during the
 - **Four crash and memory-safety bugs**: Fixed NULL pointer dereference in `opendmarc_spf_ipv6_explode()`, a use-after-free in ARC seal parsing, and two additional memory-safety issues. (#298, issues #18, #140, #152, #256)
 - **arcdomain memory leak in `mlfi_eom`**: ARC domain strings allocated during message processing were not freed on the cleanup path. (#310, issue #182)
 - **`HoldQuarantinedMessages` blocked by `RejectFailures`**: The condition controlling `smfi_quarantine()` was gated on `conf_rejectfail`, so `HoldQuarantinedMessages yes` had no effect unless `RejectFailures yes` was also set. The two options are now independent. (#302, issue #237)
+- **`opendmarc_util_cleanup` buffer off-by-one**: The length guard used `> buflen` instead of `>= buflen`, allowing a string of exactly `buflen` characters through without room for a null terminator. (#344)
+- **`opendmarc_util_finddomain` mishandling quoted-pair in display names**: RFC5322 section 3.2.4 allows backslash-escaped characters inside quoted strings. A From header like `"\"Medtronic, Inc.\"" <user@example.com>` caused the escaped inner quote to close the quote context early, leaving the comma unquoted and truncating the address at the comma. The domain was then parsed as `Medtronic` rather than `example.com`, causing DMARC to reject a legitimate message. (#345, issue #72)
+- **`check_domain` accidentally exported from libopendmarc ABI**: The function is file-local, has no header declaration, and does not follow the `opendmarc_` naming convention. Making it `static` removes it from the public symbol table. (#346)
+- **Memory leak in `opendmarc_tld_read_file`**: The hash context allocated before `fopen()` was leaked when `fopen()` failed. (#347)
+- **`Authentication-Results` headers inserted at wrong position**: All `dmarcf_insheader()` calls used index `1`, placing headers after the first existing header rather than before it. RFC 8601 sections 4 and 7.1 require the A-R header to precede the MTA's `Received` header; SpamAssassin and other verifiers rely on this ordering. Changed to index `0`. (#349, issue #23)
+- **Unbalanced `>` in mail address parse silently ignored**: A From address like `user@example.net>` (missing the opening `<`) caused the domain to be parsed as `example.net>`, for which no DMARC record exists. The filter then skipped DMARC evaluation entirely, allowing forged mail through. Now returns a parse error. (#342, issue #113, #174)
 
 ---
 
@@ -43,6 +49,7 @@ Significant gaps between the generated aggregate report XML and RFC 7489 require
 - **`opendmarc-run` wrapper script**: New `contrib/opendmarc-run` script wraps `opendmarc-reports` and `opendmarc-import` with environment-variable-based configuration and sane defaults, suitable for cron or systemd timer use. (#324)
 - **`opendmarc-reports` config file support**: Supports a config file for persistent option storage, reducing cron command-line length. (#324)
 - **DKIM `auth_results` missing when selector not in `selectors` table**: If a DKIM selector was not present in the selectors table, the `auth_results` row was silently dropped from the report. (#324, issue #230)
+- **Domain names stored with inconsistent case**: `opendmarc-import` stored domain names with whatever case appeared in the first history file entry for that domain. If a spammer's message arrived first with `EXAMPLE.COM`, all aggregate reports for that domain were labelled with that casing. Domains are now lowercased on import. MySQL's default case-insensitive collation means existing mixed-case rows remain functional; operators who want to normalize existing data can run `UPDATE domains SET name = LOWER(name)`. (#351)
 - **MariaDB hang on integer parameters**: Integer parameters in `opendmarc-reports` SQL queries were passed as strings, triggering a known MariaDB Connector/Perl hang on strict-type-checking servers. Parameters are now explicitly bound with `SQL_INTEGER`. (#324, issue #196)
 - **Timezone off-by-one in `--day` mode**: In `--day` mode, the domain selection query compared timestamps without date truncation, causing domains to be selected or skipped based on wall-clock time within the day rather than calendar day boundaries. (#324, issue #210)
 
@@ -80,6 +87,19 @@ CREATE TABLE IF NOT EXISTS suppressions (
     UNIQUE KEY(address)
 );
 ```
+
+---
+
+## Configuration options
+
+- **`RequiredFrom` option added**: New boolean option that rejects messages lacking a From: field from which a domain can be extracted. Unlike `RequiredHeaders` (which enforces all RFC5322 header count restrictions), `RequiredFrom` enforces only the From field check, making it suitable for deployments where full RFC5322 compliance would reject too many legitimate messages. Prevents attackers from omitting the From header to evade DMARC evaluation. (#343)
+
+---
+
+## Utilities and minor fixes
+
+- **`opendmarc-check` printed first domain for all arguments**: When multiple domains were passed on the command line, the output header always showed `argv[1]` instead of the current argument. (#350)
+- **Startup log suppresses empty brackets**: When started with no relevant command-line options, the daemon logged `opendmarc vX.Y starting ()`. The parentheses are now omitted when there are no options to show. (#348)
 
 ---
 
