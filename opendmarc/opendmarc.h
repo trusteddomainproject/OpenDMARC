@@ -46,6 +46,7 @@
 #define	DMARC_TEMPFAIL_ESC	"4.7.1"
 #define	DMARC_REJECT_SMTP	"550"
 #define	DMARC_REJECT_ESC	"5.7.1"
+#define	DEFREJECTSTR		"rejected by DMARC policy for %s"
 
 #define	DMARC_RESULT_REJECT	0
 #define	DMARC_RESULT_DISCARD	1

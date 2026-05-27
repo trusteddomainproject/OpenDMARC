@@ -260,6 +260,22 @@ the message.  Instead, an Authentication-Results header field will be added.
 The default is "false".
 
 .TP
+.I RejectString (string)
+Specifies the SMTP rejection message used when a message is rejected due to
+DMARC policy (see
+.IR RejectFailures ).
+The string may optionally contain one
+.B %s
+which is replaced by the RFC5322.From domain at rejection time.
+If
+.B %s
+is omitted the string is used verbatim.
+More than one
+.B %s
+is treated as a configuration error.
+The default is "rejected by DMARC policy for %s".
+
+.TP
 .I RejectMultiValueFrom (Boolean)
 If set, messages with multiple addresses in the From: field of the message
 will be rejected unless all domain names in that field are the same.  They
