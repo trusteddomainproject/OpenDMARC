@@ -53,6 +53,8 @@ my $def_maxage    = 180;
 my $rows;
 my $maxage;
 
+my $now = time();
+
 ###
 ### NO user-serviceable parts beyond this point
 ###
@@ -193,7 +195,7 @@ if ($maxage <= 0)
 
 if ($verbose)
 {
-	print STDERR "$progname: started at " . localtime() . "\n";
+	print STDERR "$progname: started at " . localtime($now) . "\n";
 }
 
 require "DBD/$dbscheme.pm";
@@ -570,7 +572,7 @@ if ($alltables)
 
 if ($verbose)
 {
-	print STDERR "$progname: terminating at " . localtime() . "\n";
+	print STDERR "$progname: terminating at " . localtime() . " (duration=" . scalar(time() - $now) . "s)\n";
 }
 
 $dbi_h->disconnect;

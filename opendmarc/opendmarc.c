@@ -166,6 +166,7 @@ typedef struct dmarcf_connctx * DMARCF_CONNCTX;
 struct dmarcf_config
 {
 	_Bool			conf_reqhdrs;
+	_Bool			conf_reqfrom;
 	_Bool			conf_afrf;
 	_Bool			conf_afrfnone;
 	_Bool			conf_rejectfail;
@@ -1242,6 +1243,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_reqhdrs,
 		                  sizeof conf->conf_reqhdrs);
 
+		(void) config_get(data, "RequiredFrom",
+		                  &conf->conf_reqfrom,
+		                  sizeof conf->conf_reqfrom);
+
 		(void) config_get(data, "FailureReports",
 		                  &conf->conf_afrf,
 		                  sizeof conf->conf_afrf);
@@ -2238,13 +2243,15 @@ mlfi_eom(SMFICTX *ctx)
 	from = dmarcf_findheader(dfc, "From", 0);
 
 	/* verify RFC5322-required headers (RFC5322 3.6) */
-	if (from == NULL ||
-	    dmarcf_findheader(dfc, "From", 1) != NULL)
-		reqhdrs_error = "not exactly one From field";
+	if (from == NULL)
+		reqhdrs_error = "missing From field";
+	else if (dmarcf_findheader(dfc, "From", 1) != NULL)
+		reqhdrs_error = "multiple From fields";
 
-	if (dmarcf_findheader(dfc, "Date", 0) == NULL ||
-	    dmarcf_findheader(dfc, "Date", 1) != NULL)
-		reqhdrs_error = "not exactly one Date field";
+	if (dmarcf_findheader(dfc, "Date", 0) == NULL)
+		reqhdrs_error = "missing Date field";
+	else if (dmarcf_findheader(dfc, "Date", 1) != NULL)
+		reqhdrs_error = "multiple Date fields";
 
 	if (dmarcf_findheader(dfc, "Reply-To", 1) != NULL)
 		reqhdrs_error = "multiple Reply-To fields";
@@ -2290,11 +2297,15 @@ mlfi_eom(SMFICTX *ctx)
 		if (conf->conf_dolog)
 		{
 			syslog(LOG_INFO,
-			       "%s: RFC5322 requirement error: missing From field; accepting",
-			       dfc->mctx_jobid);
+			       "%s: RFC5322 requirement error: missing From field; %s",
+			       dfc->mctx_jobid,
+			       conf->conf_reqfrom ? "reject" : "accepting");
 		}
 
-		return SMFIS_ACCEPT;
+		if (conf->conf_reqfrom)
+			return SMFIS_REJECT;
+		else
+			return SMFIS_ACCEPT;
 	}
 
 	/* extract From: addresses */
@@ -2338,7 +2349,7 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid);
 		}
 
-		if (conf->conf_reqhdrs)
+		if (conf->conf_reqhdrs || conf->conf_reqfrom)
 			return SMFIS_REJECT;
 		else
 			return SMFIS_ACCEPT;
@@ -2456,7 +2467,12 @@ mlfi_eom(SMFICTX *ctx)
 
 		/* parse it */
 		if (opendmarc_arcseal_parse(hdr->hdr_value, &as_hdr_new->arcseal) != 0)
+		{
+			syslog(LOG_WARNING,
+			       "%s: ignoring invalid %s header \"%s\"",
+			       dfc->mctx_jobid, hdr->hdr_name, hdr->hdr_value);
 			continue;
+		}
 
 		if (dfc->mctx_ashead == NULL)
 		{
@@ -2983,7 +2999,7 @@ mlfi_eom(SMFICTX *ctx)
 					 authservid_hdr, pass_fail, use_domain);
 			}
 
-			if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+			if (dmarcf_insheader(ctx, 0, AUTHRESULTSHDR,
 					     header) == MI_FAILURE)
 			{
 				if (conf->conf_dolog)
@@ -3050,7 +3066,7 @@ mlfi_eom(SMFICTX *ctx)
 		         "%s; dmarc=permerror header.from=%s",
 		         authservid_hdr, dfc->mctx_fromdomain);
 
-		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+		if (dmarcf_insheader(ctx, 0, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
 		{
 			if (conf->conf_dolog)
@@ -3585,13 +3601,17 @@ mlfi_eom(SMFICTX *ctx)
 	     dfc->mctx_aarhead != NULL && as_hdr != NULL;
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
-		/* fetch smtp.client_ip from aar */
+		/* make sure smtpclientip is (re)initialized before use */
+		arcares_arc_field.smtpclientip[0] = '\0';
+
+		/* fetch smtp.remote-ip from aar */
 		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance,
 		                                 dfc->mctx_aarhead,
 		                                 &arcares) == 0)
 		{
-			(void) opendmarc_arcares_arc_parse(arcares.arc,
-			                                   &arcares_arc_field);
+			if (opendmarc_arcares_arc_parse(&arcares,
+			                               &arcares_arc_field) != 0)
+				arcares_arc_field.smtpclientip[0] = '\0';
 		}
 
 		dmarcf_dstring_printf(dfc->mctx_histbuf,
@@ -3635,7 +3655,7 @@ mlfi_eom(SMFICTX *ctx)
 		         authservid_hdr,
 		         aresult, apolicy, adisposition, dfc->mctx_fromdomain);
 
-		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
+		if (dmarcf_insheader(ctx, 0, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
 		{
 			if (conf->conf_dolog)
@@ -3727,7 +3747,7 @@ mlfi_eom(SMFICTX *ctx)
 		         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
 		                                 : JOBIDUNKNOWN);
 
-		if (dmarcf_insheader(ctx, 1, SWHEADERNAME,
+		if (dmarcf_insheader(ctx, 0, SWHEADERNAME,
 		                     header) == MI_FAILURE)
 		{
 			if (conf->conf_dolog)
@@ -5140,8 +5160,11 @@ main(int argc, char **argv)
 			n -= status;
 		}
 
-		syslog(LOG_INFO, "%s v%s starting (%s)", DMARCF_PRODUCT,
-		       VERSION, argstr);
+		syslog(LOG_INFO, "%s v%s starting%s%s%s", DMARCF_PRODUCT,
+		       VERSION,
+		       strlen(argstr) == 0 ? "" : " (",
+		       argstr,
+		       strlen(argstr) == 0 ? "" : ")");
 
 		memset(argstr, '\0', sizeof argstr);
 		strlcpy(argstr, "(none)", sizeof argstr);

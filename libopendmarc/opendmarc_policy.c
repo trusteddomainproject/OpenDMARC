@@ -35,7 +35,7 @@
 **  	TRUE if the syntax was fine, FALSE otherwise.
 */
 
-bool check_domain(u_char *domain)
+static bool check_domain(u_char *domain)
 {
 	u_char *dp;
 
@@ -306,6 +306,13 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 	 */
 	if (strcasecmp(rev_tld, rev_sub) == 0)
 		return 0;
+
+	/*
+	 * RFC 7489 §3.1.1/3.1.2: strict mode requires exact match only.
+	 * Do not fall through to organizational-domain resolution.
+	 */
+	if (mode == DMARC_RECORD_A_STRICT)
+		return -1;
 
 	ret = strncasecmp(rev_tld, rev_sub, strlen(rev_tld));
 	if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)

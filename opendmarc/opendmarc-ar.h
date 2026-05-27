@@ -18,9 +18,12 @@
 
 /* limits */
 #define	AUTHRESHDRNAME	"Authentication-Results"
-#define	MAXARESULTS	16
+#define	MAXARESULTS	32
 #define	MAXPROPS	16
 #define	MAXAVALUE	256
+
+/* buffer to cache a single header */
+#define OPENDMARC_ARCARES_MAXHEADER_LEN		4096
 
 /* ARES_METHOD_T -- type for specifying an authentication method */
 typedef int ares_method_t;
@@ -88,6 +91,39 @@ struct authres
 };
 
 /*
+**  ARES_TOKENIZE -- tokenize a string
+**
+**  Parameters:
+**  	input -- input string
+**  	outbuf -- output buffer
+**  	outbuflen -- number of bytes available at "outbuf"
+**  	tokens -- array of token pointers
+**  	ntokens -- number of token pointers available at "tokens"
+**
+**  Return value:
+**  	-1 -- not enough space at "outbuf" for tokenizing
+**  	other -- number of tokens identified
+*/
+extern int ares_tokenize __P((u_char *input, u_char *outbuf, size_t outbuflen,
+                              u_char **tokens, int ntokens));
+
+/*
+**  AUTHRES_PARSE -- parse an Authentication-Results: or
+**                  ARC-Authentication-Results: header
+**
+**  Parameters:
+**  	hdr -- NULL-terminated header field contents
+**  	ar -- a pointer to a (struct authres) loaded by values after parsing
+**  	instance -- pointer to store instance ID for AAR headers;
+**  	            if NULL, parse as AR; if non-NULL, parse as AAR
+**
+**  Return value:
+**  	0 on success, -1 on failure.
+*/
+extern int authres_parse __P((u_char *hdr, struct authres *ar,
+                              u_int *instance));
+
+/*
 **  ARES_PARSE -- parse an Authentication-Results: header, return a
 **                structure containing a parsed result
 **
@@ -95,11 +131,13 @@ struct authres
 **  	hdr -- NULL-terminated contents of an Authentication-Results:
 **  	       header field
 **  	ar -- a pointer to a (struct authres) loaded by values after parsing
-**  
+**
 **  Return value:
 **  	0 on success, -1 on failure.
 */
-
-extern int ares_parse __P((u_char *hdr, struct authres *ar));
+static inline int ares_parse(u_char *hdr, struct authres *ar)
+{
+	return authres_parse(hdr, ar, NULL);
+}
 
 #endif /* _OPENDMARC_AR_H_ */

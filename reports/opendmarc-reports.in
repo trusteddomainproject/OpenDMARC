@@ -147,6 +147,7 @@ my $dbname;
 my $dbuser;
 my $dbpasswd;
 my $dbport;
+my $db_dsn;
 
 my $dbscheme     = $def_dbscheme;
 
@@ -245,6 +246,7 @@ sub usage
 {
 	print STDERR "$progname: usage: $progname [options]\n";
 	print STDERR "\t--day              send yesterday's data\n";
+	print STDERR "\t--db-dsn=dsn       full DBI DSN (overrides --dbscheme/--dbhost/--dbname/--dbport)\n";
 	print STDERR "\t--dbscheme=scheme  mysql or MariaDB [$def_dbscheme]\n";
 	print STDERR "\t--dbhost=host      database host [$def_dbhost]\n";
 	print STDERR "\t--dbname=name      database name [$def_dbname]\n";
@@ -350,6 +352,7 @@ setlocale(LC_ALL, 'C');
 
 # parse command line arguments
 my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
+                                            'db-dsn=s' => \$db_dsn,
                                             'dbscheme=s' => \$dbscheme,
                                             'dbhost=s' => \$dbhost,
                                             'dbname=s' => \$dbname,
@@ -637,12 +640,19 @@ if ($forensic)
 	exit($smtpfail ? 1 : 0);
 }
 
-require "DBD/$dbscheme.pm";
-
-my $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
-              ";host=" . $dbhost;
-if ($dbport != $def_dbport) {
-    $dbi_dsn .= ";port=" . $dbport;
+my $dbi_dsn;
+if (defined($db_dsn))
+{
+	$dbi_dsn = $db_dsn;
+}
+else
+{
+	require "DBD/$dbscheme.pm";
+	$dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
+	           ";host=" . $dbhost;
+	if ($dbport != $def_dbport) {
+	    $dbi_dsn .= ";port=" . $dbport;
+	}
 }
 
 $dbi_h = DBI->connect($dbi_dsn, $dbuser, $dbpasswd, { PrintError => 0 });
@@ -1581,7 +1591,7 @@ $dbi_s->finish;
 
 if ($verbose)
 {
-	print STDERR "$progname: terminating at " . localtime() . "\n";
+	print STDERR "$progname: terminating at " . localtime() . " (duration=" . scalar(time() - $now) . "s)\n";
 }
 
 $dbi_h->disconnect;

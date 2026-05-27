@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 #ifdef ARTEST
 # include <sysexits.h>
 #endif /* ARTEST */
@@ -45,7 +46,7 @@
 #define	ARES_TOKENS		";=."
 #define	ARES_TOKENS2		"=."
 
-#define	ARES_MAXTOKENS		512
+#define	ARES_MAXTOKENS		1536
 
 /* tables */
 struct lookup
@@ -114,7 +115,7 @@ struct lookup ptypes[] =
 **  	pointers available.
 */
 
-static int
+int
 ares_tokenize(u_char *input, u_char *outbuf, size_t outbuflen,
               u_char **tokens, int ntokens)
 {
@@ -357,16 +358,17 @@ ares_xconvert(struct lookup *table, int code)
 */
 
 int
-ares_parse(u_char *hdr, struct authres *ar)
+authres_parse(u_char *hdr, struct authres *ar, u_int *instance)
 {
 	_Bool quoted;
+	_Bool ignore_res;
 	int n;
 	int ntoks;
 	int c;
 	int r = 0;
 	int state;
 	int prevstate;
-	u_char tmp[MAXHEADER + 1];
+	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 2];
 	u_char *tokens[ARES_MAXTOKENS];
 
 	assert(hdr != NULL);
@@ -380,7 +382,7 @@ ares_parse(u_char *hdr, struct authres *ar)
 		return -1;
 
 	prevstate = -1;
-	state = 0;
+	state = (instance == NULL) ? 0 : 20;
 	n = 0;
 
 	quoted = FALSE;
@@ -422,7 +424,7 @@ ares_parse(u_char *hdr, struct authres *ar)
 			if (tokens[c][0] == ';')
 			{
 				prevstate = state;
-				state = 3;
+				state = 14;
 			}
 			else if (isascii(tokens[c][0]) &&
 			         isdigit(tokens[c][0]))
@@ -464,16 +466,32 @@ ares_parse(u_char *hdr, struct authres *ar)
 				return -1;
 
 			prevstate = state;
-			state = 3;
+			state = 14;
 
 			break;
 
-		  case 3:				/* method */
-			n++;
-			r = 0;
+		  case 14:				/* method or "none" */
+			if (strcasecmp((char *) tokens[c], "none") == 0)
+			{
+				prevstate = state;
+				state = 15;
+				continue;
+			}
 
-			ar->ares_result[n - 1].result_method = ares_convert(methods,
-			                                                    (char *) tokens[c]);
+			/* FALLTHROUGH */
+
+		  case 3:				/* method */
+			ignore_res = TRUE;
+			if (n < MAXARESULTS)
+			{
+				int method = ares_convert(methods, (char *) tokens[c]);
+				if (method != ARES_METHOD_UNKNOWN)
+				{
+					ar->ares_result[n++].result_method = method;
+					ignore_res = FALSE;
+				}
+			}
+			r = 0;
 			prevstate = state;
 			state = 4;
 
@@ -490,8 +508,11 @@ ares_parse(u_char *hdr, struct authres *ar)
 			break;
 
 		  case 5:				/* result */
-			ar->ares_result[n - 1].result_result = ares_convert(aresults,
-			                                                    (char *) tokens[c]);
+			if (!ignore_res)
+			{
+				ar->ares_result[n - 1].result_result
+				        = ares_convert(aresults, (char *) tokens[c]);
+			}
 			prevstate = state;
 			state = 6;
 
@@ -508,9 +529,12 @@ ares_parse(u_char *hdr, struct authres *ar)
 			break;
 
 		  case 8:
-			strlcpy((char *) ar->ares_result[n - 1].result_reason,
-			        (char *) tokens[c],
-			        sizeof ar->ares_result[n - 1].result_reason);
+			if (!ignore_res)
+			{
+				strlcpy((char *) ar->ares_result[n - 1].result_reason,
+				        (char *) tokens[c],
+				        sizeof ar->ares_result[n - 1].result_reason);
+			}
 
 			prevstate = state;
 			state = 9;
@@ -549,9 +573,12 @@ ares_parse(u_char *hdr, struct authres *ar)
 			{
 				r--;
 
-				strlcat((char *) ar->ares_result[n - 1].result_value[r],
-				        (char *) tokens[c],
-				        sizeof ar->ares_result[n - 1].result_value[r]);
+				if (!ignore_res)
+				{
+					strlcat((char *) ar->ares_result[n - 1].result_value[r],
+					        (char *) tokens[c],
+					        sizeof ar->ares_result[n - 1].result_value[r]);
+				}
 
 				prevstate = state;
 				state = 13;
@@ -575,7 +602,10 @@ ares_parse(u_char *hdr, struct authres *ar)
 				if (x == ARES_PTYPE_UNKNOWN)
 					return -1;
 
-				ar->ares_result[n - 1].result_ptype[r] = x;
+				if (!ignore_res)
+				{
+					ar->ares_result[n - 1].result_ptype[r] = x;
+				}
 
 				prevstate = state;
 				state = 10;
@@ -594,9 +624,12 @@ ares_parse(u_char *hdr, struct authres *ar)
 			break;
 
 		  case 11:				/* property */
-			strlcpy((char *) ar->ares_result[n - 1].result_property[r],
-			        (char *) tokens[c],
-			        sizeof ar->ares_result[n - 1].result_property[r]);
+			if (!ignore_res)
+			{
+				strlcpy((char *) ar->ares_result[n - 1].result_property[r],
+				        (char *) tokens[c],
+				        sizeof ar->ares_result[n - 1].result_property[r]);
+			}
 
 			prevstate = state;
 			state = 12;
@@ -614,11 +647,14 @@ ares_parse(u_char *hdr, struct authres *ar)
 			break;
 
 		  case 13:				/* value */
-			strlcat((char *) ar->ares_result[n - 1].result_value[r],
-			        (char *) tokens[c],
-			        sizeof ar->ares_result[n - 1].result_value[r]);
 			r++;
-			ar->ares_result[n - 1].result_props = r;
+			if (!ignore_res)
+			{
+				strlcat((char *) ar->ares_result[n - 1].result_value[r - 1],
+				        (char *) tokens[c],
+				        sizeof ar->ares_result[n - 1].result_value[r - 1]);
+				ar->ares_result[n - 1].result_props = r;
+			}
 
 			prevstate = state;
 			if (c < ntoks - 1 && tokens[c + 1][1] == '\0')
@@ -634,6 +670,56 @@ ares_parse(u_char *hdr, struct authres *ar)
 			{
 				state = 9;
 			}
+
+			break;
+
+		  case 15:				/* terminal state after no-result */
+			/* any token should not appear */
+			return -1;
+
+		  case 20:				/* AAR start: expect "i" */
+			if (tokens[c][0] != 'i' ||
+			    tokens[c][1] != '\0')
+				return -1;
+
+			prevstate = state;
+			state = 21;
+
+			break;
+
+		  case 21:				/* AAR: expect "=" */
+			if (tokens[c][0] != '=' ||
+			    tokens[c][1] != '\0')
+				return -1;
+
+			prevstate = state;
+			state = 22;
+
+			break;
+
+		  case 22:				/* AAR: instance number */
+			if (!isascii(tokens[c][0]) ||
+			    !isdigit(tokens[c][0]) ||
+			    !(tokens[c][1] == '\0' ||
+			      (isascii(tokens[c][1]) &&
+			       isdigit(tokens[c][1]) &&
+			       tokens[c][2] == '\0')))
+				return -1;
+
+			*instance = (u_int) strtol((char *) tokens[c], NULL, 10);
+
+			prevstate = state;
+			state = 23;
+
+			break;
+
+		  case 23:				/* AAR: expect ";" then AR body */
+			if (tokens[c][0] != ';' ||
+			    tokens[c][1] != '\0')
+				return -1;
+
+			prevstate = state;
+			state = 0;
 
 			break;
 		}
@@ -660,8 +746,6 @@ ares_parse(u_char *hdr, struct authres *ar)
 **  	EX_USAGE or EX_OK
 */
 
-# define NTOKENS 256
-
 int
 main(int argc, char **argv)
 {
@@ -672,7 +756,7 @@ main(int argc, char **argv)
 	char *progname;
 	struct authres ar;
 	u_char buf[1024];
-	u_char *toks[NTOKENS];
+	u_char *toks[ARES_MAXTOKENS];
 
 	progname = (p = strrchr(argv[0], '/')) == NULL ? argv[0] : p + 1;
 
@@ -682,7 +766,7 @@ main(int argc, char **argv)
 		return EX_USAGE;
 	}
 
-	c = ares_tokenize(argv[1], buf, sizeof buf, toks, NTOKENS);
+	c = ares_tokenize(argv[1], buf, sizeof buf, toks, ARES_MAXTOKENS);
 	for (d = 0; d < c; d++)
 		printf("token %d = '%s'\n", d, toks[d]);
 

@@ -159,14 +159,38 @@ AC_CHECK_LIB(resolv, inet_aton, , , [-lnsl -lsocket])
 # only thing for it is to include resolv.h, don't redeclare res_ninit(),
 # and use the proper type signature when calling it.
 m4_rename([AC_LANG_CALL], [saved_AC_LANG_CALL])
-m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
+m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#  include <netinet/in.h>
+#endif
+#ifdef HAVE_ARPA_NAMESER_H
+#  include <arpa/nameser.h>
+#endif
+#ifdef HAVE_NETDB_H
+#  include <netdb.h>
+#endif
+#include <resolv.h>],
                                            [return res_ninit(NULL);])])
 AC_SEARCH_LIBS(res_ninit, resolv,
         AC_DEFINE(HAVE_RES_NINIT, 1,
         [Define to 1 if you have the `res_ninit()' function.]))
 
 # Same as above, but for res_ndestroy.
-m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#include <resolv.h>],
+m4_define([AC_LANG_CALL], [AC_LANG_PROGRAM([#ifdef HAVE_SYS_TYPES_H
+#  include <sys/types.h>
+#endif
+#ifdef HAVE_NETINET_IN_H
+#  include <netinet/in.h>
+#endif
+#ifdef HAVE_ARPA_NAMESER_H
+#  include <arpa/nameser.h>
+#endif
+#ifdef HAVE_NETDB_H
+#  include <netdb.h>
+#endif
+#include <resolv.h>],
                                             [res_ndestroy(NULL);])])
 AC_SEARCH_LIBS(res_ndestroy, resolv,
         AC_DEFINE(HAVE_RES_NDESTROY, 1,
@@ -335,11 +359,8 @@ then
 	then
 		AC_DEFINE(HAVE_SPF2_H, 1,
 			[Define to 1 if you have libspf2's `spf.h'])
-		spf2_include="-I $SPF2_INCLUDE"
-		saved_CFLAGS="$CFLAGS"
-		saved_LDFLAGS="$LDFLAGS"
-		CFLAGS="$spf2_include $saved_CFLAGS"
-		LDFLAGS="$saved_LDFLAGS -L${SPF2_LIB}"
+		CPPFLAGS="$CPPFLAGS -I${SPF2_INCLUDE}"
+		LDFLAGS="$LDFLAGS -L${SPF2_LIB}"
 	fi
 	AC_SEARCH_LIBS(SPF_record_new, spf2)
 	AC_SEARCH_LIBS(SPF_server_new, spf2)
