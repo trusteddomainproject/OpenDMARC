@@ -366,7 +366,7 @@ ares_parse(u_char *hdr, struct authres *ar)
 	int r = 0;
 	int state;
 	int prevstate;
-	u_char tmp[MAXHEADER + 2];
+	u_char tmp[MAXHEADER + 1];
 	u_char *tokens[ARES_MAXTOKENS];
 
 	assert(hdr != NULL);
@@ -433,6 +433,23 @@ ares_parse(u_char *hdr, struct authres *ar)
 
 				prevstate = state;
 				state = 2;
+			}
+			else if (tokens[c][0] == '=' && tokens[c][1] == '\0')
+			{
+				/*
+				 * ADMD-less header (e.g. Office 365 internal
+				 * headers that escape outbound): the token we
+				 * read as authserv-id is actually the first
+				 * method name.  Leave ares_host empty and
+				 * continue parsing from the result value.
+				 */
+				n = 1;
+				ar->ares_result[0].result_method =
+					ares_convert(methods,
+					             (char *) ar->ares_host);
+				memset(ar->ares_host, '\0', sizeof ar->ares_host);
+				prevstate = state;
+				state = 5;
 			}
 			else
 			{

@@ -1475,7 +1475,7 @@ opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_o
 	{
 		return NULL;
 	}
-	if (list_buf != NULL || size_of_buf > 0)
+	if (list_buf != NULL && size_of_buf > 0)
 	{
 		(void) memset(list_buf, '\0', size_of_buf);
 		sp = list_buf;

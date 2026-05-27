@@ -15,6 +15,10 @@ selectors	A table that maps selector names to unique integer IDs.
 		foreign key (into the domains table) for the domain that owns the
 		selector.
 
+arcauthresults	A table for logging ARC-Authentication-Results information.
+
+arcseals	A table for logging ARC-Seal information.
+
 reporters	A table mapping reporting hosts to unique integer IDs.
 		Intended for use by multi-MX systems so it's possible to tell
 		where an inbound message landed.
@@ -40,5 +44,61 @@ requests	A table containing a cache of DMARC reporting requests.
 		For each domain, the destination reporting URI for aggregate
 		reports is recorded along with a "last report sent" timestamp.
 
+suppressions	A table of RUA/RUF addresses and domains that should be
+		skipped when sending reports.  Each entry is either a full
+		email address (e.g. dmarc@example.com) or a bare domain name
+		(e.g. example.com), the latter suppressing all reporting
+		addresses under that domain.  An optional reason column
+		records why the entry was added.  The table can be populated
+		manually or automatically from VERP bounce processing: when
+		opendmarc-reports sends reports with --verp, bounces return
+		to an encoded envelope sender that identifies the failing
+		address, allowing a bounce handler to INSERT the address here.
+
+
+UPGRADING AN EXISTING SCHEMA
+----------------------------
+
+If you are upgrading from an older installation rather than starting fresh,
+the following ALTER TABLE statements will bring your schema up to date.
+
+These are also shown by opendmarc-reports and opendmarc-import at startup
+if the relevant columns are missing.
+
+1. requests.lastsent (introduced to fix MySQL strict mode incompatibility):
+
+	ALTER TABLE requests MODIFY lastsent TIMESTAMP NULL DEFAULT NULL;
+
+2. messages.spf_scope (introduced to support RFC 7489 <scope> in reports):
+
+	ALTER TABLE messages ADD COLUMN spf_scope TINYINT NOT NULL DEFAULT '-1' AFTER spf;
+
+3. requests.fo (introduced to support RFC 7489 <fo> in reports):
+
+	ALTER TABLE requests ADD COLUMN fo TINYINT NOT NULL DEFAULT '0' AFTER pct;
+
+4. messages columns missing DEFAULT values (causes failures under MySQL/MariaDB
+   strict mode when importing history files from older opendmarc versions):
+
+	ALTER TABLE messages MODIFY spf TINYINT NOT NULL DEFAULT '0';
+	ALTER TABLE messages MODIFY align_dkim TINYINT UNSIGNED NOT NULL DEFAULT '5';
+	ALTER TABLE messages MODIFY align_spf TINYINT UNSIGNED NOT NULL DEFAULT '5';
+	ALTER TABLE messages MODIFY sigcount TINYINT UNSIGNED NOT NULL DEFAULT '0';
+	ALTER TABLE messages MODIFY arc TINYINT UNSIGNED NOT NULL DEFAULT '0';
+	ALTER TABLE messages MODIFY arc_policy TINYINT UNSIGNED NOT NULL DEFAULT '1';
+
+5. suppressions (introduced to support local reporting suppression and VERP
+   bounce tracking):
+
+	CREATE TABLE IF NOT EXISTS suppressions (
+		id INT NOT NULL AUTO_INCREMENT,
+		address VARCHAR(255) NOT NULL,
+		added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		reason VARCHAR(255),
+		PRIMARY KEY(id),
+		UNIQUE KEY(address)
+	);
+
+
 --
-Copyright (c) 2012, 2018, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012, 2018, 2026, The Trusted Domain Project.  All rights reserved.

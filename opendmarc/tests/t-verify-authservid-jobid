@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Verify that AuthservIDWithJobID produces a properly RFC 8601-compliant
+# quoted authserv-id in all Authentication-Results headers.
+
+if [ x"$srcdir" = x"" ]
+then
+	srcdir=`pwd`
+fi
+
+miltertest -s $srcdir/t-verify-authservid-jobid.lua

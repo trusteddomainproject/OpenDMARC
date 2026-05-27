@@ -15,7 +15,8 @@ specification for message authentication, policy enforcement, and reporting.
 This file is its configuration file.
 
 Blank lines are ignored.  Lines containing a hash ("#") character are
-truncated at the hash character to allow for comments in the file.
+truncated at the hash character to allow for comments in the file.  Lines
+longer than 1024 characters are also truncated.
 
 Other content should be the name of a parameter, followed by white space,
 followed by the value of that parameter, each on a separate line.
@@ -190,6 +191,9 @@ report.  It is expected that this will not be used in its raw form, but
 rather periodically imported into a relational database from which the
 aggregate reports can be extracted using
 .B opendmarc-importstats(8).
+For each record, the file is opened, locked, the data is appended, and the
+file is unlocked.  When the file is renamed on the filesystem, opendmarc
+will create a new file at the original path.
 
 .TP
 .I HoldQuarantinedMessages (Boolean)
@@ -211,7 +215,7 @@ SMTP AUTH) to be ignored by the filter.  The default is "false".
 .I IgnoreHosts (string)
 Specifies the path to a file that contains a list of hostnames, IP addresses,
 and/or CIDR expressions identifying hosts whose SMTP connections are to be
-ignored by the filter.  If not specified, defaults to "127.0.0.1" only.
+ignored by the filter.  If not specified, defaults to "127.0.0.1" and "::1".
 
 .TP
 .I IgnoreMailFrom (string)
@@ -222,8 +226,8 @@ no mail is ignored.
 
 .TP
 .I MilterDebug (integer)
-Sets the debug level to be requested from the milter library.  The
-default is 0.
+Sets the debug level to be requested from the milter library.  Six is the
+highest useful value.  The default is 0.
 
 .TP
 .I PidFile (string)
@@ -267,7 +271,7 @@ Indicates the shell command to which failure reports should be passed for
 delivery when
 .I FailureReports
 is enabled.  Defaults to
-.I /usr/sbin/sendmail.
+.I /usr/sbin/sendmail -t -odq.
 
 .TP
 .I RequiredHeaders (Boolean)
@@ -340,9 +344,14 @@ The default is "mail".
 .I TrustedAuthservIDs (string)
 Provides a list of authserv-ids that are to be used to identify
 Authentication-Results header fields whose contents are to be assumed as valid
-input for the DMARC assessment.  To provide a list, separate values by commas.
-If the string "HOSTNAME" is provided, the name of the host running the filter
-(as returned by the
+input for the DMARC assessment.  If
+.I AuthservIDWithJobID
+is set and the authserv-id of an inspected Authentication-Results header is
+not found in
+.I TrustedAuthservIDs,
+the job ID is appended to the authserv-id before matching.  To provide a
+list, separate values by commas.  If the string "HOSTNAME" is provided, the
+name of the host running the filter (as returned by the
 .I gethostname(3)
 function) will be used.  Matching against this list is case-insensitive.  The
 default is to use the value of
@@ -389,10 +398,14 @@ All rights reserved.
 .P
 RFC4408 \- Sender Policy Framework
 .P
-RFC5451 \- Message Header Field for Indicating Message Authentication Status
+RFC5451 \- Message Header Field for Indicating Message Authentication Status (obsoleted by RFC7601)
 .P
 RFC5965 \- An Extensible Format for Email Feedback Reports
 .P
 RFC6376 \- DomainKeys Identified Mail
 .P
 RFC6591 \- Authentication Failure Reporting Using the Abuse Reporting Format
+.P
+RFC7489 \- Domain-based Message Authentication, Reporting, and Conformance (DMARC)
+.P
+RFC7601 \- Message Header Field for Indicating Message Authentication Status

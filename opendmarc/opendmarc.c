@@ -84,6 +84,7 @@
 #include "opendmarc-ar.h"
 #include "opendmarc-arcares.h"
 #include "opendmarc-arcseal.h"
+#include "opendmarc-spf-parse.h"
 #include "opendmarc-config.h"
 #include "opendmarc-dstring.h"
 
@@ -127,6 +128,7 @@ struct dmarcf_msgctx
 	int			mctx_arcpass;
 	int			mctx_arcpolicypass;
 	int			mctx_spfresult;
+	int			mctx_spfmode;
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
 	struct arcares_header * mctx_aarhead;
@@ -416,189 +418,6 @@ dmarcf_getsymval(SMFICTX *ctx, char *sym)
 		return smfi_getsymval(ctx, sym);
 }
 
-/*
-**  DMARCF_PARSE_RECEIVED_SPF -- try to extract a result from a Received-SPF
-**                               header field
-**
-**  Parameters:
-**  	str -- the value of the Received-SPF field to analyze
-**  	envdomain -- envelope sender domain against which to test
-**
-**  Return value:
-**  	A ARES_RESULT_* constant.
-**
-**  Notes:
-**  	We will not accept a result delivered via a discovered Received-SPF
-**  	header field unless (a) it includes the "identity" key and its
-**  	value is "mailfrom", AND (b) it includes the "envelope-from" key and
-**  	its value matches the envelope sender we got via milter.  If either
-**  	of those tests fails, a "pass" or a "fail" is interpreted as "neutral".
-**  	This is necessary to be compliant with RFC 7489 Section 4.1,
-**  	which says the SPF evaluation of MAIL FROM is what DMARC consumes.
-*/
-
-int
-dmarcf_parse_received_spf(char *str, char *envdomain)
-{
-	_Bool in_result = TRUE;
-	_Bool escaped = FALSE;
-	_Bool quoting = FALSE;
-	int parens = 0;
-	char *p;
-	char *r;
-	char *end;
-	char result[MAXSPFRESULT + 1];
-	char spf_envdomain[BUFRSZ + 1];
-	char key[BUFRSZ + 1];
-	char value[BUFRSZ + 1];
-	char identity[BUFRSZ + 1];
-
-	assert(str != NULL);
-
-	memset(spf_envdomain, '\0', sizeof spf_envdomain);
-	memset(key, '\0', sizeof key);
-	memset(value, '\0', sizeof value);
-	memset(identity, '\0', sizeof identity);
-	memset(result, '\0', sizeof result);
-
-	/* first thing we get is the result token */
-	r = result;
-	end = &result[sizeof result - 1];
-
-	for (p = str; *p != '\0'; p++)
-	{
-		if (escaped)
-		{
-			if (parens == 0 && r < end)
-				*r++ = *p;
-			escaped = FALSE;
-		}
-		else if (*p == '\\')
-		{
-			escaped = TRUE;
-		}
-		else if (*p == '(')
-		{
-			parens++;
-		}
-		else if (*p == ')' && parens > 0)
-		{
-			parens--;
-		}
-		else if (parens == 0)
-		{
-			if (*p == '"')
-			{
-				/* entering/leaving a quoted substring */
-				quoting = !quoting;
-				continue;
-			}
-
-			/* a possibly meaningful character */
-			if (isascii(*p) && isspace(*p))
-			{
-				/* a space while quoting; just continue */
-				if (quoting)
-					continue;
-
-				if (in_result)
-				{
-					in_result = FALSE;
-					r = key;
-					end = &key[sizeof key - 1];
-				}
-				continue;
-			}
-
-			if (!in_result && *p == '=')
-			{
-				r = value;
-				end = &value[sizeof value - 1];
-			}
-			else if (!in_result && *p == ';')
-			{
-				if (strcasecmp(key, "identity") == 0)
-				{
-					strlcpy(identity, value,
-					        sizeof identity);
-				}
-
-				if (strcasecmp(key, "envelope-from") == 0)
-				{
-					strlcpy(spf_envdomain, value,
-					        sizeof spf_envdomain);
-				}
-
-				memset(key, '\0', sizeof key);
-				memset(value, '\0', sizeof value);
-
-				r = key;
-				end = &key[sizeof key - 1];
-			}
-			else if (r < end)
-			{
-				*r++ = *p;
-			}
-		}
-	}
-
-	if (key[0] != '\0')
-	{
-		if (strcasecmp(key, "identity") == 0)
-			strlcpy(identity, value, sizeof identity);
-		if (strcasecmp(key, "envelope-from") == 0)
-			strlcpy(spf_envdomain, value, sizeof spf_envdomain);
-	}
-
-	p = strchr(spf_envdomain, '@');
-	if (p != NULL)
-	{
-		r = spf_envdomain;
-		p = p + 1;
-		for (;;)
-		{
-			*r = *p;
-			if (*p == '\0')
-				break;
-			r++;
-			p++;
-		}
-	}
-	
-	if (strcasecmp(identity, "mailfrom") != 0 ||
-            strcasecmp(spf_envdomain, envdomain) != 0)
-	{
-		return ARES_RESULT_NEUTRAL;
-	}
-	else if (strcasecmp(result, "pass") == 0)
-	{
-		return ARES_RESULT_PASS;
-	}
-	else if (strcasecmp(result, "fail") == 0)
-	{
-		return ARES_RESULT_FAIL;
-	}
-	else if (strcasecmp(result, "softfail") == 0)
-	{
-		return ARES_RESULT_SOFTFAIL;
-	}
-	else if (strcasecmp(result, "neutral") == 0)
-	{
-		return ARES_RESULT_NEUTRAL;
-	}
-	else if (strcasecmp(result, "temperror") == 0)
-	{
-		return ARES_RESULT_TEMPERROR;
-	}
-	else if (strcasecmp(result, "none") == 0)
-	{
-		return ARES_RESULT_NONE;
-	}
-	else
-	{
-		return ARES_RESULT_PERMERROR;
-	}
-}
 
 /*
 **  DMARCF_ADDLIST -- add an entry to a singly-linked list
@@ -2168,6 +1987,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 	dfc->mctx_jobid = JOBIDUNKNOWN;
 	dfc->mctx_spfresult = -1;
+	dfc->mctx_spfmode = -1;
 
 	dfc->mctx_histbuf = dmarcf_dstring_new(BUFRSZ, 0);
 	if (dfc->mctx_histbuf == NULL)
@@ -2213,7 +2033,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		p = strchr(dfc->mctx_envfrom, '@');
 		if (p != NULL)
-			strncpy(dfc->mctx_envdomain, p + 1, BUFRSZ);
+			strlcpy(dfc->mctx_envdomain, p + 1, sizeof dfc->mctx_envdomain);
 	}
 
 	return SMFIS_CONTINUE;
@@ -2344,6 +2164,7 @@ mlfi_eom(SMFICTX *ctx)
 	u_char *bang;
 	u_char **ruv;
 	unsigned char header[MAXHEADER + 1];
+	unsigned char authservid_hdr[MAXHOSTNAMELEN + BUFRSZ + 4];
 	unsigned char addrbuf[BUFRSZ + 1];
 	unsigned char replybuf[BUFRSZ + 1];
 	unsigned char pdomain[MAXHOSTNAMELEN + 1];
@@ -2401,6 +2222,18 @@ mlfi_eom(SMFICTX *ctx)
 		}
 	}
 
+	/*
+	 * Build the authserv-id string for A-R headers.  Per RFC 8601 + RFC 2045,
+	 * "/" is a tspecial and invalid in an unquoted token, so quote the whole
+	 * value when a job ID is appended.
+	 */
+	if (conf->conf_authservidwithjobid && dfc->mctx_jobid[0] != '\0')
+		snprintf(authservid_hdr, sizeof authservid_hdr,
+		         "\"%s/%s\"", authservid, dfc->mctx_jobid);
+	else
+		snprintf(authservid_hdr, sizeof authservid_hdr,
+		         "%s", authservid);
+
 	/* ensure there was a From field */
 	from = dmarcf_findheader(dfc, "From", 0);
 
@@ -2446,6 +2279,8 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, reqhdrs_error);
 		}
 
+		dmarcf_setreply(ctx, DMARC_REJECT_SMTP, DMARC_REJECT_ESC,
+		                reqhdrs_error);
 		return SMFIS_REJECT;
 	}
 
@@ -2853,9 +2688,13 @@ mlfi_eom(SMFICTX *ctx)
 					return SMFIS_TEMPFAIL;
 				}
 
+				dfc->mctx_spfmode = spfmode;
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n",
 				                      dfc->mctx_spfresult);
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf_scope %d\n",
+				                      dfc->mctx_spfmode);
 				wspf = TRUE;
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
@@ -2970,6 +2809,7 @@ mlfi_eom(SMFICTX *ctx)
 							eptr = hsearch(entry,
 							               FIND);
 							pthread_rwlock_unlock(&hash_lock);
+							free(arcdomain);
 							if (eptr == NULL)
 								continue;
 
@@ -3012,8 +2852,12 @@ mlfi_eom(SMFICTX *ctx)
 				spfres = dmarcf_parse_received_spf(hdr->hdr_value,
 				                                   dfc->mctx_envdomain);
 
+				dfc->mctx_spfmode = spfmode;
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n", spfres);
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf_scope %d\n",
+				                      dfc->mctx_spfmode);
 
 				dfc->mctx_spfresult = spfres;
 
@@ -3092,7 +2936,8 @@ mlfi_eom(SMFICTX *ctx)
 				use_domain = cc->cctx_helo;
 				spf_mode   = DMARC_POLICY_SPF_ORIGIN_HELO;
 			}
-			ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc, 
+			dfc->mctx_spfmode = spf_mode;
+			ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc,
 				                             use_domain,
 				                             spf_result,
 				                             spf_mode,
@@ -3129,13 +2974,13 @@ mlfi_eom(SMFICTX *ctx)
 			{
 				snprintf(header, sizeof header,
 					 "%s; spf=%s smtp.helo=%s",
-					 authservid, pass_fail, use_domain);
+					 authservid_hdr, pass_fail, use_domain);
 			}
 			else
 			{
 				snprintf(header, sizeof header,
 					 "%s; spf=%s smtp.mailfrom=%s",
-					 authservid, pass_fail, use_domain);
+					 authservid_hdr, pass_fail, use_domain);
 			}
 
 			if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
@@ -3171,6 +3016,8 @@ mlfi_eom(SMFICTX *ctx)
 
 		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf %d\n",
 		                      dfc->mctx_spfresult);
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf_scope %d\n",
+		                      dfc->mctx_spfmode);
 	}
 
 	ostatus = opendmarc_policy_query_dmarc(cc->cctx_dmarc,
@@ -3201,7 +3048,7 @@ mlfi_eom(SMFICTX *ctx)
 
 		snprintf(header, sizeof header,
 		         "%s; dmarc=permerror header.from=%s",
-		         authservid, dfc->mctx_fromdomain);
+		         authservid_hdr, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
@@ -3257,6 +3104,12 @@ mlfi_eom(SMFICTX *ctx)
 	opendmarc_policy_fetch_sp(cc->cctx_dmarc, &sp);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "sp %d\n", sp);
 
+	{
+		int fo = DMARC_RECORD_FO_UNSPECIFIED;
+		opendmarc_policy_fetch_fo(cc->cctx_dmarc, &fo);
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "fo %d\n", fo);
+	}
+
 	opendmarc_policy_fetch_alignment(cc->cctx_dmarc, &align_dkim,
 	                                 &align_spf);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "align_dkim %d\n",
@@ -3280,6 +3133,143 @@ mlfi_eom(SMFICTX *ctx)
 	  default:
 		apolicy = "none";
 		break;
+	}
+
+	/*
+	**  Enact policy based on DMARC results.
+	*/
+
+	result = DMARC_RESULT_ACCEPT;
+	ret = SMFIS_ACCEPT;
+
+	switch (policy)
+	{
+	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
+	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
+		aresult = "none";
+		break;
+
+	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
+		aresult = "fail";		/* Accept and report */
+		break;
+
+	  case DMARC_POLICY_PASS:		/* Explicit accept */
+		aresult = "pass";
+		break;
+
+	  case DMARC_POLICY_REJECT:		/* Explicit reject */
+		aresult = "fail";
+		ret = SMFIS_CONTINUE;
+
+		if (conf->conf_rejectfail &&
+		    random() % 100 < pct)
+		{
+			snprintf(replybuf, sizeof replybuf,
+			         "rejected by DMARC policy for %s", pdomain);
+
+			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
+			                         DMARC_REJECT_ESC, replybuf);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_setreply() failed",
+				       dfc->mctx_jobid);
+			}
+
+			ret = SMFIS_REJECT;
+			result = DMARC_RESULT_REJECT;
+		}
+
+		if (conf->conf_copyfailsto != NULL)
+		{
+			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
+				       dfc->mctx_jobid);
+			}
+		}
+
+		break;
+
+	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
+		aresult = "fail";
+		ret = SMFIS_CONTINUE;
+
+		if (conf->conf_holdquarantinedmessages &&
+		    random() % 100 < pct)
+		{
+			/* quarantine will be deferred until after the ARC policy eval */
+
+			ret = SMFIS_ACCEPT;
+			result = DMARC_RESULT_QUARANTINE;
+		}
+
+		if (conf->conf_copyfailsto != NULL)
+		{
+			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
+				       dfc->mctx_jobid);
+			}
+		}
+
+		break;
+
+	  default:
+		aresult = "temperror";
+		ret = SMFIS_TEMPFAIL;
+		result = DMARC_RESULT_TEMPFAIL;
+		break;
+	}
+
+	/*
+	**  ARC override
+	**
+	**  If DMARC is in failure mode, we will allow the message provided
+	**  that arc information is valid: arc=pass, arc.chain is present,
+	**  and all listed domains in the chain are whitelisted.
+	**
+	**  Additional logging is provided when DMARC is in failure mode
+	**  and arc=pass but authentication still fails because of an invalid
+	**  arc.chain to assist with administrative debugging.
+	*/
+
+	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
+	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
+	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
+	    conf->conf_dolog)
+	{
+		syslog(LOG_NOTICE,
+		       "%s: ARC pass, policy fail > continuing DMARC eval",
+		       dfc->mctx_jobid);
+	}
+
+	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
+	    dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
+	{
+		ret = SMFIS_ACCEPT;
+		result = DMARC_RESULT_ACCEPT;
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_NOTICE,
+			       "%s: ARC pass, policy pass > overriding DMARC fail",
+			       dfc->mctx_jobid);
+		}
+	}
+
+	if (result == DMARC_RESULT_QUARANTINE)
+	{
+		snprintf(replybuf, sizeof replybuf,
+		         "quarantined by DMARC policy for %s",
+		         pdomain);
+
+		status = smfi_quarantine(ctx, replybuf);
+		if (status != MI_SUCCESS && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: smfi_quarantine() failed",
+			       dfc->mctx_jobid);
+		}
 	}
 
 	/*
@@ -3461,6 +3451,33 @@ mlfi_eom(SMFICTX *ctx)
 			                      dfc->mctx_envfrom);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Arrival-Date: %s\n",
+			                      timebuf);
+
+			switch (result)
+			{
+			  case DMARC_RESULT_REJECT:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: reject\n");
+				break;
+
+			  case DMARC_RESULT_QUARANTINE:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: policy\n");
+				break;
+
+			  case DMARC_RESULT_TEMPFAIL:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: other\n");
+				break;
+
+			  default:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: delivered\n");
+				break;
+			}
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Source-IP: %s (%s)\n",
 			                      cc->cctx_ipstr,
 			                      cc->cctx_host);
@@ -3532,138 +3549,7 @@ mlfi_eom(SMFICTX *ctx)
 	}
 
 	/*
-	**  Enact policy based on DMARC results.
-	*/
-
-	result = DMARC_RESULT_ACCEPT;
-	ret = SMFIS_ACCEPT;
-
-	switch (policy)
-	{
-	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
-	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
-		aresult = "none";
-		break;
-
-	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
-		aresult = "fail";		/* Accept and report */
-		break;
-
-	  case DMARC_POLICY_PASS:		/* Explicit accept */
-		aresult = "pass";
-		break;
-
-	  case DMARC_POLICY_REJECT:		/* Explicit reject */
-		aresult = "fail";
-		ret = SMFIS_CONTINUE;
-
-		if (conf->conf_rejectfail &&
-		    random() % 100 < pct)
-		{
-			snprintf(replybuf, sizeof replybuf,
-			         "rejected by DMARC policy for %s", pdomain);
-
-			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
-			                         DMARC_REJECT_ESC, replybuf);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_setreply() failed",
-				       dfc->mctx_jobid);
-			}
-
-			ret = SMFIS_REJECT;
-			result = DMARC_RESULT_REJECT;
-		}
-
-		if (conf->conf_copyfailsto != NULL)
-		{
-			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
-				       dfc->mctx_jobid);
-			}
-		}
-
-		break;
-
-	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
-		aresult = "fail";
-		ret = SMFIS_CONTINUE;
-
-		if (conf->conf_holdquarantinedmessages &&
-		    random() % 100 < pct)
-		{
-			snprintf(replybuf, sizeof replybuf,
-			         "quarantined by DMARC policy for %s",
-			         pdomain);
-
-			status = smfi_quarantine(ctx, replybuf);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_quarantine() failed",
-				       dfc->mctx_jobid);
-			}
-
-			ret = SMFIS_ACCEPT;
-			result = DMARC_RESULT_QUARANTINE;
-		}
-
-		if (conf->conf_copyfailsto != NULL)
-		{
-			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
-				       dfc->mctx_jobid);
-			}
-		}
-
-		break;
-
-	  default:
-		aresult = "temperror";
-		ret = SMFIS_TEMPFAIL;
-		result = DMARC_RESULT_TEMPFAIL;
-		break;
-	}
-
-	/*
-	**  ARC override
-	**
-	**  If DMARC is in failure mode, we will allow the message provided
-	**  that arc information is valid: arc=pass, arc.chain is present,
-	**  and all listed domains in the chain are whitelisted.
-	**
-	**  Additional logging is provided when DMARC is in failure mode
-	**  and arc=pass but authentication still fails because of an invalid
-	**  arc.chain to assist with administrative debugging.
-	*/
-
-	if (result == DMARC_RESULT_REJECT &&
-	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
-	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
-	    conf->conf_dolog)
-	{
-		syslog(LOG_NOTICE,
-		       "%s: ARC pass, policy fail > continuing DMARC eval",
-		       dfc->mctx_jobid);
-	}
-
-	if (result == DMARC_RESULT_REJECT &&
-	    dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
-	{
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
-		if (conf->conf_dolog)
-		{
-			syslog(LOG_NOTICE,
-			       "%s: ARC pass, policy pass > overriding DMARC fail",
-			       dfc->mctx_jobid);
-		}
-	}
-
-	/*
+/*
  	**  Append arc override to historyfile.  The format 
 	**
 	**  <reason>
@@ -3745,10 +3631,8 @@ mlfi_eom(SMFICTX *ctx)
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
 		snprintf(header, sizeof header,
-		         "%s%s%s; dmarc=%s (p=%s dis=%s) header.from=%s",
-		         authservid,
-		         conf->conf_authservidwithjobid ? "/" : "",
-		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",
+		         "%s; dmarc=%s (p=%s dis=%s) header.from=%s",
+		         authservid_hdr,
 		         aresult, apolicy, adisposition, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
@@ -4158,8 +4042,6 @@ static void
 dmarcf_config_free(struct dmarcf_config *conf)
 {
 	assert(conf != NULL);
-	assert(conf->conf_refcnt == 0);
-
 	if (conf->conf_data != NULL)
 		config_free(conf->conf_data);
 
@@ -4596,6 +4478,7 @@ main(int argc, char **argv)
 	else if (!testmode)
 	{
 		dmarcf_addlist("127.0.0.1", &ignore);
+		dmarcf_addlist("::1", &ignore);
 	}
 
 	if (!gotp && !testmode)

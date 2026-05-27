@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/@PERL@
 #
 # Copyright (c) 2012-2016, 2017-2018, The Trusted Domain Project.
 #   All rights reserved.
@@ -12,13 +12,12 @@
 use strict;
 use warnings;
 
-use Switch;
-
 use DBI qw(:sql_types);
 use File::Basename;
 use File::Temp;
 use Net::Domain qw(hostfqdn hostdomain);
 use Getopt::Long;
+use HTTP::Tiny;
 use IO::Handle;
 use IO::Compress::Gzip qw(gzip);
 use POSIX;
@@ -27,6 +26,7 @@ use Net::SMTP;
 use Time::Local;
 
 require HTTP::Request;
+require LWP::UserAgent;
 
 # general
 my $progname      = basename($0);
@@ -68,6 +68,8 @@ my $spolicy;
 my $policystr;
 my $spolicystr;
 my $pct;
+my $fo;
+my $fostr;
 
 my $repuri;
 my @repuris;
@@ -82,6 +84,8 @@ my $align_dkimstr;
 my $align_spf;
 my $align_spfstr;
 my $spfresult;
+my $spf_scope;
+my $spf_scopestr;
 my $dkimresult;
 my $disp;
 my $spfresultstr;
@@ -97,7 +101,10 @@ my $arcstr;
 my $arcpolicy;
 my $arcpolicystr;
 
+my $pdomain;
+
 my $repdest;
+my $repbcc;
 
 my $smtpstatus;
 my $smtpfail;
@@ -105,8 +112,14 @@ my $smtpfail;
 my $doupdate = 1;
 my $testmode = 0;
 my $keepfiles = 0;
+my $workdir = ".";
 my $use_utc = 0;
 my $daybound = 0;
+my $forensic = 0;
+my $stale_check = 0;
+my $stale_def_deny = 0;
+my $stale_server = "https://stalemarc.measurement.network/api";
+my $verp = 0;
 my $report_maxbytes_global = 15728640; # default: 15M, per spec
 
 my $msgid;
@@ -118,6 +131,8 @@ my $dbi_s;
 my $dbi_s2;
 my $dbi_a;
 my $dbi_hash;
+
+my %db_suppress;
 
 # DB parameters
 my $def_dbscheme  = "@SQL_BACKEND@";
@@ -140,13 +155,91 @@ my $repemail     = "postmaster@" . $repdom;
 
 my $smtp_server  = '127.0.0.1';
 my $smtp_port    = 25;
+my $smtp_username;
+my $smtp_password;
+my $smtp_ssl        = 0;
+my $smtp_ssl_ca_file;
 my $smtp;
+
+my $configfile   = "@sysconfdir@/opendmarc/opendmarc-reports.conf";
 
 my $answer;
 
 ###
 ### NO user-serviceable parts beyond this point
 ###
+
+# Query the StaleMARC RBL.  $type is "domain" or "rua"; $key is the value
+# to look up.  Returns 1 if the report should be skipped, 0 if it should
+# be sent.  On lookup failure we fail open (proceed with sending).
+sub stale_skip
+{
+	my ($type, $key) = @_;
+
+	return 0 unless $stale_check;
+
+	my $endpoint;
+	if ($type eq "domain")
+	{
+		$endpoint = $stale_def_deny ? "checkDomainDefDeny.php" : "checkDomain.php";
+	}
+	else
+	{
+		$endpoint = $stale_def_deny ? "checkRuaDefDeny.php" : "checkRua.php";
+	}
+
+	# Encode '@' for use in a query string (only special char in addresses).
+	(my $enc_key = $key) =~ s/@/%40/g;
+
+	my $url = "$stale_server/$endpoint?key=$enc_key";
+	my $resp = HTTP::Tiny->new(timeout => 10)->get($url);
+
+	if ($resp->{status} == 200)
+	{
+		if ($verbose)
+		{
+			print STDERR "$progname: StaleMARC: skipping $key (listed)\n";
+		}
+		return 1;
+	}
+
+	# 404 = not listed (send), anything else = lookup failed (fail open).
+	if ($verbose >= 2 && $resp->{status} != 404)
+	{
+		print STDERR "$progname: StaleMARC: lookup for $key returned $resp->{status}; proceeding\n";
+	}
+
+	return 0;
+}
+
+# Check the in-memory suppression list loaded from the DB.  $address may be
+# a full email address or a bare domain; both forms are checked for email
+# addresses so either can appear in the suppressions table.
+sub db_skip
+{
+	my ($address) = @_;
+
+	return 0 unless %db_suppress;
+
+	return 1 if exists $db_suppress{lc($address)};
+
+	if ($address =~ /\@(.+)$/)
+	{
+		return 1 if exists $db_suppress{lc($1)};
+	}
+
+	return 0;
+}
+
+# Build a VERP envelope sender encoding $rcpt into $sender.
+# e.g. postmaster@r.example.com + dmarc@target.com -> postmaster+dmarc=target.com@r.example.com
+sub verp_sender
+{
+	my ($sender, $rcpt) = @_;
+	my ($sloc, $sdom) = split(/@/, $sender, 2);
+	(my $enc = $rcpt) =~ s/@/=/;
+	return "$sloc+$enc\@$sdom";
+}
 
 sub usage
 {
@@ -159,22 +252,97 @@ sub usage
 	print STDERR "\t--dbport=port      database port [$def_dbport]\n";
 	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
 	print STDERR "\t--domain=name      force a report for named domain\n";
+	print STDERR "\t--forensic         read a pre-formed AFRF report from\n";
+	print STDERR "\t                   stdin and send it via SMTP\n";
 	print STDERR "\t--help             print help and exit\n";
 	print STDERR "\t--interval=secs    report interval [$def_interval]\n";
-	print STDERR "\t--keepfiles        keep xml files (in local directory)\n";
+	print STDERR "\t--keepfiles        keep xml files (in working directory)\n";
+	print STDERR "\t--workdir=path     directory for temporary report files [.]\n";
 	print STDERR "\t -n                synonym for --test\n";
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
+	print STDERR "\t--report-bcc       bcc address for aggregate reports\n";
 	print STDERR "\t--report-email     reporting contact [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
+	print STDERR "\t--smtp-password    smtp authentication password\n";
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
+	print STDERR "\t                   (overrides OPENDMARC_SMTPPORT)\n";
 	print STDERR "\t--smtp-server      smtp server [$smtp_server]\n";
+	print STDERR "\t                   (overrides OPENDMARC_SMTPSERVER)\n";
+	print STDERR "\t--smtp-ssl         use SSL/TLS for SMTP connection\n";
+	print STDERR "\t--smtp-ssl-ca-file path to CA bundle for SSL certificate verification\n";
+	print STDERR "\t--smtp-username    smtp authentication username\n";
+	print STDERR "\t--config=file      config file [$configfile]\n";
+	print STDERR "\t--stale-check      skip reports to stale RUA/RUF addresses\n";
+	print STDERR "\t                   via StaleMARC RBL lookup\n";
+	print STDERR "\t--stale-def-deny   treat untested addresses as stale\n";
+	print STDERR "\t--stale-server=url StaleMARC API base URL\n";
 	print STDERR "\t--test             don't send reports\n";
+	print STDERR "\t--verp             use VERP envelope senders so bounces\n";
+	print STDERR "\t                   identify the failing recipient\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--utc              operate in UTC\n";
 	print STDERR "\t--verbose          verbose output\n";
 	print STDERR "\t                   (repeat for increased output)\n";
 	print STDERR "\t--version          print version and exit\n";
+}
+
+# Scan @ARGV for --config before full option parsing so the config file
+# path can itself come from the command line.
+for (my $i = 0; $i < @ARGV; $i++)
+{
+	if ($ARGV[$i] =~ /^--config=(.+)$/)
+	{
+		$configfile = $1;
+		splice(@ARGV, $i, 1);
+		last;
+	}
+	elsif ($ARGV[$i] eq '--config' && $i + 1 < @ARGV)
+	{
+		$configfile = $ARGV[$i + 1];
+		splice(@ARGV, $i, 2);
+		last;
+	}
+}
+
+# Load the config file and prepend its values to @ARGV.  Command-line
+# arguments therefore always override config file settings.
+if (-f $configfile)
+{
+	my @config_args;
+
+	open(my $cfg, '<', $configfile)
+		or die "$progname: can't open $configfile: $!\n";
+
+	while (<$cfg>)
+	{
+		chomp;
+		s/#.*//;
+		s/^\s+|\s+$//g;
+		next unless length;
+
+		if (/^([\w-]+)\s*=\s*(.*)$/)
+		{
+			my ($key, $val) = ($1, $2);
+			$val =~ s/\s+$//;
+
+			if ($val =~ /^(1|yes|true)$/i)
+			{
+				push @config_args, "--$key";
+			}
+			elsif ($val =~ /^(0|no|false)$/i)
+			{
+				push @config_args, "--no-$key";
+			}
+			elsif (length($val))
+			{
+				push @config_args, "--$key=$val";
+			}
+		}
+	}
+
+	close($cfg);
+	unshift @ARGV, @config_args;
 }
 
 # set locale
@@ -189,16 +357,27 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'dbport=s' => \$dbport,
                                             'dbuser=s' => \$dbuser,
                                             'domain=s' => \$forcedomain,
+                                            'forensic!' => \$forensic,
                                             'help!' => \$helponly,
                                             'interval=i' => \$interval,
                                             'keepfiles' => \$keepfiles,
+                                            'workdir=s' => \$workdir,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
+                                            'report-bcc=s' => \$repbcc,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
-                                            'smtp-server=s' => \$smtp_server,
+                                            'smtp-password=s' => \$smtp_password,
                                             'smtp-port=i' => \$smtp_port,
+                                            'smtp-server=s' => \$smtp_server,
+                                            'smtp-ssl!' => \$smtp_ssl,
+                                            'smtp-ssl-ca-file=s' => \$smtp_ssl_ca_file,
+                                            'smtp-username=s' => \$smtp_username,
+                                            'stale-check!' => \$stale_check,
+                                            'stale-def-deny!' => \$stale_def_deny,
+                                            'stale-server=s' => \$stale_server,
                                             'update!' => \$doupdate,
+                                            'verp!' => \$verp,
                                             'utc!' => \$use_utc,
                                             'verbose+' => \$verbose,
                                             'version!' => \$showversion,
@@ -285,6 +464,16 @@ if (!defined($dbuser))
 	}
 }
 
+if ($smtp_server eq '127.0.0.1' && defined($ENV{'OPENDMARC_SMTPSERVER'}))
+{
+	$smtp_server = $ENV{'OPENDMARC_SMTPSERVER'};
+}
+
+if ($smtp_port == 25 && defined($ENV{'OPENDMARC_SMTPPORT'}))
+{
+	$smtp_port = $ENV{'OPENDMARC_SMTPPORT'};
+}
+
 if (defined($interval) && $daybound)
 {
 	print STDERR "$progname: WARN: --day overrides --interval\n";
@@ -302,6 +491,150 @@ $keepfiles = ($testmode == 1) ? 1 : $keepfiles;
 if ($verbose)
 {
 	print STDERR "$progname: started at " . localtime($now) . "\n";
+}
+
+###
+### Forensic (failure) report mode: read a pre-formed AFRF message from
+### stdin and inject it via SMTP, acting as a drop-in replacement for
+### "sendmail -t" as the milter's ReportCommand.
+###
+
+if ($forensic)
+{
+	# Slurp the full message from stdin.
+	my $message = do { local $/; <STDIN> };
+
+	if (!defined($message) || $message eq "")
+	{
+		print STDERR "$progname: --forensic: no message on stdin\n";
+		exit(1);
+	}
+
+	# Split headers from body on the first blank line.
+	my ($hdr_block, $body) = split(/\r?\n\r?\n/, $message, 2);
+
+	# Unfold header continuations so each logical header is one string.
+	(my $unfolded = $hdr_block) =~ s/\r?\n([ \t]+)/ $1/g;
+
+	# Collect recipient addresses from To:, Cc:, and Bcc: headers.
+	my @rcpts;
+	for my $line (split(/\r?\n/, $unfolded))
+	{
+		next unless $line =~ /^(?:To|Cc|Bcc):\s*(.*)/i;
+		my $val = $1;
+
+		# Split on commas that are not inside angle brackets or quotes.
+		# We need to handle: bare addr, "Name" <addr>, Name <addr>
+		my @addrs;
+		while ($val =~ /\G\s*(?:"[^"]*"\s*<([^>]+)>|<([^>]+)>|([^,@\s]+@[^,\s]+))\s*,?\s*/g)
+		{
+			push @addrs, defined($1) ? $1 : defined($2) ? $2 : $3;
+		}
+		push @rcpts, @addrs;
+	}
+
+	if (!@rcpts)
+	{
+		print STDERR "$progname: --forensic: no recipients found in message headers\n";
+		exit(1);
+	}
+
+	# StaleMARC check: remove any recipients that are known-stale.
+	@rcpts = grep { !stale_skip("rua", $_) } @rcpts;
+
+	if (!@rcpts)
+	{
+		print STDERR "$progname: --forensic: all recipients suppressed by StaleMARC check\n";
+		exit(0);
+	}
+
+	if ($testmode)
+	{
+		print STDERR "$progname: --forensic: would send forensic report to " .
+		             join(", ", @rcpts) . "\n";
+		exit(0);
+	}
+
+	if ($verbose)
+	{
+		print STDERR "$progname: --forensic: connecting to $smtp_server:$smtp_port\n";
+	}
+
+	$smtp = Net::SMTP->new($smtp_server,
+	                       'Port' => $smtp_port,
+	                       'Hello' => hostfqdn());
+	if (!defined($smtp))
+	{
+		print STDERR "$progname: --forensic: open SMTP server $smtp_server:$smtp_port failed\n";
+		exit(1);
+	}
+
+	$smtpfail = 0;
+
+	if ($verp)
+	{
+		# VERP: one transaction per recipient so each gets a unique MAIL FROM.
+		for my $rcpt (@rcpts)
+		{
+			my $ok = $smtp->mail(verp_sender($repemail, $rcpt)) &&
+			         $smtp->to($rcpt) &&
+			         $smtp->data() &&
+			         $smtp->datasend($message) &&
+			         $smtp->dataend();
+			if ($verbose || !$ok)
+			{
+				$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
+				chomp($answer);
+				my $status = $ok ? "sent" : "failed to send";
+				print STDERR "$progname: --forensic: $status forensic report to $rcpt ($answer)\n";
+			}
+			$smtpfail = 1 if !$ok;
+			$smtp->reset();
+		}
+	}
+	else
+	{
+		if (!$smtp->mail($repemail))
+		{
+			$smtpfail = 1;
+		}
+		else
+		{
+			for my $rcpt (@rcpts)
+			{
+				if (!$smtp->to($rcpt))
+				{
+					$smtpfail = 1;
+					last;
+				}
+			}
+		}
+
+		if (!$smtpfail)
+		{
+			if (!$smtp->data() ||
+			    !$smtp->datasend($message) ||
+			    !$smtp->dataend())
+			{
+				$smtpfail = 1;
+			}
+		}
+
+		if ($verbose || $smtpfail)
+		{
+			$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
+			chomp($answer);
+			my $status = $smtpfail ? "failed to send" : "sent";
+			print STDERR "$progname: --forensic: $status forensic report to " .
+			             join(", ", @rcpts) . " ($answer)\n";
+		}
+
+		$smtp->reset();
+	}
+
+	$smtp->quit();
+
+	exit($smtpfail ? 1 : 0);
 }
 
 require "DBD/$dbscheme.pm";
@@ -326,6 +659,8 @@ if ($verbose >= 2)
 
 if ($use_utc)
 {
+	# MySQL-specific: SET TIME_ZONE has no direct equivalent in SQLite or
+	# PostgreSQL (use AT TIME ZONE or session configuration instead).
 	$dbi_s = $dbi_h->prepare("SET TIME_ZONE='+00:00'");
 
 	if (!$dbi_s->execute())
@@ -334,6 +669,67 @@ if ($use_utc)
 		$dbi_s->finish;
 		$dbi_h->disconnect;
 		exit(1);
+	}
+}
+
+#
+# Check schema is current
+#
+
+$dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'requests' AND COLUMN_NAME = 'lastsent'");
+if ($dbi_s->execute() && (my $row = $dbi_s->fetchrow_arrayref()))
+{
+	if ($row->[0] eq 'NO')
+	{
+		print STDERR "$progname: WARNING: requests.lastsent column is NOT NULL; schema needs upgrading.\n";
+		print STDERR "$progname: WARNING: Run: ALTER TABLE requests MODIFY lastsent TIMESTAMP NULL DEFAULT NULL;\n";
+	}
+}
+$dbi_s->finish;
+
+# MySQL-specific: INFORMATION_SCHEMA.COLUMNS is a MySQL/MariaDB/PostgreSQL
+# feature.  SQLite equivalent: PRAGMA table_info(tablename).
+$dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'messages' AND COLUMN_NAME = 'spf_scope'");
+if ($dbi_s->execute() && !(my $row = $dbi_s->fetchrow_arrayref()))
+{
+	print STDERR "$progname: WARNING: messages.spf_scope column is missing; schema needs upgrading.\n";
+	print STDERR "$progname: WARNING: Run: ALTER TABLE messages ADD COLUMN spf_scope TINYINT NOT NULL DEFAULT '-1' AFTER spf;\n";
+}
+$dbi_s->finish;
+
+$dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'requests' AND COLUMN_NAME = 'fo'");
+if ($dbi_s->execute() && !(my $row = $dbi_s->fetchrow_arrayref()))
+{
+	print STDERR "$progname: WARNING: requests.fo column is missing; schema needs upgrading.\n";
+	print STDERR "$progname: WARNING: Run: ALTER TABLE requests ADD COLUMN fo TINYINT NOT NULL DEFAULT '0' AFTER pct;\n";
+}
+$dbi_s->finish;
+
+#
+#
+# Load reporting suppressions from the database.  Fail open if the table
+# does not exist yet (e.g. pre-migration installs).
+#
+
+{
+	my $s = $dbi_h->prepare("SELECT address FROM suppressions");
+	if ($s && $s->execute())
+	{
+		while (my $row = $s->fetchrow_arrayref())
+		{
+			$db_suppress{lc($row->[0])} = 1;
+		}
+		$s->finish;
+
+		if ($verbose >= 2)
+		{
+			print STDERR "$progname: loaded " . scalar(keys %db_suppress) .
+			             " suppression(s) from database\n";
+		}
+	}
+	elsif ($verbose >= 2)
+	{
+		print STDERR "$progname: no suppressions table found; skipping\n";
 	}
 }
 
@@ -360,9 +756,11 @@ if (defined($forcedomain))
 }
 elsif ($daybound)
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
-
-	if (!$dbi_s->execute($now))
+	# MySQL-specific: FROM_UNIXTIME() converts a Unix timestamp to DATETIME.
+	# SQLite equivalent: datetime(?, 'unixepoch')
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
+	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
+	if (!$dbi_s->execute())
 	{
 		print STDERR "$progname: failed to collect domain names: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
@@ -372,9 +770,12 @@ elsif ($daybound)
 }
 else
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
-
-	if (!$dbi_s->execute($now, $interval))
+	# MySQL-specific: DATE_SUB(..., INTERVAL ? SECOND) and FROM_UNIXTIME().
+	# SQLite equivalent: datetime(?, 'unixepoch', '-' || ? || ' seconds')
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
+	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
+	$dbi_s->bind_param(2, $interval, {TYPE => SQL_INTEGER});
+	if (!$dbi_s->execute())
 	{
 		print STDERR "$progname: failed to collect domain names: " . $dbi_h->errstr . "\n";
 		$dbi_s->finish;
@@ -400,12 +801,23 @@ if ($verbose)
 #
 
 $smtp = Net::SMTP->new($smtp_server,
-                       'Port' => $smtp_port,
-                       'Hello' => hostfqdn());
+                       'Port'    => $smtp_port,
+                       'Hello'   => hostfqdn(),
+                       'SSL'     => $smtp_ssl,
+                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
 if (!defined($smtp))
 {
 	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
 	exit(1);
+}
+
+if (defined($smtp_username) && defined($smtp_password))
+{
+	if (!$smtp->auth($smtp_username, $smtp_password))
+	{
+		print STDERR "$progname: SMTP authentication failed\n";
+		exit(1);
+	}
 }
 
 foreach (@$domainset)
@@ -418,6 +830,11 @@ foreach (@$domainset)
 	}
 
 	if (@skipdomains && grep({$_ eq $domain} @skipdomains) != 0)
+	{
+		next;
+	}
+
+	if (stale_skip("domain", $domain) || db_skip($domain))
 	{
 		next;
 	}
@@ -453,7 +870,10 @@ foreach (@$domainset)
 		next;
 	}
 
-	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+	# MySQL-specific: UNIX_TIMESTAMP() converts a DATETIME to a Unix timestamp.
+	# SQLite equivalent: strftime('%s', lastsent)
+	# PostgreSQL equivalent: EXTRACT(EPOCH FROM lastsent)
+	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, fo, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
         $dbi_s->bind_param(1, $domainid, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
 	{
@@ -493,7 +913,11 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[6]))
 		{
-			$lastsent = $dbi_a->[6];
+			$fo = $dbi_a->[6];
+		}
+		if (defined($dbi_a->[7]))
+		{
+			$lastsent = $dbi_a->[7];
 		}
 	}
 
@@ -522,49 +946,79 @@ foreach (@$domainset)
 		$repend = $now;
 	}
 
+	# look up the domain where the DMARC record was actually found (RFC 7489
+	# appendix C: policy_published.domain is the record's location, not the
+	# from domain, which may be a subdomain inheriting from the org domain)
+	undef $pdomain;
+	$dbi_s = $dbi_h->prepare(q{
+	                         SELECT d2.name
+	                         FROM messages
+	                         JOIN domains d2 ON messages.policy_domain = d2.id
+	                         WHERE messages.from_domain = ?
+	                           AND messages.date > FROM_UNIXTIME(?)
+	                           AND messages.date <= FROM_UNIXTIME(?)
+	                         LIMIT 1
+	});
+	$dbi_s->bind_param(1, $domainid, {TYPE => SQL_INTEGER});
+	$dbi_s->bind_param(2, $repstart, {TYPE => SQL_INTEGER});
+	$dbi_s->bind_param(3, $repend,   {TYPE => SQL_INTEGER});
+	if ($dbi_s->execute())
+	{
+		if ($dbi_a = $dbi_s->fetchrow_arrayref())
+		{
+			$pdomain = $dbi_a->[0] if defined($dbi_a->[0]);
+		}
+	}
+	$dbi_s->finish;
+	$pdomain = $domain unless defined($pdomain);
+
 	# construct the temporary file
-	$repfile = $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml";
-	$gzipfile = $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml.gz";
+	$repfile = $workdir . "/" . $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml";
+	$gzipfile = $workdir . "/" . $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml.gz";
 	if (!open($tmpout, ">", $repfile))
 	{
-		print STDERR "$progname: can't create report file for domain $domain\n";
+		print STDERR "$progname: can't create report file for domain $domain: $!\n";
 		next;
 	}
 
-	switch ($adkim)
+	if    ($adkim == ord("r")) { $adkimstr = "r"; }
+	elsif ($adkim == ord("s")) { $adkimstr = "s"; }
+	else                       { $adkimstr = "unknown"; }
+
+	if    ($aspf == ord("r")) { $aspfstr = "r"; }
+	elsif ($aspf == ord("s")) { $aspfstr = "s"; }
+	else                      { $aspfstr = "unknown"; }
+
+	if    ($policy == ord("n")) { $policystr = "none"; }
+	elsif ($policy == ord("q")) { $policystr = "quarantine"; }
+	elsif ($policy == ord("r")) { $policystr = "reject"; }
+	else                        { $policystr = "unknown"; }
+
+	if    ($spolicy == 0)        { $spolicystr = $policystr; }
+	elsif ($spolicy == ord("n")) { $spolicystr = "none"; }
+	elsif ($spolicy == ord("q")) { $spolicystr = "quarantine"; }
+	elsif ($spolicy == ord("r")) { $spolicystr = "reject"; }
+	else                         { $spolicystr = "unknown"; }
+
 	{
-		case ord("r")	{ $adkimstr = "r"; }
-		case ord("s")	{ $adkimstr = "s"; }
-		else		{ $adkimstr = "unknown"; }
+		my @fo_values;
+		if (!defined($fo) || $fo == 0)
+		{
+			$fostr = "0";
+		}
+		else
+		{
+			push @fo_values, "0" if ($fo & 0x1);
+			push @fo_values, "1" if ($fo & 0x2);
+			push @fo_values, "d" if ($fo & 0x4);
+			push @fo_values, "s" if ($fo & 0x8);
+			$fostr = @fo_values ? join(":", @fo_values) : "0";
+		}
 	}
-
-	switch ($aspf)
-	{
-		case ord("r")	{ $aspfstr = "r"; }
-		case ord("s")	{ $aspfstr = "s"; }
-		else		{ $aspfstr = "unknown"; }
-	}
-
-	switch ($policy)
-	{
-		case ord("n")	{ $policystr = "none"; }
-		case ord("q")	{ $policystr = "quarantine"; }
-		case ord("r")	{ $policystr = "reject"; }
-		else		{ $policystr = "unknown"; }
-	}
-
- 	switch ($spolicy)
- 	{
- 		case 0		{ $spolicystr = $policystr; }
- 		case ord("n")	{ $spolicystr = "none"; }
- 		case ord("q")	{ $spolicystr = "quarantine"; }
- 		case ord("r")	{ $spolicystr = "reject"; }
- 		else		{ $spolicystr = "unknown"; }
- 	}
-
 
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 	print $tmpout "<feedback>\n";
+	print $tmpout "    <version>1</version>\n";
 
 	print $tmpout "    <report_metadata>\n";
 	print $tmpout "        <org_name>$repdom</org_name>\n";
@@ -577,34 +1031,37 @@ foreach (@$domainset)
 	print $tmpout "    </report_metadata>\n";
 
 	print $tmpout "    <policy_published>\n";
-	print $tmpout "        <domain>$domain</domain>\n";
+	print $tmpout "        <domain>$pdomain</domain>\n";
 	print $tmpout "        <adkim>$adkimstr</adkim>\n";
 	print $tmpout "        <aspf>$aspfstr</aspf>\n";
 	print $tmpout "        <p>$policystr</p>\n";
 	print $tmpout "        <sp>$spolicystr</sp>\n";
 	print $tmpout "        <pct>$pct</pct>\n";
+	print $tmpout "        <fo>$fostr</fo>\n";
 	print $tmpout "    </policy_published>\n";
 
+	# MySQL-specific: FROM_UNIXTIME() in both queries below.
+	# SQLite equivalent: datetime(?, 'unixepoch')
 	if ($daybound)
 	{
 		$dbi_s = $dbi_h->prepare(q{
 		                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
-		                                 messages.spf, messages.align_spf, messages.align_dkim,
+		                                 messages.spf, messages.spf_scope, messages.align_spf, messages.align_dkim,
 		                                 messages.arc, messages.arc_policy
 		                         FROM messages
 		                         JOIN ipaddr ON messages.ip = ipaddr.id
 		                         JOIN domains d1 ON messages.from_domain = d1.id
 		                         JOIN domains d2 ON messages.env_domain = d2.id
 		                         WHERE messages.from_domain = ?
-		                                 AND DATE(messages.date) >= DATE(FROM_UNIXTIME(?))
-		                                 AND DATE(messages.date) < DATE(FROM_UNIXTIME(?))
+		                                 AND messages.date >= FROM_UNIXTIME(?)
+		                                 AND messages.date < FROM_UNIXTIME(?)
 		});
 	}
 	else
 	{
 		$dbi_s = $dbi_h->prepare(q{
 		                         SELECT messages.id, ipaddr.addr, messages.disp, d1.name, d2.name,
-		                                 messages.spf, messages.align_spf, messages.align_dkim,
+		                                 messages.spf, messages.spf_scope, messages.align_spf, messages.align_dkim,
 		                                 messages.arc, messages.arc_policy
 		                         FROM messages
 		                         JOIN ipaddr ON messages.ip = ipaddr.id
@@ -659,19 +1116,23 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[6]))
 		{
-			$align_spf = $dbi_a->[6];
+			$spf_scope = $dbi_a->[6];
 		}
 		if (defined($dbi_a->[7]))
 		{
-			$align_dkim = $dbi_a->[7];
+			$align_spf = $dbi_a->[7];
 		}
 		if (defined($dbi_a->[8]))
 		{
-			$arc = $dbi_a->[8];
+			$align_dkim = $dbi_a->[8];
 		}
 		if (defined($dbi_a->[9]))
 		{
-			$arcpolicy = $dbi_a->[9];
+			$arc = $dbi_a->[9];
+		}
+		if (defined($dbi_a->[10]))
+		{
+			$arcpolicy = $dbi_a->[10];
 		}
 
 		if (!defined($msgid))
@@ -681,56 +1142,41 @@ foreach (@$domainset)
 
 		$rowcount++;
 
-		switch ($disp)
-		{
-			case 0	{ $dispstr = "reject"; }
-			case 1	{ $dispstr = "reject"; }
-			case 2	{ $dispstr = "none"; }
-			case 4	{ $dispstr = "quarantine"; }
-			else	{ $dispstr = "unknown"; }
-		}
+		if    ($disp == 0) { $dispstr = "reject"; }
+		elsif ($disp == 1) { $dispstr = "reject"; }
+		elsif ($disp == 2) { $dispstr = "none"; }
+		elsif ($disp == 4) { $dispstr = "quarantine"; }
+		else               { $dispstr = "unknown"; }
 
-		switch ($spfresult)
-		{
-			case 0	{ $spfresultstr = "pass"; }
-			case 2	{ $spfresultstr = "softfail"; }
-			case 3	{ $spfresultstr = "neutral"; }
-			case 4	{ $spfresultstr = "temperror"; }
-			case 5	{ $spfresultstr = "permerror"; }
-			case 6	{ $spfresultstr = "none"; }
-			case 7	{ $spfresultstr = "fail"; }
-			case 8	{ $spfresultstr = "policy"; }
-			case 9	{ $spfresultstr = "nxdomain"; }
-			case 10	{ $spfresultstr = "signed"; }
-			case 12	{ $spfresultstr = "discard"; }
-			else	{ $spfresultstr = "unknown"; }
-		}
+		if    ($spfresult ==  0) { $spfresultstr = "pass"; }
+		elsif ($spfresult ==  2) { $spfresultstr = "softfail"; }
+		elsif ($spfresult ==  3) { $spfresultstr = "neutral"; }
+		elsif ($spfresult ==  4) { $spfresultstr = "temperror"; }
+		elsif ($spfresult ==  5) { $spfresultstr = "permerror"; }
+		elsif ($spfresult ==  6) { $spfresultstr = "none"; }
+		elsif ($spfresult ==  7) { $spfresultstr = "fail"; }
+		elsif ($spfresult ==  8) { $spfresultstr = "policy"; }
+		elsif ($spfresult ==  9) { $spfresultstr = "nxdomain"; }
+		elsif ($spfresult == 10) { $spfresultstr = "signed"; }
+		elsif ($spfresult == 12) { $spfresultstr = "discard"; }
+		else                     { $spfresultstr = "unknown"; }
 
-		switch ($align_dkim)
-		{
-			case 4	{ $align_dkimstr = "pass"; }
-			case 5	{ $align_dkimstr = "fail"; }
-			else	{ $align_dkimstr = "unknown"; }
-		}
+		if    ($align_dkim == 4) { $align_dkimstr = "pass"; }
+		elsif ($align_dkim == 5) { $align_dkimstr = "fail"; }
+		else                     { $align_dkimstr = "unknown"; }
 
-		switch ($align_spf)
-		{
-			case 4	{ $align_spfstr = "pass"; }
-			case 5	{ $align_spfstr = "fail"; }
-			else	{ $align_spfstr = "unknown"; }
-		}
+		if    ($align_spf == 4) { $align_spfstr = "pass"; }
+		elsif ($align_spf == 5) { $align_spfstr = "fail"; }
+		else                    { $align_spfstr = "unknown"; }
 
 		switch ($arc)
 		{
-			case 1	{ $arcstr = "pass"; }
+			case 0	{ $arcstr = "pass"; }
 			else	{ $arcstr = "fail"; }
 		}
 
-		switch ($arcpolicy)
-		{
-			case 0	{ $arcpolicystr = "pass"; }
-			else	{ $arcpolicystr = "fail"; }
-		}
+		if ($arcpolicy == 0) { $arcpolicystr = "pass"; }
+		else                 { $arcpolicystr = "fail"; }
 
 		# retrieve arc_policy seals, join arcauthresults.arc_client_addr (smtp.client_ip)
 		$dbi_s2 = $dbi_h->prepare(q{
@@ -783,11 +1229,25 @@ foreach (@$domainset)
 		print $tmpout "            </policy_evaluated>\n";
 		print $tmpout "        </row>\n";
 		print $tmpout "        <identifiers>\n";
+		if (defined($envdomain) && $envdomain ne "")
+		{
+			print $tmpout "            <envelope_from>$envdomain</envelope_from>\n";
+		}
 		print $tmpout "            <header_from>$fromdomain</header_from>\n";
 		print $tmpout "        </identifiers>\n";
+		if (!defined($spf_scope) || $spf_scope == 2)
+		{
+			$spf_scopestr = "helo";
+		}
+		else
+		{
+			$spf_scopestr = "mfrom";
+		}
+
 		print $tmpout "        <auth_results>\n";
 		print $tmpout "            <spf>\n";
 		print $tmpout "                <domain>$envdomain</domain>\n";
+		print $tmpout "                <scope>$spf_scopestr</scope>\n";
 		print $tmpout "                <result>$spfresultstr</result>\n";
 		print $tmpout "            </spf>\n";
 
@@ -795,7 +1255,7 @@ foreach (@$domainset)
 		                          SELECT domains.name, selectors.name, pass
 		                          FROM signatures
 		                          JOIN domains ON signatures.domain = domains.id
-		                          JOIN selectors ON signatures.selector = selectors.id
+		                          LEFT JOIN selectors ON signatures.selector = selectors.id
 		                          WHERE signatures.message = ?
 		});
                 $dbi_s2->bind_param(1, $msgid, {TYPE => SQL_INTEGER});
@@ -817,10 +1277,7 @@ foreach (@$domainset)
 			{
 				$dkimdomain = $dbi_a->[0];
 			}
-			if (defined($dbi_a->[1]))
-			{
-				$dkimselector = $dbi_a->[1];
-			}
+			$dkimselector = defined($dbi_a->[1]) ? $dbi_a->[1] : "";
 			if (defined($dbi_a->[2]))
 			{
 				$dkimresult = $dbi_a->[2];
@@ -836,21 +1293,18 @@ foreach (@$domainset)
 			}
 			$dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}++;
 
-			switch ($dkimresult)
-			{
-				case 0	{ $dkimresultstr = "pass"; }
-				case 2	{ $dkimresultstr = "softfail"; }
-				case 3	{ $dkimresultstr = "neutral"; }
-				case 4	{ $dkimresultstr = "temperror"; }
-				case 5	{ $dkimresultstr = "permerror"; }
-				case 6	{ $dkimresultstr = "none"; }
-				case 7	{ $dkimresultstr = "fail"; }
-				case 8	{ $dkimresultstr = "policy"; }
-				case 9	{ $dkimresultstr = "nxdomain"; }
-				case 10	{ $dkimresultstr = "signed"; }
-				case 12	{ $dkimresultstr = "discard"; }
-				else	{ $dkimresultstr = "unknown"; }
-			}
+			if    ($dkimresult ==  0) { $dkimresultstr = "pass"; }
+			elsif ($dkimresult ==  2) { $dkimresultstr = "softfail"; }
+			elsif ($dkimresult ==  3) { $dkimresultstr = "neutral"; }
+			elsif ($dkimresult ==  4) { $dkimresultstr = "temperror"; }
+			elsif ($dkimresult ==  5) { $dkimresultstr = "permerror"; }
+			elsif ($dkimresult ==  6) { $dkimresultstr = "none"; }
+			elsif ($dkimresult ==  7) { $dkimresultstr = "fail"; }
+			elsif ($dkimresult ==  8) { $dkimresultstr = "policy"; }
+			elsif ($dkimresult ==  9) { $dkimresultstr = "nxdomain"; }
+			elsif ($dkimresult == 10) { $dkimresultstr = "signed"; }
+			elsif ($dkimresult == 12) { $dkimresultstr = "discard"; }
+			else                      { $dkimresultstr = "unknown"; }
 
 			print $tmpout "            <dkim>\n";
 			print $tmpout "                <domain>$dkimdomain</domain>\n";
@@ -938,11 +1392,19 @@ foreach (@$domainset)
 			}
 		}
 
+		# Skip if this RUA address is known-stale or locally suppressed.
+		if ($uri->scheme eq "mailto" &&
+		    (stale_skip("rua", $repdest) || db_skip($repdest)))
+		{
+			next;
+		}
+
 		# Test mode, just report what would have been done
 		if ($testmode)
 		{
-			print STDERR "$progname: would email $domain report for " .
-			             "$rowcount records to " .  $uri->opaque . "\n";
+			my $verb = ($uri->scheme eq "mailto") ? "email" : "post";
+			print STDERR "$progname: would $verb $domain report for " .
+			             "$rowcount records to " . $uri->opaque . "\n";
 		}
 		# ensure a scheme is present
 		elsif (!defined($uri->scheme))
@@ -972,6 +1434,7 @@ foreach (@$domainset)
 			                    localtime);
 
 			$mailout  = "To: $repdest\n";
+			$mailout .= "Bcc: $repbcc\n" if defined($repbcc);
 			$mailout .= "From: $repemail\n";
 			$mailout .= "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
 			$mailout .= "X-Mailer: " . $progname . " v" . $version ."\n";
@@ -1013,8 +1476,10 @@ foreach (@$domainset)
 			{
 				$smtpstatus = "sent";
 				$smtpfail = 0;
-				if (!$smtp->mail($repemail) ||
+				my $mailfrom = $verp ? verp_sender($repemail, $repdest) : $repemail;
+				if (!$smtp->mail($mailfrom) ||
 				    !$smtp->to($repdest) ||
+				    (defined($repbcc) && !$smtp->to($repbcc)) ||
 				    !$smtp->data() ||
 				    !$smtp->datasend($mailout) ||
 				    !$smtp->dataend())
@@ -1036,6 +1501,48 @@ foreach (@$domainset)
 
 			close($zipin);
 		}
+		elsif ($uri->scheme eq "http" || $uri->scheme eq "https")
+		{
+			if (!open($zipin, $gzipfile))
+			{
+				print STDERR "$progname: can't read zipped report for $domain: $!\n";
+				next;
+			}
+
+			my $zipdata;
+			{
+				local $/;
+				$zipdata = <$zipin>;
+			}
+			close($zipin);
+
+			my $reportsize = length($zipdata);
+			if ($reportsize > $report_maxbytes)
+			{
+				print STDERR "$progname: report was too large ($reportsize bytes) per limitation of URI " . $uri->opaque . " for domain $domain\n";
+				next;
+			}
+
+			my $req = HTTP::Request->new(POST => $repuri);
+			$req->content_type('application/gzip');
+			$req->content($zipdata);
+
+			my $ua = LWP::UserAgent->new;
+			$ua->agent("$progname/$version");
+			my $resp = $ua->request($req);
+
+			if ($resp->is_success)
+			{
+				if ($verbose)
+				{
+					print STDERR "$progname: posted report for $domain to $repuri (" . $resp->status_line . ")\n";
+				}
+			}
+			else
+			{
+				print STDERR "$progname: failed to post report for $domain to $repuri (" . $resp->status_line . ")\n";
+			}
+		}
 		else
 		{
 			print STDERR "$progname: unsupported reporting URI scheme " . $uri->scheme . " for domain $domain\n";
@@ -1046,6 +1553,8 @@ foreach (@$domainset)
 	# update "last sent" timestamp
 	if ($doupdate)
 	{
+		# MySQL-specific: FROM_UNIXTIME() converts a Unix timestamp to DATETIME.
+		# SQLite equivalent: datetime(?, 'unixepoch')
 		$dbi_s = $dbi_h->prepare("UPDATE requests SET lastsent = FROM_UNIXTIME(?) WHERE domain = ?");
                 $dbi_s->bind_param(1, $repend, {TYPE => SQL_INTEGER});
                 $dbi_s->bind_param(2, $domainid, {TYPE => SQL_INTEGER});
