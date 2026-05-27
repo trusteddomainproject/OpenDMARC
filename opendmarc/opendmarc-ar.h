@@ -17,7 +17,6 @@
 #include "dmarc.h"
 
 /* limits */
-#define	AUTHRESHDRNAME	"Authentication-Results"
 #define	MAXARESULTS	32
 #define	MAXPROPS	16
 #define	MAXAVALUE	256

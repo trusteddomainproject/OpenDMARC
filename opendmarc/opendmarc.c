@@ -2498,7 +2498,7 @@ mlfi_eom(SMFICTX *ctx)
 	     hdr = hdr->hdr_next, c++)
 	{
 		/* skip it if it's not Authentication-Results */
-		if (strcasecmp(hdr->hdr_name, AUTHRESHDRNAME) != 0)
+		if (strcasecmp(hdr->hdr_name, AUTHRESULTSHDR) != 0)
 			continue;
 
 		/* parse it */
