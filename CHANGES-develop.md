@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 ## Authentication-Results parsing
 
+- **AR header with no-result rejected as invalid**: RFC 8601 §2.2 permits `Authentication-Results: example.com; none` as a valid header indicating no methods were evaluated. The parser treated this as a syntax error. Added state handling for the `none` token before falling through to normal method processing. (#267)
 - **`Authentication-Results` header authserv-id quoting**: When `AuthservIDWithJobID` was enabled, the job ID was appended without quoting, producing an invalid header when the composite value contained characters requiring quoting. (#311, issue #17)
 - **`AuthservIDWithJobID` not applied to SPF result header**: The job ID was appended to the DMARC authserv-id but not to the authserv-id in the SPF authentication result field. (#311, issue #17)
 - **ADMD-less `Authentication-Results` headers**: Some MTAs (notably Office 365) generate AR headers that omit the authserv-id entirely. The parser now recovers gracefully rather than discarding the result. (#329, issue #73)
