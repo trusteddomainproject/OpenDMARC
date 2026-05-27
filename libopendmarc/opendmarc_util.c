@@ -204,6 +204,7 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 #define OPENDMARC_MAX_QUOTES (256)
 	int	quotes[OPENDMARC_MAX_QUOTES + 1];
 	int	numquotes = 0;
+	int	indquote = 0;
 	size_t  len;
 
 	if (raw == NULL)
@@ -242,10 +243,33 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 				continue;
 			}
 		}
+		/*
+		 * Handle quoted-pair inside a double-quoted string (RFC5322 3.2.4).
+		 * Prevents escaped quotes from being misread as string delimiters,
+		 * e.g. "\"Foo, Inc.\"" <user@example.com>.
+		 */
+		if (indquote && *cp == '\\')
+		{
+			++cp;
+			if (*cp == '\0')
+				break;
+			if (*cp == '"' || *cp == '\\')
+			{
+				*cp = ' ';
+				continue;
+			}
+		}
 		if (*cp == '"' || *cp == '\'' || *cp == '(')
 		{
 			if (*cp == '(')
 				*cp = ')';
+			else if (*cp == '"')
+			{
+				if (!indquote)
+					indquote = 1;
+				else
+					indquote = 0;
+			}
 			if (numquotes == 0)
 			{
 				quotes[numquotes] = *cp;
