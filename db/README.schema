@@ -44,5 +44,26 @@ requests	A table containing a cache of DMARC reporting requests.
 		For each domain, the destination reporting URI for aggregate
 		reports is recorded along with a "last report sent" timestamp.
 
+UPGRADING AN EXISTING SCHEMA
+----------------------------
+
+If you are upgrading from an older installation rather than starting fresh,
+the following ALTER TABLE statements will bring your schema up to date.
+
+These are also shown by opendmarc-reports and opendmarc-import at startup
+if the relevant columns are missing.
+
+1. requests.lastsent (introduced to fix MySQL strict mode incompatibility):
+
+	ALTER TABLE requests MODIFY lastsent TIMESTAMP NULL DEFAULT NULL;
+
+2. messages.spf_scope (introduced to support RFC 7489 <scope> in reports):
+
+	ALTER TABLE messages ADD COLUMN spf_scope TINYINT NOT NULL DEFAULT '-1' AFTER spf;
+
+3. requests.fo (introduced to support RFC 7489 <fo> in reports):
+
+	ALTER TABLE requests ADD COLUMN fo TINYINT NOT NULL DEFAULT '0' AFTER pct;
+
 --
-Copyright (c) 2012, 2018, The Trusted Domain Project.  All rights reserved.
+Copyright (c) 2012, 2018, 2026, The Trusted Domain Project.  All rights reserved.

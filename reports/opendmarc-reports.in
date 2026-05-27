@@ -338,6 +338,21 @@ if ($use_utc)
 }
 
 #
+# Check schema is current
+#
+
+$dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'requests' AND COLUMN_NAME = 'lastsent'");
+if ($dbi_s->execute() && (my $row = $dbi_s->fetchrow_arrayref()))
+{
+	if ($row->[0] eq 'NO')
+	{
+		print STDERR "$progname: WARNING: requests.lastsent column is NOT NULL; schema needs upgrading.\n";
+		print STDERR "$progname: WARNING: Run: ALTER TABLE requests MODIFY lastsent TIMESTAMP NULL DEFAULT NULL;\n";
+	}
+}
+$dbi_s->finish;
+
+#
 # Select domains on which to report
 #
 
@@ -360,7 +375,7 @@ if (defined($forcedomain))
 }
 elsif ($daybound)
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
 
 	if (!$dbi_s->execute($now))
 	{
@@ -372,7 +387,7 @@ elsif ($daybound)
 }
 else
 {
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
 
 	if (!$dbi_s->execute($now, $interval))
 	{
