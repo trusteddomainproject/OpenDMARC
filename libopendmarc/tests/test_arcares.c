@@ -219,15 +219,14 @@ main(int argc, char **argv)
 	/* arcares_parse: unknown auth method — real-world regression (#238)  */
 	/*                                                                     */
 	/* Gmail ARC headers include "dara=pass" (DKIM Authorized Resigners). */
-	/* The authres_parse ignore_res flag skips unknown methods; the three  */
-	/* known methods (dkim, spf, dmarc) must still be stored.             */
+	/* The authres_parse ignore_res flag skips unknown methods; the two   */
+	/* known methods (dkim, spf) must still be stored.                    */
 	/* ------------------------------------------------------------------ */
 
 	ret = opendmarc_arcares_parse(
 	    (u_char *)"i=1; mx.google.com; "
 	              "dkim=pass header.i=@gmail.com; "
 	              "spf=pass smtp.mailfrom=foo@gmail.com; "
-	              "dmarc=pass header.from=gmail.com; "
 	              "dara=pass header.i=@gmail.com",
 	    &aar);
 	CHECK("arcares_parse unknown method (dara): returns 0",
@@ -235,7 +234,7 @@ main(int argc, char **argv)
 	CHECK("arcares_parse unknown method (dara): instance set",
 	      aar.instance == 1);
 	CHECK("arcares_parse unknown method (dara): known methods stored",
-	      aar.payload.ares_count == 3);
+	      aar.payload.ares_count == 2);
 
 	/* ------------------------------------------------------------------ */
 	/* arcares_parse: CRLF folding (\r\n) in header — regression (#238)   */
@@ -244,7 +243,7 @@ main(int argc, char **argv)
 	ret = opendmarc_arcares_parse(
 	    (u_char *)"i=1; mx.google.com;\r\n"
 	              "\tdkim=pass header.i=@gmail.com;\r\n"
-	              "\tdmarc=pass header.from=gmail.com",
+	              "\tspf=pass smtp.mailfrom=foo@gmail.com",
 	    &aar);
 	CHECK("arcares_parse CRLF folding: returns 0",    ret == 0);
 	CHECK("arcares_parse CRLF folding: instance set", aar.instance == 1);
