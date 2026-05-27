@@ -89,6 +89,8 @@ CREATE TABLE IF NOT EXISTS suppressions (
 - **`AuthservIDWithJobID` not applied to SPF result header**: The job ID was appended to the DMARC authserv-id but not to the authserv-id in the SPF authentication result field. (#311, issue #17)
 - **ADMD-less `Authentication-Results` headers**: Some MTAs (notably Office 365) generate AR headers that omit the authserv-id entirely. The parser now recovers gracefully rather than discarding the result. (#329, issue #73)
 
+**Open question**: The `dmarc=` and `spf=` results are currently emitted as separate `Authentication-Results` headers, which is what most downstream consumers (Rspamd, SpamAssassin, etc.) expect. RFC 8601 permits combining them into a single header, and a future `CombinedAuthservHeader` option could allow operators to opt in once they have verified their downstream software handles it. Worth coordinating with those projects before implementing.
+
 ---
 
 ## Build system and portability
