@@ -91,6 +91,12 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 ---
 
+## Signal handling
+
+- **SIGHUP now triggers config reload instead of shutdown**: SIGHUP was handled identically to SIGTERM, causing the filter to exit. Unix convention is that SIGHUP triggers a configuration reload in long-running daemons. The reload path already existed (previously reachable via SIGUSR1 only); SIGHUP is now folded into it. SIGTERM and SIGINT remain the shutdown signals. (#323, issue #322)
+
+---
+
 ## Configuration options
 
 - **`RequiredFrom` option added**: New boolean option that rejects messages lacking a From: field from which a domain can be extracted. Unlike `RequiredHeaders` (which enforces all RFC5322 header count restrictions), `RequiredFrom` enforces only the From field check, making it suitable for deployments where full RFC5322 compliance would reject too many legitimate messages. Prevents attackers from omitting the From header to evade DMARC evaluation. (#343)
