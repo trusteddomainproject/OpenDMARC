@@ -161,7 +161,7 @@ my $smtp_ssl        = 0;
 my $smtp_ssl_ca_file;
 my $smtp;
 
-my $configfile   = "@sysconfdir@/opendmarc/opendmarc-reports.conf";
+my $configfile   = '@sysconfdir@/opendmarc/opendmarc-reports.conf';
 
 my $answer;
 
@@ -1169,11 +1169,8 @@ foreach (@$domainset)
 		elsif ($align_spf == 5) { $align_spfstr = "fail"; }
 		else                    { $align_spfstr = "unknown"; }
 
-		switch ($arc)
-		{
-			case 0	{ $arcstr = "pass"; }
-			else	{ $arcstr = "fail"; }
-		}
+		if ($arc == 0) { $arcstr = "pass"; }
+		else           { $arcstr = "fail"; }
 
 		if ($arcpolicy == 0) { $arcpolicystr = "pass"; }
 		else                 { $arcpolicystr = "fail"; }
