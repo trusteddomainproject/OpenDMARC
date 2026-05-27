@@ -26,6 +26,7 @@
 # include <opendmarc_strl.h>
 #endif /* USE_DMARCSTRL_H */
 
+#include "opendmarc-ar.h"
 #include "opendmarc-arcares.h"
 #include "opendmarc.h"
 
@@ -150,84 +151,20 @@ opendmarc_arcares_strip_whitespace(u_char *string)
 int
 opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
 {
-	int result = 0;
-	u_char *tmp_ptr;
-	u_char *token;
-	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
-
 	assert(hdr != NULL);
 	assert(aar != NULL);
 
-	tmp_ptr = tmp;
-
-	memset(aar, '\0', sizeof *aar);
-	memset(tmp, '\0', sizeof tmp);
-
-	// guarantee a null-terminated string
-	memcpy(tmp, hdr, MIN(strlen(hdr), sizeof tmp - 1));
-
-	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
-	{
-		size_t leading_space_len;
-		aar_tag_t tag_code;
-		char *token_ptr;
-		char *tag_label;
-		char *tag_value;
-
-		leading_space_len = strspn(token, " \n\t");
-		token_ptr = token + leading_space_len;
-		if (*token_ptr == '\0')
-		        return 0;
-		tag_label = strsep(&token_ptr, "=");
-		tag_value = token_ptr;
-		tag_code = opendmarc_arcares_convert(aar_tags, tag_label);
-
-		switch (tag_code)
-		{
-		  case AAR_TAG_ARC:
-			snprintf(aar->arc, sizeof aar->arc, "%s=%s", tag_label, tag_value);
-			break;
-
-		  case AAR_TAG_DKIM:
-			snprintf(aar->dkim, sizeof aar->dkim, "%s=%s", tag_label, tag_value);
-			break;
-
-		  case AAR_TAG_DMARC:
-			snprintf(aar->dmarc, sizeof aar->dmarc, "%s=%s", tag_label, tag_value);
-			break;
-
-		  case AAR_TAG_INSTANCE:
-			aar->instance = atoi(tag_value);
-			/* next value will be unlabeled authserv_id */
-			if ((token = strsep((char **) &tmp_ptr, ";")) != NULL)
-			{
-				leading_space_len = strspn(token, " \n\t");
-				tag_value = opendmarc_arcares_strip_whitespace(token);
-				strlcpy(aar->authserv_id, tag_value, sizeof aar->authserv_id);
-			}
-			break;
-
-		  case AAR_TAG_SPF:
-			snprintf(aar->spf, sizeof aar->spf, "%s=%s", tag_label, tag_value);
-			break;
-
-		  default:
-			result = -1;
-			break;
-		}
-	}
-
-	return result;
+	return authres_parse(hdr, &(aar->payload), &(aar->instance));
 }
 
 /*
-** OPENDMARC_ARCARES_ARC_PARSE -- parse an ARC-Authentication-Results: header
-**                                ARC field, return a structure containing parse
-**                                result
+** OPENDMARC_ARCARES_ARC_PARSE -- retrieve ARC result from a parsed
+**                                ARC-Authentication-Results: header result,
+**                                return a structure containing ARC-specific
+**                                parse result (especially client-ip)
 **
 ** Parameters:
-** 	hdr_arc -- NULL-terminated contents of an ARC-Authentication-Results:
-**                 header ARC field
+** 	aar -- a parse result structure populated by opendmarc_arcares_parse
 ** 	arc -- a pointer to a struct (arcares_arc_field) loaded by values after
 **             parsing
 **
@@ -236,60 +173,53 @@ opendmarc_arcares_parse (u_char *hdr, struct arcares *aar)
 **/
 
 int
-opendmarc_arcares_arc_parse (u_char *hdr_arc, struct arcares_arc_field *arc)
+opendmarc_arcares_arc_parse (struct arcares *aar,
+                             struct arcares_arc_field *arc)
 {
-	u_char *tmp_ptr;
-	u_char *token;
-	u_char tmp[OPENDMARC_ARCARES_MAXHEADER_LEN + 1];
-	int result = 0;
+	int cr;
+	int cp;
+	int r_found = 0;
+	int p_found = 0;
 
-	tmp_ptr = tmp;
-
-	assert(hdr_arc != NULL);
+	assert(aar != NULL);
 	assert(arc != NULL);
 
 	memset(arc, '\0', sizeof *arc);
-	memset(tmp, '\0', sizeof tmp);
 
-	memcpy(tmp, hdr_arc, MIN_OF(strlen(hdr_arc), sizeof tmp - 1));
-
-	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
+	for (cr = 0; cr < aar->payload.ares_count; cr++)
 	{
-		size_t leading_space_len;
-		aar_tag_t tag_code;
-		char *token_ptr;
-		char *tag_label;
-		char *tag_value;
-
-		leading_space_len = strspn(token, " \n\t");
-		token_ptr = token + leading_space_len;
-		if (*token_ptr == '\0')
-			return 0;
-		tag_label = strsep(&token_ptr, "=");
-		tag_value = opendmarc_arcares_strip_whitespace(token_ptr);
-		tag_code = opendmarc_arcares_convert(aar_arc_tags, tag_label);
-
-		switch (tag_code)
+		if (aar->payload.ares_result[cr].result_method == ARES_METHOD_ARC)
 		{
-		  case AAR_ARC_TAG_ARC:
-			strlcpy(arc->arcresult, tag_value, sizeof arc->arcresult);
-			break;
+			if (r_found++)
+				return -1;
 
-		  case AAR_ARC_TAG_ARC_CHAIN:
-			strlcpy(arc->arcchain, tag_value, sizeof arc->arcchain);
-			break;
+			memcpy(&(arc->arcresult), &(aar->payload.ares_result[cr]),
+			       sizeof arc->arcresult);
 
-		  case AAR_ARC_TAG_SMTP_CLIENT_IP:
-			strlcpy(arc->smtpclientip, tag_value, sizeof arc->smtpclientip);
-			break;
+			for (cp = 0; cp < arc->arcresult.result_props; cp++)
+			{
+				/* old OpenARC implementations used "client-ip" */
+				if (arc->arcresult.result_ptype[cp] == ARES_PTYPE_SMTP &&
+				    (strcasecmp((char *) arc->arcresult.result_property[cp],
+				                "remote-ip") == 0 ||
+				     strcasecmp((char *) arc->arcresult.result_property[cp],
+				                "client-ip") == 0))
+				{
+					if (p_found++)
+						return -1;
 
-		  default:
-		  	result = -1;
-			break;
+					strlcpy(arc->smtpclientip,
+					        (char *) arc->arcresult.result_value[cp],
+					        sizeof arc->smtpclientip);
+				}
+			}
+
+			if (!p_found)
+				return -1;
 		}
 	}
 
-	return result;
+	return r_found ? 0 : -1;
 }
 
 /*
@@ -319,13 +249,7 @@ opendmarc_arcares_list_pluck(u_int instance, struct arcares_header *aar_hdr,
 	{
 		if (aar_hdr->arcares.instance == instance)
 		{
-			aar->instance = aar_hdr->arcares.instance;
-			strlcpy(aar->authserv_id, aar_hdr->arcares.authserv_id, sizeof aar->authserv_id);
-			strlcpy(aar->arc, aar_hdr->arcares.arc, sizeof aar->arc);
-			strlcpy(aar->dkim, aar_hdr->arcares.dkim, sizeof aar->dkim);
-			strlcpy(aar->dmarc, aar_hdr->arcares.dmarc, sizeof aar->dmarc);
-			strlcpy(aar->spf, aar_hdr->arcares.spf, sizeof aar->spf);
-
+			memcpy(aar, &(aar_hdr->arcares), sizeof *aar);
 			return 0;
 		}
 
