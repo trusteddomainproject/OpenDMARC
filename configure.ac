@@ -94,6 +94,7 @@ AC_SUBST([LIBOPENDMARC_VERSION_INFO])
 AC_PROG_CC
 AM_PROG_CC_C_O
 LT_INIT
+AC_PATH_PROG([PERL], [perl], [/usr/bin/perl])
 
 PKG_PROG_PKG_CONFIG
 
@@ -525,6 +526,7 @@ AC_CONFIG_FILES([ Makefile
 		contrib/spec/opendmarc.spec
 	db/Makefile
 	libopendmarc/Makefile
+		libopendmarc/dmarc.h
 	libopendmarc/tests/Makefile
 	libopendmarc/tests/testfiles/Makefile
 	libopendmarc/docs/Makefile

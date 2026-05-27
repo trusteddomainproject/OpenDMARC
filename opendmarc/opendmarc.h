@@ -36,7 +36,7 @@
 #define	DEFREPORTCMD	"/usr/sbin/sendmail -t -odq"
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
 #define	MAXARGV		65536
-#define	MAXHEADER	1024
+#define	MAXHEADER	4096
 #define	TEMPFILE	"/var/tmp/dmarcXXXXXX"
 
 #define AUTHRESULTSHDR	"Authentication-Results"

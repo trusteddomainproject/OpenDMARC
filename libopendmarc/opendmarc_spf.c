@@ -164,14 +164,25 @@ opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain,
 	}
 
 	ret = opendmarc_spf2_find_mailfrom_domain(ctx, mail_from_domain, mfrom, sizeof mfrom, used_mfrom);
-	if (ret != 0 || *used_mfrom == FALSE)
+	if (ret == 0 && *used_mfrom == TRUE)
+	{
+		/*
+		 * Set env_from before helo_dom: some libspf2 versions use the
+		 * first-set domain as the check domain, so env_from must be
+		 * established first. helo_dom is then available for %{h} macro
+		 * expansion without redirecting the check to the HELO hostname.
+		 */
+		SPF_request_set_env_from(ctx->spf_request, mfrom);
+		if (helo_domain != NULL)
+		{
+			(void) strlcpy(helo, helo_domain, sizeof helo);
+			SPF_request_set_helo_dom(ctx->spf_request, helo);
+		}
+	}
+	else if (helo_domain != NULL)
 	{
 		(void) strlcpy(helo, helo_domain, sizeof helo);
 		SPF_request_set_helo_dom(ctx->spf_request, helo);
-	}
-	else
-	{
-		SPF_request_set_env_from(ctx->spf_request, mfrom);
 	}
 	ctx->spf_response = NULL;
 	SPF_request_query_mailfrom(ctx->spf_request, &(ctx->spf_response));

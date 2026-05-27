@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/@PERL@
 #
 # Copyright (c) 2012-2016, 2017-2018, The Trusted Domain Project.
 #   All rights reserved.
@@ -676,6 +676,17 @@ if ($use_utc)
 # Check schema is current
 #
 
+$dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'requests' AND COLUMN_NAME = 'lastsent'");
+if ($dbi_s->execute() && (my $row = $dbi_s->fetchrow_arrayref()))
+{
+	if ($row->[0] eq 'NO')
+	{
+		print STDERR "$progname: WARNING: requests.lastsent column is NOT NULL; schema needs upgrading.\n";
+		print STDERR "$progname: WARNING: Run: ALTER TABLE requests MODIFY lastsent TIMESTAMP NULL DEFAULT NULL;\n";
+	}
+}
+$dbi_s->finish;
+
 # MySQL-specific: INFORMATION_SCHEMA.COLUMNS is a MySQL/MariaDB/PostgreSQL
 # feature.  SQLite equivalent: PRAGMA table_info(tablename).
 $dbi_s = $dbi_h->prepare("SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'messages' AND COLUMN_NAME = 'spf_scope'");
@@ -694,6 +705,7 @@ if ($dbi_s->execute() && !(my $row = $dbi_s->fetchrow_arrayref()))
 }
 $dbi_s->finish;
 
+#
 #
 # Load reporting suppressions from the database.  Fail open if the table
 # does not exist yet (e.g. pre-migration installs).
@@ -746,7 +758,7 @@ elsif ($daybound)
 {
 	# MySQL-specific: FROM_UNIXTIME() converts a Unix timestamp to DATETIME.
 	# SQLite equivalent: datetime(?, 'unixepoch')
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent < FROM_UNIXTIME(?)");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
 	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
 	{
@@ -760,7 +772,7 @@ else
 {
 	# MySQL-specific: DATE_SUB(..., INTERVAL ? SECOND) and FROM_UNIXTIME().
 	# SQLite equivalent: datetime(?, 'unixepoch', '-' || ? || ' seconds')
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
 	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
 	$dbi_s->bind_param(2, $interval, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
@@ -1157,8 +1169,11 @@ foreach (@$domainset)
 		elsif ($align_spf == 5) { $align_spfstr = "fail"; }
 		else                    { $align_spfstr = "unknown"; }
 
-		if ($arc == 1) { $arcstr = "pass"; }
-		else           { $arcstr = "fail"; }
+		switch ($arc)
+		{
+			case 0	{ $arcstr = "pass"; }
+			else	{ $arcstr = "fail"; }
+		}
 
 		if ($arcpolicy == 0) { $arcpolicystr = "pass"; }
 		else                 { $arcpolicystr = "fail"; }
