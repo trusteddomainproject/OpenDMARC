@@ -810,26 +810,6 @@ if ($verbose)
 # 	-- update "last sent" timestamp
 #
 
-$smtp = Net::SMTP->new($smtp_server,
-                       'Port'    => $smtp_port,
-                       'Hello'   => hostfqdn(),
-                       'SSL'     => $smtp_ssl,
-                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
-if (!defined($smtp))
-{
-	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
-	exit(1);
-}
-
-if (defined($smtp_username) && defined($smtp_password))
-{
-	if (!$smtp->auth($smtp_username, $smtp_password))
-	{
-		print STDERR "$progname: SMTP authentication failed\n";
-		exit(1);
-	}
-}
-
 foreach (@$domainset)
 {
 	$domain = $_->[0];
@@ -1483,6 +1463,30 @@ foreach (@$domainset)
 			{
 				$smtpstatus = "sent";
 				$smtpfail = 0;
+
+				if (!defined($smtp))
+				{
+					$smtp = Net::SMTP->new($smtp_server,
+					                       'Port'    => $smtp_port,
+					                       'Hello'   => hostfqdn(),
+					                       'SSL'     => $smtp_ssl,
+					                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
+					if (!defined($smtp))
+					{
+						print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
+						exit(1);
+					}
+
+					if (defined($smtp_username) && defined($smtp_password))
+					{
+						if (!$smtp->auth($smtp_username, $smtp_password))
+						{
+							print STDERR "$progname: SMTP authentication failed\n";
+							exit(1);
+						}
+					}
+				}
+
 				my $mailfrom = $verp ? verp_sender($repemail, $repdest) : $repemail;
 				if (!$smtp->mail($mailfrom) ||
 				    !$smtp->to($repdest) ||
@@ -1581,7 +1585,7 @@ foreach (@$domainset)
 	}
 }
 
-$smtp->quit();
+$smtp->quit() if defined($smtp);
 
 #
 # all done!
