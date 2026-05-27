@@ -1,16 +1,69 @@
+# network-online.target is used (rather than network.target) because OpenDMARC
+# may bind to specific IP addresses at startup.  network-online.target ensures
+# interfaces have addresses before the service starts.  If boot latency is a
+# concern and your setup only uses local sockets, you can relax this to
+# network.target.
+
 [Unit]
 Description=Domain-based Message Authentication, Reporting & Conformance (DMARC) Milter
 Documentation=man:opendmarc(8) man:opendmarc.conf(5) man:opendmarc-import(8) man:opendmarc-reports(8) http://www.trusteddomain.org/opendmarc/
-After=network.target nss-lookup.target
+After=network-online.target nss-lookup.target syslog.target
+Wants=network-online.target
+
+# Best-effort ordering so opendmarc is ready before a local MTA starts
+# accepting mail.  The authoritative way to guarantee ordering is on the
+# consumer side, e.g. "After=opendmarc.service" in the MTA unit.
+Before=postfix.service sendmail.service exim.service exim4.service opensmtpd.service
 
 [Service]
-Type=forking
-PIDFile=@localstatedir@/run/opendmarc/opendmarc.pid
+# Type=simple with -f (foreground) lets systemd track the process directly
+# without relying on a PIDFile, avoiding the PIDFile race condition.
+Type=simple
 EnvironmentFile=-@sysconfdir@/sysconfig/opendmarc
-ExecStart=@sbindir@/opendmarc $OPTIONS
+ExecStart=@sbindir@/opendmarc -f $OPTIONS
 ExecReload=/bin/kill -USR1 $MAINPID
+Restart=on-abnormal
 User=opendmarc
 Group=opendmarc
+
+# RuntimeDirectory creates /run/opendmarc at startup, suitable for the
+# milter socket (e.g. local:/run/opendmarc/opendmarc.sock).
+RuntimeDirectory=opendmarc
+
+# If HistoryFile is set in opendmarc.conf, add its directory here so that
+# opendmarc can write to it under ProtectSystem=strict.  For example:
+#   ReadWritePaths=-/var/db/opendmarc
+# For Postfix socket access via /var/spool/postfix add:
+#   ReadWritePaths=-/var/spool/postfix/opendmarc
+ReadWritePaths=-@localstatedir@/lib/opendmarc
+
+# Hardening - see systemd.exec(5)
+CapabilityBoundingSet=
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateMounts=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~ @privileged @resources
 
 [Install]
 WantedBy=multi-user.target
