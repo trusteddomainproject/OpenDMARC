@@ -526,6 +526,7 @@ AC_CONFIG_FILES([ Makefile
 		contrib/spec/opendmarc.spec
 	db/Makefile
 	libopendmarc/Makefile
+		libopendmarc/dmarc.h
 	libopendmarc/tests/Makefile
 	libopendmarc/tests/testfiles/Makefile
 	libopendmarc/docs/Makefile
