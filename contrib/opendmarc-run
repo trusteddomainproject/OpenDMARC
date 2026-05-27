@@ -22,6 +22,12 @@ DBPASSWD=opendmarc
 DBSCHEME=mysql
 WORKDIR=/var/db/opendmarc
 
+# Set DBDSN to a full DBI DSN to override the individual DB connection options
+# above (useful for SSL, PostgreSQL, or other non-default configurations).
+# Example: DBDSN="DBI:mysql:database=opendmarc;host=db.example.com;mysql_ssl=1"
+# --dbuser and --dbpasswd are still passed separately when set.
+DBDSN=
+
 # Set DOMAIN to restrict reporting to a single domain, or leave empty to
 # report for all domains with data in the database.
 DOMAIN=
@@ -36,7 +42,11 @@ DOMAIN=
 # survives package upgrades since it is not managed by the package.
 [ -f /etc/opendmarc/opendmarc-run.conf ] && . /etc/opendmarc/opendmarc-run.conf
 
-DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
+if [ -n "${DBDSN}" ]; then
+	DBOPTS="--db-dsn=${DBDSN} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD}"
+else
+	DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
+fi
 
 # Rotate the history file atomically before importing so that opendmarc
 # can immediately start writing new records while we process the old ones.
