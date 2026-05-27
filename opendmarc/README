@@ -161,10 +161,34 @@ their encodings, but there are only a few of them:
 			whether identifier alignment was established
 			for DKIM and SPF (4 = yes, 5 = no)
 
-	spf		SPF evaluation (0 = pass, 2 = fail, 6 = none,
-			-1 = not evaluated)
+	spf		SPF evaluation result code (integer):
+			-1 = undefined / not evaluated
+			 0 = pass
+			 2 = softfail
+			 3 = neutral
+			 4 = temperror
+			 5 = permerror
+			 6 = none
+			 7 = fail
+			 9 = nxdomain
 
-	dkim		DKIM evaluation (signing domain, selector, evaluation - same as SPF)
+			NOTE: these codes are the ARES_RESULT_* constants defined
+			in opendmarc/opendmarc-ar.h and are NOT the same as the
+			DMARC_POLICY_SPF_OUTCOME_* constants in libopendmarc/dmarc.h,
+			which use a different numbering (none=0, pass=1, fail=2,
+			tmpfail=3).  Using the libopendmarc constants when inserting
+			rows directly will produce incorrect report output.
+
+	dkim		DKIM evaluation, written as three space-separated fields:
+			  <signing domain> <selector> <result code>
+			The selector is "-" if not available.
+			Result codes use the same ARES_RESULT_* numbering as spf
+			(see above), with the addition of:
+			 1 = unused
+			 8 = policy
+			10 = signed (signature present but not evaluated)
+			11 = unknown
+			12 = discard
 
 	pdomain		policy domain (the "organizational" domain,
 			the one asserting policy)
