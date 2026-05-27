@@ -20,7 +20,8 @@ jobs:
           sudo apt-get install -y \
             autoconf automake libtool pkg-config \
             libssl-dev libmilter-dev \
-            lua5.4 liblua5.4-dev
+            lua5.4 liblua5.4-dev \
+            libdbi-perl libswitch-perl libwww-perl libio-compress-perl libjson-perl
 
       - name: Build miltertest
         run: |
@@ -41,6 +42,13 @@ jobs:
 
       - name: Build
         run: make -j$(nproc)
+
+      - name: Check Perl syntax
+        run: |
+          perl -c reports/opendmarc-expire
+          perl -c reports/opendmarc-import
+          perl -c reports/opendmarc-params
+          perl -c reports/opendmarc-reports
 
       - name: Test
         run: make check
