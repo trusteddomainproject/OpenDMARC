@@ -422,7 +422,7 @@ ares_parse(u_char *hdr, struct authres *ar)
 			if (tokens[c][0] == ';')
 			{
 				prevstate = state;
-				state = 3;
+				state = 14;
 			}
 			else if (isascii(tokens[c][0]) &&
 			         isdigit(tokens[c][0]))
@@ -464,9 +464,19 @@ ares_parse(u_char *hdr, struct authres *ar)
 				return -1;
 
 			prevstate = state;
-			state = 3;
+			state = 14;
 
 			break;
+
+		  case 14:				/* method or "none" */
+			if (strcasecmp((char *) tokens[c], "none") == 0)
+			{
+				prevstate = state;
+				state = 15;
+				continue;
+			}
+
+			/* FALLTHROUGH */
 
 		  case 3:				/* method */
 			n++;
@@ -636,6 +646,10 @@ ares_parse(u_char *hdr, struct authres *ar)
 			}
 
 			break;
+
+		  case 15:				/* terminal state after no-result */
+			/* any token should not appear */
+			return -1;
 		}
 	}
 
