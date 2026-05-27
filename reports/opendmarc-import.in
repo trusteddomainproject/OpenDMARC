@@ -11,7 +11,6 @@
 use strict;
 use warnings;
 
-use Switch;
 
 use DBI;
 use File::Basename;
@@ -618,162 +617,160 @@ while (<$inputfh>)
 		}
 	}
 
-	switch ($key)
+	if ($key eq "action")
 	{
-	  case "action"		{
-					$action = $value;
-				}
+		$action = $value;
+	}
+	elsif ($key eq "adkim")
+	{
+		$adkim = $value;
+	}
+	elsif ($key eq "align_dkim")
+	{
+		$align_dkim = $value;
+	}
+	elsif ($key eq "align_spf")
+	{
+		$align_spf = $value;
+	}
+	elsif ($key eq "arc")
+	{
+		$arc = $value;
+	}
+	elsif ($key eq "arc_policy")
+	{
+		$arc_policy = $value;
+		# parse json data
+		if (scalar (@serialized_data) == 2)
+		{
+			@arc_policy_data = @{ decode_json($serialized_data[1]) };
+		}
+		else
+		{
+			@arc_policy_data = [];
+		}
+	}
+	elsif ($key eq "aspf")
+	{
+		$aspf = $value;
+	}
+	elsif ($key eq "dkim")
+	{
+		my @dkim_entry;
+		push(@dkim_entry, $value);
+		push(@dkim_entry, $dkim_selector);
+		push(@dkim_entry, $dkim_result);
+		if ($dkim_result eq "4" ||
+		    $dkim_result eq "5")
+		{
+			push(@dkim_entry, 1);
+		}
+		else
+		{
+			push(@dkim_entry, 0);
+		}
+		push(@dkim_data, [ @dkim_entry ]);
 
-	  case "adkim"		{
-					$adkim = $value;
-				}
+		$sigcount++;
+	}
+	elsif ($key eq "from")
+	{
+		$fdomain = $value;
+	}
+	elsif ($key eq "job")
+	{
+		if (defined($jobid))
+		{
+			update_db();
 
-	  case "align_dkim"	{
-					$align_dkim = $value;
-				}
+			undef $action;
+			undef $adkim;
+			$align_dkim = 5;
+			$align_spf = 5;
+			$arc = 0;
+			$arc_policy = 1;
+			undef $aspf;
+			undef @serialized_data;
+			undef @dkim_data;
+			undef @arc_policy_data;
+			undef $envdomain;
+			undef $fdomain;
+			undef $ipaddr;
+			undef $jobid;
+			undef $p;
+			undef $pct;
+			undef $pdomain;
+			undef $policy;
+			undef $received;
+			undef $reporter;
+			undef @rua;
+			$sigcount = 0;
+			undef $sp;
+			undef $spf;
+			$spf_scope = -1;
+			$fo = 0;
+		}
 
-	  case "align_spf"	{
-					$align_spf = $value;
-				}
-
-	  case "arc"		{
-		  			$arc = $value;
-	  			}
-
-	  case "arc_policy"	{
-					$arc_policy = $value;
-					# parse json data
-					if (scalar (@serialized_data) == 2)
-					{
-						@arc_policy_data = @{ decode_json($serialized_data[1]) };
-					}
-					else
-					{
-						@arc_policy_data = [];
-					}
-				}
-
-	  case "aspf"		{
-					$aspf = $value;
-				}
-
-	  case "dkim"		{
-					my @dkim_entry;
-					push(@dkim_entry, $value);
-					push(@dkim_entry, $dkim_selector);
-					push(@dkim_entry, $dkim_result);
-					if ($dkim_result eq "4" ||
-					    $dkim_result eq "5")
-					{
-						push(@dkim_entry, 1);
-					}
-					else
-					{
-						push(@dkim_entry, 0);
-					}
-					push(@dkim_data, [ @dkim_entry ]);
-
-					$sigcount++;
-				}
-
-	  case "from"		{
-					$fdomain = $value;
-				}
-
-	  case "job"		{
-					if (defined($jobid))
-					{
-						update_db();
-
-						undef $action;
-						undef $adkim;
-						$align_dkim = 5;
-						$align_spf = 5;
-						$arc = 0;
-						$arc_policy = 1;
-						undef $aspf;
-						undef @serialized_data;
-						undef @dkim_data;
-						undef @arc_policy_data;
-						undef $envdomain;
-						undef $fdomain;
-						undef $ipaddr;
-						undef $jobid;
-						undef $p;
-						undef $pct;
-						undef $pdomain;
-						undef $policy;
-						undef $received;
-						undef $reporter;
-						undef @rua;
-						$sigcount = 0;
-						undef $sp;
-						undef $spf;
-						$spf_scope = -1;
-						$fo = 0;
-					}
-
-					$jobid = $value;
-				}
-
-	  case "ipaddr"		{
-					$ipaddr = $value;
-				}
-
-	  case "mfrom"		{
-					$envdomain = $value;
-				}
-
-	  case "p"		{
-					$p = $value;
-				}
-
-	  case "pct"		{
-					$pct = $value;
-				}
-
-	  case "pdomain"	{
-					$pdomain = $value;
-				}
-
-	  case "policy"		{
-					$policy = $value;
-				}
-
-	  case "received"	{
-					$received = $value;
-				}
-
-	  case "reporter"	{
-					$reporter = $value;
-				}
-
-	  case "rua"		{
-					if ($value ne "-")
-					{
-						push(@rua, $value);
-					}
-				}
-
-	  case "sp"		{
-					$sp = $value;
-				}
-
-	  case "spf"		{
-					$spf = $value;
-				}
-
-	  case "spf_scope"	{
-					$spf_scope = $value;
-				}
-
-	  case "fo"		{
-					$fo = $value;
-				}
-
-	  else			{
-					print STDERR "$progname: unknown key '$key' at line $lineno\n";
-				}
+		$jobid = $value;
+	}
+	elsif ($key eq "ipaddr")
+	{
+		$ipaddr = $value;
+	}
+	elsif ($key eq "mfrom")
+	{
+		$envdomain = $value;
+	}
+	elsif ($key eq "p")
+	{
+		$p = $value;
+	}
+	elsif ($key eq "pct")
+	{
+		$pct = $value;
+	}
+	elsif ($key eq "pdomain")
+	{
+		$pdomain = $value;
+	}
+	elsif ($key eq "policy")
+	{
+		$policy = $value;
+	}
+	elsif ($key eq "received")
+	{
+		$received = $value;
+	}
+	elsif ($key eq "reporter")
+	{
+		$reporter = $value;
+	}
+	elsif ($key eq "rua")
+	{
+		if ($value ne "-")
+		{
+			push(@rua, $value);
+		}
+	}
+	elsif ($key eq "sp")
+	{
+		$sp = $value;
+	}
+	elsif ($key eq "spf")
+	{
+		$spf = $value;
+	}
+	elsif ($key eq "spf_scope")
+	{
+		$spf_scope = $value;
+	}
+	elsif ($key eq "fo")
+	{
+		$fo = $value;
+	}
+	else
+	{
+		print STDERR "$progname: unknown key '$key' at line $lineno\n";
 	}
 }
 

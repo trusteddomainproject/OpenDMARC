@@ -11,8 +11,6 @@
 use strict;
 use warnings;
 
-use Switch;
-
 use DBI;
 use File::Basename;
 use Getopt::Long;
