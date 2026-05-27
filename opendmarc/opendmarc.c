@@ -2970,6 +2970,7 @@ mlfi_eom(SMFICTX *ctx)
 							eptr = hsearch(entry,
 							               FIND);
 							pthread_rwlock_unlock(&hash_lock);
+							free(arcdomain);
 							if (eptr == NULL)
 								continue;
 
