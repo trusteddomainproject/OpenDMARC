@@ -1581,7 +1581,7 @@ $dbi_s->finish;
 
 if ($verbose)
 {
-	print STDERR "$progname: terminating at " . localtime() . "\n";
+	print STDERR "$progname: terminating at " . localtime() . " (duration=" . scalar(time() - $now) . "s)\n";
 }
 
 $dbi_h->disconnect;
