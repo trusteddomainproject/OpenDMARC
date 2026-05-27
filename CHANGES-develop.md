@@ -83,6 +83,12 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 ---
 
+## Configuration options
+
+- **`RequiredFrom` option added**: New boolean option that rejects messages lacking a From: field from which a domain can be extracted. Unlike `RequiredHeaders` (which enforces all RFC5322 header count restrictions), `RequiredFrom` enforces only the From field check, making it suitable for deployments where full RFC5322 compliance would reject too many legitimate messages. Prevents attackers from omitting the From header to evade DMARC evaluation. (#147)
+
+---
+
 ## Authentication-Results parsing
 
 - **`Authentication-Results` header authserv-id quoting**: When `AuthservIDWithJobID` was enabled, the job ID was appended without quoting, producing an invalid header when the composite value contained characters requiring quoting. (#311, issue #17)
