@@ -685,7 +685,7 @@ while (<$inputfh>)
 	}
 	elsif ($key eq "from")
 	{
-		$fdomain = $value;
+		$fdomain = lc($value);
 	}
 	elsif ($key eq "job")
 	{
@@ -729,7 +729,7 @@ while (<$inputfh>)
 	}
 	elsif ($key eq "mfrom")
 	{
-		$envdomain = $value;
+		$envdomain = lc($value);
 	}
 	elsif ($key eq "p")
 	{
@@ -741,7 +741,7 @@ while (<$inputfh>)
 	}
 	elsif ($key eq "pdomain")
 	{
-		$pdomain = $value;
+		$pdomain = lc($value);
 	}
 	elsif ($key eq "policy")
 	{
