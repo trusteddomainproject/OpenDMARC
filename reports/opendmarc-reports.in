@@ -153,6 +153,7 @@ my $dbscheme     = $def_dbscheme;
 
 my $repdom       = hostdomain();
 my $repemail     = "postmaster@" . $repdom;
+my $repcontact;
 
 my $smtp_server  = '127.0.0.1';
 my $smtp_port    = 25;
@@ -264,7 +265,8 @@ sub usage
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--report-bcc       bcc address for aggregate reports\n";
-	print STDERR "\t--report-email     reporting contact [$repemail]\n";
+	print STDERR "\t--report-contact   contact address for report metadata (default: --report-email)\n";
+	print STDERR "\t--report-email     envelope/From address for outgoing reports [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
 	print STDERR "\t--smtp-password    smtp authentication password\n";
 	print STDERR "\t--smtp-port        smtp server port [$smtp_port]\n";
@@ -368,6 +370,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
                                             'report-bcc=s' => \$repbcc,
+                                            'report-contact=s' => \$repcontact,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
                                             'smtp-password=s' => \$smtp_password,
@@ -1012,7 +1015,7 @@ foreach (@$domainset)
 
 	print $tmpout "    <report_metadata>\n";
 	print $tmpout "        <org_name>$repdom</org_name>\n";
-	print $tmpout "         <email>$repemail</email>\n";
+	print $tmpout "         <email>" . (defined($repcontact) ? $repcontact : $repemail) . "</email>\n";
 	print $tmpout "         <report_id>$domain:$now</report_id>\n";
 	print $tmpout "         <date_range>\n";
 	print $tmpout "         <begin>$repstart</begin>\n";
