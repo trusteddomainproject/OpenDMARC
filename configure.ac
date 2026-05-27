@@ -567,5 +567,7 @@ AC_CONFIG_FILES([ Makefile
 		reports/opendmarc-reports
 		reports/opendmarc-reports.8
 	])
+AC_DEFINE_UNQUOTED([CONFIGURE_ARGS], ["$ac_configure_args"],
+                   [Arguments passed to configure])
 AC_OUTPUT()
 # @end1

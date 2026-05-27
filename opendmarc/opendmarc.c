@@ -4263,6 +4263,7 @@ main(int argc, char **argv)
 			printf("\tlibmilter version %d.%d.%d\n",
 			       mvmajor, mvminor, mvrelease);
 #endif /* HAVE_SMFI_VERSION */
+			printf("\tConfigured with: %s\n", CONFIGURE_ARGS);
 			dmarcf_optlist(stdout);
 			return EX_OK;
 

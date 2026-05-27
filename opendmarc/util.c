@@ -69,12 +69,12 @@ static char *optlist[] =
 #endif /* POLL */
 
 #if WITH_SPF
-	"WITH_SPF",
+# if HAVE_SPF2_H
+	"WITH_SPF (libspf2)",
+# else /* HAVE_SPF2_H */
+	"WITH_SPF (internal)",
+# endif /* HAVE_SPF2_H */
 #endif /* WITH_SPF */
-
-#if HAVE_SPF2_H
-	"WITH_SPF2",
-#endif /* HAVE_SPF2_H */
 
 	NULL
 };
