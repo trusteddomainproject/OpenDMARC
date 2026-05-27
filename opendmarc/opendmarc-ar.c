@@ -366,7 +366,7 @@ ares_parse(u_char *hdr, struct authres *ar)
 	int r = 0;
 	int state;
 	int prevstate;
-	u_char tmp[MAXHEADER + 2];
+	u_char tmp[MAXHEADER + 1];
 	u_char *tokens[ARES_MAXTOKENS];
 
 	assert(hdr != NULL);

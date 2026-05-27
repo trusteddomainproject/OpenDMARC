@@ -60,5 +60,60 @@ main(int argc, char **argv)
 		printf("\t%s(%d): opendmarc_policy_fetch_adkim: expected %d got %d: FAIL\n", __FILE__, __LINE__,  DMARC_RECORD_A_STRICT, aspf);
 		fails += 1;
 	}
+
+	/*
+	** Regression tests for issue #256: opendmarc_policy_fetch_ruf() and
+	** opendmarc_policy_fetch_rua() used || instead of && when checking
+	** whether to call memset(), so passing NULL with a non-zero size would
+	** call memset(NULL, ...) and segfault.
+	*/
+
+	/* NULL buf + zero size: normal call pattern, must not crash */
+	count++;
+	if (opendmarc_policy_fetch_ruf(pctx, NULL, 0, 1) == NULL)
+	{
+		printf("\t%s(%d): fetch_ruf(NULL, 0): FAIL\n", __FILE__, __LINE__);
+		fails += 1;
+	}
+
+	/* NULL buf + non-zero size: the crash case before the fix */
+	count++;
+	(void) opendmarc_policy_fetch_ruf(pctx, NULL, 256, 1);
+	/* reaching here without crashing is the pass condition */
+
+	/* valid buf: confirm ruf list is returned */
+	count++;
+	{
+		u_char buf[256];
+		u_char *ret = opendmarc_policy_fetch_ruf(pctx, buf, sizeof buf, 1);
+		if (ret == NULL)
+		{
+			printf("\t%s(%d): fetch_ruf with valid buf returned NULL: FAIL\n", __FILE__, __LINE__);
+			fails += 1;
+		}
+	}
+
+	/* Same three cases for fetch_rua */
+	count++;
+	if (opendmarc_policy_fetch_rua(pctx, NULL, 0, 1) == NULL)
+	{
+		printf("\t%s(%d): fetch_rua(NULL, 0): FAIL\n", __FILE__, __LINE__);
+		fails += 1;
+	}
+
+	count++;
+	(void) opendmarc_policy_fetch_rua(pctx, NULL, 256, 1);
+
+	count++;
+	{
+		u_char buf[256];
+		u_char *ret = opendmarc_policy_fetch_rua(pctx, buf, sizeof buf, 1);
+		if (ret == NULL)
+		{
+			printf("\t%s(%d): fetch_rua with valid buf returned NULL: FAIL\n", __FILE__, __LINE__);
+			fails += 1;
+		}
+	}
+
 	return fails;
 }

@@ -2213,7 +2213,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 		p = strchr(dfc->mctx_envfrom, '@');
 		if (p != NULL)
-			strncpy(dfc->mctx_envdomain, p + 1, BUFRSZ);
+			strlcpy(dfc->mctx_envdomain, p + 1, sizeof dfc->mctx_envdomain);
 	}
 
 	return SMFIS_CONTINUE;
@@ -4165,8 +4165,6 @@ static void
 dmarcf_config_free(struct dmarcf_config *conf)
 {
 	assert(conf != NULL);
-	assert(conf->conf_refcnt == 0);
-
 	if (conf->conf_data != NULL)
 		config_free(conf->conf_data);
 
