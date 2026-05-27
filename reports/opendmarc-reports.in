@@ -810,26 +810,6 @@ if ($verbose)
 # 	-- update "last sent" timestamp
 #
 
-$smtp = Net::SMTP->new($smtp_server,
-                       'Port'    => $smtp_port,
-                       'Hello'   => hostfqdn(),
-                       'SSL'     => $smtp_ssl,
-                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
-if (!defined($smtp))
-{
-	print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
-	exit(1);
-}
-
-if (defined($smtp_username) && defined($smtp_password))
-{
-	if (!$smtp->auth($smtp_username, $smtp_password))
-	{
-		print STDERR "$progname: SMTP authentication failed\n";
-		exit(1);
-	}
-}
-
 foreach (@$domainset)
 {
 	$domain = $_->[0];
@@ -1096,6 +1076,9 @@ foreach (@$domainset)
 
 	$rowcount = 0;
 
+	my %groups;
+	my @group_order;
+
 	while ($dbi_a = $dbi_s->fetchrow_arrayref())
 	{
 		undef $msgid;
@@ -1152,112 +1135,114 @@ foreach (@$domainset)
 
 		$rowcount++;
 
-		if    ($disp == 0) { $dispstr = "reject"; }
-		elsif ($disp == 1) { $dispstr = "reject"; }
-		elsif ($disp == 2) { $dispstr = "none"; }
-		elsif ($disp == 4) { $dispstr = "quarantine"; }
-		else               { $dispstr = "unknown"; }
+		my $grpkey = join("\0", $ipaddr     // "",
+		                        $disp       // -1,
+		                        $align_dkim // -1,
+		                        $align_spf  // -1,
+		                        $spfresult  // -1,
+		                        $spf_scope  // -1,
+		                        $fromdomain // "",
+		                        $envdomain  // "",
+		                        $arc        // -1,
+		                        $arcpolicy  // -1);
 
-		if    ($spfresult ==  0) { $spfresultstr = "pass"; }
-		elsif ($spfresult ==  2) { $spfresultstr = "softfail"; }
-		elsif ($spfresult ==  3) { $spfresultstr = "neutral"; }
-		elsif ($spfresult ==  4) { $spfresultstr = "temperror"; }
-		elsif ($spfresult ==  5) { $spfresultstr = "permerror"; }
-		elsif ($spfresult ==  6) { $spfresultstr = "none"; }
-		elsif ($spfresult ==  7) { $spfresultstr = "fail"; }
-		elsif ($spfresult ==  8) { $spfresultstr = "policy"; }
-		elsif ($spfresult ==  9) { $spfresultstr = "nxdomain"; }
-		elsif ($spfresult == 10) { $spfresultstr = "signed"; }
-		elsif ($spfresult == 12) { $spfresultstr = "discard"; }
-		else                     { $spfresultstr = "unknown"; }
-
-		if    ($align_dkim == 4) { $align_dkimstr = "pass"; }
-		elsif ($align_dkim == 5) { $align_dkimstr = "fail"; }
-		else                     { $align_dkimstr = "unknown"; }
-
-		if    ($align_spf == 4) { $align_spfstr = "pass"; }
-		elsif ($align_spf == 5) { $align_spfstr = "fail"; }
-		else                    { $align_spfstr = "unknown"; }
-
-		if ($arc == 0) { $arcstr = "pass"; }
-		else           { $arcstr = "fail"; }
-
-		if ($arcpolicy == 0) { $arcpolicystr = "pass"; }
-		else                 { $arcpolicystr = "fail"; }
-
-		# retrieve arc_policy seals, join arcauthresults.arc_client_addr (smtp.client_ip)
-		$dbi_s2 = $dbi_h->prepare(q{
-		                          SELECT arcseals.instance, domains.name AS domain,
-						selectors.name AS selector,
-						arcauthresults.arc_client_addr as client_ip
-		                          FROM arcseals
-		                          JOIN domains on arcseals.domain = domains.id
-		                          JOIN selectors on arcseals.selector = selectors.id
-					  JOIN arcauthresults on arcseals.message = arcauthresults.message
-					  	AND arcseals.instance = arcauthresults.instance
-		                          WHERE arcseals.message = ?
-		                          ORDER BY arcseals.instance DESC
-		});
-                $dbi_s2->bind_param(1, $msgid, {TYPE => SQL_INTEGER});
-		if (!$dbi_s2->execute())
+		if (!exists $groups{$grpkey})
 		{
-			print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
-			$dbi_s2->finish;
-			$dbi_s->finish;
-			$dbi_h->disconnect;
-			exit(1);
-		}
+			push @group_order, $grpkey;
 
-		my $arc_policy_output = "arc=$arcpolicystr";
-		while ($dbi_hash = $dbi_s2->fetchrow_hashref())
-		{
-			$arc_policy_output .= " as[$dbi_hash->{instance}].d=$dbi_hash->{domain}";
-			$arc_policy_output .= " as[$dbi_hash->{instance}].s=$dbi_hash->{selector}";
-			if ($dbi_hash->{instance} == 1 && (defined($dbi_hash->{client_ip}) && $dbi_hash->{client_ip} ne ""))
+			if    ($disp == 0) { $dispstr = "reject"; }
+			elsif ($disp == 1) { $dispstr = "reject"; }
+			elsif ($disp == 2) { $dispstr = "none"; }
+			elsif ($disp == 4) { $dispstr = "quarantine"; }
+			else               { $dispstr = "unknown"; }
+
+			if    ($spfresult ==  0) { $spfresultstr = "pass"; }
+			elsif ($spfresult ==  2) { $spfresultstr = "softfail"; }
+			elsif ($spfresult ==  3) { $spfresultstr = "neutral"; }
+			elsif ($spfresult ==  4) { $spfresultstr = "temperror"; }
+			elsif ($spfresult ==  5) { $spfresultstr = "permerror"; }
+			elsif ($spfresult ==  6) { $spfresultstr = "none"; }
+			elsif ($spfresult ==  7) { $spfresultstr = "fail"; }
+			elsif ($spfresult ==  8) { $spfresultstr = "policy"; }
+			elsif ($spfresult ==  9) { $spfresultstr = "nxdomain"; }
+			elsif ($spfresult == 10) { $spfresultstr = "signed"; }
+			elsif ($spfresult == 12) { $spfresultstr = "discard"; }
+			else                     { $spfresultstr = "unknown"; }
+
+			if    ($align_dkim == 4) { $align_dkimstr = "pass"; }
+			elsif ($align_dkim == 5) { $align_dkimstr = "fail"; }
+			else                     { $align_dkimstr = "unknown"; }
+
+			if    ($align_spf == 4) { $align_spfstr = "pass"; }
+			elsif ($align_spf == 5) { $align_spfstr = "fail"; }
+			else                    { $align_spfstr = "unknown"; }
+
+			if ($arcpolicy == 0) { $arcpolicystr = "pass"; }
+			else                 { $arcpolicystr = "fail"; }
+
+			if (!defined($spf_scope) || $spf_scope == 2)
 			{
-				$arc_policy_output .= " client-ip[$dbi_hash->{instance}]=$dbi_hash->{client_ip}";
+				$spf_scopestr = "helo";
 			}
+			else
+			{
+				$spf_scopestr = "mfrom";
+			}
+
+			# retrieve arc_policy seals for the first message in this group
+			$dbi_s2 = $dbi_h->prepare(q{
+			                          SELECT arcseals.instance, domains.name AS domain,
+			                                 selectors.name AS selector,
+			                                 arcauthresults.arc_client_addr as client_ip
+			                          FROM arcseals
+			                          JOIN domains on arcseals.domain = domains.id
+			                          JOIN selectors on arcseals.selector = selectors.id
+			                          JOIN arcauthresults on arcseals.message = arcauthresults.message
+			                          	AND arcseals.instance = arcauthresults.instance
+			                          WHERE arcseals.message = ?
+			                          ORDER BY arcseals.instance DESC
+			});
+			$dbi_s2->bind_param(1, $msgid, {TYPE => SQL_INTEGER});
+			if (!$dbi_s2->execute())
+			{
+				print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
+				$dbi_s2->finish;
+				$dbi_s->finish;
+				$dbi_h->disconnect;
+				exit(1);
+			}
+
+			my $arc_policy_output = "arc=$arcpolicystr";
+			while ($dbi_hash = $dbi_s2->fetchrow_hashref())
+			{
+				$arc_policy_output .= " as[$dbi_hash->{instance}].d=$dbi_hash->{domain}";
+				$arc_policy_output .= " as[$dbi_hash->{instance}].s=$dbi_hash->{selector}";
+				if ($dbi_hash->{instance} == 1 &&
+				    defined($dbi_hash->{client_ip}) && $dbi_hash->{client_ip} ne "")
+				{
+					$arc_policy_output .= " client-ip[$dbi_hash->{instance}]=$dbi_hash->{client_ip}";
+				}
+			}
+			$dbi_s2->finish;
+
+			$groups{$grpkey} = {
+				count             => 0,
+				ipaddr            => $ipaddr,
+				dispstr           => $dispstr,
+				align_dkimstr     => $align_dkimstr,
+				align_spfstr      => $align_spfstr,
+				arc_policy_output => $arc_policy_output,
+				fromdomain        => $fromdomain,
+				envdomain         => $envdomain,
+				spf_scopestr      => $spf_scopestr,
+				spfresultstr      => $spfresultstr,
+				dkim              => {},
+			};
 		}
 
-		$dbi_s2->finish;
+		$groups{$grpkey}{count}++;
 
-		print $tmpout "    <record>\n";
-		print $tmpout "        <row>\n";
-		print $tmpout "            <source_ip>$ipaddr</source_ip>\n";
-		print $tmpout "            <count>1</count>\n";
-		print $tmpout "            <policy_evaluated>\n";
-		print $tmpout "                <disposition>$dispstr</disposition>\n";
-		print $tmpout "                <dkim>$align_dkimstr</dkim>\n";
-		print $tmpout "                <spf>$align_spfstr</spf>\n";
-		print $tmpout "                <reason>\n";
-		print $tmpout "                    <type>local_policy</type>\n";
-		print $tmpout "                    <comment>$arc_policy_output</comment>\n";
-		print $tmpout "                </reason>\n";
-		print $tmpout "            </policy_evaluated>\n";
-		print $tmpout "        </row>\n";
-		print $tmpout "        <identifiers>\n";
-		if (defined($envdomain) && $envdomain ne "")
-		{
-			print $tmpout "            <envelope_from>$envdomain</envelope_from>\n";
-		}
-		print $tmpout "            <header_from>$fromdomain</header_from>\n";
-		print $tmpout "        </identifiers>\n";
-		if (!defined($spf_scope) || $spf_scope == 2)
-		{
-			$spf_scopestr = "helo";
-		}
-		else
-		{
-			$spf_scopestr = "mfrom";
-		}
-
-		print $tmpout "        <auth_results>\n";
-		print $tmpout "            <spf>\n";
-		print $tmpout "                <domain>$envdomain</domain>\n";
-		print $tmpout "                <scope>$spf_scopestr</scope>\n";
-		print $tmpout "                <result>$spfresultstr</result>\n";
-		print $tmpout "            </spf>\n";
-
+		# accumulate DKIM signatures for this message into the group
 		$dbi_s2 = $dbi_h->prepare(q{
 		                          SELECT domains.name, selectors.name, pass
 		                          FROM signatures
@@ -1265,7 +1250,7 @@ foreach (@$domainset)
 		                          LEFT JOIN selectors ON signatures.selector = selectors.id
 		                          WHERE signatures.message = ?
 		});
-                $dbi_s2->bind_param(1, $msgid, {TYPE => SQL_INTEGER});
+		$dbi_s2->bind_param(1, $msgid, {TYPE => SQL_INTEGER});
 		if (!$dbi_s2->execute())
 		{
 			print STDERR "$progname: can't extract report for message $msgid: " . $dbi_h->errstr . "\n";
@@ -1275,58 +1260,85 @@ foreach (@$domainset)
 			exit(1);
 		}
 
-		my %dkim_domain_result_cache = ();
 		while ($dbi_a = $dbi_s2->fetchrow_arrayref())
 		{
-			undef $dkimdomain;
-
-			if (defined($dbi_a->[0]))
-			{
-				$dkimdomain = $dbi_a->[0];
-			}
-			$dkimselector = defined($dbi_a->[1]) ? $dbi_a->[1] : "";
-			if (defined($dbi_a->[2]))
-			{
-				$dkimresult = $dbi_a->[2];
-			}
-
-			if (!defined($dkimdomain))
-			{
-				next;
-			}
-			if (defined($dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}))
-			{
-				next; # no duplicate per-record auth_result dkim sections
-			}
-			$dkim_domain_result_cache{$dkimdomain}{$dkimselector}{$dkimresult}++;
-
-			if    ($dkimresult ==  0) { $dkimresultstr = "pass"; }
-			elsif ($dkimresult ==  2) { $dkimresultstr = "softfail"; }
-			elsif ($dkimresult ==  3) { $dkimresultstr = "neutral"; }
-			elsif ($dkimresult ==  4) { $dkimresultstr = "temperror"; }
-			elsif ($dkimresult ==  5) { $dkimresultstr = "permerror"; }
-			elsif ($dkimresult ==  6) { $dkimresultstr = "none"; }
-			elsif ($dkimresult ==  7) { $dkimresultstr = "fail"; }
-			elsif ($dkimresult ==  8) { $dkimresultstr = "policy"; }
-			elsif ($dkimresult ==  9) { $dkimresultstr = "nxdomain"; }
-			elsif ($dkimresult == 10) { $dkimresultstr = "signed"; }
-			elsif ($dkimresult == 12) { $dkimresultstr = "discard"; }
-			else                      { $dkimresultstr = "unknown"; }
-
-			print $tmpout "            <dkim>\n";
-			print $tmpout "                <domain>$dkimdomain</domain>\n";
-			print $tmpout "                <selector>$dkimselector</selector>\n";
-			print $tmpout "                <result>$dkimresultstr</result>\n";
-			print $tmpout "            </dkim>\n";
+			next if !defined($dbi_a->[0]);
+			my $dk_domain   = $dbi_a->[0];
+			my $dk_selector = defined($dbi_a->[1]) ? $dbi_a->[1] : "";
+			my $dk_result   = $dbi_a->[2];
+			$groups{$grpkey}{dkim}{$dk_domain}{$dk_selector}{$dk_result} = 1
+				if defined($dk_result);
 		}
 
 		$dbi_s2->finish;
+	}
+
+	$dbi_s->finish;
+
+	for my $grpkey (@group_order)
+	{
+		my $g = $groups{$grpkey};
+
+		print $tmpout "    <record>\n";
+		print $tmpout "        <row>\n";
+		print $tmpout "            <source_ip>$g->{ipaddr}</source_ip>\n";
+		print $tmpout "            <count>$g->{count}</count>\n";
+		print $tmpout "            <policy_evaluated>\n";
+		print $tmpout "                <disposition>$g->{dispstr}</disposition>\n";
+		print $tmpout "                <dkim>$g->{align_dkimstr}</dkim>\n";
+		print $tmpout "                <spf>$g->{align_spfstr}</spf>\n";
+		print $tmpout "                <reason>\n";
+		print $tmpout "                    <type>local_policy</type>\n";
+		print $tmpout "                    <comment>$g->{arc_policy_output}</comment>\n";
+		print $tmpout "                </reason>\n";
+		print $tmpout "            </policy_evaluated>\n";
+		print $tmpout "        </row>\n";
+		print $tmpout "        <identifiers>\n";
+		if (defined($g->{envdomain}) && $g->{envdomain} ne "")
+		{
+			print $tmpout "            <envelope_from>$g->{envdomain}</envelope_from>\n";
+		}
+		print $tmpout "            <header_from>$g->{fromdomain}</header_from>\n";
+		print $tmpout "        </identifiers>\n";
+
+		print $tmpout "        <auth_results>\n";
+		print $tmpout "            <spf>\n";
+		print $tmpout "                <domain>$g->{envdomain}</domain>\n";
+		print $tmpout "                <scope>$g->{spf_scopestr}</scope>\n";
+		print $tmpout "                <result>$g->{spfresultstr}</result>\n";
+		print $tmpout "            </spf>\n";
+
+		for my $dk_domain (sort keys %{$g->{dkim}})
+		{
+			for my $dk_selector (sort keys %{$g->{dkim}{$dk_domain}})
+			{
+				for my $dk_result (sort keys %{$g->{dkim}{$dk_domain}{$dk_selector}})
+				{
+					if    ($dk_result ==  0) { $dkimresultstr = "pass"; }
+					elsif ($dk_result ==  2) { $dkimresultstr = "softfail"; }
+					elsif ($dk_result ==  3) { $dkimresultstr = "neutral"; }
+					elsif ($dk_result ==  4) { $dkimresultstr = "temperror"; }
+					elsif ($dk_result ==  5) { $dkimresultstr = "permerror"; }
+					elsif ($dk_result ==  6) { $dkimresultstr = "none"; }
+					elsif ($dk_result ==  7) { $dkimresultstr = "fail"; }
+					elsif ($dk_result ==  8) { $dkimresultstr = "policy"; }
+					elsif ($dk_result ==  9) { $dkimresultstr = "nxdomain"; }
+					elsif ($dk_result == 10) { $dkimresultstr = "signed"; }
+					elsif ($dk_result == 12) { $dkimresultstr = "discard"; }
+					else                     { $dkimresultstr = "unknown"; }
+
+					print $tmpout "            <dkim>\n";
+					print $tmpout "                <domain>$dk_domain</domain>\n";
+					print $tmpout "                <selector>$dk_selector</selector>\n";
+					print $tmpout "                <result>$dkimresultstr</result>\n";
+					print $tmpout "            </dkim>\n";
+				}
+			}
+		}
 
 		print $tmpout "        </auth_results>\n";
 		print $tmpout "    </record>\n";
 	}
-
-	$dbi_s->finish;
 
 	print $tmpout "</feedback>\n";
 
@@ -1483,6 +1495,30 @@ foreach (@$domainset)
 			{
 				$smtpstatus = "sent";
 				$smtpfail = 0;
+
+				if (!defined($smtp))
+				{
+					$smtp = Net::SMTP->new($smtp_server,
+					                       'Port'    => $smtp_port,
+					                       'Hello'   => hostfqdn(),
+					                       'SSL'     => $smtp_ssl,
+					                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
+					if (!defined($smtp))
+					{
+						print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
+						exit(1);
+					}
+
+					if (defined($smtp_username) && defined($smtp_password))
+					{
+						if (!$smtp->auth($smtp_username, $smtp_password))
+						{
+							print STDERR "$progname: SMTP authentication failed\n";
+							exit(1);
+						}
+					}
+				}
+
 				my $mailfrom = $verp ? verp_sender($repemail, $repdest) : $repemail;
 				if (!$smtp->mail($mailfrom) ||
 				    !$smtp->to($repdest) ||
@@ -1581,7 +1617,7 @@ foreach (@$domainset)
 	}
 }
 
-$smtp->quit();
+$smtp->quit() if defined($smtp);
 
 #
 # all done!

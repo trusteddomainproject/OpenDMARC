@@ -14,13 +14,21 @@ intervals.  It includes the following:
 
 	opendmarc-import.8	man page for the above
 
+	opendmarc-importstats	shell script to atomically rename the history
+				file and feed it to opendmarc-import; useful
+				as a cron wrapper around opendmarc-import when
+				the filter writes a single shared history file
+
+	opendmarc-importstats.8	man page for the above
+
 	opendmarc-params	perl script to adjust domain-specific opendmarc
 				data in the database
 
 	opendmarc-params.8	man page for the above
 
-	opendmarc-reports	perl script to generate DMARC reports
-				whenever it is run; meant to be run from cron
+	opendmarc-reports	perl script to generate DMARC aggregate (and
+				optionally forensic) reports; meant to be run
+				from cron
 
 	opendmarc-reports.8	man page for the above
 
@@ -36,15 +44,35 @@ database in which you want to create the required tables, and type
 DEPENDENCIES
 ============
 
-The OpenDMARC reports package requires a recent installation of Perl (>= 5) and
-also the JSON module. The latter can be installed, in most cases, with the
-following command:
+The OpenDMARC reports package requires Perl >= 5.10 and the following modules:
 
-	sudo perl -MCPAN -e 'install JSON'
+  Required:
+	DBD::mysql (or DBD::MariaDB)	DBI
+	Date::Format			Getopt::Long
+	IO::Compress::Gzip		JSON
+	MIME::Base64			Net::DNS
+	Net::SMTP			POSIX
+	Sys::Syslog
 
-On debian:
+  For HTTPS/HTTP report submission (rua= URIs with https:// or http://):
+	LWP::UserAgent			URI
 
-	sudo apt-get install libjson-perl
+  For SMTP TLS (--smtp-ssl):
+	IO::Socket::SSL
+
+  For SMTP authentication (--smtp-username / --smtp-password):
+	Net::SMTP (with Authen::SASL for AUTH support)
+
+On Debian/Ubuntu:
+
+	sudo apt-get install libdbi-perl libdbd-mysql-perl libdate-manip-perl \
+	    libjson-perl libio-compress-perl libnet-dns-perl libwww-perl \
+	    libauthen-sasl-perl
+
+On Red Hat/Fedora/EPEL:
+
+	sudo dnf install perl-DBI perl-DBD-MySQL perl-TimeDate perl-JSON \
+	    perl-IO-Compress perl-Net-DNS perl-libwww-perl perl-Authen-SASL
 
 SETUP
 =====
@@ -57,15 +85,54 @@ SETUP
    per-message DMARC details should be recorded.  This location should be
    readable and writable by the user running the filter, but nobody else.
 
-3) Add a cron job that will use opendmarc-import to import the history file's
-   contents at regular and fairly frequent intervals (each minute or at least
-   every five minutes).  The included opendmarc-importstats script might be
-   useful here.  Ensure the appropriate database access parameters (names,
-   users, passwords) are set in the script.
+3) Add a cron job to import the history file at regular intervals (each minute
+   or at least every five minutes):
 
-4) Add a cron job that will run opendmarc-reports to generate and send the
-   XML reports based on recent database entries.
+	* * * * *  opendmarc  opendmarc-importstats
+
+   opendmarc-importstats atomically renames the history file and feeds the
+   renamed copy to opendmarc-import.  The renamed file is removed after
+   successful import.  Configure the history file path by editing the
+   statsdb variable at the top of the script.
+
+   Alternatively, call opendmarc-import directly if you manage the history
+   file rotation yourself.
+
+4) Add a cron job to expire old database records.  Running daily is typical:
+
+	0 0 * * *  opendmarc  opendmarc-expire [options]
+
+   See opendmarc-expire.8 for available options, including --days (default 90).
+
+5) Add a cron job to generate and send aggregate reports.  Daily is typical:
+
+	0 1 * * *  opendmarc  opendmarc-reports [options]
+
+   See opendmarc-reports.8 for the full option list.  Commonly used options
+   include:
+
+	--dbhost	database host (also: OPENDMARC_DBHOST env variable)
+	--dbname	database name (also: OPENDMARC_DB)
+	--dbpasswd	database password (also: OPENDMARC_PASSWORD)
+	--dbport	database port (also: OPENDMARC_PORT)
+	--dbuser	database user (also: OPENDMARC_USER)
+	--smtp-server	outbound MTA hostname
+	--smtp-ssl	use TLS for outbound SMTP
+	--smtp-username	SMTP AUTH username
+	--smtp-password	SMTP AUTH password
+	--report-email	envelope sender / From address for reports
+	--report-org	organization name in reports
+	--report-bcc	BCC all outgoing reports to this address
+	--forensic	also generate per-message failure reports
+	--verp		use VERP envelope senders for bounce tracking
+	--config	path to a config file (avoids long cron command lines)
+
+   opendmarc-reports also supports https:// and http:// URIs in rua= tags
+   for report submission via HTTP POST per RFC 7489 §7.1.
+
+   A contrib/opendmarc-run wrapper script is available for environment-variable-
+   based configuration suitable for use in cron or a systemd timer.
 
 --
-Copyright (c) 2012-2014, 2016-2018, The Trusted Domain Project.
+Copyright (c) 2012-2014, 2016-2018, 2025, The Trusted Domain Project.
 All rights reserved.

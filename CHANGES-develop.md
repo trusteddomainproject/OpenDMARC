@@ -6,6 +6,7 @@ This document summarizes the changes merged into the `develop` branch during the
 
 ## Security / correctness
 
+- **Strict DMARC alignment incorrectly passing with PSL configured**: `opendmarc_policy_check_alignment` fell through to organizational-domain (PSL) resolution after the initial exact-match check failed, even in strict mode (`adkim=s` or `aspf=s`). This could produce a false aligned result - e.g. `From: user@sub.example.com` with a signing domain of `example.com` would pass strict alignment because the PSL lookup collapsed the From domain to `example.com`. RFC 7489 §3.1.1/3.1.2 requires exact match only in strict mode. (#354, issue #268)
 - **Quarantine not deferred through ARC override**: When DMARC policy was `p=quarantine`, `smfi_quarantine()` was called before the ARC override check, meaning a valid ARC chain could not rescue a quarantined message. The quarantine call is now deferred until after the ARC policy evaluation. ARC override now also applies to quarantine results, not only rejections. (#321, issue #24)
 - **`arc=pass` never appearing in aggregate reports**: The arc result value in the history file was compared against the wrong constant, so `arc=pass` was never written to XML reports. (#313, issue #282)
 - **Received-SPF parser mishandling VERP envelope-from addresses**: `=` characters in VERP-encoded envelope senders (e.g. `user+list=example.com@host`) caused the Received-SPF parser to misread the result field. The parser now handles `=` correctly. (#300, issues #206, #221)
@@ -16,6 +17,19 @@ This document summarizes the changes merged into the `develop` branch during the
 - **Four crash and memory-safety bugs**: Fixed NULL pointer dereference in `opendmarc_spf_ipv6_explode()`, a use-after-free in ARC seal parsing, and two additional memory-safety issues. (#298, issues #18, #140, #152, #256)
 - **arcdomain memory leak in `mlfi_eom`**: ARC domain strings allocated during message processing were not freed on the cleanup path. (#310, issue #182)
 - **`HoldQuarantinedMessages` blocked by `RejectFailures`**: The condition controlling `smfi_quarantine()` was gated on `conf_rejectfail`, so `HoldQuarantinedMessages yes` had no effect unless `RejectFailures yes` was also set. The two options are now independent. (#302, issue #237)
+- **`opendmarc_util_cleanup` buffer off-by-one**: The length guard used `> buflen` instead of `>= buflen`, allowing a string of exactly `buflen` characters through without room for a null terminator. (#344)
+- **`opendmarc_util_finddomain` mishandling quoted-pair in display names**: RFC5322 section 3.2.4 allows backslash-escaped characters inside quoted strings. A From header like `"\"Medtronic, Inc.\"" <user@example.com>` caused the escaped inner quote to close the quote context early, leaving the comma unquoted and truncating the address at the comma. The domain was then parsed as `Medtronic` rather than `example.com`, causing DMARC to reject a legitimate message. (#345, issue #72)
+- **`check_domain` accidentally exported from libopendmarc ABI**: The function is file-local, has no header declaration, and does not follow the `opendmarc_` naming convention. Making it `static` removes it from the public symbol table. (#346)
+- **Memory leak in `opendmarc_tld_read_file`**: The hash context allocated before `fopen()` was leaked when `fopen()` failed. (#347)
+- **`Authentication-Results` headers inserted at wrong position**: All `dmarcf_insheader()` calls used index `1`, placing headers after the first existing header rather than before it. RFC 8601 sections 4 and 7.1 require the A-R header to precede the MTA's `Received` header; SpamAssassin and other verifiers rely on this ordering. Changed to index `0`. (#349, issue #23)
+- **Unbalanced `>` in mail address parse silently ignored**: A From address like `user@example.net>` (missing the opening `<`) caused the domain to be parsed as `example.net>`, for which no DMARC record exists. The filter then skipped DMARC evaluation entirely, allowing forged mail through. Now returns a parse error. (#342, issue #113, #174)
+
+---
+
+## Aggregate reports (RFC 9989/9990 compliance)
+
+- **RFC 9989 obsoletes RFC 7489**: OpenDMARC now targets RFC 9989 (DMARC) and RFC 9990 (aggregate reporting). Key behavioral change: RFC 9990 makes the DKIM `<selector>` element mandatory in `<auth_results>` (previously optional); the selector field is always emitted, using an empty string when the database has no selector recorded.
+- **Aggregate reports now group identical rows**: `opendmarc-reports` previously emitted one `<record>` per message with `<count>1</count>`. Messages sharing the same source IP, disposition, DKIM/SPF alignment, SPF result, SPF scope, From domain, and envelope domain are now collapsed into a single `<record>` with an accurate `<count>`. Per RFC 9990 section 3.1.1.11 the `<auth_results>` section accumulates all unique DKIM `(domain, selector, result)` tuples seen across messages in the group; the `<count>` field is defined in section 3.1.1.8. This can significantly reduce report size for high-volume senders. (issue #212)
 
 ---
 
@@ -43,6 +57,7 @@ Significant gaps between the generated aggregate report XML and RFC 7489 require
 - **`opendmarc-run` wrapper script**: New `contrib/opendmarc-run` script wraps `opendmarc-reports` and `opendmarc-import` with environment-variable-based configuration and sane defaults, suitable for cron or systemd timer use. (#324)
 - **`opendmarc-reports` config file support**: Supports a config file for persistent option storage, reducing cron command-line length. (#324)
 - **DKIM `auth_results` missing when selector not in `selectors` table**: If a DKIM selector was not present in the selectors table, the `auth_results` row was silently dropped from the report. (#324, issue #230)
+- **Domain names stored with inconsistent case**: `opendmarc-import` stored domain names with whatever case appeared in the first history file entry for that domain. If a spammer's message arrived first with `EXAMPLE.COM`, all aggregate reports for that domain were labelled with that casing. Domains are now lowercased on import. MySQL's default case-insensitive collation means existing mixed-case rows remain functional; operators who want to normalize existing data can run `UPDATE domains SET name = LOWER(name)`. (#351)
 - **MariaDB hang on integer parameters**: Integer parameters in `opendmarc-reports` SQL queries were passed as strings, triggering a known MariaDB Connector/Perl hang on strict-type-checking servers. Parameters are now explicitly bound with `SQL_INTEGER`. (#324, issue #196)
 - **Timezone off-by-one in `--day` mode**: In `--day` mode, the domain selection query compared timestamps without date truncation, causing domains to be selected or skipped based on wall-clock time within the day rather than calendar day boundaries. (#324, issue #210)
 
@@ -83,17 +98,36 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 ---
 
+## Signal handling
+
+- **SIGHUP now triggers config reload instead of shutdown**: SIGHUP was handled identically to SIGTERM, causing the filter to exit. Unix convention is that SIGHUP triggers a configuration reload in long-running daemons. The reload path already existed (previously reachable via SIGUSR1 only); SIGHUP is now folded into it. SIGTERM and SIGINT remain the shutdown signals. (#323, issue #322)
+
+---
+
 ## Configuration options
 
-- **`RequiredFrom` option added**: New boolean option that rejects messages lacking a From: field from which a domain can be extracted. Unlike `RequiredHeaders` (which enforces all RFC5322 header count restrictions), `RequiredFrom` enforces only the From field check, making it suitable for deployments where full RFC5322 compliance would reject too many legitimate messages. Prevents attackers from omitting the From header to evade DMARC evaluation. (#147)
+- **`RequiredFrom` option added**: New boolean option that rejects messages lacking a From: field from which a domain can be extracted. Unlike `RequiredHeaders` (which enforces all RFC5322 header count restrictions), `RequiredFrom` enforces only the From field check, making it suitable for deployments where full RFC5322 compliance would reject too many legitimate messages. Prevents attackers from omitting the From header to evade DMARC evaluation. (#343)
+
+---
+
+## Utilities and minor fixes
+
+- **`opendmarc-check` printed first domain for all arguments**: When multiple domains were passed on the command line, the output header always showed `argv[1]` instead of the current argument. (#350)
+- **Startup log suppresses empty brackets**: When started with no relevant command-line options, the daemon logged `opendmarc vX.Y starting ()`. The parentheses are now omitted when there are no options to show. (#348)
+- **History file `arc` field values corrected in documentation**: The opendmarc/README documented the `arc` field as `0=pass, 2=fail`; the code has always written `0` (`ARES_RESULT_PASS`) or `7` (`ARES_RESULT_FAIL`). Documentation corrected to match. (#352, issue #214)
+- **Duplicate `AUTHRESHDRNAME` macro removed**: `opendmarc-ar.h` defined `AUTHRESHDRNAME` as `"Authentication-Results"`, duplicating the existing `AUTHRESULTSHDR` in `opendmarc.h`. The duplicate was removed and all uses updated to `AUTHRESULTSHDR`. (#357, issue #20)
 
 ---
 
 ## Authentication-Results parsing
 
+- **AR header with no-result rejected as invalid**: RFC 8601 §2.2 permits `Authentication-Results: example.com; none` as a valid header indicating no methods were evaluated. The parser treated this as a syntax error. Added state handling for the `none` token before falling through to normal method processing. (#267)
 - **`Authentication-Results` header authserv-id quoting**: When `AuthservIDWithJobID` was enabled, the job ID was appended without quoting, producing an invalid header when the composite value contained characters requiring quoting. (#311, issue #17)
 - **`AuthservIDWithJobID` not applied to SPF result header**: The job ID was appended to the DMARC authserv-id but not to the authserv-id in the SPF authentication result field. (#311, issue #17)
 - **ADMD-less `Authentication-Results` headers**: Some MTAs (notably Office 365) generate AR headers that omit the authserv-id entirely. The parser now recovers gracefully rather than discarding the result. (#329, issue #73)
+- **AR header with no-result rejected as invalid**: RFC 8601 §2.2 permits `Authentication-Results: example.com; none` as a valid header indicating no methods were evaluated. The parser treated this as a syntax error. (#267)
+- **ARC-Authentication-Results parser rewritten using shared state machine**: The bespoke `strsep`-based AAR parser was replaced with the unified `authres_parse()` function that handles both AR and AAR headers. The old parser was fragile against whitespace and quoting variations and could not correctly extract client-IP from `remote-ip` properties. `struct arcares` now carries a `struct authres payload` rather than individual string fields. `MAXARESULTS` doubled to 32. (#355, issue #305)
+- **Multiple ARC/ARC-Seal parser crashes**: Fixed SIGSEGV (large RSA signatures exceeding the 512-byte token limit), SIGABRT (malformed tokens with no `=` sign hitting `assert()` in `strip_whitespace`), memory leaks, and NULL pointer dereferences in ARC header parsing. Also fixed a memory leak where `as_hdr_new` was allocated but not freed on the invalid-header path. Unknown auth methods in AAR headers (e.g. `dara=` from Gmail) are now skipped rather than rejecting the entire header. CRLF line folding in AAR headers is now handled correctly. Adds `test_arcares` unit tests covering all these cases. (#296, issues #183, #186, #222, #236, #238, #241, #242)
 
 **Open question**: The `dmarc=` and `spf=` results are currently emitted as separate `Authentication-Results` headers, which is what most downstream consumers (Rspamd, SpamAssassin, etc.) expect. RFC 8601 permits combining them into a single header, and a future `CombinedAuthservHeader` option could allow operators to opt in once they have verified their downstream software handles it. Worth coordinating with those projects before implementing.
 
@@ -103,8 +137,10 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 - **`opendmarc-spf-parse.c` missing from `Makefile.am`**: The Received-SPF parser source file added in the crash fixes was not listed in `opendmarc_SOURCES`, causing a link failure on clean builds. (#335, issue #334)
 - **Perl path hardcoded in report scripts**: `#!/usr/bin/perl` was hardcoded in `opendmarc-reports`, `opendmarc-import`, and related scripts. The path is now detected by `configure` and substituted as `@PERL@`. (#318)
+- **`Switch` module dependency removed**: The report scripts used `Switch`, which was removed from core Perl in 5.36 and requires a separate CPAN install on modern systems. All `switch`/`case` blocks have been converted to `if`/`elsif`/`else`. (#336)
 - **`OPENDMARC_LIB_VERSION` always `0x00000000`** in GitHub release tarballs: The version constant was read from a generated header not present in the tarball. (#301, issue #235)
 - **Missing DEFAULT values for `messages` columns**: Several columns lacked `DEFAULT` clauses, causing `opendmarc-import` to fail under MySQL/MariaDB strict mode when processing history files from older opendmarc versions that omitted those fields. (#324, issues #217, #219)
+- **libspf2 include/library paths not propagated to Makefiles**: `configure.ac` modified `CFLAGS` to pass the SPF2 include path to `AC_SEARCH_LIBS`, but autoconf does not propagate `CFLAGS` changes into generated Makefiles. This caused build failures in rpmbuild environments (Fedora/EPEL) where `CFLAGS` is pre-set by distribution policy. Paths are now appended to `CPPFLAGS` and `LDFLAGS` instead. (#287)
 
 ---
 
