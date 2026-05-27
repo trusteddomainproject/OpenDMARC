@@ -3653,9 +3653,10 @@ mlfi_eom(SMFICTX *ctx)
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
 		snprintf(header, sizeof header,
-		         "%s; dmarc=%s (p=%s dis=%s) header.from=%s",
+		         "%s; dmarc=%s (p=%s dis=%s) header.from=%s policy.dmarc=%s",
 		         authservid_hdr,
-		         aresult, apolicy, adisposition, dfc->mctx_fromdomain);
+		         aresult, apolicy, adisposition, dfc->mctx_fromdomain,
+		         apolicy);
 
 		if (dmarcf_insheader(ctx, 0, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
