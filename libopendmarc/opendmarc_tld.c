@@ -134,8 +134,11 @@ opendmarc_tld_read_file(char *path_fname, char *commentstring, char *drop, char 
 		return (errno == 0) ? ENOMEM : errno;
 
 	fp = fopen(path_fname, "r");
-	if (fp == NULL)
-		return errno;
+	if (fp == NULL) {
+		ret = errno;
+		opendmarc_hash_shutdown(hashp);
+		return ret;
+	}
 
 	errno = 0;
 	while (fgets((char *)buf, sizeof buf, fp) != NULL)
