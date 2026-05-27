@@ -22,14 +22,14 @@ jobs:
             libssl-dev libmilter-dev \
             lua5.4 liblua5.4-dev
 
-      - name: Build miltertest from OpenDKIM
+      - name: Build miltertest
         run: |
-          git clone --depth=1 https://github.com/trusteddomainproject/OpenDKIM.git /tmp/opendkim
-          cd /tmp/opendkim
+          git clone --depth=1 https://github.com/thegushi/miltertest.git /tmp/miltertest
+          cd /tmp/miltertest
           autoreconf -fvi
-          ./configure --enable-lua CFLAGS='-g -O2 -Wno-pointer-sign'
+          ./configure CFLAGS='-g -O2 -Wno-pointer-sign'
           make -j$(nproc)
-          sudo make -C miltertest install
+          sudo make install
 
       - name: Bootstrap build system
         run: autoreconf -fvi
