@@ -3115,6 +3115,144 @@ mlfi_eom(SMFICTX *ctx)
 	}
 
 	/*
+	**  Enact policy based on DMARC results.
+	*/
+
+	result = DMARC_RESULT_ACCEPT;
+	ret = SMFIS_ACCEPT;
+
+	switch (policy)
+	{
+	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
+	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
+		aresult = "none";
+		break;
+
+	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
+		aresult = "fail";		/* Accept and report */
+		break;
+
+	  case DMARC_POLICY_PASS:		/* Explicit accept */
+		aresult = "pass";
+		break;
+
+	  case DMARC_POLICY_REJECT:		/* Explicit reject */
+		aresult = "fail";
+		ret = SMFIS_CONTINUE;
+
+		if (conf->conf_rejectfail &&
+		    random() % 100 < pct)
+		{
+			snprintf(replybuf, sizeof replybuf,
+			         "rejected by DMARC policy for %s", pdomain);
+
+			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
+			                         DMARC_REJECT_ESC, replybuf);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_setreply() failed",
+				       dfc->mctx_jobid);
+			}
+
+			ret = SMFIS_REJECT;
+			result = DMARC_RESULT_REJECT;
+		}
+
+		if (conf->conf_copyfailsto != NULL)
+		{
+			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
+				       dfc->mctx_jobid);
+			}
+		}
+
+		break;
+
+	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
+		aresult = "fail";
+		ret = SMFIS_CONTINUE;
+
+		if (conf->conf_rejectfail &&
+		    conf->conf_holdquarantinedmessages &&
+		    random() % 100 < pct)
+		{
+			/* quarantine will be deferred until after the ARC policy eval */
+
+			ret = SMFIS_ACCEPT;
+			result = DMARC_RESULT_QUARANTINE;
+		}
+
+		if (conf->conf_copyfailsto != NULL)
+		{
+			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
+			if (status != MI_SUCCESS && conf->conf_dolog)
+			{
+				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
+				       dfc->mctx_jobid);
+			}
+		}
+
+		break;
+
+	  default:
+		aresult = "temperror";
+		ret = SMFIS_TEMPFAIL;
+		result = DMARC_RESULT_TEMPFAIL;
+		break;
+	}
+
+	/*
+	**  ARC override
+	**
+	**  If DMARC is in failure mode, we will allow the message provided
+	**  that arc information is valid: arc=pass, arc.chain is present,
+	**  and all listed domains in the chain are whitelisted.
+	**
+	**  Additional logging is provided when DMARC is in failure mode
+	**  and arc=pass but authentication still fails because of an invalid
+	**  arc.chain to assist with administrative debugging.
+	*/
+
+	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
+	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
+	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
+	    conf->conf_dolog)
+	{
+		syslog(LOG_NOTICE,
+		       "%s: ARC pass, policy fail > continuing DMARC eval",
+		       dfc->mctx_jobid);
+	}
+
+	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
+	    dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
+	{
+		ret = SMFIS_ACCEPT;
+		result = DMARC_RESULT_ACCEPT;
+		if (conf->conf_dolog)
+		{
+			syslog(LOG_NOTICE,
+			       "%s: ARC pass, policy pass > overriding DMARC fail",
+			       dfc->mctx_jobid);
+		}
+	}
+
+	if (result == DMARC_RESULT_QUARANTINE)
+	{
+		snprintf(replybuf, sizeof replybuf,
+		         "quarantined by DMARC policy for %s",
+		         pdomain);
+
+		status = smfi_quarantine(ctx, replybuf);
+		if (status != MI_SUCCESS && conf->conf_dolog)
+		{
+			syslog(LOG_ERR, "%s: smfi_quarantine() failed",
+			       dfc->mctx_jobid);
+		}
+	}
+
+	/*
 	**  Generate a failure report.
 	*/
 
@@ -3293,6 +3431,33 @@ mlfi_eom(SMFICTX *ctx)
 			                      dfc->mctx_envfrom);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
+			                      "Arrival-Date: %s\n",
+			                      timebuf);
+
+			switch (result)
+			{
+			  case DMARC_RESULT_REJECT:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: reject\n");
+				break;
+
+			  case DMARC_RESULT_QUARANTINE:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: policy\n");
+				break;
+
+			  case DMARC_RESULT_TEMPFAIL:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: other\n");
+				break;
+
+			  default:
+				dmarcf_dstring_cat(dfc->mctx_afrf,
+				                   "Delivery-Result: delivered\n");
+				break;
+			}
+
+			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Source-IP: %s (%s)\n",
 			                      cc->cctx_ipstr,
 			                      cc->cctx_host);
@@ -3364,144 +3529,7 @@ mlfi_eom(SMFICTX *ctx)
 	}
 
 	/*
-	**  Enact policy based on DMARC results.
-	*/
-
-	result = DMARC_RESULT_ACCEPT;
-	ret = SMFIS_ACCEPT;
-
-	switch (policy)
-	{
-	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
-	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
-		aresult = "none";
-		break;
-
-	  case DMARC_POLICY_NONE:		/* Alignment failed, but policy is none: */
-		aresult = "fail";		/* Accept and report */
-		break;
-
-	  case DMARC_POLICY_PASS:		/* Explicit accept */
-		aresult = "pass";
-		break;
-
-	  case DMARC_POLICY_REJECT:		/* Explicit reject */
-		aresult = "fail";
-		ret = SMFIS_CONTINUE;
-
-		if (conf->conf_rejectfail &&
-		    random() % 100 < pct)
-		{
-			snprintf(replybuf, sizeof replybuf,
-			         "rejected by DMARC policy for %s", pdomain);
-
-			status = dmarcf_setreply(ctx, DMARC_REJECT_SMTP,
-			                         DMARC_REJECT_ESC, replybuf);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_setreply() failed",
-				       dfc->mctx_jobid);
-			}
-
-			ret = SMFIS_REJECT;
-			result = DMARC_RESULT_REJECT;
-		}
-
-		if (conf->conf_copyfailsto != NULL)
-		{
-			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
-				       dfc->mctx_jobid);
-			}
-		}
-
-		break;
-
-	  case DMARC_POLICY_QUARANTINE:		/* Explicit quarantine */
-		aresult = "fail";
-		ret = SMFIS_CONTINUE;
-
-		if (conf->conf_rejectfail &&
-		    conf->conf_holdquarantinedmessages &&
-		    random() % 100 < pct)
-		{
-			/* quarantine will be deferred until after the ARC policy eval */
-			
-			ret = SMFIS_ACCEPT;
-			result = DMARC_RESULT_QUARANTINE;
-		}
-
-		if (conf->conf_copyfailsto != NULL)
-		{
-			status = dmarcf_addrcpt(ctx, conf->conf_copyfailsto);
-			if (status != MI_SUCCESS && conf->conf_dolog)
-			{
-				syslog(LOG_ERR, "%s: smfi_addrcpt() failed",
-				       dfc->mctx_jobid);
-			}
-		}
-
-		break;
-
-	  default:
-		aresult = "temperror";
-		ret = SMFIS_TEMPFAIL;
-		result = DMARC_RESULT_TEMPFAIL;
-		break;
-	}
-
-	/*
-	**  ARC override
-	**
-	**  If DMARC is in failure mode, we will allow the message provided
-	**  that arc information is valid: arc=pass, arc.chain is present,
-	**  and all listed domains in the chain are whitelisted.
-	**
-	**  Additional logging is provided when DMARC is in failure mode
-	**  and arc=pass but authentication still fails because of an invalid
-	**  arc.chain to assist with administrative debugging.
-	*/
-
-	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
-	    dfc->mctx_arcpass == ARES_RESULT_PASS &&
-	    dfc->mctx_arcpolicypass != DMARC_ARC_POLICY_RESULT_PASS &&
-	    conf->conf_dolog)
-	{
-		syslog(LOG_NOTICE,
-		       "%s: ARC pass, policy fail > continuing DMARC eval",
-		       dfc->mctx_jobid);
-	}
-
-	if ((result == DMARC_RESULT_REJECT || result == DMARC_RESULT_QUARANTINE) &&
-	    dfc->mctx_arcpolicypass == DMARC_ARC_POLICY_RESULT_PASS)
-	{
-		ret = SMFIS_ACCEPT;
-		result = DMARC_RESULT_ACCEPT;
-		if (conf->conf_dolog)
-		{
-			syslog(LOG_NOTICE,
-			       "%s: ARC pass, policy pass > overriding DMARC fail",
-			       dfc->mctx_jobid);
-		}
-	}
-
-	if (result == DMARC_RESULT_QUARANTINE)
-	{
-		snprintf(replybuf, sizeof replybuf,
-		         "quarantined by DMARC policy for %s",
-		         pdomain);
-
-		status = smfi_quarantine(ctx, replybuf);
-		if (status != MI_SUCCESS && conf->conf_dolog)
-		{
-			syslog(LOG_ERR, "%s: smfi_quarantine() failed",
-			       dfc->mctx_jobid);
-		}
-	}
-
-	/*
+/*
  	**  Append arc override to historyfile.  The format 
 	**
 	**  <reason>
