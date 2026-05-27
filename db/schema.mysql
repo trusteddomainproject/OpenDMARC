@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS requests (
 	policy TINYINT NOT NULL DEFAULT '0',
 	spolicy TINYINT NOT NULL DEFAULT '0',
 	pct TINYINT NOT NULL DEFAULT '0',
+	fo TINYINT NOT NULL DEFAULT '0',
 	locked TINYINT NOT NULL DEFAULT '0',
 	firstseen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	lastsent TIMESTAMP NULL DEFAULT NULL,
@@ -105,12 +106,13 @@ CREATE TABLE IF NOT EXISTS messages (
 	env_domain INT UNSIGNED NOT NULL,
 	from_domain INT UNSIGNED NOT NULL,
 	policy_domain INT UNSIGNED NOT NULL,
-	spf TINYINT NOT NULL,
-	align_dkim TINYINT UNSIGNED NOT NULL,
-	align_spf TINYINT UNSIGNED NOT NULL,
-	sigcount TINYINT UNSIGNED NOT NULL,
-	arc TINYINT UNSIGNED NOT NULL,
-	arc_policy TINYINT UNSIGNED NOT NULL,
+	spf TINYINT NOT NULL DEFAULT '0',
+	spf_scope TINYINT NOT NULL DEFAULT '-1',
+	align_dkim TINYINT UNSIGNED NOT NULL DEFAULT '5',
+	align_spf TINYINT UNSIGNED NOT NULL DEFAULT '5',
+	sigcount TINYINT UNSIGNED NOT NULL DEFAULT '0',
+	arc TINYINT UNSIGNED NOT NULL DEFAULT '0',
+	arc_policy TINYINT UNSIGNED NOT NULL DEFAULT '1',
 
 	PRIMARY KEY(id),
 	KEY(date),
@@ -128,6 +130,21 @@ CREATE TABLE IF NOT EXISTS signatures (
 
 	PRIMARY KEY(id),
 	KEY(message)
+);
+
+-- A table of reporting addresses and domains to suppress.
+-- Entries may be a full RUA/RUF email address (e.g. dmarc@example.com)
+-- or a bare domain name (e.g. example.com) to suppress all reporting
+-- addresses under that domain.  Can be populated automatically from
+-- VERP bounce processing.
+CREATE TABLE IF NOT EXISTS suppressions (
+	id INT NOT NULL AUTO_INCREMENT,
+	address VARCHAR(255) NOT NULL,
+	added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	reason VARCHAR(255),
+
+	PRIMARY KEY(id),
+	UNIQUE KEY(address)
 );
 
 -- CREATE USER 'opendmarc'@'localhost' IDENTIFIED BY 'changeme';

@@ -128,6 +128,7 @@ struct dmarcf_msgctx
 	int			mctx_arcpass;
 	int			mctx_arcpolicypass;
 	int			mctx_spfresult;
+	int			mctx_spfmode;
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
 	struct arcares_header * mctx_aarhead;
@@ -1986,6 +1987,7 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 	dfc->mctx_jobid = JOBIDUNKNOWN;
 	dfc->mctx_spfresult = -1;
+	dfc->mctx_spfmode = -1;
 
 	dfc->mctx_histbuf = dmarcf_dstring_new(BUFRSZ, 0);
 	if (dfc->mctx_histbuf == NULL)
@@ -2686,9 +2688,13 @@ mlfi_eom(SMFICTX *ctx)
 					return SMFIS_TEMPFAIL;
 				}
 
+				dfc->mctx_spfmode = spfmode;
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n",
 				                      dfc->mctx_spfresult);
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf_scope %d\n",
+				                      dfc->mctx_spfmode);
 				wspf = TRUE;
 			}
 			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
@@ -2846,8 +2852,12 @@ mlfi_eom(SMFICTX *ctx)
 				spfres = dmarcf_parse_received_spf(hdr->hdr_value,
 				                                   dfc->mctx_envdomain);
 
+				dfc->mctx_spfmode = spfmode;
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "spf %d\n", spfres);
+				dmarcf_dstring_printf(dfc->mctx_histbuf,
+				                      "spf_scope %d\n",
+				                      dfc->mctx_spfmode);
 
 				dfc->mctx_spfresult = spfres;
 
@@ -2926,7 +2936,8 @@ mlfi_eom(SMFICTX *ctx)
 				use_domain = cc->cctx_helo;
 				spf_mode   = DMARC_POLICY_SPF_ORIGIN_HELO;
 			}
-			ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc, 
+			dfc->mctx_spfmode = spf_mode;
+			ostatus = opendmarc_policy_store_spf(cc->cctx_dmarc,
 				                             use_domain,
 				                             spf_result,
 				                             spf_mode,
@@ -3005,6 +3016,8 @@ mlfi_eom(SMFICTX *ctx)
 
 		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf %d\n",
 		                      dfc->mctx_spfresult);
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "spf_scope %d\n",
+		                      dfc->mctx_spfmode);
 	}
 
 	ostatus = opendmarc_policy_query_dmarc(cc->cctx_dmarc,
@@ -3090,6 +3103,12 @@ mlfi_eom(SMFICTX *ctx)
 
 	opendmarc_policy_fetch_sp(cc->cctx_dmarc, &sp);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "sp %d\n", sp);
+
+	{
+		int fo = DMARC_RECORD_FO_UNSPECIFIED;
+		opendmarc_policy_fetch_fo(cc->cctx_dmarc, &fo);
+		dmarcf_dstring_printf(dfc->mctx_histbuf, "fo %d\n", fo);
+	}
 
 	opendmarc_policy_fetch_alignment(cc->cctx_dmarc, &align_dkim,
 	                                 &align_spf);

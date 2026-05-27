@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# Copyright (c) 2026, The Trusted Domain Project.  All rights reserved.
+#
+# Wrapper script to rotate the opendmarc history file, import it, expire
+# old records, and send aggregate reports.  Intended to be run from cron.
+
+HISTFILE=/var/db/opendmarc/opendmarc.dat
+IMPORTFILE=${HISTFILE}.import
+
+# Optional suffix appended to the tool names.  Set to "-pg" (for example)
+# to use PostgreSQL variants: opendmarc-import-pg, opendmarc-reports-pg, etc.
+SUFFIX=
+
+IMPORT=/usr/local/sbin/opendmarc-import${SUFFIX}
+EXPIRE=/usr/local/sbin/opendmarc-expire${SUFFIX}
+REPORTS=/usr/local/sbin/opendmarc-reports${SUFFIX}
+
+DBHOST=localhost
+DBUSER=opendmarc
+DBPASSWD=opendmarc
+DBSCHEME=mysql
+WORKDIR=/var/db/opendmarc
+
+# Set DOMAIN to restrict reporting to a single domain, or leave empty to
+# report for all domains with data in the database.
+DOMAIN=
+
+# SMTP authentication.  Leave SMTPUSER and SMTPPASSWD empty for unauthenticated
+# submission (the default, suitable for a local MTA on 127.0.0.1:25).
+# Set SMTPSSL=--smtp-ssl when connecting to a server that requires SSL/TLS.
+# Set SMTPCAFILE to the path of a CA bundle for servers using a private or
+# self-signed certificate.  Leave empty to use the system CA bundle.
+
+# Load local configuration, overriding the defaults above.  This file
+# survives package upgrades since it is not managed by the package.
+[ -f /etc/opendmarc/opendmarc-run.conf ] && . /etc/opendmarc/opendmarc-run.conf
+
+DBOPTS="--dbhost=${DBHOST} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD} --dbscheme=${DBSCHEME}"
+
+# Rotate the history file atomically before importing so that opendmarc
+# can immediately start writing new records while we process the old ones.
+if [ -s "${HISTFILE}" ]; then
+	mv "${HISTFILE}" "${IMPORTFILE}" && \
+	    ${IMPORT} ${DBOPTS} --input="${IMPORTFILE}" && \
+	    rm "${IMPORTFILE}"
+fi
+
+${EXPIRE} ${DBOPTS}
+
+${REPORTS} ${DBOPTS} ${DOMAIN:+--domain ${DOMAIN}} --workdir ${WORKDIR}
