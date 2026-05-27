@@ -6,6 +6,7 @@ This document summarizes the changes merged into the `develop` branch during the
 
 ## Security / correctness
 
+- **Strict DMARC alignment incorrectly passing with PSL configured**: `opendmarc_policy_check_alignment` fell through to organizational-domain (PSL) resolution after the initial exact-match check failed, even in strict mode (`adkim=s` or `aspf=s`). This could produce a false aligned result - e.g. `From: user@sub.example.com` with a signing domain of `example.com` would pass strict alignment because the PSL lookup collapsed the From domain to `example.com`. RFC 7489 §3.1.1/3.1.2 requires exact match only in strict mode. (#354, issue #268)
 - **Quarantine not deferred through ARC override**: When DMARC policy was `p=quarantine`, `smfi_quarantine()` was called before the ARC override check, meaning a valid ARC chain could not rescue a quarantined message. The quarantine call is now deferred until after the ARC policy evaluation. ARC override now also applies to quarantine results, not only rejections. (#321, issue #24)
 - **`arc=pass` never appearing in aggregate reports**: The arc result value in the history file was compared against the wrong constant, so `arc=pass` was never written to XML reports. (#313, issue #282)
 - **Received-SPF parser mishandling VERP envelope-from addresses**: `=` characters in VERP-encoded envelope senders (e.g. `user+list=example.com@host`) caused the Received-SPF parser to misread the result field. The parser now handles `=` correctly. (#300, issues #206, #221)
@@ -119,6 +120,7 @@ CREATE TABLE IF NOT EXISTS suppressions (
 - **Perl path hardcoded in report scripts**: `#!/usr/bin/perl` was hardcoded in `opendmarc-reports`, `opendmarc-import`, and related scripts. The path is now detected by `configure` and substituted as `@PERL@`. (#318)
 - **`OPENDMARC_LIB_VERSION` always `0x00000000`** in GitHub release tarballs: The version constant was read from a generated header not present in the tarball. (#301, issue #235)
 - **Missing DEFAULT values for `messages` columns**: Several columns lacked `DEFAULT` clauses, causing `opendmarc-import` to fail under MySQL/MariaDB strict mode when processing history files from older opendmarc versions that omitted those fields. (#324, issues #217, #219)
+- **libspf2 include/library paths not propagated to Makefiles**: `configure.ac` modified `CFLAGS` to pass the SPF2 include path to `AC_SEARCH_LIBS`, but autoconf does not propagate `CFLAGS` changes into generated Makefiles. This caused build failures in rpmbuild environments (Fedora/EPEL) where `CFLAGS` is pre-set by distribution policy. Paths are now appended to `CPPFLAGS` and `LDFLAGS` instead. (#287)
 
 ---
 
