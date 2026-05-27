@@ -3601,13 +3601,17 @@ mlfi_eom(SMFICTX *ctx)
 	     dfc->mctx_aarhead != NULL && as_hdr != NULL;
 	     as_hdr = as_hdr->arcseal_next, c++)
 	{
-		/* fetch smtp.client_ip from aar */
+		/* make sure smtpclientip is (re)initialized before use */
+		arcares_arc_field.smtpclientip[0] = '\0';
+
+		/* fetch smtp.remote-ip from aar */
 		if (opendmarc_arcares_list_pluck(as_hdr->arcseal.instance,
 		                                 dfc->mctx_aarhead,
 		                                 &arcares) == 0)
 		{
-			(void) opendmarc_arcares_arc_parse(arcares.arc,
-			                                   &arcares_arc_field);
+			if (opendmarc_arcares_arc_parse(&arcares,
+			                               &arcares_arc_field) != 0)
+				arcares_arc_field.smtpclientip[0] = '\0';
 		}
 
 		dmarcf_dstring_printf(dfc->mctx_histbuf,
