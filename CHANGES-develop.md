@@ -29,7 +29,7 @@ This document summarizes the changes merged into the `develop` branch during the
 ## Aggregate reports (RFC 9989/9990 compliance)
 
 - **RFC 9989 obsoletes RFC 7489**: OpenDMARC now targets RFC 9989 (DMARC) and RFC 9990 (aggregate reporting). Key behavioral change: RFC 9990 makes the DKIM `<selector>` element mandatory in `<auth_results>` (previously optional); the selector field is always emitted, using an empty string when the database has no selector recorded.
-- **Aggregate reports now group identical rows**: `opendmarc-reports` previously emitted one `<record>` per message with `<count>1</count>`. Messages sharing the same source IP, disposition, DKIM/SPF alignment, SPF result, SPF scope, From domain, and envelope domain are now collapsed into a single `<record>` with an accurate `<count>`. Per RFC 9990 §... the `<auth_results>` section accumulates all unique DKIM `(domain, selector, result)` tuples seen across messages in the group. This can significantly reduce report size for high-volume senders. (#212)
+- **Aggregate reports now group identical rows**: `opendmarc-reports` previously emitted one `<record>` per message with `<count>1</count>`. Messages sharing the same source IP, disposition, DKIM/SPF alignment, SPF result, SPF scope, From domain, and envelope domain are now collapsed into a single `<record>` with an accurate `<count>`. Per RFC 9990 the `<auth_results>` section accumulates all unique DKIM `(domain, selector, result)` tuples seen across messages in the group. This can significantly reduce report size for high-volume senders. (issue #212)
 
 ---
 
