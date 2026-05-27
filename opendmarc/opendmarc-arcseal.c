@@ -26,10 +26,13 @@
 #endif /* USE_DMARCSTRL_H */
 
 #include "opendmarc-arcseal.h"
-#include "opendmarc.h"
 
 #define OPENDMARC_ARCSEAL_MAX_FIELD_NAME_LEN 255
-#define OPENDMARC_ARCSEAL_MAX_TOKEN_LEN      512
+
+#ifndef MAX
+# define MAX(x, y) ((x) >= (y)) ? (x) : (y)
+# define MIN(x, y) ((x) <= (y)) ? (x) : (y)
+#endif /* !MAX */
 
 /* tables */
 struct opendmarc_arcseal_lookup
@@ -81,15 +84,13 @@ opendmarc_arcseal_convert(struct opendmarc_arcseal_lookup *table, char *str)
 
 /*
 **  OPENDMARC_ARCSEAL_STRIP_WHITESPACE -- removes all whitespace from a string
-**                              in-place, handling a maximum string of length
-**                              ARCSEAL_MAX_TOKEN_LEN
+**                              in-place
 **
 **  Parameters:
 **  	string -- NULL-terminated string to modify
 **
 **  Returns:
-**  	pointer to string on success, NULL on failure (max string length
-**  	exceeded)
+**  	pointer to string
 **/
 
 static char *
@@ -99,13 +100,8 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 
 	int a;
 	int b;
-	char *string_ptr;
 
-	string_ptr = string;
-
-	for (a = 0, b = 0;
-	     string[b] != '\0' && b < OPENDMARC_ARCSEAL_MAX_TOKEN_LEN;
-	     b++)
+	for (a = 0, b = 0; string[b] != '\0'; b++)
 	{
 		if (isascii(string[b]) && isspace(string[b]))
 			continue;
@@ -114,11 +110,8 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 		a++;
 	}
 
-	if (b >= OPENDMARC_ARCSEAL_MAX_TOKEN_LEN)
-		return NULL;
-
 	/* set remaining chars to null */
-	memset(&string[a], '\0', sizeof(char) * (b - a));
+	memset(&string[a], '\0', b - a);
 
 	return string;
 }
@@ -152,7 +145,7 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 	memset(tmp, '\0', sizeof tmp);
 
 	// guarantee a null-terminated string
-	memcpy(tmp, hdr, MIN_OF(strlen(hdr), sizeof tmp - 1));
+	memcpy(tmp, hdr, MIN(strlen(hdr), sizeof tmp - 1));
 
 	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
 	{
@@ -162,13 +155,14 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		char *tag_label;
 		char *tag_value;
 
-		leading_space_len = strspn(token, " \n\t");
+		leading_space_len = strspn(token, " \r\n\t");
 		token_ptr = token + leading_space_len;
 		if (*token_ptr == '\0')
 			return 0;
 		tag_label = strsep(&token_ptr, "=");
+		if (token_ptr == NULL)
+			return -1;
 		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
-
 		tag_code = opendmarc_arcseal_convert(as_tags, tag_label);
 
 		switch (tag_code)
@@ -202,7 +196,6 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 			break;
 
 		  default:
-			result = -1;
 			break;
 		}
 	}
