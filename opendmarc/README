@@ -180,9 +180,9 @@ their encodings, but there are only a few of them:
 			17 = quarantine
 			18 = none
 
-	arc		ARC evaluation (0 = pass, 2 = fail)
+	arc		ARC evaluation (0 = pass, 7 = fail)
 
-	arc_policy	ARC local policy evaluation (evaluation -- same as ARC, ARC seal
+	arc_policy	ARC local policy evaluation (evaluation -- (0 = pass, 2 = fail), ARC seal
 			data - JSON-encoded array of governing arc seal fields: instance,
 			domain, selector)
 
