@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 - **`opendmarc-check` printed first domain for all arguments**: When multiple domains were passed on the command line, the output header always showed `argv[1]` instead of the current argument. (#350)
 - **Startup log suppresses empty brackets**: When started with no relevant command-line options, the daemon logged `opendmarc vX.Y starting ()`. The parentheses are now omitted when there are no options to show. (#348)
+- **History file `arc` field values corrected in documentation**: The opendmarc/README documented the `arc` field as `0=pass, 2=fail`; the code has always written `0` (`ARES_RESULT_PASS`) or `7` (`ARES_RESULT_FAIL`). Documentation corrected to match. (#352, issue #214)
 
 ---
 
