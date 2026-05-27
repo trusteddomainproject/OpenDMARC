@@ -6,7 +6,7 @@ if LIVE_TESTS
 check_SCRIPTS += t-verify-multi-from-reject t-verify-multi-from-malformed \
 	t-verify-nodata t-verify-nodata-reject \
 	t-verify-unspec t-verify-received-spf-good t-verify-received-spf-bad \
-	t-verify-self-spf
+	t-verify-self-spf t-verify-authservid-jobid
 endif
 
 TESTS = $(check_SCRIPTS)
@@ -24,6 +24,8 @@ EXTRA_DIST = \
 	t-verify-multi-from-reject t-verify-multi-from-reject.conf \
 		t-verify-multi-from-reject.lua \
 	t-verify-multi-from-malformed t-verify-multi-from-malformed.conf \
-		t-verify-multi-from-malformed.lua
+		t-verify-multi-from-malformed.lua \
+	t-verify-authservid-jobid t-verify-authservid-jobid.conf \
+		t-verify-authservid-jobid.lua
 
 MOSTLYCLEANFILES=

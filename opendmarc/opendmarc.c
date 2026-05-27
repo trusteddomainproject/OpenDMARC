@@ -2162,6 +2162,7 @@ mlfi_eom(SMFICTX *ctx)
 	u_char *bang;
 	u_char **ruv;
 	unsigned char header[MAXHEADER + 1];
+	unsigned char authservid_hdr[MAXHOSTNAMELEN + BUFRSZ + 4];
 	unsigned char addrbuf[BUFRSZ + 1];
 	unsigned char replybuf[BUFRSZ + 1];
 	unsigned char pdomain[MAXHOSTNAMELEN + 1];
@@ -2218,6 +2219,18 @@ mlfi_eom(SMFICTX *ctx)
 			       authservid);
 		}
 	}
+
+	/*
+	 * Build the authserv-id string for A-R headers.  Per RFC 8601 + RFC 2045,
+	 * "/" is a tspecial and invalid in an unquoted token, so quote the whole
+	 * value when a job ID is appended.
+	 */
+	if (conf->conf_authservidwithjobid && dfc->mctx_jobid[0] != '\0')
+		snprintf(authservid_hdr, sizeof authservid_hdr,
+		         "\"%s/%s\"", authservid, dfc->mctx_jobid);
+	else
+		snprintf(authservid_hdr, sizeof authservid_hdr,
+		         "%s", authservid);
 
 	/* ensure there was a From field */
 	from = dmarcf_findheader(dfc, "From", 0);
@@ -2948,13 +2961,13 @@ mlfi_eom(SMFICTX *ctx)
 			{
 				snprintf(header, sizeof header,
 					 "%s; spf=%s smtp.helo=%s",
-					 authservid, pass_fail, use_domain);
+					 authservid_hdr, pass_fail, use_domain);
 			}
 			else
 			{
 				snprintf(header, sizeof header,
 					 "%s; spf=%s smtp.mailfrom=%s",
-					 authservid, pass_fail, use_domain);
+					 authservid_hdr, pass_fail, use_domain);
 			}
 
 			if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
@@ -3020,7 +3033,7 @@ mlfi_eom(SMFICTX *ctx)
 
 		snprintf(header, sizeof header,
 		         "%s; dmarc=permerror header.from=%s",
-		         authservid, dfc->mctx_fromdomain);
+		         authservid_hdr, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
 		                     header) == MI_FAILURE)
@@ -3570,10 +3583,8 @@ mlfi_eom(SMFICTX *ctx)
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
 		snprintf(header, sizeof header,
-		         "%s%s%s; dmarc=%s (p=%s dis=%s) header.from=%s",
-		         authservid,
-		         conf->conf_authservidwithjobid ? "/" : "",
-		         conf->conf_authservidwithjobid ? dfc->mctx_jobid : "",
+		         "%s; dmarc=%s (p=%s dis=%s) header.from=%s",
+		         authservid_hdr,
 		         aresult, apolicy, adisposition, dfc->mctx_fromdomain);
 
 		if (dmarcf_insheader(ctx, 1, AUTHRESULTSHDR,
