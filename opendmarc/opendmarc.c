@@ -3482,7 +3482,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "User-Agent: %s/%s\n",
-			                      DMARCF_PRODUCTNS, VERSION);
+			                      DMARCF_PRODUCTNS, DMARCF_VERSION);
 
 			dmarcf_dstring_cat(dfc->mctx_afrf,
 			                   "Auth-Failure: dmarc\n");
@@ -3778,7 +3778,7 @@ mlfi_eom(SMFICTX *ctx)
 	if (conf->conf_addswhdr)
 	{
 		snprintf(header, sizeof header, "%s v%s %s %s",
-		         DMARCF_PRODUCT, VERSION, hostname,
+		         DMARCF_PRODUCT, DMARCF_VERSION, hostname,
 		         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
 		                                 : JOBIDUNKNOWN);
 
@@ -4291,13 +4291,14 @@ main(int argc, char **argv)
 
 		  case 'V':
 			printf("%s: %s v%s\n", progname, DMARCF_PRODUCT,
-			       VERSION);
+			       DMARCF_VERSION);
 			printf("\tSMFI_VERSION 0x%x\n", SMFI_VERSION);
 #ifdef HAVE_SMFI_VERSION
 			(void) smfi_version(&mvmajor, &mvminor, &mvrelease);
 			printf("\tlibmilter version %d.%d.%d\n",
 			       mvmajor, mvminor, mvrelease);
 #endif /* HAVE_SMFI_VERSION */
+			printf("\tConfigured with: %s\n", CONFIGURE_ARGS);
 			dmarcf_optlist(stdout);
 			return EX_OK;
 
@@ -5196,7 +5197,7 @@ main(int argc, char **argv)
 		}
 
 		syslog(LOG_INFO, "%s v%s starting%s%s%s", DMARCF_PRODUCT,
-		       VERSION,
+		       DMARCF_VERSION,
 		       strlen(argstr) == 0 ? "" : " (",
 		       argstr,
 		       strlen(argstr) == 0 ? "" : ")");
@@ -5256,7 +5257,7 @@ main(int argc, char **argv)
 	{
 		syslog(LOG_INFO,
 		       "%s v%s terminating with status %d, errno = %d",
-		       DMARCF_PRODUCT, VERSION, status, errno);
+		       DMARCF_PRODUCT, DMARCF_VERSION, status, errno);
 	}
 
 	/* release memory */

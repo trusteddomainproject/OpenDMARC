@@ -67,6 +67,23 @@ AC_CHECK_TYPES([ns_type], [], [], [[
 ]])
 
 #
+# Version string: use git describe on dev builds for a hash suffix
+#
+AC_CHECK_PROG([GIT], [git], [git])
+AC_MSG_CHECKING([build version string])
+DMARCF_VERSION=$PACKAGE_VERSION
+if test -n "$GIT" && $GIT describe --tags --dirty >/dev/null 2>&1; then
+    _git_ver=$($GIT describe --tags --dirty)
+    _git_ver=${_git_ver#v}
+    if test "$_git_ver" != "$PACKAGE_VERSION"; then
+        DMARCF_VERSION=$_git_ver
+    fi
+fi
+AC_MSG_RESULT([$DMARCF_VERSION])
+AC_DEFINE_UNQUOTED([DMARCF_VERSION], ["$DMARCF_VERSION"],
+                   [Version string, including git hash on development builds])
+
+#
 # Hexadecimal version, for use in generating dmarc.h
 #
 HEX_VERSION=$(printf %08x $(( ((VERSION_RELEASE << 8 | VERSION_MAJOR_REV) << 8 | VERSION_MINOR_REV) << 8 | VERSION_PATCH )))
@@ -567,5 +584,7 @@ AC_CONFIG_FILES([ Makefile
 		reports/opendmarc-reports
 		reports/opendmarc-reports.8
 	])
+AC_DEFINE_UNQUOTED([CONFIGURE_ARGS], ["$ac_configure_args"],
+                   [Arguments passed to configure])
 AC_OUTPUT()
 # @end1
