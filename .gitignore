@@ -19,6 +19,7 @@ opendmarc*.gz.md5
 opendmarc*.gz.asc
 *.orig
 *.rej
+rfc*.txt
 HOURS
 tags
 .vscode
