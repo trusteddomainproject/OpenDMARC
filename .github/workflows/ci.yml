@@ -3,8 +3,16 @@ name: CI
 on:
   push:
     branches: [ develop ]
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - 'contrib/**'
   pull_request:
     branches: [ develop ]
+    paths-ignore:
+      - '**.md'
+      - 'doc/**'
+      - 'contrib/**'
   workflow_dispatch:
 
 jobs:
