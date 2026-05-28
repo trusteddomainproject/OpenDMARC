@@ -3777,10 +3777,21 @@ mlfi_eom(SMFICTX *ctx)
 
 	if (conf->conf_addswhdr)
 	{
-		snprintf(header, sizeof header, "%s v%s %s %s",
-		         DMARCF_PRODUCT, DMARCF_VERSION, hostname,
-		         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
-		                                 : JOBIDUNKNOWN);
+		if (strcasecmp(hostname, myhostname) == 0)
+		{
+			snprintf(header, sizeof header, "%s v%s %s %s",
+			         DMARCF_PRODUCT, DMARCF_VERSION, hostname,
+			         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
+			                                 : JOBIDUNKNOWN);
+		}
+		else
+		{
+			snprintf(header, sizeof header, "%s v%s %s via %s %s",
+			         DMARCF_PRODUCT, DMARCF_VERSION, hostname,
+			         myhostname,
+			         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
+			                                 : JOBIDUNKNOWN);
+		}
 
 		if (dmarcf_insheader(ctx, 0, SWHEADERNAME,
 		                     header) == MI_FAILURE)
