@@ -198,6 +198,7 @@ struct dmarcf_config
 	char **			conf_ignoredomains;
 	struct list *		conf_domainwhitelist;
 	unsigned int		conf_domainwhitelisthashcount;
+	struct list *		conf_ignorehosts;
 };
 
 /* LIST -- basic linked list of strings */
@@ -270,7 +271,6 @@ _Bool no_i_whine;
 _Bool testmode;
 int diesig;
 struct dmarcf_config *curconf;
-struct list *ignore;
 char *progname;
 char *conffile;
 char *sock;
@@ -1170,6 +1170,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	char basedir[MAXPATHLEN + 1];
 	char *whitelist = NULL;
 	char *whitelistfile = NULL;
+	char *ignorefile = NULL;
 	struct list *cur;
 	int whitelistsize = DEF_WHITELIST_SIZE;
 
@@ -1330,6 +1331,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 		(void) config_get(data, "DomainWhitelistSize", &whitelistsize,
 		                  sizeof whitelistsize);
+
+		(void) config_get(data, "IgnoreHosts", &ignorefile,
+		                  sizeof ignorefile);
 	}
 
 	if (conf->conf_trustedauthservids == NULL &&
@@ -1478,6 +1482,20 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 			return -1;
 		}
 	}
+
+	if (ignorefile != NULL)
+	{
+		if (!dmarcf_loadlist(ignorefile, &conf->conf_ignorehosts))
+		{
+			fprintf(stderr,
+			        "%s: can't load ignore list from %s: %s\n",
+			        progname, ignorefile, strerror(errno));
+			return EX_DATAERR;
+		}
+	}
+
+	dmarcf_addlist("127.0.0.1", &conf->conf_ignorehosts);
+	dmarcf_addlist("::1", &conf->conf_ignorehosts);
 
 	return 0;
 }
@@ -1832,13 +1850,16 @@ mlfi_connect(SMFICTX *ctx, char *host, _SOCK_ADDR *ip)
 
 	dmarcf_config_reload();
 
-	if (dmarcf_checkhost(host, ignore) ||
-	    (ip != NULL && dmarcf_checkip(ip, ignore)))
+	pthread_mutex_lock(&conf_lock);
+	if (dmarcf_checkhost(host, curconf->conf_ignorehosts) ||
+	    (ip != NULL && dmarcf_checkip(ip, curconf->conf_ignorehosts)))
 	{
 		if (curconf->conf_dolog)
 			syslog(LOG_INFO, "ignoring connection from %s", host);
+		pthread_mutex_unlock(&conf_lock);
 		return SMFIS_ACCEPT;
 	}
+	pthread_mutex_unlock(&conf_lock);
 
 	/* copy hostname and IP information to a connection context */
 	cc = dmarcf_getpriv(ctx);
@@ -4131,6 +4152,9 @@ dmarcf_config_free(struct dmarcf_config *conf)
 		hdestroy();
 	}
 
+	if (conf->conf_ignorehosts != NULL)
+		dmarcf_freelist(conf->conf_ignorehosts);
+
 	free(conf);
 }
 
@@ -4207,7 +4231,6 @@ main(int argc, char **argv)
 	char *become = NULL;
 	char *chrootdir = NULL;
 	char *extract = NULL;
-	char *ignorefile = NULL;
 	char *p;
 	char *pidfile = NULL;
 	char *testfile = NULL;
@@ -4223,7 +4246,6 @@ main(int argc, char **argv)
 	sock = NULL;
 	no_i_whine = TRUE;
 	conffile = NULL;
-	ignore = NULL;
 
 	memset(myhostname, '\0', sizeof myhostname);
 	(void) gethostname(myhostname, sizeof myhostname);
@@ -4527,25 +4549,6 @@ main(int argc, char **argv)
 
 		(void) config_get(cfg, "ChangeRootDirectory", &chrootdir,
 		                  sizeof chrootdir);
-
-		(void) config_get(cfg, "IgnoreHosts", &ignorefile,
-		                  sizeof ignorefile);
-	}
-
-	if (ignorefile != NULL)
-	{
-		if (!dmarcf_loadlist(ignorefile, &ignore))
-		{
-			fprintf(stderr,
-			        "%s: can't load ignore list from %s: %s\n",
-			        progname, ignorefile, strerror(errno));
-			return EX_DATAERR;
-		}
-	}
-	else if (!testmode)
-	{
-		dmarcf_addlist("127.0.0.1", &ignore);
-		dmarcf_addlist("::1", &ignore);
 	}
 
 	if (!gotp && !testmode)
@@ -5273,8 +5276,6 @@ main(int argc, char **argv)
 
 	/* release memory */
 	dmarcf_config_free(curconf);
-	if (ignore != NULL)
-		dmarcf_freelist(ignore);
 
 	/* tell the reloader thread to die */
 	die = TRUE;
