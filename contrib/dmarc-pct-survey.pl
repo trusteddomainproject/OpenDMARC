@@ -5,9 +5,11 @@ use Net::DNS;
 use IO::Select;
 use Getopt::Long;
 
-# Query Umbrella top-1M domains for DMARC records, reporting pct= usage.
+# Query Umbrella top-1M domains for DMARC records, reporting pct= and psd= usage.
 #
-# Output (STDOUT): TSV - domain, pct_value, full_record
+# Output (STDOUT): TSV - domain, pct_value, psd_value, full_record
+#   pct_value: numeric value if present, "-" if absent
+#   psd_value: "y", "n", or "-" if absent
 # Progress/stats (STDERR): running count + final summary
 
 my $concurrency = 500;
@@ -39,6 +41,9 @@ my $n_queued   = 0;
 my $n_done     = 0;
 my $n_dmarc    = 0;  # has v=DMARC1 record
 my $n_pct      = 0;  # has pct= in record
+my $n_psd      = 0;  # has psd= in record
+my $n_psd_y    = 0;  # has psd=y
+my $n_psd_n    = 0;  # has psd=n
 my $n_errors   = 0;
 
 # In-flight: socket => domain
@@ -88,18 +93,24 @@ sub harvest {
 
             $n_dmarc++;
 
-            if ($txt =~ /\bpct=(\d+)/i) {
-                my $pct = $1;
-                $n_pct++;
-                print join("\t", $domain, $pct, $txt), "\n";
+            my $pct = ($txt =~ /\bpct=(\d+)/i)  ? $1      : '-';
+            my $psd = ($txt =~ /\bpsd=([yn])/i)  ? lc($1) : '-';
+
+            $n_pct++ if $pct ne '-';
+            if ($psd ne '-') {
+                $n_psd++;
+                $n_psd_y++ if $psd eq 'y';
+                $n_psd_n++ if $psd eq 'n';
             }
+
+            print join("\t", $domain, $pct, $psd, $txt), "\n";
             last;  # only evaluate first v=DMARC1 record
         }
     }
 }
 
 # Print TSV header to STDOUT
-print join("\t", "domain", "pct", "record"), "\n";
+print join("\t", "domain", "pct", "psd", "record"), "\n";
 
 print STDERR "Reading $infile, concurrency=$concurrency, timeout=${timeout}s\n";
 
@@ -123,8 +134,8 @@ while (my $line = <$fh>) {
     harvest(0);
 
     if ($n_done >= $next_progress) {
-        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct\n",
-            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct;
+        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct=, %d psd=\n",
+            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct, $n_psd;
         $next_progress += $progress_interval;
     }
 
@@ -137,8 +148,8 @@ close($fh);
 while (%inflight) {
     harvest(1);
     if ($n_done >= $next_progress) {
-        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct\n",
-            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct;
+        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct=, %d psd=\n",
+            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct, $n_psd;
         $next_progress += $progress_interval;
     }
 }
@@ -147,4 +158,7 @@ printf STDERR "\nDone.\n";
 printf STDERR "  Domains queried : %d\n", $n_done;
 printf STDERR "  Errors          : %d\n", $n_errors;
 printf STDERR "  Have DMARC      : %d (%.1f%%)\n", $n_dmarc, $n_done ? 100*$n_dmarc/$n_done : 0;
-printf STDERR "  Have pct=       : %d (%.1f%% of DMARC)\n", $n_pct, $n_dmarc ? 100*$n_pct/$n_dmarc : 0;
+printf STDERR "  Have pct=       : %d (%.1f%% of DMARC)\n", $n_pct,  $n_dmarc ? 100*$n_pct/$n_dmarc  : 0;
+printf STDERR "  Have psd=       : %d (%.1f%% of DMARC)\n", $n_psd,  $n_dmarc ? 100*$n_psd/$n_dmarc  : 0;
+printf STDERR "    psd=y         : %d\n", $n_psd_y;
+printf STDERR "    psd=n         : %d\n", $n_psd_n;
