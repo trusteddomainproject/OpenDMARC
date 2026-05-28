@@ -3142,15 +3142,19 @@ mlfi_eom(SMFICTX *ctx)
 	 * label tree rather than determined via the public suffix list.
 	 * This means the result may not be RFC 7489-compliant.
 	 */
-	if (cc->cctx_dmarc->org_domain_from_fallback && conf->conf_dolog)
 	{
-		syslog(LOG_WARNING,
-		       "%s: no PublicSuffixList configured; guessed "
-		       "organizational domain \"%s\" for \"%s\" by walking "
-		       "up the label tree -- set PublicSuffixList in "
-		       "opendmarc.conf for RFC 7489-compliant behavior",
-		       dfc->mctx_jobid, pdomain,
-		       dfc->mctx_fromdomain);
+		int fallback = 0;
+		(void) opendmarc_policy_fetch_org_domain_from_fallback(cc->cctx_dmarc, &fallback);
+		if (fallback && conf->conf_dolog)
+		{
+			syslog(LOG_WARNING,
+			       "%s: no PublicSuffixList configured; guessed "
+			       "organizational domain \"%s\" for \"%s\" by walking "
+			       "up the label tree -- set PublicSuffixList in "
+			       "opendmarc.conf for RFC 7489-compliant behavior",
+			       dfc->mctx_jobid, pdomain,
+			       dfc->mctx_fromdomain);
+		}
 	}
 
 	policy = opendmarc_get_policy_to_enforce(cc->cctx_dmarc);

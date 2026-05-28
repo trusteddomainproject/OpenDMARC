@@ -1661,6 +1661,18 @@ opendmarc_policy_fetch_from_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buf
 # endif
 	return DMARC_PARSE_OKAY;
 }
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_org_domain_from_fallback(DMARC_POLICY_T *pctx, int *fallbackp)
+{
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	if (fallbackp == NULL)
+		return DMARC_PARSE_ERROR_EMPTY;
+	*fallbackp = pctx->org_domain_from_fallback;
+	return DMARC_PARSE_OKAY;
+}
+
 /**************************************************************************
 ** OPENDMARC_GET_POLICY_TOKEN_USED -- Which policy was actually used
 **
