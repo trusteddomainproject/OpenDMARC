@@ -805,7 +805,13 @@ query_again:
 	tld_reply = opendmarc_get_tld(domain, tld, sizeof tld);
 	if (tld_reply != 0)
 		goto dns_failed;
-	if (strlen(tld) > 0)
+
+	/*
+	 * If the PSL identified an organizational domain distinct from the
+	 * queried domain, try exactly that domain and stop.  Per RFC 7489
+	 * §6.6.3 we look at one domain: the organizational domain.
+	 */
+	if (strlen(tld) > 0 && strcasecmp((char *)tld, (char *)domain) != 0)
 	{
 		pctx->organizational_domain = strdup(tld);
 
@@ -818,14 +824,60 @@ query_again2:
 		if (bp != NULL)
 			goto got_record;
 		/*
-		 * Was a CNAME was found that the resolver did
-		 * not follow on its own?
+		 * Was a CNAME found that the resolver did not follow on its own?
 		 */
 		if (bp == NULL && *buf != '\0')
 		{
 			(void) strlcpy(copy, buf, sizeof copy);
 			if (--loop_count != 0)
 				goto query_again2;
+		}
+		/* Organizational domain has no DMARC record; do not try further. */
+		goto dns_failed;
+	}
+
+	/*
+	 * No PSL was loaded, or the PSL could not identify an organizational
+	 * domain boundary (it returned the input domain unchanged).  Walk up
+	 * the label tree as a best-effort fallback, stopping before bare TLDs.
+	 * This is not strictly per RFC 7489 (which requires a PSL to determine
+	 * the organizational domain), but it handles the common case where no
+	 * PSL is configured and a parent domain has a DMARC record.
+	 * Configure PublicSuffixList in opendmarc.conf for RFC-compliant behavior.
+	 */
+	{
+		u_char *cur = (u_char *)domain;
+		u_char *dot;
+
+		while ((dot = (u_char *)strchr((char *)cur, '.')) != NULL)
+		{
+			cur = dot + 1;
+
+			/* Stop before bare TLDs (labels with no further dot). */
+			if (strchr((char *)cur, '.') == NULL)
+				break;
+
+			loop_count = DNS_MAX_RETRIES;
+			(void) strlcpy(copy, "_dmarc.", sizeof copy);
+			(void) strlcat(copy, cur, sizeof copy);
+query_again3:
+			(void) memset(buf, '\0', sizeof buf);
+			bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
+			if (bp != NULL)
+			{
+				pctx->organizational_domain = strdup(cur);
+				pctx->org_domain_from_fallback = 1;
+				goto got_record;
+			}
+			/*
+			 * Was a CNAME found that the resolver did not follow on its own?
+			 */
+			if (bp == NULL && *buf != '\0')
+			{
+				(void) strlcpy(copy, buf, sizeof copy);
+				if (--loop_count != 0)
+					goto query_again3;
+			}
 		}
 	}
 dns_failed:
@@ -1609,6 +1661,18 @@ opendmarc_policy_fetch_from_domain(DMARC_POLICY_T *pctx, u_char *buf, size_t buf
 # endif
 	return DMARC_PARSE_OKAY;
 }
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_org_domain_from_fallback(DMARC_POLICY_T *pctx, int *fallbackp)
+{
+	if (pctx == NULL)
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	if (fallbackp == NULL)
+		return DMARC_PARSE_ERROR_EMPTY;
+	*fallbackp = pctx->org_domain_from_fallback;
+	return DMARC_PARSE_OKAY;
+}
+
 /**************************************************************************
 ** OPENDMARC_GET_POLICY_TOKEN_USED -- Which policy was actually used
 **

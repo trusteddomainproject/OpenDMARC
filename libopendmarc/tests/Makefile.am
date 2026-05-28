@@ -10,7 +10,8 @@ check_PROGRAMS		 = test_tld \
 			   test_parse_to_buf \
 			   test_alignment \
 			   test_spf_parse \
-			   test_arcares
+			   test_arcares \
+			   test_subdomain_fallback
 if LIVE_TESTS
 #check_PROGRAMS           += test_dns_lookup
 #test_dns_lookup_SOURCES  = test_dns_lookup.c
@@ -45,6 +46,8 @@ test_arcares_SOURCES  = test_arcares.c \
 	$(top_srcdir)/opendmarc/opendmarc-ar.c
 test_arcares_CPPFLAGS = -I$(top_srcdir)/opendmarc -I.. -I../..
 test_arcares_LDADD    = $(LIBRESOLV)
+
+test_subdomain_fallback_SOURCES = test_subdomain_fallback.c
 
 TESTS = $(check_PROGRAMS)
 
