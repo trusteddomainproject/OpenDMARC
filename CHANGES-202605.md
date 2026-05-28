@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS suppressions (
 ## Signal handling
 
 - **SIGHUP now triggers config reload instead of shutdown**: SIGHUP was handled identically to SIGTERM, causing the filter to exit. Unix convention is that SIGHUP triggers a configuration reload in long-running daemons. The reload path already existed (previously reachable via SIGUSR1 only); SIGHUP is now folded into it. SIGTERM and SIGINT remain the shutdown signals. (#323, issue #322)
+- **`IgnoreHosts` not reloaded on SIGHUP**: `IgnoreHosts` was loaded once at startup in `main()` and never refreshed, making it the only configuration option that survived a SIGHUP unchanged. The list (including the always-present localhost defaults) is now loaded in `dmarcf_config_load()` alongside every other option and freed in `dmarcf_config_free()`. (#375, issue #193)
 
 ---
 
