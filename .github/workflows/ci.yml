@@ -21,7 +21,8 @@ jobs:
             autoconf automake libtool pkg-config \
             libssl-dev libmilter-dev \
             lua5.4 liblua5.4-dev \
-            libdbi-perl libwww-perl libio-compress-perl libjson-perl
+            libdbi-perl libwww-perl libio-compress-perl libjson-perl \
+            libnet-dns-perl
 
       - name: Build miltertest
         run: |
