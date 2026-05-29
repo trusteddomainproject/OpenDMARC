@@ -2024,7 +2024,13 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 
 	if (conf->conf_ignoreauthclients &&
 	    dmarcf_getsymval(ctx, "{auth_authen}") != NULL)
+	{
+		if (curconf->conf_dolog)
+		{
+			syslog(LOG_INFO, "ignoring authenticated client, mailfrom=%s", envfrom[0]);
+		}
 		return SMFIS_ACCEPT;
+	}
 
 	dfc = (DMARCF_MSGCTX) malloc(sizeof(struct dmarcf_msgctx));
 	if (dfc == NULL)
