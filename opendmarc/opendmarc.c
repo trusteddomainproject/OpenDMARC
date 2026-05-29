@@ -3396,7 +3396,8 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 					      "Subject: DMARC failure report for %s received from %s\n",
-					      dfc->mctx_fromdomain, cc->cctx_host);
+					      dfc->mctx_fromdomain,
+					      cc->cctx_host[0] != '\0' ? cc->cctx_host : cc->cctx_ipstr);
 
 			dmarcf_dstring_cat(dfc->mctx_afrf,
 			                   "MIME-Version: 1.0\n");
