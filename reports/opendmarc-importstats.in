@@ -10,17 +10,18 @@
 ## ran the job.
 
 ## setup
-statsdb="/var/tmp/dmarc.dat"
+statsdb="`grep ^HistoryFile @sysconfdir@/opendmarc.conf | sed 's/^HistoryFile\s\+//'`"
+[ -z "$statsdb" ] && exit 0
 # OPENDMARC_PASSWORD="password"; export OPENDMARC_PASSWORD
 
-if [ -s $statsdb ]
+if [ -s "$statsdb" ]
 then
-	mv $statsdb ${statsdb}.OLD.$$
+	mv "$statsdb" "${statsdb}.OLD.$$"
 
-	if opendmarc-import < ${statsdb}.OLD.$$
+	if opendmarc-import < "${statsdb}.OLD.$$"
 	then
-		rm ${statsdb}.OLD.$$
+		rm "${statsdb}.OLD.$$"
 	else
-		ls -l ${statsdb}.OLD.$$
+		ls -l "${statsdb}.OLD.$$"
 	fi
 fi
