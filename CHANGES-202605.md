@@ -66,12 +66,13 @@ Significant gaps between the generated aggregate report XML and RFC 7489 require
 - **Timezone off-by-one in `--day` mode**: In `--day` mode, the domain selection query compared timestamps without date truncation, causing domains to be selected or skipped based on wall-clock time within the day rather than calendar day boundaries. (#324, issue #210)
 - **`--skipdomains` file option for `opendmarc-reports`**: Adds `--skipdomains=file` as a file-based companion to `--nodomain`. The file contains one From: domain per line with `#` comments supported; reports for any listed domain are skipped. (#383; written by Dirk Stöcker for openSUSE)
 - **RFC 2822 date format in aggregate report body**: The `"generated at"` line in aggregate report email bodies previously used `localtime()`, producing a locale-dependent string with no timezone. Now uses `strftime("%a, %e %b %Y %H:%M:%S %z (%Z)", localtime())`, matching RFC 2822 day-month-year ordering and the format already used for the report's `Date:` header. (#388; written by Juri Haberland for openSUSE, submitted by Dirk Stöcker)
+- **UTC timezone enforced in `opendmarc-expire` and `db/schema.mysql`**: `opendmarc-expire` now issues `SET TIME_ZONE='+00:00'` immediately after connecting to the database, ensuring timestamp arithmetic is consistent regardless of the server's local timezone setting. `db/schema.mysql` includes the same statement for new installations. A `db/update-db-schema.mysql` migration script is provided to upgrade existing 1.4.2 databases. (#390; written by Juri Haberland for openSUSE, submitted by Dirk Stöcker)
 
 ---
 
 ## Schema changes
 
-The following `ALTER TABLE` statements are required for existing installations. `opendmarc-reports` and `opendmarc-import` print warnings at startup if the relevant columns are missing.
+The following `ALTER TABLE` statements are required for existing installations upgrading from 1.4.2. `opendmarc-reports` and `opendmarc-import` print warnings at startup if the relevant columns are missing. A convenience script covering all of these changes is provided at `db/update-db-schema.mysql`.
 
 ```sql
 -- Fix MySQL strict mode incompatibility (issue #289)

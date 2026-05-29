@@ -218,6 +218,17 @@ if ($verbose)
 	print STDERR "$progname: connected to database\n";
 }
 
+# switch to UTC to have a defined date behaviour
+$dbi_s = $dbi_h->prepare("SET TIME_ZONE='+00:00'");
+
+if (!$dbi_s->execute())
+{
+	print STDERR "$progname: failed to change to UTC: " . $dbi_h->errstr . "\n";
+	$dbi_s->finish;
+	$dbi_h->disconnect;
+	exit(1);
+}
+
 #
 # Expire messages
 #
