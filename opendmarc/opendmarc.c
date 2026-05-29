@@ -3429,7 +3429,8 @@ mlfi_eom(SMFICTX *ctx)
 			                      "failure report for an email "
 			                      "message received from\n"
 			                      "%s [%s] on %s.\n\n",
-			                      cc->cctx_host, cc->cctx_ipstr, timebuf);
+			                      cc->cctx_host[0] != '\0' ? cc->cctx_host : cc->cctx_ipstr,
+			                      cc->cctx_ipstr, timebuf);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "--%s:%s\n"
