@@ -64,6 +64,7 @@ Significant gaps between the generated aggregate report XML and RFC 7489 require
 - **MariaDB hang on integer parameters**: Integer parameters in `opendmarc-reports` SQL queries were passed as strings, triggering a known MariaDB Connector/Perl hang on strict-type-checking servers. Parameters are now explicitly bound with `SQL_INTEGER`. (#324, issue #196)
 - **Timezone off-by-one in `--day` mode**: In `--day` mode, the domain selection query compared timestamps without date truncation, causing domains to be selected or skipped based on wall-clock time within the day rather than calendar day boundaries. (#324, issue #210)
 - **`--skipdomains` file option for `opendmarc-reports`**: Adds `--skipdomains=file` as a file-based companion to `--nodomain`. The file contains one From: domain per line with `#` comments supported; reports for any listed domain are skipped. (#383; written by Dirk Stöcker for openSUSE)
+- **RFC 2822 date format in aggregate report body**: The `"generated at"` line in aggregate report email bodies previously used `localtime()`, producing a locale-dependent string with no timezone. Now uses `strftime("%a, %e %b %Y %H:%M:%S %z (%Z)", localtime())`, matching RFC 2822 day-month-year ordering and the format already used for the report's `Date:` header. (#388; written by Juri Haberland for openSUSE, submitted by Dirk Stöcker)
 
 ---
 
