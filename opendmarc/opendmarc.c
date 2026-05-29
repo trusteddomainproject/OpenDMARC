@@ -3394,19 +3394,9 @@ mlfi_eom(SMFICTX *ctx)
 			dmarcf_dstring_printf(dfc->mctx_afrf, "Date: %s\n",
 			                      timebuf);
 
-			h = dmarcf_findheader(dfc, "subject", 0);
-			if (h == NULL)
-			{
-				dmarcf_dstring_printf(dfc->mctx_afrf,
-				                      "Subject: DMARC failure report for job %s\n",
-				                      dfc->mctx_jobid);
-			}
-			else
-			{
-				dmarcf_dstring_printf(dfc->mctx_afrf,
-				                      "Subject: FW: %s\n",
-				                      h->hdr_value);
-			}
+			dmarcf_dstring_printf(dfc->mctx_afrf,
+					      "Subject: DMARC failure report for %s received from %s\n",
+					      dfc->mctx_fromdomain, cc->cctx_host);
 
 			dmarcf_dstring_cat(dfc->mctx_afrf,
 			                   "MIME-Version: 1.0\n");
