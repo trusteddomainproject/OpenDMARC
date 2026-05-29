@@ -232,6 +232,13 @@ against this list is case-insensitive.  The default is an empty list, meaning
 no mail is ignored.
 
 .TP
+.I IgnoreMailTo (string)
+Gives a list of mail addresses which aren't entered into the history file.
+This is useful to prevent exchanging single message reports.  The
+list should be comma-separated.  Matching against this list is
+case-insensitive.  The default is an empty list, meaning no mail is ignored.
+
+.TP
 .I MilterDebug (integer)
 Sets the debug level to be requested from the milter library.  The
 default is 0.

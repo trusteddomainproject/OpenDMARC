@@ -194,6 +194,7 @@ struct dmarcf_config
 	char **			conf_ignoredomains;
 	struct list *		conf_domainwhitelist;
 	unsigned int		conf_domainwhitelisthashcount;
+	char **			conf_ignorereceivers;
 };
 
 /* LIST -- basic linked list of strings */
@@ -1380,6 +1381,11 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		if (str != NULL)
 			dmarcf_mkarray(str, ",", &conf->conf_ignoredomains);
 
+		str = NULL;
+		(void) config_get(data, "IgnoreMailTo", &str, sizeof str);
+		if (str != NULL)
+			dmarcf_mkarray(str, ",", &conf->conf_ignorereceivers);
+
 		(void) config_get(data, "AuthservIDWithJobID",
 		                  &conf->conf_authservidwithjobid,
 		                  sizeof conf->conf_authservidwithjobid);
@@ -2307,6 +2313,7 @@ sfsistat
 mlfi_eom(SMFICTX *ctx)
 {
 	_Bool wspf = FALSE;
+	int skiphistory;
 	int c;
 	int pc;
 	int policy;
@@ -3771,7 +3778,34 @@ mlfi_eom(SMFICTX *ctx)
 	**  Record activity in the history file.
 	*/
 
-	if (conf->conf_historyfile != NULL &&
+	skiphistory = 0;
+	if (conf->conf_ignorereceivers != NULL)
+	{
+		struct dmarcf_header *to = dmarcf_findheader(dfc, "To", 0);
+		if (to != NULL)
+		{
+			char *val = to->hdr_value;
+			while (*val && !skiphistory)
+			{
+				memset(addrbuf, '\0', sizeof addrbuf);
+				strncpy(addrbuf, val, sizeof addrbuf - 1);
+				status = dmarcf_mail_parse(addrbuf, &user, &domain);
+				if (status == 0 && user != NULL && domain != NULL)
+				{
+					snprintf(replybuf, sizeof replybuf - 1, "%s@%s", user, domain);
+					if(dmarcf_match(replybuf, conf->conf_ignorereceivers, TRUE))
+					{
+						skiphistory = 1;
+					}
+				}
+				while(*val && *val != ',' && *val != ';')
+					++val;
+				if(*val)
+					++val;
+			}
+		}
+	}
+	if (!skiphistory && conf->conf_historyfile != NULL &&
 	    (conf->conf_recordall || ostatus != DMARC_DNS_ERROR_NO_RECORD))
 	{
 		FILE *f;

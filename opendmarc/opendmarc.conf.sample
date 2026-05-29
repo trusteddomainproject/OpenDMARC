@@ -268,6 +268,16 @@
 #
 # IgnoreMailFrom example.com
 
+##  IgnoreMailTo email[,...]
+##  	default (none)
+##
+##  Gives a list of mail addresses which aren't entered into the history file.
+##  This is useful to prevent exchanging mutual message reports.  The
+##  list should be comma-separated.  Matching against this list is
+##  case-insensitive.  The default is an empty list, meaning no mail is ignored.
+#
+# IgnoreMailTo dmarc-ruf@example.com
+
 ##  MilterDebug (integer)
 ##  	default 0
 ##
