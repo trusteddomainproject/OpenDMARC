@@ -3499,8 +3499,9 @@ mlfi_eom(SMFICTX *ctx)
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "This is an authentication "
 			                      "failure report for an email "
-			                      "message received from IP\n"
-			                      "%s on %s.\n\n",
+			                      "message received from\n"
+			                      "%s [%s] on %s.\n\n",
+			                      cc->cctx_host[0] != '\0' ? cc->cctx_host : cc->cctx_ipstr,
 			                      cc->cctx_ipstr, timebuf);
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
