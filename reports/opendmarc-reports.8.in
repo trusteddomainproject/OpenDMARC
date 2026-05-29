@@ -129,6 +129,16 @@ after sending.  Implied by
 Skips generating a report for the named domain.  Can be specified multiple
 times to skip multiple reporting domains.
 .TP
+.I --skipdomains=file
+Reads a list of domain names from
+.I file
+(one per line, comments introduced by
+.BR # )
+and skips generating reports for any domain in the list.  Equivalent to
+specifying
+.B --nodomain
+for each entry in the file.
+.TP
 .I --noupdate
 Suppresses marking the time of the transmission of the report in the database.
 Normally this would be done to prevent reports from being sent too close

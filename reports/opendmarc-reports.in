@@ -263,6 +263,7 @@ sub usage
 	print STDERR "\t--workdir=path     directory for temporary report files [.]\n";
 	print STDERR "\t -n                synonym for --test\n";
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
+	print STDERR "\t--skipdomains=file list of domains to omit a report for\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--report-bcc       bcc address for aggregate reports\n";
 	print STDERR "\t--report-contact   contact address for report metadata (default: --report-email)\n";
@@ -352,6 +353,19 @@ if (-f $configfile)
 # set locale
 setlocale(LC_ALL, 'C');
 
+sub loadskipdomains
+{
+	die "Could not open domains file $_[1]" unless open FILE,"<",$_[1];
+	while (my $line = <FILE>)
+	{
+		$line =~ s/\s*#.*//;
+		$line =~ s/^\s+//;
+		$line =~ s/\s+$//;
+		push(@skipdomains, $line);
+	}
+	close FILE;
+}
+
 # parse command line arguments
 my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'db-dsn=s' => \$db_dsn,
@@ -369,6 +383,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'workdir=s' => \$workdir,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
+                                            'skipdomains=s' => \&loadskipdomains,
                                             'report-bcc=s' => \$repbcc,
                                             'report-contact=s' => \$repcontact,
                                             'report-email=s' => \$repemail,
