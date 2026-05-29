@@ -1,0 +1,10 @@
+To upgrade an existing OpenDMARC 1.4.2 database to the current schema, run:
+
+  mysql -u <user> -p <database> --force < update-db-schema.mysql
+
+The --force flag causes the script to continue past "Duplicate column name"
+or "Duplicate key name" errors, which occur when a migration has already been
+partially applied.
+
+For a full description of each change and the reasoning behind it, see
+CHANGES-202605.md in the top-level source directory.

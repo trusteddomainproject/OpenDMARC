@@ -1,0 +1,44 @@
+-- OpenDMARC database migration script: 1.4.2 -> next release
+--
+-- Upgrades an existing 1.4.2 database to the current schema.
+-- Run as:
+--
+--   mysql -u <user> -p <database> --force < update-db-schema.mysql
+--
+-- Some statements may produce "Duplicate column name" or "Duplicate key name"
+-- errors if your database was already partially migrated; these are harmless
+-- and --force causes the script to continue past them.
+
+USE opendmarc;
+SET TIME_ZONE='+00:00';
+
+-- Fix MySQL 5.7+ strict mode: requests.lastsent must allow NULL so that
+-- newly-seen domains (never reported) are represented as NULL rather than
+-- the sentinel '1970-01-01 00:00:00', which is not accepted in strict mode.
+ALTER TABLE requests MODIFY COLUMN lastsent TIMESTAMP NULL DEFAULT NULL;
+
+-- RFC 7489 §8.2: fo= (failure reporting options) bitmask.
+ALTER TABLE requests ADD COLUMN fo TINYINT NOT NULL DEFAULT '0' AFTER pct;
+
+-- Fix strict mode import failures for messages written by older opendmarc
+-- versions that omitted these fields from the history file.
+ALTER TABLE messages MODIFY COLUMN spf TINYINT NOT NULL DEFAULT '0';
+ALTER TABLE messages MODIFY COLUMN align_dkim TINYINT UNSIGNED NOT NULL DEFAULT '5';
+ALTER TABLE messages MODIFY COLUMN align_spf TINYINT UNSIGNED NOT NULL DEFAULT '5';
+ALTER TABLE messages MODIFY COLUMN sigcount TINYINT UNSIGNED NOT NULL DEFAULT '0';
+ALTER TABLE messages MODIFY COLUMN arc TINYINT UNSIGNED NOT NULL DEFAULT '0';
+ALTER TABLE messages MODIFY COLUMN arc_policy TINYINT UNSIGNED NOT NULL DEFAULT '1';
+
+-- RFC 7489 §8.2: spf_scope distinguishes mfrom vs. helo SPF evaluation.
+ALTER TABLE messages ADD COLUMN spf_scope TINYINT NOT NULL DEFAULT '-1' AFTER spf;
+
+-- VERP bounce tracking: suppressions table for persistent report address suppression.
+CREATE TABLE IF NOT EXISTS suppressions (
+	id INT NOT NULL AUTO_INCREMENT,
+	address VARCHAR(255) NOT NULL,
+	added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	reason VARCHAR(255),
+
+	PRIMARY KEY(id),
+	UNIQUE KEY(address)
+);

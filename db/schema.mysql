@@ -5,6 +5,7 @@
 
 CREATE DATABASE IF NOT EXISTS opendmarc;
 USE opendmarc;
+SET TIME_ZONE='+00:00';
 
 -- A table for mapping domain names and their DMARC policies to IDs
 CREATE TABLE IF NOT EXISTS domains (
