@@ -3499,6 +3499,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "--%s:%s\n"
+			                      "Content-Description: Notification\n"
 			                      "Content-Type: text/plain\n\n",
 			                      hostname, dfc->mctx_jobid);
 
@@ -3512,6 +3513,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "--%s:%s\n"
+			                      "Content-Description: DMARC failure report\n"
 			                      "Content-Type: message/feedback-report\n\n",
 			                      hostname, dfc->mctx_jobid);
 
@@ -3577,6 +3579,7 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "--%s:%s\n"
+			                      "Content-Description: Failed message headers\n"
 			                      "Content-Type: text/rfc822-headers\n\n",
 			                      hostname, dfc->mctx_jobid);
 
