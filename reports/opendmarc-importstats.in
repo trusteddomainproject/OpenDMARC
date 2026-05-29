@@ -1,0 +1,135 @@
+#!/@PERL@
+#
+# Copyright (c) 2012, 2026, The Trusted Domain Project.  All rights reserved.
+#
+# Script to rotate and import the opendmarc history file.
+# Intended to be run from cron or a systemd timer.
+
+use strict;
+use warnings;
+
+use File::Basename;
+use Getopt::Long;
+
+my $progname    = basename($0);
+my $version     = "@VERSION@";
+my $helponly    = 0;
+my $showversion = 0;
+my $verbose     = 0;
+
+my $def_conffile    = '@sysconfdir@/opendmarc/opendmarc.conf';
+my $def_historyfile = '/var/run/opendmarc.dat';
+my $import          = '@sbindir@/opendmarc-import';
+
+my $conffile;
+my $historyfile;
+
+sub usage
+{
+	print STDERR "$progname: usage: $progname [options]\n";
+	print STDERR "\t--conf=file          opendmarc config file [$def_conffile]\n";
+	print STDERR "\t--history-file=path  history file to rotate and import\n";
+	print STDERR "\t                     [HistoryFile from config, or $def_historyfile]\n";
+	print STDERR "\t--help               print help and exit\n";
+	print STDERR "\t--verbose            verbose output\n";
+	print STDERR "\t--version            print version and exit\n";
+}
+
+my $opt_retval = GetOptions(
+	'conf=s'         => \$conffile,
+	'history-file=s' => \$historyfile,
+	'help!'          => \$helponly,
+	'verbose!'       => \$verbose,
+	'version!'       => \$showversion,
+);
+
+if (!$opt_retval || $helponly)
+{
+	usage();
+	exit($helponly ? 0 : 1);
+}
+
+if ($showversion)
+{
+	print STDOUT "$progname v$version\n";
+	exit(0);
+}
+
+# Read HistoryFile from opendmarc.conf unless overridden on the command line.
+if (!defined($historyfile))
+{
+	my $cf = defined($conffile) ? $conffile : $def_conffile;
+	if (open(my $fh, '<', $cf))
+	{
+		while (my $line = <$fh>)
+		{
+			chomp $line;
+			$line =~ s/^\s+//;
+			next if $line =~ /^#/ || $line eq '';
+			if ($line =~ /^HistoryFile\s+(\S+)/)
+			{
+				$historyfile = $1;
+				last;
+			}
+		}
+		close($fh);
+	}
+	elsif (defined($conffile))
+	{
+		print STDERR "$progname: can't open config file $cf: $!\n";
+		exit(1);
+	}
+}
+
+$historyfile //= $def_historyfile;
+
+if ($verbose)
+{
+	print STDERR "$progname: history file is $historyfile\n";
+}
+
+# Nothing to do if the history file is absent or empty.
+exit(0) unless -s $historyfile;
+
+my $oldfile = "$historyfile.OLD.$$";
+
+if (!rename($historyfile, $oldfile))
+{
+	print STDERR "$progname: can't rename $historyfile to $oldfile: $!\n";
+	exit(1);
+}
+
+if ($verbose)
+{
+	print STDERR "$progname: importing $oldfile\n";
+}
+
+# Pipe the rotated file to opendmarc-import without a shell.
+open(my $infh, '<', $oldfile) or do {
+	print STDERR "$progname: can't open $oldfile: $!\n";
+	exit(1);
+};
+
+open(my $pipe, '|-', $import) or do {
+	print STDERR "$progname: can't run $import: $!\n";
+	close($infh);
+	exit(1);
+};
+
+while (read($infh, my $buf, 65536))
+{
+	print $pipe $buf;
+}
+close($infh);
+
+if (!close($pipe) || $? != 0)
+{
+	my @st = stat($oldfile);
+	printf STDERR "$progname: import failed; leftover file: %s (%d bytes)\n",
+	              $oldfile, defined($st[7]) ? $st[7] : 0;
+	exit(1);
+}
+
+unlink($oldfile);
+
+print STDERR "$progname: import complete\n" if $verbose;
