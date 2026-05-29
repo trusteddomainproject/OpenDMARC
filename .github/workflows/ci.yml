@@ -56,6 +56,7 @@ jobs:
         run: |
           perl -c reports/opendmarc-expire
           perl -c reports/opendmarc-import
+          perl -c reports/opendmarc-importstats
           perl -c reports/opendmarc-params
           perl -c reports/opendmarc-reports
 

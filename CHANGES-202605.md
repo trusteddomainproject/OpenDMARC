@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS suppressions (
 - **History file `arc` field values corrected in documentation**: The opendmarc/README documented the `arc` field as `0=pass, 2=fail`; the code has always written `0` (`ARES_RESULT_PASS`) or `7` (`ARES_RESULT_FAIL`). Documentation corrected to match. (#352, issue #214)
 - **Duplicate `AUTHRESHDRNAME` macro removed**: `opendmarc-ar.h` defined `AUTHRESHDRNAME` as `"Authentication-Results"`, duplicating the existing `AUTHRESULTSHDR` in `opendmarc.h`. The duplicate was removed and all uses updated to `AUTHRESULTSHDR`. (#357, issue #20)
 - **`IgnoreAuthenticatedClients` acceptance now logged**: When the `IgnoreAuthenticatedClients` option causes the milter to immediately accept a message, it previously did so silently. A syslog `INFO` entry is now emitted noting the envelope sender, making it easier to trace why a message bypassed DMARC evaluation. (#387; written by Juri Haberland for openSUSE, submitted by Dirk Stöcker)
+- **`opendmarc-importstats` rewritten as a Perl script**: The original 25-line shell script used a hardcoded `/var/tmp/dmarc.dat` path that mismatched the daemon default (`/var/run/opendmarc.dat`) and ran in a world-writable directory. Rewritten as `opendmarc-importstats.in` consistent with every other script in `reports/`. Reads `HistoryFile` from `opendmarc.conf` with a proper parser; `--history-file` overrides on the command line; falls back to `/var/run/opendmarc.dat`. Uses `open(pipe)` instead of shell redirection. (issue #358)
 
 ---
 
