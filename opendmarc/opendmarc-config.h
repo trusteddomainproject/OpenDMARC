@@ -42,6 +42,7 @@ struct configdef dmarcf_config[] =
 	{ "IgnoreMailFrom",		CONFIG_TYPE_STRING,	FALSE },
 	{ "IgnoreMailTo",		CONFIG_TYPE_STRING,	FALSE },
 	{ "MilterDebug",		CONFIG_TYPE_INTEGER,	FALSE },
+	{ "NoReportsList",		CONFIG_TYPE_STRING,	FALSE },
 	{ "PidFile",			CONFIG_TYPE_STRING,	FALSE },
 	{ "PublicSuffixList",		CONFIG_TYPE_STRING,	FALSE },
 	{ "RecordAllMessages",		CONFIG_TYPE_BOOLEAN,	FALSE },
