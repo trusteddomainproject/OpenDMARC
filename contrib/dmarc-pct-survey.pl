@@ -5,21 +5,27 @@ use Net::DNS;
 use IO::Select;
 use Getopt::Long;
 use POSIX qw(strftime);
+use LWP::Simple qw(getstore);
+use IO::Uncompress::Unzip qw(unzip $UnzipError);
 
 # Query Umbrella top-1M domains for DMARC records, reporting pct= and psd= usage.
 #
-# Output (--output or STDOUT): TSV - run_date, domain, pct_value, psd_value, full_record
+# If --input file does not exist, downloads it automatically from Cisco Umbrella.
+#
+# Output (--output or dated file): TSV - run_date, domain, pct_value, psd_value, full_record
 #   run_date:  ISO 8601 date of this run (YYYY-MM-DD), for multi-run aggregation
 #   pct_value: numeric value if present, "-" if absent
 #   psd_value: "y", "n", or "-" if absent
 # Progress/stats (STDERR): running count + final summary
+
+my $umbrella_url = 'https://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip';
 
 my $concurrency  = 500;
 my $timeout      = 5;
 my $infile       = 'top-1m.csv';
 my $max_domains  = 0;     # 0 = unlimited
 my $nameserver;           # undef = system default
-my $outfile;              # undef = STDOUT
+my $outfile;              # undef = use dated default
 
 GetOptions(
     'concurrency=i' => \$concurrency,
@@ -29,6 +35,17 @@ GetOptions(
     'max=i'         => \$max_domains,
     'nameserver=s'  => \$nameserver,
 ) or die "Usage: $0 [--input FILE] [--output FILE] [--concurrency N] [--timeout N] [--max N] [--nameserver IP]\n";
+
+unless (-f $infile) {
+    my $zipfile = $infile . '.zip';
+    print STDERR "Downloading Umbrella top-1M from $umbrella_url ...\n";
+    my $rc = getstore($umbrella_url, $zipfile);
+    die "Download failed (HTTP $rc)\n" unless $rc == 200;
+    print STDERR "Extracting $zipfile ...\n";
+    unzip($zipfile, $infile) or die "Unzip failed: $UnzipError\n";
+    unlink($zipfile);
+    print STDERR "Saved to $infile\n";
+}
 
 my $run_date = strftime('%Y-%m-%d', localtime);
 
