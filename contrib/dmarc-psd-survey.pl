@@ -28,19 +28,21 @@ binmode(STDERR, ':encoding(UTF-8)');
 
 my $psl_url     = 'https://publicsuffix.org/list/public_suffix_list.dat';
 
-my $concurrency = 200;
-my $timeout     = 5;
-my $infile      = 'public_suffix_list.dat';
-my $max_entries = 0;   # 0 = unlimited
-my $nameserver;        # undef = system default
-my $icann_only  = 0;   # if set, skip private domains section
-my $outfile;           # undef = use dated default
+my $concurrency  = 200;
+my $timeout      = 5;
+my $infile       = 'public_suffix_list.dat';
+my $max_entries  = 0;   # 0 = unlimited
+my $nameserver;         # undef = system default
+my $icann_only   = 0;   # if set, skip private domains section
+my $outfile;            # undef = use dated default
+my $summarylog   = 'dmarc-psd-survey-summary.tsv';
 
 GetOptions(
-    'concurrency=i' => \$concurrency,
-    'timeout=i'     => \$timeout,
-    'input=s'       => \$infile,
-    'output=s'      => \$outfile,
+    'concurrency=i'  => \$concurrency,
+    'timeout=i'      => \$timeout,
+    'input=s'        => \$infile,
+    'output=s'       => \$outfile,
+    'summary-log=s'  => \$summarylog,
     'max=i'         => \$max_entries,
     'nameserver=s'  => \$nameserver,
     'icann-only!'   => \$icann_only,
@@ -241,3 +243,9 @@ printf STDERR "  Have DMARC       : %d (%.1f%%)\n",          $n_dmarc, $n_done  
 printf STDERR "  Have psd=        : %d (%.1f%% of DMARC)\n", $n_psd,   $n_dmarc  ? 100*$n_psd/$n_dmarc    : 0;
 printf STDERR "    psd=y          : %d\n",                                                $n_psd_y;
 printf STDERR "    psd=n          : %d\n",                                                $n_psd_n;
+
+my $is_new = !-f $summarylog;
+open(my $sum, '>>', $summarylog) or die "Cannot open $summarylog: $!\n";
+print $sum join("\t", qw(run_date queried errors have_dmarc psd_total psd_y psd_n)), "\n" if $is_new;
+print $sum join("\t", $run_date, $n_done, $n_errors, $n_dmarc, $n_psd, $n_psd_y, $n_psd_n), "\n";
+close($sum);
