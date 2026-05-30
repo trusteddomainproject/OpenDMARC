@@ -272,6 +272,18 @@
 #
 # MilterDebug 0
 
+##  NoReportsList path
+##  	default (none)
+##
+##  Specifies a file containing email addresses and/or domains to which
+##  failure reports (ruf=) should never be delivered.  Each line is one
+##  entry; lines beginning with # are comments.  An entry may be a full
+##  address (reports@gmail.com) or a bare domain (gmail.com) to suppress
+##  all addresses at that domain.  The same file is honoured by
+##  opendmarc-reports for aggregate report delivery suppression.
+#
+# NoReportsList /etc/opendmarc/noreports.txt
+
 ##  PidFile path
 ##  	default (none)
 ##

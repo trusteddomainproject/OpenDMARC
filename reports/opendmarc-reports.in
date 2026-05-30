@@ -23,7 +23,6 @@ use IO::Compress::Gzip qw(gzip);
 use POSIX;
 use MIME::Base64;
 use Net::SMTP;
-use Net::DNS;
 use Time::Local;
 
 require HTTP::Request;
@@ -123,6 +122,9 @@ my $stale_server = "https://stalemarc.measurement.network/api";
 my $verp = 0;
 my $report_maxbytes_global = 15728640; # default: 15M, per spec
 
+my $noreports_file;
+my %noreports;
+
 my $msgid;
 
 my $rowcount;
@@ -167,10 +169,6 @@ my $smtp;
 my $configfile   = '@sysconfdir@/opendmarc/opendmarc-reports.conf';
 
 my $answer;
-
-my $publicsuffixlist = '@sysconfdir@/opendmarc/public_suffix_list.dat';
-my %psl;
-my $psl_loaded = 0;
 
 ###
 ### NO user-serviceable parts beyond this point
@@ -238,102 +236,6 @@ sub db_skip
 	return 0;
 }
 
-# Load the Public Suffix List from disk into %psl.  Called once on first use.
-sub load_psl
-{
-	return if $psl_loaded;
-	$psl_loaded = 1;
-	open(my $fh, '<', $publicsuffixlist) or return;
-	while (my $line = <$fh>)
-	{
-		chomp $line;
-		$line =~ s/\s*\/\/.*//;
-		next if $line =~ /^\s*$/;
-		$psl{lc($line)} = 1;
-	}
-	close($fh);
-}
-
-# Return the organizational domain (eTLD+1) of $domain.
-# Uses the PSL when available; falls back to the last two labels otherwise.
-sub get_org_domain
-{
-	my ($domain) = @_;
-	$domain = lc($domain);
-	my @labels = split(/\./, $domain);
-
-	if (-r $publicsuffixlist)
-	{
-		load_psl();
-		for my $i (0 .. $#labels - 1)
-		{
-			my $suffix    = join('.', @labels[$i+1 .. $#labels]);
-			my $wildcard  = '*.' . $suffix;
-			my $exception = '!' . join('.', @labels[$i .. $#labels]);
-			if (exists $psl{$exception})
-			{
-				return join('.', @labels[$i .. $#labels]);
-			}
-			if (exists $psl{join('.', @labels[$i .. $#labels])} ||
-			    exists $psl{$wildcard})
-			{
-				return $i > 0 ? join('.', @labels[$i-1 .. $#labels]) : undef;
-			}
-		}
-	}
-
-	# Fallback: last two labels.
-	return @labels >= 2 ? join('.', @labels[-2 .. $#labels]) : $domain;
-}
-
-# Parse an optional !NNNk size suffix from a RUA address.
-# Returns ($clean_address, $max_bytes), where $max_bytes defaults to
-# $report_maxbytes_global when no suffix is present.
-sub check_size_restriction
-{
-	my ($address) = @_;
-	my $max = $report_maxbytes_global;
-	if ($address =~ s/!(\d{1,15})([kmgt])?$//i)
-	{
-		$max = $1;
-		if (defined $2)
-		{
-			my $unit = lc($2);
-			$max *= 1024            if $unit eq 'k';
-			$max *= 1048576         if $unit eq 'm';
-			$max *= (2**30)         if $unit eq 'g';
-			$max *= (2**40)         if $unit eq 't';
-		}
-	}
-	return ($address, $max);
-}
-
-# Parse a RUA URI string.  Returns the bare email address for mailto: URIs,
-# the original URI string for http(s): URIs, or undef on parse failure.
-sub parse_rua_uri
-{
-	my ($raw) = @_;
-	my $uri = URI->new($raw);
-	if (!defined($uri) || !defined($uri->scheme) || $uri->opaque eq "")
-	{
-		print STDERR "$progname: can't parse reporting URI '$raw' for domain $domain\n";
-		return undef;
-	}
-	if ($uri->scheme eq "mailto")
-	{
-		return $uri->opaque;
-	}
-	if ($uri->scheme eq "http" || $uri->scheme eq "https")
-	{
-		return $raw;
-	}
-	if ($verbose >= 2)
-	{
-		print STDERR "$progname: unknown URI scheme in '$raw' for domain $domain\n";
-	}
-	return undef;
-}
-
 # Build a VERP envelope sender encoding $rcpt into $sender.
 # e.g. postmaster@r.example.com + dmarc@target.com -> postmaster+dmarc=target.com@r.example.com
 sub verp_sender
@@ -364,7 +266,6 @@ sub usage
 	print STDERR "\t--workdir=path     directory for temporary report files [.]\n";
 	print STDERR "\t -n                synonym for --test\n";
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
-	print STDERR "\t--skipdomains=file list of domains to omit a report for\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--report-bcc       bcc address for aggregate reports\n";
 	print STDERR "\t--report-contact   contact address for report metadata (default: --report-email)\n";
@@ -379,6 +280,7 @@ sub usage
 	print STDERR "\t--smtp-ssl-ca-file path to CA bundle for SSL certificate verification\n";
 	print STDERR "\t--smtp-username    smtp authentication username\n";
 	print STDERR "\t--config=file      config file [$configfile]\n";
+	print STDERR "\t--no-reports-list=file  skip report delivery to addresses/domains in file\n";
 	print STDERR "\t--stale-check      skip reports to stale RUA/RUF addresses\n";
 	print STDERR "\t                   via StaleMARC RBL lookup\n";
 	print STDERR "\t--stale-def-deny   treat untested addresses as stale\n";
@@ -454,19 +356,6 @@ if (-f $configfile)
 # set locale
 setlocale(LC_ALL, 'C');
 
-sub loadskipdomains
-{
-	die "Could not open domains file $_[1]" unless open FILE,"<",$_[1];
-	while (my $line = <FILE>)
-	{
-		$line =~ s/\s*#.*//;
-		$line =~ s/^\s+//;
-		$line =~ s/\s+$//;
-		push(@skipdomains, $line);
-	}
-	close FILE;
-}
-
 # parse command line arguments
 my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'db-dsn=s' => \$db_dsn,
@@ -484,7 +373,6 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'workdir=s' => \$workdir,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
-                                            'skipdomains=s' => \&loadskipdomains,
                                             'report-bcc=s' => \$repbcc,
                                             'report-contact=s' => \$repcontact,
                                             'report-email=s' => \$repemail,
@@ -495,6 +383,8 @@ my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
                                             'smtp-ssl!' => \$smtp_ssl,
                                             'smtp-ssl-ca-file=s' => \$smtp_ssl_ca_file,
                                             'smtp-username=s' => \$smtp_username,
+                                            'no-reports-list=s' => \$noreports_file,
+                                            'NoReportsList=s' => \$noreports_file,
                                             'stale-check!' => \$stale_check,
                                             'stale-def-deny!' => \$stale_def_deny,
                                             'stale-server=s' => \$stale_server,
@@ -604,6 +494,21 @@ if (defined($interval) && $daybound)
 if (!defined($interval) || $daybound)
 {
 	$interval = $def_interval;
+}
+
+if (defined($noreports_file))
+{
+	open(my $nrf, '<', $noreports_file)
+		or die "$progname: can't open no-reports list $noreports_file: $!\n";
+	while (<$nrf>)
+	{
+		chomp;
+		s/#.*//;
+		s/^\s+|\s+$//g;
+		next unless length;
+		$noreports{lc($_)} = 1;
+	}
+	close($nrf);
 }
 
 # Test mode requested, don't update last sent and keep xml files
@@ -1489,342 +1394,240 @@ foreach (@$domainset)
 	# decode the URI
 	@repuris = split(',', $repuri);
 
-	# Build the list of verified mailto: destinations and a fallback list
-	# for addresses that were authorized but exceeded the size limit.
-	# http/https URIs bypass verification and are sent immediately below.
-	my @mailto_dests;       # ($address, $max_bytes) pairs, verified
-	my @mailto_fallback;    # ($address) addresses rejected only for size
-
 	for $repuri (@repuris)
 	{
-		$repuri =~ s/^\s+|\s+$//g;
-		my $parsed = parse_rua_uri($repuri);
-		next unless defined($parsed);
-
-		my $uri = URI->new($repuri);
-
-		# http/https: size check only, no destination verification needed.
-		if ($uri->scheme eq "http" || $uri->scheme eq "https")
+		$uri = URI->new($repuri);
+		if (!defined($uri) ||
+		    !defined($uri->scheme) ||
+		    $uri->opaque eq "")
 		{
-			if ($testmode)
+			print STDERR "$progname: can't parse reporting URI for domain $domain\n";
+			next;
+		}
+
+		$repdest = $uri->opaque;
+		my $report_maxbytes = $report_maxbytes_global;
+
+		# check for max report size
+		if ($repdest =~ m/^(\S+)!(\d{1,15})([kmgt])?$/i)
+		{
+			$repdest = $1;
+			$report_maxbytes = $2;
+			if ($3)
 			{
-				print STDERR "$progname: would post $domain report for $rowcount records to $repuri\n";
+				my $letter = lc($3);
+				if ($letter eq 'k')
+				{
+					$report_maxbytes = $report_maxbytes * 1024;
+				}
+				if ($letter eq 'm')
+				{
+					$report_maxbytes = $report_maxbytes * 1048576;
+				}
+				if ($letter eq 'g')
+				{
+					$report_maxbytes = $report_maxbytes * (2**30);
+				}
+				if ($letter eq 't')
+				{
+					$report_maxbytes = $report_maxbytes * (2**40);
+				}
+			}
+		}
+
+		# Skip if this RUA address is known-stale or locally suppressed.
+		if ($uri->scheme eq "mailto" &&
+		    (stale_skip("rua", $repdest) || db_skip($repdest)))
+		{
+			next;
+		}
+
+		# Skip if this destination is in the NoReportsList.
+		if ($uri->scheme eq "mailto" && %noreports)
+		{
+			my $dest_lc = lc($repdest);
+			my ($dest_user, $dest_domain) = split(/\@/, $dest_lc, 2);
+			if ($noreports{$dest_lc} ||
+			    (defined($dest_domain) && $noreports{$dest_domain}))
+			{
+				print STDERR "$progname: skipping $domain report to $repdest (NoReportsList)\n"
+					if $verbose;
 				next;
 			}
+		}
+
+		# Test mode, just report what would have been done
+		if ($testmode)
+		{
+			my $verb = ($uri->scheme eq "mailto") ? "email" : "post";
+			print STDERR "$progname: would $verb $domain report for " .
+			             "$rowcount records to " . $uri->opaque . "\n";
+		}
+		# ensure a scheme is present
+		elsif (!defined($uri->scheme))
+		{
+			if ($verbose >= 2)
+			{
+				print STDERR "$progname: unknown URI scheme in '$repuri' for domain $domain\n";
+			}
+			next;
+		}
+		# send/post report
+		elsif ($uri->scheme eq "mailto")
+		{
+			my $datestr;
+			my $report_id;
+
 			if (!open($zipin, $gzipfile))
 			{
 				print STDERR "$progname: can't read gzipped report for $domain: $!\n";
 				next;
 			}
-			my $zipdata;
-			{ local $/; $zipdata = <$zipin>; }
-			close($zipin);
 
-			my ($clean_uri, $max_bytes) = check_size_restriction($repuri);
-			if (length($zipdata) > $max_bytes)
+			$boundary = "report_section";
+
+ 			$report_id = $domain . "-" . $now . "@" . $repdom;
+			$datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)",
+			                    localtime);
+
+			$mailout  = "To: $repdest\n";
+			$mailout .= "Bcc: $repbcc\n" if defined($repbcc);
+			$mailout .= "From: $repemail\n";
+			$mailout .= "Subject: Report Domain: " . $domain . " Submitter: " . $repdom . " Report-ID: " . $report_id . "\n";
+			$mailout .= "X-Mailer: " . $progname . " v" . $version ."\n";
+			$mailout .= "Date: " . $datestr . "\n";
+			$mailout .= "Message-ID: <$report_id>\n";
+			$mailout .= "Auto-Submitted: auto-generated\n";
+			$mailout .= "MIME-Version: 1.0\n";
+			$mailout .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
+			$mailout .= "\n";
+			$mailout .= "This is a MIME-encapsulated message.\n";
+			$mailout .= "\n";
+			$mailout .= "--$boundary\n";
+			$mailout .= "Content-Type: text/plain;\n";
+			$mailout .= "\n";
+			$mailout .= "This is a DMARC aggregate report for $domain\n";
+			$mailout .= "generated at " . localtime() . "\n";
+			$mailout .= "\n";
+			$mailout .= "--$boundary\n";
+			$mailout .= "Content-Type: application/gzip\n";
+			$mailout .= "Content-Disposition: attachment; filename=\"$gzipfile\"\n";
+			$mailout .= "Content-Transfer-Encoding: base64\n";
+			$mailout .= "\n";
+
+			while (read($zipin, $buf, 60*57))
 			{
-				print STDERR "$progname: report was too large (" . length($zipdata) . " bytes) per limitation of URI $repuri for domain $domain\n";
-				next;
+				$mailout .= encode_base64($buf);
 			}
 
-			my $req = HTTP::Request->new(POST => $clean_uri);
-			$req->content_type('application/gzip');
-			$req->content($zipdata);
-			my $ua = LWP::UserAgent->new;
-			$ua->agent("$progname/$version");
-			my $resp = $ua->request($req);
-			if ($resp->is_success)
+			$mailout .= "\n";
+			$mailout .= "--$boundary--\n";
+			my $reportsize = length($mailout);
+
+			if ($reportsize > $report_maxbytes)
 			{
-				print STDERR "$progname: posted report for $domain to $clean_uri (" . $resp->status_line . ")\n" if $verbose;
+				# XXX -- generate an error report here
+				print STDERR "$progname: report was too large ($reportsize bytes) per limitation of URI " . $uri->opaque . " for domain $domain\n";
 			}
 			else
 			{
-				print STDERR "$progname: failed to post report for $domain to $clean_uri (" . $resp->status_line . ")\n";
-			}
-			next;
-		}
+				$smtpstatus = "sent";
+				$smtpfail = 0;
 
-		# mailto: — strip size suffix, then verify external destination.
-		my ($address, $max_bytes) = check_size_restriction($parsed);
-
-		# Skip if known-stale or locally suppressed.
-		if (stale_skip("rua", $address) || db_skip($address))
-		{
-			next;
-		}
-
-		my ($dest_domain) = $address =~ /\@(.+)$/;
-		$dest_domain = lc($dest_domain // '');
-
-		my $domain_org = get_org_domain($domain);
-		my $dest_org   = get_org_domain($dest_domain);
-
-		my $authorized = 0;
-
-		if (defined($domain_org) && defined($dest_org) &&
-		    $domain_org eq $dest_org)
-		{
-			# Same organizational domain — no DNS check required.
-			$authorized = 1;
-		}
-		else
-		{
-			# Cross-domain: query <from-domain>._report._dmarc.<dest-domain>
-			# per RFC 9990 §4 / RFC 9991 §5.
-			my $res   = Net::DNS::Resolver->new(udp_timeout => 15);
-			my $qname = "$domain._report._dmarc.$dest_domain";
-			my $reply = $res->query($qname, "TXT");
-
-			if ($reply)
-			{
-				for my $rr ($reply->answer)
+				if (!defined($smtp))
 				{
-					next unless $rr->type eq "TXT";
-					my $txt = $rr->txtdata;
-					if ($txt =~ /^\s*v\s*=\s*DMARC1\b/i)
+					$smtp = Net::SMTP->new($smtp_server,
+					                       'Port'    => $smtp_port,
+					                       'Hello'   => hostfqdn(),
+					                       'SSL'     => $smtp_ssl,
+					                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
+					if (!defined($smtp))
 					{
-						$authorized = 1;
-						last;
+						print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
+						exit(1);
 					}
-				}
-			}
-			else
-			{
-				my $err = $res->errorstring;
-				if ($err eq "NXDOMAIN")
-				{
-					# Wildcard fallback: *._report._dmarc.<dest-domain>
-					my $wreply = $res->query("*._report._dmarc.$dest_domain", "TXT");
-					if ($wreply)
+
+					if (defined($smtp_username) && defined($smtp_password))
 					{
-						for my $rr ($wreply->answer)
+						if (!$smtp->auth($smtp_username, $smtp_password))
 						{
-							next unless $rr->type eq "TXT";
-							if ($rr->txtdata =~ /^\s*v\s*=\s*DMARC1\b/i)
-							{
-								$authorized = 1;
-								last;
-							}
+							print STDERR "$progname: SMTP authentication failed\n";
+							exit(1);
 						}
 					}
 				}
-				elsif ($err eq "SERVFAIL" || $err eq "query timed out")
+
+				my $mailfrom = $verp ? verp_sender($repemail, $repdest) : $repemail;
+				if (!$smtp->mail($mailfrom) ||
+				    !$smtp->to($repdest) ||
+				    (defined($repbcc) && !$smtp->to($repbcc)) ||
+				    !$smtp->data() ||
+				    !$smtp->datasend($mailout) ||
+				    !$smtp->dataend())
 				{
-					# Non-definitive answer: fail open.
-					$authorized = 1;
+					$smtpfail = 1;
+					$smtpstatus = "failed to send";
 				}
-				else
+
+				if ($verbose || $smtpfail)
 				{
-					# Unknown error: fail open.
-					$authorized = 1;
+					# now perl voodoo:
+					$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
+					chomp($answer);
+					print STDERR "$progname: $smtpstatus report for $domain to $repdest ($answer)\n";
 				}
-			}
-
-			if (!$authorized && $verbose)
-			{
-				print STDERR "$progname: $domain is not authorized to send reports to $address ($qname returned " . $res->errorstring . "); dropping\n";
-			}
-		}
-
-		next unless $authorized;
-
-		push @mailto_dests, [$address, $max_bytes];
-	}
-
-	# Build the report body once (all mailto: destinations share it).
-	my $encoded_report = '';
-	my $reportsize = 0;
-	if (@mailto_dests)
-	{
-		if (!open($zipin, $gzipfile))
-		{
-			print STDERR "$progname: can't read gzipped report for $domain: $!\n";
-			@mailto_dests = ();
-		}
-		else
-		{
-			while (read($zipin, $buf, 60*57))
-			{
-				$encoded_report .= encode_base64($buf);
-			}
-			close($zipin);
-		}
-	}
-
-	my $report_id = $domain . "-" . $now . "@" . $repdom;
-	my $datestr   = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)", localtime);
-	$boundary     = hostfqdn() . "/" . time();
-
-	# Send to each verified mailto: destination, respecting its size limit.
-	for my $dest_entry (@mailto_dests)
-	{
-		my ($address, $max_bytes) = @$dest_entry;
-
-		$mailout  = "To: $address\n";
-		$mailout .= "Bcc: $repbcc\n" if defined($repbcc);
-		$mailout .= "From: $repemail\n";
-		$mailout .= "Subject: Report Domain: $domain Submitter: $repdom Report-ID: $report_id\n";
-		$mailout .= "X-Mailer: $progname v$version\n";
-		$mailout .= "Date: $datestr\n";
-		$mailout .= "Message-ID: <$report_id>\n";
-		$mailout .= "Auto-Submitted: auto-generated\n";
-		$mailout .= "MIME-Version: 1.0\n";
-		$mailout .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\n";
-		$mailout .= "\n";
-		$mailout .= "This is a MIME-encapsulated message.\n";
-		$mailout .= "\n";
-		$mailout .= "--$boundary\n";
-		$mailout .= "Content-Type: text/plain\n";
-		$mailout .= "\n";
-		$mailout .= "This is a DMARC aggregate report for $domain\n";
-		$mailout .= "generated at " . strftime("%a, %e %b %Y %H:%M:%S %z (%Z)", localtime()) . "\n";
-		$mailout .= "\n";
-		$mailout .= "--$boundary\n";
-		$mailout .= "Content-Type: application/gzip\n";
-		$mailout .= "Content-Disposition: attachment; filename=\"$gzipfile\"\n";
-		$mailout .= "Content-Transfer-Encoding: base64\n";
-		$mailout .= "\n";
-		$mailout .= $encoded_report;
-		$mailout .= "\n";
-		$mailout .= "--$boundary--\n";
-
-		$reportsize = length($mailout);
-
-		if ($reportsize > $max_bytes)
-		{
-			push @mailto_fallback, $address;
-			print STDERR "$progname: report was too large ($reportsize bytes) per limitation of URI $address for domain $domain\n";
-			next;
-		}
-
-		if ($testmode)
-		{
-			print STDERR "$progname: would email $domain report for $rowcount records to $address\n";
-			next;
-		}
-
-		if (!defined($smtp))
-		{
-			$smtp = Net::SMTP->new($smtp_server,
-			                       'Port'    => $smtp_port,
-			                       'Hello'   => hostfqdn(),
-			                       'SSL'     => $smtp_ssl,
-			                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
-			if (!defined($smtp))
-			{
-				print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
-				exit(1);
-			}
-			if (defined($smtp_username) && defined($smtp_password))
-			{
-				if (!$smtp->auth($smtp_username, $smtp_password))
-				{
-					print STDERR "$progname: SMTP authentication failed\n";
-					exit(1);
-				}
-			}
-		}
-
-		$smtpstatus = "sent";
-		$smtpfail   = 0;
-		my $mailfrom = $verp ? verp_sender($repemail, $address) : $repemail;
-		if (!$smtp->mail($mailfrom) ||
-		    !$smtp->to($address) ||
-		    (defined($repbcc) && !$smtp->to($repbcc)) ||
-		    !$smtp->data() ||
-		    !$smtp->datasend($mailout) ||
-		    !$smtp->dataend())
-		{
-			$smtpfail   = 1;
-			$smtpstatus = "failed to send";
-		}
-
-		if ($verbose || $smtpfail)
-		{
-			$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
-			chomp($answer);
-			print STDERR "$progname: $smtpstatus report for $domain to $address ($answer)\n";
-		}
-
-		$smtp->reset();
-	}
-
-	# If all addresses were over their size limit, send a delivery-failure
-	# notice to those addresses (without the oversized attachment).
-	if (!$testmode && @mailto_fallback)
-	{
-		my $err_boundary = hostfqdn() . "/" . time();
-		for my $address (@mailto_fallback)
-		{
-			$mailout  = "To: $address\n";
-			$mailout .= "From: $repemail\n";
-			$mailout .= "Subject: DMARC aggregate report size error for $domain\n";
-			$mailout .= "X-Mailer: $progname v$version\n";
-			$mailout .= "Date: $datestr\n";
-			$mailout .= "Message-ID: <error-$report_id>\n";
-			$mailout .= "Auto-Submitted: auto-generated\n";
-			$mailout .= "MIME-Version: 1.0\n";
-			$mailout .= "Content-Type: multipart/report;\n";
-			$mailout .= "    report-type=delivery-status;\n";
-			$mailout .= "    boundary=\"$err_boundary\"\n";
-			$mailout .= "\n";
-			$mailout .= "--$err_boundary\n";
-			$mailout .= "Content-Description: DMARC Notification\n";
-			$mailout .= "Content-Type: text/plain\n";
-			$mailout .= "\n";
-			$mailout .= "A DMARC aggregate report for $domain could not be delivered\n";
-			$mailout .= "to $address because the report ($reportsize bytes) exceeds\n";
-			$mailout .= "the size limit declared in your rua= URI.\n";
-			$mailout .= "\n";
-			$mailout .= "Report-Domain: $domain\n";
-			$mailout .= "Report-ID: $report_id\n";
-			$mailout .= "Report-Size: $reportsize\n";
-			$mailout .= "Submitter: $repdom\n";
-			$mailout .= "\n";
-			$mailout .= "--$err_boundary--\n";
-
-			if (!defined($smtp))
-			{
-				$smtp = Net::SMTP->new($smtp_server,
-				                       'Port'    => $smtp_port,
-				                       'Hello'   => hostfqdn(),
-				                       'SSL'     => $smtp_ssl,
-				                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
-				if (!defined($smtp))
-				{
-					print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
-					exit(1);
-				}
-				if (defined($smtp_username) && defined($smtp_password))
-				{
-					if (!$smtp->auth($smtp_username, $smtp_password))
-					{
-						print STDERR "$progname: SMTP authentication failed\n";
-						exit(1);
-					}
-				}
-			}
-
-			$smtpstatus = "sent";
-			$smtpfail   = 0;
-			if (!$smtp->mail($repemail) ||
-			    !$smtp->to($address) ||
-			    !$smtp->data() ||
-			    !$smtp->datasend($mailout) ||
-			    !$smtp->dataend())
-			{
-				$smtpfail   = 1;
-				$smtpstatus = "failed to send";
-			}
-
-			if ($verbose || $smtpfail)
-			{
-				$answer = ${${*$smtp}{'net_cmd_resp'}}[1] || $smtp->message() || 'unknown error';
-				chomp($answer);
-				print STDERR "$progname: $smtpstatus size-error notice for $domain to $address ($answer)\n";
 			}
 
 			$smtp->reset();
+
+			close($zipin);
+		}
+		elsif ($uri->scheme eq "http" || $uri->scheme eq "https")
+		{
+			if (!open($zipin, $gzipfile))
+			{
+				print STDERR "$progname: can't read zipped report for $domain: $!\n";
+				next;
+			}
+
+			my $zipdata;
+			{
+				local $/;
+				$zipdata = <$zipin>;
+			}
+			close($zipin);
+
+			my $reportsize = length($zipdata);
+			if ($reportsize > $report_maxbytes)
+			{
+				print STDERR "$progname: report was too large ($reportsize bytes) per limitation of URI " . $uri->opaque . " for domain $domain\n";
+				next;
+			}
+
+			my $req = HTTP::Request->new(POST => $repuri);
+			$req->content_type('application/gzip');
+			$req->content($zipdata);
+
+			my $ua = LWP::UserAgent->new;
+			$ua->agent("$progname/$version");
+			my $resp = $ua->request($req);
+
+			if ($resp->is_success)
+			{
+				if ($verbose)
+				{
+					print STDERR "$progname: posted report for $domain to $repuri (" . $resp->status_line . ")\n";
+				}
+			}
+			else
+			{
+				print STDERR "$progname: failed to post report for $domain to $repuri (" . $resp->status_line . ")\n";
+			}
+		}
+		else
+		{
+			print STDERR "$progname: unsupported reporting URI scheme " . $uri->scheme . " for domain $domain\n";
+			next;
 		}
 	}
 

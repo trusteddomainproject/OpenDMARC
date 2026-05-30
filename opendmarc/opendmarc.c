@@ -200,6 +200,7 @@ struct dmarcf_config
 	struct list *		conf_domainwhitelist;
 	unsigned int		conf_domainwhitelisthashcount;
 	struct list *		conf_ignorehosts;
+	struct list *		conf_noreportslist;
 };
 
 /* LIST -- basic linked list of strings */
@@ -890,6 +891,38 @@ dmarcf_checkhost(const char *host, struct list *list)
 }
 
 /*
+**  DMARCF_CHECKEMAIL -- check an email address against a list
+**
+**  Parameters:
+**  	addr -- email address to find (user@domain)
+**  	list -- list to check
+**
+**  Return value:
+**  	TRUE if there's a match (exact address or domain-only entry), FALSE otherwise.
+*/
+
+_Bool
+dmarcf_checkemail(const char *addr, struct list *list)
+{
+	const char *at;
+
+	/* short circuit */
+	if (list == NULL)
+		return FALSE;
+
+	/* exact address match */
+	if (dmarcf_checklist(addr, list))
+		return TRUE;
+
+	/* domain-only match */
+	at = strchr(addr, '@');
+	if (at != NULL && dmarcf_checklist(at + 1, list))
+		return TRUE;
+
+	return FALSE;
+}
+
+/*
 **  DMARCF_CHECKIP -- check a list an IP address or its matching wildcards
 **
 **  Parameters:
@@ -1172,6 +1205,7 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 	char *whitelist = NULL;
 	char *whitelistfile = NULL;
 	char *ignorefile = NULL;
+	char *noreportsfile = NULL;
 	struct list *cur;
 	int whitelistsize = DEF_WHITELIST_SIZE;
 
@@ -1340,6 +1374,9 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 		(void) config_get(data, "IgnoreHosts", &ignorefile,
 		                  sizeof ignorefile);
+
+		(void) config_get(data, "NoReportsList", &noreportsfile,
+		                  sizeof noreportsfile);
 	}
 
 	if (conf->conf_trustedauthservids == NULL &&
@@ -1502,6 +1539,17 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 
 	dmarcf_addlist("127.0.0.1", &conf->conf_ignorehosts);
 	dmarcf_addlist("::1", &conf->conf_ignorehosts);
+
+	if (noreportsfile != NULL)
+	{
+		if (!dmarcf_loadlist(noreportsfile, &conf->conf_noreportslist))
+		{
+			fprintf(stderr,
+			        "%s: can't load no-reports list from %s: %s\n",
+			        progname, noreportsfile, strerror(errno));
+			return EX_DATAERR;
+		}
+	}
 
 	return 0;
 }
@@ -3436,6 +3484,9 @@ mlfi_eom(SMFICTX *ctx)
 			if (ruv[c][7] == '\0')
 				continue;
 
+			if (dmarcf_checkemail(&ruv[c][7], conf->conf_noreportslist))
+				continue;
+
 			if (first)
 			{
 				dmarcf_dstring_cat(dfc->mctx_afrf, "To: ");
@@ -4216,6 +4267,9 @@ dmarcf_config_free(struct dmarcf_config *conf)
 
 	if (conf->conf_ignorehosts != NULL)
 		dmarcf_freelist(conf->conf_ignorehosts);
+
+	if (conf->conf_noreportslist != NULL)
+		dmarcf_freelist(conf->conf_noreportslist);
 
 	free(conf);
 }

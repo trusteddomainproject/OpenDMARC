@@ -241,6 +241,22 @@ Sets the debug level to be requested from the milter library.  Six is the
 highest useful value.  The default is 0.
 
 .TP
+.I NoReportsList (string)
+Specifies the path to a file containing email addresses and/or domains to
+which failure reports (
+.IR ruf= )
+should never be delivered, regardless of what the DMARC policy record
+requests.  Each line contains one entry; lines beginning with
+.RB ` # '
+are treated as comments.  An entry may be a full email address
+(e.g. "reports@gmail.com") or a bare domain (e.g. "gmail.com"), in which
+case all addresses at that domain are suppressed.  Matching is
+case-insensitive.  The same file is honoured by
+.IR opendmarc-reports (8)
+for aggregate report delivery suppression.  The default is unset, meaning
+all requested report destinations are used.
+
+.TP
 .I PidFile (string)
 Specifies the path to a file that should be created at process start
 containing the process ID.
