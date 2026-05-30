@@ -257,11 +257,12 @@
 ##  IgnoreMailTo email[,...]
 ##  	default (none)
 ##
-##  Gives a comma-separated list of email addresses whose inbound messages are
-##  not recorded in the history file and therefore generate no aggregate
-##  reports.  Useful to prevent report loops: add any ruf= or rua= address
-##  that your mail infrastructure also delivers to this list.  Matching is
-##  case-insensitive.
+##  Gives a comma-separated list of your own email addresses to which inbound
+##  messages are not recorded in the history file and therefore generate no
+##  aggregate reports.  Use this to prevent report loops: if this filter
+##  processes inbound mail for an address you publish as your own rua= or ruf=
+##  destination, DMARC reports arriving at that address would themselves be
+##  evaluated and could trigger further reports.  Matching is case-insensitive.
 #
 # IgnoreMailTo dmarc-reports@example.com
 

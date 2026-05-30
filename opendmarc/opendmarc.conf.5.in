@@ -226,14 +226,18 @@ no mail is ignored.
 
 .TP
 .I IgnoreMailTo (string)
-Gives a comma-separated list of email addresses whose inbound messages are
-not recorded in the history file and therefore generate no aggregate reports.
-This is useful to prevent report loops: if your domain publishes a
+Gives a comma-separated list of your own email addresses to which inbound
+messages are not recorded in the history file and therefore generate no
+aggregate reports.  This is useful to prevent report loops: if your domain
+publishes a
 .I ruf=
-address that also receives mail, adding that address here prevents report
-messages addressed to it from being treated as reportable traffic.  Matching
-is case-insensitive.  The default is an empty list, meaning all mail is
-recorded normally.
+or
+.I rua=
+address that this filter also processes inbound mail for, DMARC report
+messages delivered to that address would themselves be evaluated and
+potentially trigger further reports.  Adding your own reporting address here
+breaks that loop.  Matching is case-insensitive.  The default is an empty
+list, meaning all inbound mail is recorded normally.
 
 .TP
 .I MilterDebug (integer)
