@@ -254,6 +254,17 @@
 #
 # IgnoreMailFrom example.com
 
+##  IgnoreMailTo email[,...]
+##  	default (none)
+##
+##  Gives a comma-separated list of email addresses whose inbound messages are
+##  not recorded in the history file and therefore generate no aggregate
+##  reports.  Useful to prevent report loops: add any ruf= or rua= address
+##  that your mail infrastructure also delivers to this list.  Matching is
+##  case-insensitive.
+#
+# IgnoreMailTo dmarc-reports@example.com
+
 ##  MilterDebug (integer)
 ##  	default 0
 ##

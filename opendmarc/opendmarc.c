@@ -196,6 +196,7 @@ struct dmarcf_config
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
+	char **			conf_ignorereceivers;
 	struct list *		conf_domainwhitelist;
 	unsigned int		conf_domainwhitelisthashcount;
 	struct list *		conf_ignorehosts;
@@ -1202,6 +1203,11 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		if (str != NULL)
 			dmarcf_mkarray(str, ",", &conf->conf_ignoredomains);
 
+		str = NULL;
+		(void) config_get(data, "IgnoreMailTo", &str, sizeof str);
+		if (str != NULL)
+			dmarcf_mkarray(str, ",", &conf->conf_ignorereceivers);
+
 		(void) config_get(data, "AuthservIDWithJobID",
 		                  &conf->conf_authservidwithjobid,
 		                  sizeof conf->conf_authservidwithjobid);
@@ -2184,6 +2190,7 @@ mlfi_eom(SMFICTX *ctx)
 	int c;
 	int pc;
 	int policy;
+	int skiphistory = 0;
 	int status;
 	int adkim;
 	int aspf;
@@ -3750,7 +3757,38 @@ mlfi_eom(SMFICTX *ctx)
 	**  Record activity in the history file.
 	*/
 
-	if (conf->conf_historyfile != NULL &&
+	if (conf->conf_ignorereceivers != NULL)
+	{
+		struct dmarcf_header *to = dmarcf_findheader(dfc, "To", 0);
+		if (to != NULL)
+		{
+			char *val = (char *) to->hdr_value;
+			while (*val && !skiphistory)
+			{
+				char *user = NULL;
+				char *domain = NULL;
+
+				memset(addrbuf, '\0', sizeof addrbuf);
+				strncpy((char *) addrbuf, val, sizeof addrbuf - 1);
+				status = dmarcf_mail_parse(addrbuf, &user, &domain);
+				if (status == 0 && user != NULL && domain != NULL)
+				{
+					snprintf((char *) replybuf, sizeof replybuf,
+					         "%s@%s", user, domain);
+					if (dmarcf_match((char *) replybuf,
+					                 conf->conf_ignorereceivers,
+					                 TRUE))
+						skiphistory = 1;
+				}
+				while (*val && *val != ',' && *val != ';')
+					val++;
+				if (*val)
+					val++;
+			}
+		}
+	}
+
+	if (!skiphistory && conf->conf_historyfile != NULL &&
 	    (conf->conf_recordall || ostatus != DMARC_DNS_ERROR_NO_RECORD))
 	{
 		FILE *f;
@@ -4154,6 +4192,9 @@ dmarcf_config_free(struct dmarcf_config *conf)
 
 	if (conf->conf_ignoredomains != NULL)
 		dmarcf_freearray(conf->conf_ignoredomains);
+
+	if (conf->conf_ignorereceivers != NULL)
+		dmarcf_freearray(conf->conf_ignorereceivers);
 
 	if (conf->conf_trustedauthservids != NULL)
 		dmarcf_freearray(conf->conf_trustedauthservids);

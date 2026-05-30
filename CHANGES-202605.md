@@ -4,6 +4,12 @@ This document summarizes the changes merged into the `develop` branch during the
 
 ---
 
+## New features
+
+- **`IgnoreMailTo`**: New config option accepting a comma-separated list of email addresses. Inbound messages addressed to any listed address are not written to the history file and therefore generate no aggregate reports. Intended to prevent report loops: if your domain's `ruf=` or `rua=` address also receives mail through the filter, adding it here prevents report messages from being treated as reportable traffic. Mirrors the existing `IgnoreMailFrom` option. (issue #319, original patch by Dirk Stöcker / openSUSE ticket208)
+
+---
+
 ## Security / correctness
 
 - **Strict DMARC alignment incorrectly passing with PSL configured**: `opendmarc_policy_check_alignment` fell through to organizational-domain (PSL) resolution after the initial exact-match check failed, even in strict mode (`adkim=s` or `aspf=s`). This could produce a false aligned result - e.g. `From: user@sub.example.com` with a signing domain of `example.com` would pass strict alignment because the PSL lookup collapsed the From domain to `example.com`. RFC 7489 §3.1.1/3.1.2 requires exact match only in strict mode. (#354, issue #268)
