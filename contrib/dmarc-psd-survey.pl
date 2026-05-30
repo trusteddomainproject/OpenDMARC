@@ -6,8 +6,8 @@ use IO::Select;
 use Getopt::Long;
 use POSIX qw(strftime);
 use LWP::Simple qw(getstore);
-use URI::_idna;
-use Encode qw(encode decode);
+use Net::LibIDN qw(idn_to_ascii);
+binmode(STDERR, ':encoding(UTF-8)');
 
 # Query Public Suffix List entries for DMARC records, reporting psd= adoption.
 # Tracks which public suffixes have published DMARC records and whether they
@@ -184,12 +184,8 @@ while (my $line = <$fh>) {
 
     # Convert IDN labels to punycode if needed
     if ($entry =~ /[^\x00-\x7F]/) {
-        my $ace = eval {
-            join('.', map {
-                /[^\x00-\x7F]/ ? URI::_idna::encode(decode('UTF-8', $_)) : $_
-            } split(/\./, $entry));
-        };
-        if ($@ || !defined($ace)) {
+        my $ace = idn_to_ascii($entry, 'UTF-8');
+        if (!defined($ace)) {
             printf STDERR "  skipping non-convertible IDN entry: %s\n", $entry;
             next;
         }
