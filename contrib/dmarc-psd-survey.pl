@@ -5,10 +5,13 @@ use Net::DNS;
 use IO::Select;
 use Getopt::Long;
 use POSIX qw(strftime);
+use LWP::Simple qw(getstore);
 
 # Query Public Suffix List entries for DMARC records, reporting psd= adoption.
 # Tracks which public suffixes have published DMARC records and whether they
 # include psd=y, indicating readiness for DMARCbis PSD DMARC.
+#
+# If --input file does not exist, downloads it automatically from publicsuffix.org.
 #
 # Input: public_suffix_list.dat from https://publicsuffix.org/list/
 #
@@ -20,6 +23,8 @@ use POSIX qw(strftime);
 #   psd:       "y", "n", or "-" if absent
 #   record:    full DMARC TXT record
 # Progress/stats (STDERR): running count + final summary
+
+my $psl_url     = 'https://publicsuffix.org/list/public_suffix_list.dat';
 
 my $concurrency = 200;
 my $timeout     = 5;
@@ -40,6 +45,13 @@ GetOptions(
 ) or die "Usage: $0 [--input FILE] [--output FILE] [--concurrency N] [--timeout N] [--max N] [--nameserver IP] [--icann-only]\n";
 
 my $run_date = strftime('%Y-%m-%d', localtime);
+
+unless (-f $infile) {
+    print STDERR "Downloading PSL from $psl_url ...\n";
+    my $rc = getstore($psl_url, $infile);
+    die "Download failed (HTTP $rc)\n" unless $rc == 200;
+    print STDERR "Saved to $infile\n";
+}
 
 if (!defined($outfile)) {
     $outfile = sprintf('dmarc-psd-survey-%s.tsv', $run_date);
