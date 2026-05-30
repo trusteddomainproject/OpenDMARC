@@ -163,6 +163,13 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 ---
 
+## DMARCbis deployment tracking
+
+- **`contrib/dmarc-pct-survey.pl`**: New script to query the Cisco Umbrella top-1M domain list for DMARC records, reporting `pct=` and `psd=` tag usage. Useful for tracking DMARCbis adoption in the wild. Output is TSV (defaulting to a dated file `dmarc-pct-survey-YYYY-MM-DD.tsv`) with a `run_date` column so successive runs can be appended and queried over time.
+- **`contrib/dmarc-psd-survey.pl`**: New script to query all entries in the Public Suffix List for DMARC records, reporting `psd=` tag adoption. Tracks which TLDs and PSDs have published DMARC records and whether they declare `psd=y`, indicating readiness for RFC 9989 PSD DMARC. Handles wildcard PSL entries (`*.foo` → queries the parent), exception entries (`!foo.bar` → queries as-is), and separates ICANN from private domain sections (`--icann-only` to restrict). Output is TSV (defaulting to `dmarc-psd-survey-YYYY-MM-DD.tsv`) with a `run_date` column for longitudinal tracking.
+
+---
+
 ## CI
 
 - **GitHub Actions CI workflow added**: Linux build and test on Ubuntu, running on push and pull request to `develop`. (#330)

@@ -1,30 +1,40 @@
-#!/usr/bin/perl
+#!/usr/local/bin/perl
 use strict;
 use warnings;
 use Net::DNS;
 use IO::Select;
 use Getopt::Long;
+use POSIX qw(strftime);
 
 # Query Umbrella top-1M domains for DMARC records, reporting pct= and psd= usage.
 #
-# Output (STDOUT): TSV - domain, pct_value, psd_value, full_record
+# Output (--output or STDOUT): TSV - run_date, domain, pct_value, psd_value, full_record
+#   run_date:  ISO 8601 date of this run (YYYY-MM-DD), for multi-run aggregation
 #   pct_value: numeric value if present, "-" if absent
 #   psd_value: "y", "n", or "-" if absent
 # Progress/stats (STDERR): running count + final summary
 
-my $concurrency = 500;
-my $timeout     = 5;
-my $infile      = 'top-1m.csv';
-my $max_domains = 0;  # 0 = unlimited
-my $nameserver;       # undef = system default
+my $concurrency  = 500;
+my $timeout      = 5;
+my $infile       = 'top-1m.csv';
+my $max_domains  = 0;     # 0 = unlimited
+my $nameserver;           # undef = system default
+my $outfile;              # undef = STDOUT
 
 GetOptions(
     'concurrency=i' => \$concurrency,
     'timeout=i'     => \$timeout,
     'input=s'       => \$infile,
+    'output=s'      => \$outfile,
     'max=i'         => \$max_domains,
     'nameserver=s'  => \$nameserver,
-) or die "Usage: $0 [--input FILE] [--concurrency N] [--timeout N] [--max N] [--nameserver IP]\n";
+) or die "Usage: $0 [--input FILE] [--output FILE] [--concurrency N] [--timeout N] [--max N] [--nameserver IP]\n";
+
+my $run_date = strftime('%Y-%m-%d', localtime);
+
+if (!defined($outfile)) {
+    $outfile = sprintf('dmarc-pct-survey-%s.tsv', $run_date);
+}
 
 my $resolver = Net::DNS::Resolver->new(
     udp_timeout => $timeout,
@@ -34,7 +44,8 @@ my $resolver = Net::DNS::Resolver->new(
     ($nameserver ? (nameservers => [$nameserver]) : ()),
 );
 
-open(my $fh, '<', $infile) or die "Cannot open $infile: $!\n";
+open(my $fh,  '<', $infile)  or die "Cannot open $infile: $!\n";
+open(my $out, '>', $outfile) or die "Cannot open $outfile: $!\n";
 
 # Stats
 my $n_queued   = 0;
@@ -103,16 +114,15 @@ sub harvest {
                 $n_psd_n++ if $psd eq 'n';
             }
 
-            print join("\t", $domain, $pct, $psd, $txt), "\n";
+            print $out join("\t", $run_date, $domain, $pct, $psd, $txt), "\n";
             last;  # only evaluate first v=DMARC1 record
         }
     }
 }
 
-# Print TSV header to STDOUT
-print join("\t", "domain", "pct", "psd", "record"), "\n";
+print $out join("\t", "run_date", "domain", "pct", "psd", "record"), "\n";
 
-print STDERR "Reading $infile, concurrency=$concurrency, timeout=${timeout}s\n";
+print STDERR "Reading $infile, writing $outfile, concurrency=$concurrency, timeout=${timeout}s\n";
 
 while (my $line = <$fh>) {
     chomp $line;
@@ -154,7 +164,9 @@ while (%inflight) {
     }
 }
 
-printf STDERR "\nDone.\n";
+close($out);
+
+printf STDERR "\nDone. Output written to %s\n", $outfile;
 printf STDERR "  Domains queried : %d\n", $n_done;
 printf STDERR "  Errors          : %d\n", $n_errors;
 printf STDERR "  Have DMARC      : %d (%.1f%%)\n", $n_dmarc, $n_done ? 100*$n_dmarc/$n_done : 0;
