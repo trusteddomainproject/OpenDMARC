@@ -26,6 +26,7 @@ my $infile       = 'top-1m.csv';
 my $max_domains  = 0;     # 0 = unlimited
 my $nameserver;           # undef = system default
 my $outfile;              # undef = use dated default
+my $summarylog   = 'dmarc-pct-survey-summary.tsv';
 
 GetOptions(
     'concurrency=i' => \$concurrency,
@@ -34,7 +35,8 @@ GetOptions(
     'output=s'      => \$outfile,
     'max=i'         => \$max_domains,
     'nameserver=s'  => \$nameserver,
-) or die "Usage: $0 [--input FILE] [--output FILE] [--concurrency N] [--timeout N] [--max N] [--nameserver IP]\n";
+    'summary-log=s' => \$summarylog,
+) or die "Usage: $0 [--input FILE] [--output FILE] [--summary-log FILE] [--concurrency N] [--timeout N] [--max N] [--nameserver IP]\n";
 
 unless (-f $infile) {
     my $zipfile = $infile . '.zip';
@@ -74,7 +76,7 @@ my $n_psd_y    = 0;  # has psd=y
 my $n_psd_n    = 0;  # has psd=n
 my $n_errors   = 0;
 
-# In-flight: socket => domain
+# In-flight: socket => [ domain, dispatch_time ]
 my %inflight;
 my $sel = IO::Select->new;
 
@@ -90,7 +92,7 @@ sub dispatch {
         $n_done++;
         return;
     }
-    $inflight{$socket} = $domain;
+    $inflight{$socket} = [ $domain, time() ];
     $sel->add($socket);
     $n_queued++;
 }
@@ -99,7 +101,8 @@ sub harvest {
     my ($block) = @_;
     my @ready = $block ? $sel->can_read($timeout) : $sel->can_read(0);
     for my $sock (@ready) {
-        my $domain = delete $inflight{$sock};
+        my $meta   = delete $inflight{$sock};
+        my $domain = $meta->[0];
         $sel->remove($sock);
         $n_done++;
 
@@ -133,6 +136,18 @@ sub harvest {
 
             print $out join("\t", $run_date, $domain, $pct, $psd, $txt), "\n";
             last;  # only evaluate first v=DMARC1 record
+        }
+    }
+}
+
+sub reap_stale {
+    my $now = time();
+    for my $sock (keys %inflight) {
+        if ($now - $inflight{$sock}[1] > $timeout * 2) {
+            delete $inflight{$sock};
+            $sel->remove($sock);
+            $n_errors++;
+            $n_done++;
         }
     }
 }
@@ -174,6 +189,7 @@ close($fh);
 # Drain remaining in-flight queries
 while (%inflight) {
     harvest(1);
+    reap_stale();
     if ($n_done >= $next_progress) {
         printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct=, %d psd=\n",
             $n_done, scalar(keys %inflight), $n_dmarc, $n_pct, $n_psd;
@@ -186,8 +202,14 @@ close($out);
 printf STDERR "\nDone. Output written to %s\n", $outfile;
 printf STDERR "  Domains queried : %d\n", $n_done;
 printf STDERR "  Errors          : %d\n", $n_errors;
-printf STDERR "  Have DMARC      : %d (%.1f%%)\n", $n_dmarc, $n_done ? 100*$n_dmarc/$n_done : 0;
-printf STDERR "  Have pct=       : %d (%.1f%% of DMARC)\n", $n_pct,  $n_dmarc ? 100*$n_pct/$n_dmarc  : 0;
-printf STDERR "  Have psd=       : %d (%.1f%% of DMARC)\n", $n_psd,  $n_dmarc ? 100*$n_psd/$n_dmarc  : 0;
+printf STDERR "  Have DMARC      : %d (%.1f%%)\n", $n_dmarc, $n_done   ? 100*$n_dmarc/$n_done   : 0;
+printf STDERR "  Have pct=       : %d (%.1f%% of DMARC)\n", $n_pct,   $n_dmarc ? 100*$n_pct/$n_dmarc   : 0;
+printf STDERR "  Have psd=       : %d (%.1f%% of DMARC)\n", $n_psd,   $n_dmarc ? 100*$n_psd/$n_dmarc   : 0;
 printf STDERR "    psd=y         : %d\n", $n_psd_y;
 printf STDERR "    psd=n         : %d\n", $n_psd_n;
+
+my $is_new = !-f $summarylog;
+open(my $sum, '>>', $summarylog) or die "Cannot open $summarylog: $!\n";
+print $sum join("\t", qw(run_date queried errors have_dmarc pct_total psd_total psd_y psd_n)), "\n" if $is_new;
+print $sum join("\t", $run_date, $n_done, $n_errors, $n_dmarc, $n_pct, $n_psd, $n_psd_y, $n_psd_n), "\n";
+close($sum);
