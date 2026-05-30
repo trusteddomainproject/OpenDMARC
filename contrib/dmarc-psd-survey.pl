@@ -79,7 +79,7 @@ my $n_psd_y     = 0;  # has psd=y
 my $n_psd_n     = 0;  # has psd=n
 my $n_errors    = 0;
 
-# In-flight: socket => [ suffix, section, wildcard, exception ]
+# In-flight: socket => [ suffix, section, wildcard, exception, dispatch_time ]
 my %inflight;
 my $sel = IO::Select->new;
 
@@ -95,9 +95,21 @@ sub dispatch {
         $n_done++;
         return;
     }
-    $inflight{$socket} = [ $suffix, $section, $wildcard, $exception ];
+    $inflight{$socket} = [ $suffix, $section, $wildcard, $exception, time() ];
     $sel->add($socket);
     $n_queued++;
+}
+
+sub reap_stale {
+    my $now = time();
+    for my $sock (keys %inflight) {
+        if ($now - $inflight{$sock}[4] > $timeout * 2) {
+            delete $inflight{$sock};
+            $sel->remove($sock);
+            $n_errors++;
+            $n_done++;
+        }
+    }
 }
 
 sub harvest {
@@ -212,6 +224,7 @@ close($fh);
 
 while (%inflight) {
     harvest(1);
+    reap_stale();
     if ($n_done >= $next_progress) {
         printf STDERR "  %d done, %d in-flight, %d dmarc, %d psd=\n",
             $n_done, scalar(keys %inflight), $n_dmarc, $n_psd;
