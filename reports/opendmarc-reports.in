@@ -998,7 +998,7 @@ foreach (@$domainset)
 	$gzipfile = $workdir . "/" . $repdom . "!" . $domain . "!" . $repstart . "!" . $repend . ".xml.gz";
 	if (!open($tmpout, ">", $repfile))
 	{
-		print STDERR "$progname: can't create report file for domain $domain: $!\n";
+		print STDERR "$progname: can't create report file for domain $domain ($repfile): $!\n";
 		next;
 	}
 
