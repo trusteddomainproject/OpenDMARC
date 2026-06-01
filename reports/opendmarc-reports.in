@@ -109,6 +109,10 @@ my $repbcc;
 my $smtpstatus;
 my $smtpfail;
 
+my $nsent    = 0;
+my $nfail    = 0;
+my $nskipped = 0;
+
 my $doupdate = 1;
 my $testmode = 0;
 my $keepfiles = 0;
@@ -949,6 +953,7 @@ foreach (@$domainset)
 		if ($verbose >= 2)
 		{
 			print STDERR "$progname: no reporting URI for domain $domain; skipping\n";
+			$nskipped++;
 		}
 
 		next;
@@ -1380,6 +1385,7 @@ foreach (@$domainset)
 		if ($verbose >= 2)
 		{
 			print STDERR "$progname: no activity selected for $domain; skipping\n";
+			$nskipped++;
 		}
 
 		unlink($repfile);
@@ -1576,6 +1582,8 @@ foreach (@$domainset)
 					$smtpstatus = "failed to send";
 				}
 
+				if ($smtpfail) { $nfail++; } else { $nsent++; }
+
 				if ($verbose || $smtpfail)
 				{
 					# now perl voodoo:
@@ -1672,7 +1680,7 @@ $dbi_s->finish;
 
 if ($verbose)
 {
-	print STDERR "$progname: terminating at " . localtime() . " (duration=" . scalar(time() - $now) . "s)\n";
+	print STDERR "$progname: terminating at " . localtime() . " (duration=" . scalar(time() - $now) . "s, sent=$nsent, failed=$nfail, skipped=$nskipped)\n";
 }
 
 $dbi_h->disconnect;
