@@ -506,7 +506,14 @@ if (defined($noreports_file))
 		s/#.*//;
 		s/^\s+|\s+$//g;
 		next unless length;
-		$noreports{lc($_)} = 1;
+		if($_ =~ /@/)
+		{
+			$noreports{lc($_)} = 1;
+		}
+		else
+		{
+			push(@skipdomains, lc($_));
+		}
 	}
 	close($nrf);
 }
@@ -1448,7 +1455,7 @@ foreach (@$domainset)
 			my $dest_lc = lc($repdest);
 			my ($dest_user, $dest_domain) = split(/\@/, $dest_lc, 2);
 			if ($noreports{$dest_lc} ||
-			    (defined($dest_domain) && $noreports{$dest_domain}))
+			    (defined($dest_domain) && $noreports{"@$dest_domain"}))
 			{
 				print STDERR "$progname: skipping $domain report to $repdest (NoReportsList)\n"
 					if $verbose;

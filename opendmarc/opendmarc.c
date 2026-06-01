@@ -916,7 +916,7 @@ dmarcf_checkemail(const char *addr, struct list *list)
 
 	/* domain-only match */
 	at = strchr(addr, '@');
-	if (at != NULL && dmarcf_checklist(at + 1, list))
+	if (at != NULL && dmarcf_checklist(at, list))
 		return TRUE;
 
 	return FALSE;
