@@ -137,7 +137,11 @@ Reads a list of domain names from
 and skips generating reports for any domain in the list.  Equivalent to
 specifying
 .B --nodomain
-for each entry in the file.
+for each entry in the file.  Bare domain entries in the
+.B NoReportsList
+file (see
+.IR opendmarc.conf (5))
+are automatically applied as if passed via this option.
 .TP
 .I --noupdate
 Suppresses marking the time of the transmission of the report in the database.

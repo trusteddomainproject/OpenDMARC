@@ -246,16 +246,34 @@ highest useful value.  The default is 0.
 
 .TP
 .I NoReportsList (string)
-Specifies the path to a file containing email addresses and/or domains to
-which failure reports (
-.IR ruf= )
-should never be delivered, regardless of what the DMARC policy record
-requests.  Each line contains one entry; lines beginning with
+Specifies the path to a file containing email addresses and/or domains for
+which report delivery should be suppressed.  Each line contains one entry;
+lines beginning with
 .RB ` # '
-are treated as comments.  An entry may be a full email address
-(e.g. "reports@gmail.com") or a bare domain (e.g. "gmail.com"), in which
-case all addresses at that domain are suppressed.  Matching is
-case-insensitive.  The same file is honoured by
+are treated as comments.  Three entry formats are recognised:
+.RS
+.TP
+.I user@example.com
+Suppresses delivery to that specific address.
+.TP
+.I @example.com
+Suppresses delivery to any address at that mail domain (the
+.RB ` @ '
+sigil distinguishes this from a sending-domain entry below).
+.TP
+.I example.com
+Suppresses aggregate reports for that sending domain (i.e. domains whose
+.I _dmarc
+record is being evaluated), equivalent to passing the domain to
+.BR --skipdomains (8)
+in
+.IR opendmarc-reports .
+This form has no effect on failure report
+.RI ( ruf= )
+suppression in the milter itself.
+.RE
+.P
+Matching is case-insensitive.  The same file is read by
 .IR opendmarc-reports (8)
 for aggregate report delivery suppression.  The default is unset, meaning
 all requested report destinations are used.
