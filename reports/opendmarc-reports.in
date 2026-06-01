@@ -799,7 +799,7 @@ elsif ($daybound)
 {
 	# MySQL-specific: FROM_UNIXTIME() converts a Unix timestamp to DATETIME.
 	# SQLite equivalent: datetime(?, 'unixepoch')
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR DATE(lastsent) < DATE(FROM_UNIXTIME(?))");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR DATE(lastsent) < DATE(FROM_UNIXTIME(?)) ORDER BY domains.name");
 	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
 	{
@@ -813,7 +813,7 @@ else
 {
 	# MySQL-specific: DATE_SUB(..., INTERVAL ? SECOND) and FROM_UNIXTIME().
 	# SQLite equivalent: datetime(?, 'unixepoch', '-' || ? || ' seconds')
-	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND)");
+	$dbi_s = $dbi_h->prepare("SELECT domains.name FROM requests JOIN domains ON requests.domain = domains.id WHERE lastsent IS NULL OR lastsent <= DATE_SUB(FROM_UNIXTIME(?), INTERVAL ? SECOND) ORDER BY domains.name");
 	$dbi_s->bind_param(1, $now, {TYPE => SQL_INTEGER});
 	$dbi_s->bind_param(2, $interval, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
