@@ -13,6 +13,14 @@ This document summarizes the changes merged into the `develop` branch during the
 
 ## Security / correctness
 
+- **CVE audit**: All CVEs on record against OpenDMARC (CVE-2019-16378,
+  CVE-2019-20790, CVE-2020-12272, CVE-2020-12460, CVE-2021-34555,
+  CVE-2024-25768) were confirmed fixed in the develop branch.  Each has a
+  persistent entry in the SECURITY directory.  CVE-2019-16378,
+  CVE-2020-12272, and CVE-2020-12460 were not found in RELEASE_NOTES at the
+  time of this audit; the SECURITY files are the authoritative record as
+  release notes from prior versions may have been trimmed or replaced.
+
 - **Strict DMARC alignment incorrectly passing with PSL configured**: `opendmarc_policy_check_alignment` fell through to organizational-domain (PSL) resolution after the initial exact-match check failed, even in strict mode (`adkim=s` or `aspf=s`). This could produce a false aligned result - e.g. `From: user@sub.example.com` with a signing domain of `example.com` would pass strict alignment because the PSL lookup collapsed the From domain to `example.com`. RFC 7489 §3.1.1/3.1.2 requires exact match only in strict mode. (#354, issue #268)
 - **Quarantine not deferred through ARC override**: When DMARC policy was `p=quarantine`, `smfi_quarantine()` was called before the ARC override check, meaning a valid ARC chain could not rescue a quarantined message. The quarantine call is now deferred until after the ARC policy evaluation. ARC override now also applies to quarantine results, not only rejections. (#321, issue #24)
 - **`arc=pass` never appearing in aggregate reports**: The arc result value in the history file was compared against the wrong constant, so `arc=pass` was never written to XML reports. (#313, issue #282)
@@ -21,7 +29,7 @@ This document summarizes the changes merged into the `develop` branch during the
 - **`policy_published.domain` using From domain instead of record location**: The `<policy_published><domain>` element in aggregate reports used the RFC5322 From domain rather than the domain where the DMARC record was actually found (which may be the organizational domain). (#270, issue #142; independently identified and patched by Eneas U. de Queiroz for openSUSE, submitted by Dirk Stöcker)
 - **`Arrival-Date` and `Delivery-Result` missing from failure reports**: The failure report (`message/feedback-report` MIME part) omitted `Arrival-Date:` and `Delivery-Result:` fields required by RFC 6591. These could not be populated because policy was enacted after the report was generated; the fix reorders the two operations. (#332, issue #22)
 - **RFC5322 error reason not included in SMTP rejection response**: When `RequiredHeaders` rejected a message, the specific reason (e.g. "not exactly one Date field") was logged but not sent in the SMTP `550` response. Now calls `smfi_setreply()` with the reason string. (#333, issue #202)
-- **Four crash and memory-safety bugs**: Fixed NULL pointer dereference in `opendmarc_spf_ipv6_explode()`, a use-after-free in ARC seal parsing, and two additional memory-safety issues. (#298, issues #18, #140, #152, #256)
+- **Four crash and memory-safety bugs**: Fixed NULL pointer dereference in `opendmarc_spf_ipv6_explode()`, a use-after-free in ARC seal parsing, and two additional memory-safety issues. Issue #256 / CVE-2024-25768: `opendmarc_policy_fetch_ruf()` used `||` instead of `&&` when guarding a `memset()` call, allowing a `NULL` buffer to be dereferenced when `size_of_buf > 0`; fixed in commit 7f8bdf4. Reported by LuMingYinDetect; the `||`-to-`&&` fix identified by futatuki and KIC-8462852. (#298, issues #18, #140, #152, #256)
 - **arcdomain memory leak in `mlfi_eom`**: ARC domain strings allocated during message processing were not freed on the cleanup path. (#310, issue #182)
 - **`HoldQuarantinedMessages` blocked by `RejectFailures`**: The condition controlling `smfi_quarantine()` was gated on `conf_rejectfail`, so `HoldQuarantinedMessages yes` had no effect unless `RejectFailures yes` was also set. The two options are now independent. (#302, issue #237)
 - **`opendmarc_util_cleanup` buffer off-by-one**: The length guard used `> buflen` instead of `>= buflen`, allowing a string of exactly `buflen` characters through without room for a null terminator. (#344)
