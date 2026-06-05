@@ -1524,7 +1524,7 @@ foreach (@$domainset)
 			$mailout .= "\n";
 			$mailout .= "--$boundary\n";
 			$mailout .= "Content-Type: application/gzip\n";
-			$mailout .= "Content-Disposition: attachment; filename=\"$gzipfile\"\n";
+			$mailout .= "Content-Disposition: attachment; filename=\"" . basename($gzipfile) . "\"\n";
 			$mailout .= "Content-Transfer-Encoding: base64\n";
 			$mailout .= "\n";
 
