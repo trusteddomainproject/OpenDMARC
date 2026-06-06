@@ -86,7 +86,7 @@ jobs:
           ./Build
           sudo mkdir -p /usr/local/include/libmilter /usr/local/lib
           sudo cp ../include/libmilter/mfapi.h ../include/libmilter/mfdef.h /usr/local/include/libmilter/
-          sudo cp "$(find . -name 'libmilter.a' | head -1)" /usr/local/lib/
+          sudo cp "$(find .. -name 'libmilter.a' | head -1)" /usr/local/lib/
 
       - name: Build miltertest
         run: |
