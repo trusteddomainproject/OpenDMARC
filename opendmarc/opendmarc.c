@@ -2278,14 +2278,25 @@ mlfi_eom(SMFICTX *ctx)
 	u_char **domains;
 	u_char *bang;
 	u_char **ruv;
-	unsigned char header[MAXHEADER + 1];
+	unsigned char *header;
 	unsigned char authservid_hdr[MAXHOSTNAMELEN + BUFRSZ + 4];
 	unsigned char addrbuf[BUFRSZ + 1];
 	unsigned char replybuf[BUFRSZ + 1];
 	unsigned char pdomain[MAXHOSTNAMELEN + 1];
-	struct authres ar;
+	struct authres *ar = NULL;
 
 	assert(ctx != NULL);
+
+	header = malloc(MAXHEADER + 1);
+	if (header == NULL)
+		return SMFIS_TEMPFAIL;
+
+	ar = malloc(sizeof *ar);
+	if (ar == NULL)
+	{
+		ret = SMFIS_TEMPFAIL;
+		goto done;
+	}
 
 	cc = (DMARCF_CONNCTX) dmarcf_getpriv(ctx);
 	assert(cc != NULL);
@@ -2398,7 +2409,8 @@ mlfi_eom(SMFICTX *ctx)
 
 		dmarcf_setreply(ctx, DMARC_REJECT_SMTP, DMARC_REJECT_ESC,
 		                reqhdrs_error);
-		return SMFIS_REJECT;
+		ret = SMFIS_REJECT;
+		goto done;
 	}
 
 	/* if there was no From:, there's nothing to process past here */
@@ -2413,9 +2425,15 @@ mlfi_eom(SMFICTX *ctx)
 		}
 
 		if (conf->conf_reqfrom)
-			return SMFIS_REJECT;
+		{
+			ret = SMFIS_REJECT;
+			goto done;
+		}
 		else
-			return SMFIS_ACCEPT;
+		{
+			ret = SMFIS_ACCEPT;
+			goto done;
+		}
 	}
 
 	/* extract From: addresses */
@@ -2440,9 +2458,15 @@ mlfi_eom(SMFICTX *ctx)
 				       dfc->mctx_jobid);
 
 				if (conf->conf_reject_multi_from)
-					return SMFIS_REJECT;
+				{
+					ret = SMFIS_REJECT;
+					goto done;
+				}
 				else
-					return SMFIS_ACCEPT;
+				{
+					ret = SMFIS_ACCEPT;
+					goto done;
+				}
 			}
 		}
 
@@ -2460,9 +2484,15 @@ mlfi_eom(SMFICTX *ctx)
 		}
 
 		if (conf->conf_reqhdrs || conf->conf_reqfrom)
-			return SMFIS_REJECT;
+		{
+			ret = SMFIS_REJECT;
+			goto done;
+		}
 		else
-			return SMFIS_ACCEPT;
+		{
+			ret = SMFIS_ACCEPT;
+			goto done;
+		}
 	}
 
 	if (conf->conf_ignoredomains != NULL &&
@@ -2474,7 +2504,8 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, domain);
 		}
 
-		return SMFIS_ACCEPT;
+		ret = SMFIS_ACCEPT;
+		goto done;
 	}
 
 	strncpy(dfc->mctx_fromdomain, domain, sizeof dfc->mctx_fromdomain - 1);
@@ -2490,7 +2521,8 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, ostatus);
 		}
 
-		return SMFIS_TEMPFAIL;
+		ret = SMFIS_TEMPFAIL;
+		goto done;
 	}
 
 	/* first part of the history buffer */
@@ -2524,7 +2556,8 @@ mlfi_eom(SMFICTX *ctx)
 				syslog(LOG_ERR, "malloc(): %s", strerror(errno));
 
 			dmarcf_cleanup(ctx);
-			return SMFIS_TEMPFAIL;
+			ret = SMFIS_TEMPFAIL;
+			goto done;
 		}
 		(void) memset(aar_hdr_new, '\0', sizeof(struct arcares_header));
 
@@ -2572,7 +2605,8 @@ mlfi_eom(SMFICTX *ctx)
 				syslog(LOG_ERR, "malloc(): %s", strerror(errno));
 
 			dmarcf_cleanup(ctx);
-			return SMFIS_TEMPFAIL;
+			ret = SMFIS_TEMPFAIL;
+			goto done;
 		}
 		(void) memset(as_hdr_new, '\0', sizeof(struct arcseal_header));
 
@@ -2612,14 +2646,14 @@ mlfi_eom(SMFICTX *ctx)
 			continue;
 
 		/* parse it */
-		memset(&ar, '\0', sizeof ar);
-		if (ares_parse(hdr->hdr_value, &ar) != 0)
+		memset(ar, '\0', sizeof *ar);
+		if (ares_parse(hdr->hdr_value, ar) != 0)
 			continue;
 
 		/* skip it if it's not one of ours */
-		if (strcasecmp(ar.ares_host, authservid) != 0 &&
+		if (strcasecmp(ar->ares_host, authservid) != 0 &&
 		    (conf->conf_trustedauthservids == NULL ||
-		     !dmarcf_match(ar.ares_host, conf->conf_trustedauthservids,
+		     !dmarcf_match(ar->ares_host, conf->conf_trustedauthservids,
 		                   FALSE)))
 		{
 			unsigned char *slash;
@@ -2631,13 +2665,13 @@ mlfi_eom(SMFICTX *ctx)
 					syslog(LOG_DEBUG,
 					       "%s ignoring Authentication-Results at %d from %s",
 					       dfc->mctx_jobid, c,
-					       ar.ares_host);
+					       ar->ares_host);
 				}
 
 				continue;
 			}
 
-			slash = (unsigned char *) strchr(ar.ares_host, '/');
+			slash = (unsigned char *) strchr(ar->ares_host, '/');
 			if (slash == NULL)
 			{
 				if (conf->conf_dolog)
@@ -2645,16 +2679,16 @@ mlfi_eom(SMFICTX *ctx)
 					syslog(LOG_DEBUG,
 					       "%s ignoring Authentication-Results at %d from %s",
 					       dfc->mctx_jobid, c,
-					       ar.ares_host);
+					       ar->ares_host);
 				}
 
 				continue;
 			}
 
 			*slash = '\0';
-			if ((strcasecmp(ar.ares_host, authservid) != 0 &&
+			if ((strcasecmp(ar->ares_host, authservid) != 0 &&
 			     (conf->conf_trustedauthservids == NULL ||
-			      !dmarcf_match(ar.ares_host,
+			      !dmarcf_match(ar->ares_host,
 			                    conf->conf_trustedauthservids,
 			                    FALSE))) ||
 			    strcmp(slash + 1, dfc->mctx_jobid) != 0)
@@ -2666,7 +2700,7 @@ mlfi_eom(SMFICTX *ctx)
 					syslog(LOG_DEBUG,
 					       "%s ignoring Authentication-Results at %d from %s",
 					       dfc->mctx_jobid, c,
-					       ar.ares_host);
+					       ar->ares_host);
 				}
 
 				continue;
@@ -2676,9 +2710,9 @@ mlfi_eom(SMFICTX *ctx)
 		}
 
 		/* walk through what was found */
-		for (c = 0; c < ar.ares_count; c++)
+		for (c = 0; c < ar->ares_count; c++)
 		{
-			if (ar.ares_result[c].result_method == ARES_METHOD_SPF
+			if (ar->ares_result[c].result_method == ARES_METHOD_SPF
 #if WITH_SPF
 			    && !conf->conf_spfignoreresults
 #endif
@@ -2688,9 +2722,9 @@ mlfi_eom(SMFICTX *ctx)
 				int spfmode;
 				int i;
 
-				dfc->mctx_spfresult = ar.ares_result[c].result_result;
+				dfc->mctx_spfresult = ar->ares_result[c].result_result;
 
-				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+				if (ar->ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
 
 				/*
@@ -2699,19 +2733,19 @@ mlfi_eom(SMFICTX *ctx)
 				*/
 
 				for (i = 0;
-				     i < ar.ares_result[c].result_props;
+				     i < ar->ares_result[c].result_props;
 				     i++)
 				{
-					if (ar.ares_result[c].result_ptype[i] == ARES_PTYPE_SMTP &&
-					    strcasecmp(ar.ares_result[c].result_property[i],
+					if (ar->ares_result[c].result_ptype[i] == ARES_PTYPE_SMTP &&
+					    strcasecmp(ar->ares_result[c].result_property[i],
 					               "mailfrom") == 0)
 					{
 						char *d;
 
-						d = strchr(ar.ares_result[c].result_value[i],
+						d = strchr(ar->ares_result[c].result_value[i],
 						           '@');
 						if (d == NULL)
-							d = ar.ares_result[c].result_value[i];
+							d = ar->ares_result[c].result_value[i];
 
 						if (strcasecmp(d,
 						               dfc->mctx_envdomain) == 0)
@@ -2731,15 +2765,15 @@ mlfi_eom(SMFICTX *ctx)
 				memset(addrbuf, '\0', sizeof addrbuf);
 
 				for (pc = 0;
-				     pc < ar.ares_result[c].result_props;
+				     pc < ar->ares_result[c].result_props;
 				     pc++)
 				{
-					if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_SMTP)
+					if (ar->ares_result[c].result_ptype[pc] == ARES_PTYPE_SMTP)
 					{
-						if (strcasecmp(ar.ares_result[c].result_property[pc],
+						if (strcasecmp(ar->ares_result[c].result_property[pc],
 					                       "mailfrom") == 0)
 						{
-							spfaddr = ar.ares_result[c].result_value[pc];
+							spfaddr = ar->ares_result[c].result_value[pc];
 							if (strchr(spfaddr, '@') != NULL)
 							{
 								strncpy(addrbuf,
@@ -2756,11 +2790,11 @@ mlfi_eom(SMFICTX *ctx)
 
 							spfmode = DMARC_POLICY_SPF_ORIGIN_MAILFROM;
 						}
-						else if (strcasecmp(ar.ares_result[c].result_property[pc],
+						else if (strcasecmp(ar->ares_result[c].result_property[pc],
 					                           "helo") == 0 &&
 						         addrbuf[0] == '\0')
 						{
-							spfaddr = ar.ares_result[c].result_value[pc];
+							spfaddr = ar->ares_result[c].result_value[pc];
 							snprintf(addrbuf,
 							         sizeof addrbuf,
 							         "UNKNOWN@%s",
@@ -2813,7 +2847,8 @@ mlfi_eom(SMFICTX *ctx)
 						       dfc->mctx_jobid, ostatus);
 					}
 
-					return SMFIS_TEMPFAIL;
+					ret = SMFIS_TEMPFAIL;
+					goto done;
 				}
 
 				dfc->mctx_spfmode = spfmode;
@@ -2825,24 +2860,24 @@ mlfi_eom(SMFICTX *ctx)
 				                      dfc->mctx_spfmode);
 				wspf = TRUE;
 			}
-			else if (ar.ares_result[c].result_method == ARES_METHOD_DKIM)
+			else if (ar->ares_result[c].result_method == ARES_METHOD_DKIM)
 			{
 				u_char *dkim_selector = NULL;
 				u_char *dkim_domain = NULL;
 
 				for (pc = 0;
-				     pc < ar.ares_result[c].result_props;
+				     pc < ar->ares_result[c].result_props;
 				     pc++)
 				{
-					if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_HEADER)
+					if (ar->ares_result[c].result_ptype[pc] == ARES_PTYPE_HEADER)
 					{
-						if (ar.ares_result[c].result_property[pc][0] == 'd')
+						if (ar->ares_result[c].result_property[pc][0] == 'd')
 						{
-							dkim_domain = ar.ares_result[c].result_value[pc];
+							dkim_domain = ar->ares_result[c].result_value[pc];
 						}
-						if (ar.ares_result[c].result_property[pc][0] == 's')
+						if (ar->ares_result[c].result_property[pc][0] == 's')
 						{
-							dkim_selector = ar.ares_result[c].result_value[pc];
+							dkim_selector = ar->ares_result[c].result_value[pc];
 						}
 					}
 				}
@@ -2854,9 +2889,9 @@ mlfi_eom(SMFICTX *ctx)
 				                      "dkim %s %s %d\n",
 				                      dkim_domain,
 				                      (dkim_selector != NULL) ? dkim_selector : (u_char *)"-",
-				                      ar.ares_result[c].result_result);
+				                      ar->ares_result[c].result_result);
 
-				if (ar.ares_result[c].result_result != ARES_RESULT_PASS)
+				if (ar->ares_result[c].result_result != ARES_RESULT_PASS)
 					continue;
 
 
@@ -2875,10 +2910,11 @@ mlfi_eom(SMFICTX *ctx)
 						       dfc->mctx_jobid, ostatus);
 					}
 
-					return SMFIS_TEMPFAIL;
+					ret = SMFIS_TEMPFAIL;
+					goto done;
 				}
 			}
-			else if (ar.ares_result[c].result_method == ARES_METHOD_ARC)
+			else if (ar->ares_result[c].result_method == ARES_METHOD_ARC)
 			{
 				/*
 				**  NOTE: If we arrive here with a trusted A-R
@@ -2893,7 +2929,7 @@ mlfi_eom(SMFICTX *ctx)
 				**  header with "arc=pass", we need to fail.
 				*/
 
-				if (ar.ares_result[c].result_result == ARES_RESULT_PASS)
+				if (ar->ares_result[c].result_result == ARES_RESULT_PASS)
 				{
 					dfc->mctx_arcpass = ARES_RESULT_PASS;
 					limit_arc++;
@@ -2914,11 +2950,11 @@ mlfi_eom(SMFICTX *ctx)
 					ENTRY *eptr;
 
 					for (pc = 0;
-					     pc < ar.ares_result[c].result_props;
+					     pc < ar->ares_result[c].result_props;
 					     pc++)
 					{
-						if (ar.ares_result[c].result_ptype[pc] == ARES_PTYPE_ARCCHAIN)
-							arcchain = ar.ares_result[c].result_value[pc];
+						if (ar->ares_result[c].result_ptype[pc] == ARES_PTYPE_ARCCHAIN)
+							arcchain = ar->ares_result[c].result_value[pc];
 					}
 
 					if (arcchain != NULL)
@@ -3100,13 +3136,13 @@ mlfi_eom(SMFICTX *ctx)
 
 			if (spf_mode == DMARC_POLICY_SPF_ORIGIN_HELO)
 			{
-				snprintf(header, sizeof header,
+				snprintf(header, MAXHEADER + 1,
 					 "%s; spf=%s smtp.helo=%s",
 					 authservid_hdr, pass_fail, use_domain);
 			}
 			else
 			{
-				snprintf(header, sizeof header,
+				snprintf(header, MAXHEADER + 1,
 					 "%s; spf=%s smtp.mailfrom=%s",
 					 authservid_hdr, pass_fail, use_domain);
 			}
@@ -3160,7 +3196,8 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, dfc->mctx_fromdomain, ostatus);
 		}
 
-		return SMFIS_TEMPFAIL;
+		ret = SMFIS_TEMPFAIL;
+		goto done;
 	}
 	else if (ostatus == DMARC_PARSE_ERROR_BAD_VERSION ||
 	         ostatus == DMARC_PARSE_ERROR_BAD_VALUE ||
@@ -3174,7 +3211,7 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, dfc->mctx_fromdomain, ostatus);
 		}
 
-		snprintf(header, sizeof header,
+		snprintf(header, MAXHEADER + 1,
 		         "%s; dmarc=permerror header.from=%s",
 		         authservid_hdr, dfc->mctx_fromdomain);
 
@@ -3190,7 +3227,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 		}
 
-		return SMFIS_ACCEPT;
+		ret = SMFIS_ACCEPT;
+		goto done;
 	}
 
 	memset(pdomain, '\0', sizeof pdomain);
@@ -3450,7 +3488,8 @@ mlfi_eom(SMFICTX *ctx)
 					       dfc->mctx_jobid);
 				}
 
-				return SMFIS_TEMPFAIL;
+				ret = SMFIS_TEMPFAIL;
+				goto done;
 			}
 		}
 		else
@@ -3784,7 +3823,7 @@ mlfi_eom(SMFICTX *ctx)
 	/* if the final action isn't TEMPFAIL or REJECT, add an A-R field */
 	if (ret != SMFIS_TEMPFAIL && ret != SMFIS_REJECT)
 	{
-		snprintf(header, sizeof header,
+		snprintf(header, MAXHEADER + 1,
 		         "%s; dmarc=%s (p=%s dis=%s) header.from=%s policy.dmarc=%s",
 		         authservid_hdr,
 		         aresult, apolicy, adisposition, dfc->mctx_fromdomain,
@@ -3856,7 +3895,8 @@ mlfi_eom(SMFICTX *ctx)
 				       strerror(errno));
 			}
 
-			return SMFIS_TEMPFAIL;
+			ret = SMFIS_TEMPFAIL;
+			goto done;
 		}
 
 #ifdef LOCK_EX
@@ -3910,14 +3950,14 @@ mlfi_eom(SMFICTX *ctx)
 	{
 		if (strcasecmp(hostname, myhostname) == 0)
 		{
-			snprintf(header, sizeof header, "%s v%s %s %s",
+			snprintf(header, MAXHEADER + 1, "%s v%s %s %s",
 			         DMARCF_PRODUCT, DMARCF_VERSION, hostname,
 			         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
 			                                 : JOBIDUNKNOWN);
 		}
 		else
 		{
-			snprintf(header, sizeof header, "%s v%s %s via %s %s",
+			snprintf(header, MAXHEADER + 1, "%s v%s %s via %s %s",
 			         DMARCF_PRODUCT, DMARCF_VERSION, hostname,
 			         myhostname,
 			         dfc->mctx_jobid != NULL ? dfc->mctx_jobid
@@ -3939,6 +3979,9 @@ mlfi_eom(SMFICTX *ctx)
 
 	dmarcf_cleanup(ctx);
 
+  done:
+	free(header);
+	free(ar);
 	return ret;
 }
 
