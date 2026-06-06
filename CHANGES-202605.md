@@ -167,6 +167,9 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 ## Build system and portability
 
+- **`opendmarc_policy_fetch_fo()` missing from public header**: The function was implemented and documented but never declared in `dmarc.h.in`, causing a build failure on Clang 15+ (including Apple Clang 21 on macOS) where implicit function declarations are a hard error rather than a warning. (#408, issue #407)
+- **macOS CI job added**: GitHub Actions now builds and tests on `macos-latest` in addition to `ubuntu-latest`, catching Clang-strict build failures that go undetected on the Linux/GCC job. libmilter is built from the sendmail source tarball; `-std=gnu11` is required because sendmail's `mfapi.h` typedef's `bool`, which conflicts with C23 where `bool` is a keyword.
+
 - **`opendmarc-spf-parse.c` missing from `Makefile.am`**: The Received-SPF parser source file added in the crash fixes was not listed in `opendmarc_SOURCES`, causing a link failure on clean builds. (#335, issue #334)
 - **Perl path hardcoded in report scripts**: `#!/usr/bin/perl` was hardcoded in `opendmarc-reports`, `opendmarc-import`, and related scripts. The path is now detected by `configure` and substituted as `@PERL@`. (#318)
 - **`Switch` module dependency removed**: The report scripts used `Switch`, which was removed from core Perl in 5.36 and requires a separate CPAN install on modern systems. All `switch`/`case` blocks have been converted to `if`/`elsif`/`else`. (#336)
