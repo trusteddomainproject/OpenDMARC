@@ -94,7 +94,7 @@ jobs:
           cd /tmp/miltertest
           autoreconf -fvi
           ./configure \
-            CFLAGS='-g -O2 -Wno-pointer-sign' \
+            CFLAGS='-g -O2 -Wno-pointer-sign -std=gnu11' \
             CPPFLAGS="-I$(brew --prefix openssl)/include -I/usr/local/include" \
             LDFLAGS="-L$(brew --prefix openssl)/lib -L/usr/local/lib"
           make -j$(sysctl -n hw.logicalcpu)
