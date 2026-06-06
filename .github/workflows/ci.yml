@@ -80,10 +80,12 @@ jobs:
 
       - name: Build and install libmilter from source
         run: |
-          SENDMAIL_VER=8.18.1
+          SENDMAIL_VER=8.18.2
           curl -fsSL "https://ftp.sendmail.org/pub/sendmail/sendmail.${SENDMAIL_VER}.tar.gz" | tar xz -C /tmp
           cd /tmp/sendmail-${SENDMAIL_VER}/libmilter
+          ls /tmp/sendmail-${SENDMAIL_VER}/  # debug: confirm extraction layout
           ./Build
+          find . -name "libmilter.a"  # debug: show actual output path
           OBJDIR=$(echo obj.*)
           sudo mkdir -p /usr/local/include/libmilter /usr/local/lib
           sudo cp ../include/sendmail.h /usr/local/include/
