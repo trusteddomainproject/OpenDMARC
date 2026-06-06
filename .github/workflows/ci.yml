@@ -85,7 +85,7 @@ jobs:
           cd /tmp/sendmail-${SENDMAIL_VER}/libmilter
           ./Build
           sudo mkdir -p /usr/local/include/libmilter /usr/local/lib
-          sudo cp mfapi.h mfdef.h /usr/local/include/libmilter/
+          sudo cp ../include/libmilter/mfapi.h ../include/libmilter/mfdef.h /usr/local/include/libmilter/
           sudo cp libmilter.a /usr/local/lib/
 
       - name: Build miltertest
