@@ -1667,6 +1667,22 @@ dmarcf_config_reload(void)
 				dmarcf_config_free(new);
 				err = TRUE;
 			}
+			else if (new->conf_dolog)
+			{
+				struct stat pslst;
+
+				if (stat(new->conf_pslist, &pslst) == 0)
+				{
+					time_t age = time(NULL) - pslst.st_mtime;
+					/* 180 days in seconds */
+					if (age > 180 * 24 * 60 * 60)
+					{
+						syslog(LOG_WARNING,
+						       "%s: public suffix list is more than 6 months old; consider getting a fresh copy from https://publicsuffix.org/list/public_suffix_list.dat",
+						       new->conf_pslist);
+					}
+				}
+			}
 		}
 
 		if (!err)
