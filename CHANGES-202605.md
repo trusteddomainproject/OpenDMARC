@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS suppressions (
 - **`opendmarc-reports` domain processing order is now alphabetical**: The domain list was returned in undefined database order; it is now sorted by domain name, making verbose output consistent and easier to scan. (#405)
 - **`opendmarc-reports` reports sent/failed/skipped counts on exit**: When run with `--verbose`, the terminating line now includes a summary of how many reports were sent, failed, and skipped during the run. (#405)
 - **`NoReportsList` three-way entry semantics**: Entries in the `NoReportsList` file now support three formats: `user@example.com` (suppress that address), `@example.com` (suppress all addresses at that mail domain), and `example.com` (suppress aggregate reports for that sending domain via `opendmarc-reports`). Bare domain entries have no effect on milter-level failure report suppression. (#404, patch by Dirk Stöcker)
+- **Stale `PublicSuffixList` warning**: On startup or config reload, the daemon now `stat()`s the configured `PublicSuffixList` file after loading it and emits a `LOG_WARNING` if the file's mtime is more than 6 months old, directing operators to fetch a fresh copy from https://publicsuffix.org/list/public_suffix_list.dat. (#416)
 
 ---
 
@@ -169,9 +170,8 @@ CREATE TABLE IF NOT EXISTS suppressions (
 ## Build system and portability
 
 - **`opendmarc_policy_fetch_fo()` missing from public header**: The function was implemented and documented but never declared in `dmarc.h.in`, causing a build failure on Clang 15+ (including Apple Clang 21 on macOS) where implicit function declarations are a hard error rather than a warning. (#408, issue #407)
-- **macOS CI job added**: GitHub Actions now builds and tests on `macos-latest` in addition to `ubuntu-latest`, catching Clang-strict build failures that go undetected on the Linux/GCC job. libmilter is built from the sendmail source tarball; `-std=gnu11` is required because sendmail's `mfapi.h` typedef's `bool`, which conflicts with C23 where `bool` is a keyword.
+- **macOS CI job added**: GitHub Actions now builds and tests on `macos-latest` in addition to `ubuntu-latest`, catching Clang-strict build failures that go undetected on the Linux/GCC job. libmilter is built from the sendmail source tarball; `-std=gnu11` is required because sendmail's `mfapi.h` typedef's `bool`, which conflicts with C23 where `bool` is a keyword. (#409)
 - **`t-verify-self-spf` now gated on `TEST_SPF`**: The filter test exercising `SPFSelfValidate` was included unconditionally in `LIVE_TESTS`, causing it to fail (rather than skip) on any build without `--with-spf`. It is now gated on the `TEST_SPF` autoconf conditional, which is set only when `--with-spf` is configured. (#412, issue #411)
-
 - **`opendmarc-spf-parse.c` missing from `Makefile.am`**: The Received-SPF parser source file added in the crash fixes was not listed in `opendmarc_SOURCES`, causing a link failure on clean builds. (#335, issue #334)
 - **Perl path hardcoded in report scripts**: `#!/usr/bin/perl` was hardcoded in `opendmarc-reports`, `opendmarc-import`, and related scripts. The path is now detected by `configure` and substituted as `@PERL@`. (#318)
 - **`Switch` module dependency removed**: The report scripts used `Switch`, which was removed from core Perl in 5.36 and requires a separate CPAN install on modern systems. All `switch`/`case` blocks have been converted to `if`/`elsif`/`else`. (#336)
