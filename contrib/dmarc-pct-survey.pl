@@ -65,7 +65,7 @@ my $resolver = Net::DNS::Resolver->new(
 );
 
 open(my $fh,  '<', $infile)  or die "Cannot open $infile: $!\n";
-open(my $out, '>', $outfile) or die "Cannot open $outfile: $!\n";
+open(my $out, '>:encoding(UTF-8)', $outfile) or die "Cannot open $outfile: $!\n";
 
 # Stats
 my $n_queued   = 0;
