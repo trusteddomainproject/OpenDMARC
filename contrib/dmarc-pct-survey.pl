@@ -170,6 +170,7 @@ while (my $line = <$fh>) {
     # Drain when we've filled the concurrency window
     while (scalar(keys %inflight) >= $concurrency) {
         harvest(1);
+        reap_stale();
     }
 
     # Opportunistic non-blocking harvest
