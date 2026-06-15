@@ -8,14 +8,15 @@ use POSIX qw(strftime);
 use LWP::Simple qw(getstore);
 use IO::Uncompress::Unzip qw(unzip $UnzipError);
 
-# Query Umbrella top-1M domains for DMARC records, reporting pct= and psd= usage.
+# Query Umbrella top-1M domains for DMARC records, reporting pct=, psd=, and t= usage.
 #
 # If --input file does not exist, downloads it automatically from Cisco Umbrella.
 #
-# Output (--output or dated file): TSV - run_date, domain, pct_value, psd_value, full_record
+# Output (--output or dated file): TSV - run_date, domain, pct_value, psd_value, t_value, full_record
 #   run_date:  ISO 8601 date of this run (YYYY-MM-DD), for multi-run aggregation
 #   pct_value: numeric value if present, "-" if absent
 #   psd_value: "y", "n", or "-" if absent
+#   t_value:   "y", "n", or "-" if absent
 # Progress/stats (STDERR): running count + final summary
 
 my $umbrella_url = 'https://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip';
@@ -64,7 +65,7 @@ my $resolver = Net::DNS::Resolver->new(
 );
 
 open(my $fh,  '<', $infile)  or die "Cannot open $infile: $!\n";
-open(my $out, '>', $outfile) or die "Cannot open $outfile: $!\n";
+open(my $out, '>:encoding(UTF-8)', $outfile) or die "Cannot open $outfile: $!\n";
 
 # Stats
 my $n_queued   = 0;
@@ -74,6 +75,11 @@ my $n_pct      = 0;  # has pct= in record
 my $n_psd      = 0;  # has psd= in record
 my $n_psd_y    = 0;  # has psd=y
 my $n_psd_n    = 0;  # has psd=n
+my $n_t        = 0;  # has t= in record
+my $n_t_y      = 0;  # has t=y
+my $n_t_n      = 0;  # has t=n
+my $n_pct100_noop = 0;  # p=reject or p=quarantine with pct=100 (a no-op)
+my $n_none_pct    = 0;  # p=none with any pct= value (has no effect)
 my $n_errors   = 0;
 
 # In-flight: socket => [ domain, dispatch_time ]
@@ -126,6 +132,8 @@ sub harvest {
 
             my $pct = ($txt =~ /\bpct=(\d+)/i)  ? $1      : '-';
             my $psd = ($txt =~ /\bpsd=([yn])/i)  ? lc($1) : '-';
+            my $t   = ($txt =~ /\bt=([yn])/i)    ? lc($1) : '-';
+            my $p   = ($txt =~ /\bp=(\w+)/i)     ? lc($1) : '-';
 
             $n_pct++ if $pct ne '-';
             if ($psd ne '-') {
@@ -133,8 +141,20 @@ sub harvest {
                 $n_psd_y++ if $psd eq 'y';
                 $n_psd_n++ if $psd eq 'n';
             }
+            if ($t ne '-') {
+                $n_t++;
+                $n_t_y++ if $t eq 'y';
+                $n_t_n++ if $t eq 'n';
+            }
 
-            print $out join("\t", $run_date, $domain, $pct, $psd, $txt), "\n";
+            if (($p eq 'reject' || $p eq 'quarantine') && $pct eq '100') {
+                $n_pct100_noop++;
+            }
+            if ($p eq 'none' && $pct ne '-') {
+                $n_none_pct++;
+            }
+
+            print $out join("\t", $run_date, $domain, $pct, $psd, $t, $txt), "\n";
             last;  # only evaluate first v=DMARC1 record
         }
     }
@@ -152,7 +172,7 @@ sub reap_stale {
     }
 }
 
-print $out join("\t", "run_date", "domain", "pct", "psd", "record"), "\n";
+print $out join("\t", "run_date", "domain", "pct", "psd", "t", "record"), "\n";
 
 print STDERR "Reading $infile, writing $outfile, concurrency=$concurrency, timeout=${timeout}s\n";
 
@@ -170,14 +190,15 @@ while (my $line = <$fh>) {
     # Drain when we've filled the concurrency window
     while (scalar(keys %inflight) >= $concurrency) {
         harvest(1);
+        reap_stale();
     }
 
     # Opportunistic non-blocking harvest
     harvest(0);
 
     if ($n_done >= $next_progress) {
-        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct=, %d psd=\n",
-            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct, $n_psd;
+        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct=, %d psd=, %d t=\n",
+            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct, $n_psd, $n_t;
         $next_progress += $progress_interval;
     }
 
@@ -191,8 +212,8 @@ while (%inflight) {
     harvest(1);
     reap_stale();
     if ($n_done >= $next_progress) {
-        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct=, %d psd=\n",
-            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct, $n_psd;
+        printf STDERR "  %d done, %d in-flight, %d dmarc, %d pct=, %d psd=, %d t=\n",
+            $n_done, scalar(keys %inflight), $n_dmarc, $n_pct, $n_psd, $n_t;
         $next_progress += $progress_interval;
     }
 }
@@ -207,9 +228,14 @@ printf STDERR "  Have pct=       : %d (%.1f%% of DMARC)\n", $n_pct,   $n_dmarc ?
 printf STDERR "  Have psd=       : %d (%.1f%% of DMARC)\n", $n_psd,   $n_dmarc ? 100*$n_psd/$n_dmarc   : 0;
 printf STDERR "    psd=y         : %d\n", $n_psd_y;
 printf STDERR "    psd=n         : %d\n", $n_psd_n;
+printf STDERR "  Have t=         : %d (%.1f%% of DMARC)\n", $n_t,     $n_dmarc ? 100*$n_t/$n_dmarc     : 0;
+printf STDERR "    t=y           : %d\n", $n_t_y;
+printf STDERR "    t=n           : %d\n", $n_t_n;
+printf STDERR "  p=reject/quarantine with pct=100 (no-op) : %d\n", $n_pct100_noop;
+printf STDERR "  p=none with pct= (no effect)             : %d\n", $n_none_pct;
 
 my $is_new = !-f $summarylog;
 open(my $sum, '>>', $summarylog) or die "Cannot open $summarylog: $!\n";
-print $sum join("\t", qw(run_date queried errors have_dmarc pct_total psd_total psd_y psd_n)), "\n" if $is_new;
-print $sum join("\t", $run_date, $n_done, $n_errors, $n_dmarc, $n_pct, $n_psd, $n_psd_y, $n_psd_n), "\n";
+print $sum join("\t", qw(run_date queried errors have_dmarc pct_total psd_total psd_y psd_n t_total t_y t_n pct100_noop none_pct)), "\n" if $is_new;
+print $sum join("\t", $run_date, $n_done, $n_errors, $n_dmarc, $n_pct, $n_psd, $n_psd_y, $n_psd_n, $n_t, $n_t_y, $n_t_n, $n_pct100_noop, $n_none_pct), "\n";
 close($sum);
