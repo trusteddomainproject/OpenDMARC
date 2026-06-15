@@ -210,6 +210,7 @@ while (my $line = <$fh>) {
 
     while (scalar(keys %inflight) >= $concurrency) {
         harvest(1);
+        reap_stale();
     }
     harvest(0);
 
