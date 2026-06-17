@@ -159,20 +159,33 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 
 	/*
 	 * Pull the answer from the fake DNS table if there is one.
+	 * Count how many entries match this name and contain "v=DMARC";
+	 * if more than one is found, discard all per RFC 7489 S 6.6.3 and
+	 * RFC 9989 S 4.10.
 	 */
 	if (fake_dns != NULL)
 	{
 		struct fake_dns_data *cur;
+		struct fake_dns_data *found_entry = NULL;
+		int			dmarc_count = 0;
 
 		for (cur = fake_dns; cur != NULL; cur = cur->fdns_next)
 		{
-			if (strcasecmp(cur->fdns_name, domain) == 0)
+			if (strcasecmp(cur->fdns_name, domain) == 0 &&
+			    strstr(cur->fdns_answer, "v=DMARC") != NULL)
 			{
-				strncpy(got_txtbuf, cur->fdns_answer,
-				        got_txtlen - 1);
-				*reply_ptr = NETDB_SUCCESS;
-				return got_txtbuf;
+				dmarc_count++;
+				found_entry = cur;
 			}
+		}
+
+		if (dmarc_count == 1)
+		{
+			strncpy(got_txtbuf, found_entry->fdns_answer,
+			        got_txtlen - 1);
+			got_txtbuf[got_txtlen - 1] = '\0';
+			*reply_ptr = NETDB_SUCCESS;
+			return got_txtbuf;
 		}
 
 		*reply_ptr = NO_DATA;
@@ -273,78 +286,99 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		*reply_ptr = NO_DATA;
 		return NULL;
 	}
-	while (--acnt >= 0 && cur_ptr < end_ptr)
+
+	/*
+	 * Scan ALL TXT records in the answer section and count those that
+	 * contain "v=DMARC".  Per RFC 7489 S 6.6.3 step 5 and RFC 9989
+	 * S 4.10 steps 2 and 6, if more than one valid DMARC record is found
+	 * at a single name, all are discarded and policy discovery stops.
+	 */
 	{
-		if ((answer_len = dn_expand((unsigned char *) &answer_buf,
-		                            end_ptr, cur_ptr, namebuf,
-		                            sizeof namebuf)) < 0)
-		{
-			*reply_ptr = NO_DATA;
-			return NULL;
-		}
-		cur_ptr += answer_len;
+		int		dmarc_count = 0;
+		u_char		saved_buf[BUFSIZ];
+		u_char *	rdata_end;
 
-		if (cur_ptr + INT16SZ + INT16SZ > end_ptr)
-		{
-			/* corrupt answer */
-			*reply_ptr = NO_DATA;
-			return NULL;
-		}
-		GETSHORT(type, cur_ptr);
-		GETSHORT(class, cur_ptr);
-		GETLONG(ttl, cur_ptr);
+		(void) memset(saved_buf, '\0', sizeof saved_buf);
 
-		if (type != T_TXT)
+		while (--acnt >= 0 && cur_ptr < end_ptr)
 		{
-			/* skip RRTYPEs we don't know */
-			GETSHORT(answer_len, cur_ptr);
-			cur_ptr += answer_len;
-			continue;
-		}
-
-		if (cur_ptr + INT16SZ > end_ptr)
-		{
-			/* 
-			 * Yikes. No payload length 
-			 */
-			*reply_ptr = NO_DATA;
-			return NULL;
-		}
-
-		GETSHORT(cur_len, cur_ptr);
-
-		if (cur_ptr + cur_len > end_ptr)
-		{
-			/* 
-			 * If the payload length greater than remaining buffer 
-			 */
-			*reply_ptr = NO_DATA;
-			return NULL;
-		}
-		(void) memset(got_txtbuf, '\0', got_txtlen);
-		/* copy the returned record into got_txtbuf */
-		got_ptr  = (u_char *)got_txtbuf;
-		gote_ptr = (u_char *)got_txtbuf + got_txtlen -1;
-		while (cur_len > 0 && got_ptr < gote_ptr)
-		{
-			ch = *cur_ptr++;
-			cur_len--;
-			while (ch > 0 && got_ptr < gote_ptr)
+			if ((answer_len = dn_expand((unsigned char *) &answer_buf,
+			                            end_ptr, cur_ptr, namebuf,
+			                            sizeof namebuf)) < 0)
 			{
-				*got_ptr++ = *cur_ptr++;
-				ch--;
-				cur_len--;
+				*reply_ptr = NO_DATA;
+				return NULL;
 			}
+			cur_ptr += answer_len;
+
+			if (cur_ptr + INT16SZ + INT16SZ > end_ptr)
+			{
+				/* corrupt answer */
+				*reply_ptr = NO_DATA;
+				return NULL;
+			}
+			GETSHORT(type, cur_ptr);
+			GETSHORT(class, cur_ptr);
+			GETLONG(ttl, cur_ptr);
+
+			if (cur_ptr + INT16SZ > end_ptr)
+			{
+				*reply_ptr = NO_DATA;
+				return NULL;
+			}
+			GETSHORT(cur_len, cur_ptr);		/* RDLENGTH */
+			rdata_end = cur_ptr + cur_len;
+
+			if (rdata_end > end_ptr)
+			{
+				*reply_ptr = NO_DATA;
+				return NULL;
+			}
+
+			if (type != T_TXT)
+			{
+				cur_ptr = rdata_end;
+				continue;
+			}
+
+			/*
+			 * Decode the TXT RDATA (<length><string>... chunks) into
+			 * a temporary buffer without modifying cur_ptr directly,
+			 * so we can always advance to rdata_end afterward.
+			 */
+			{
+				u_char		txt_tmp[BUFSIZ];
+				u_char *	tp  = txt_tmp;
+				u_char *	te  = txt_tmp + sizeof txt_tmp - 1;
+				u_char *	sp  = cur_ptr;
+
+				while (sp < rdata_end && tp < te)
+				{
+					ch = (unsigned char)*sp++;
+					while (ch-- > 0 && sp < rdata_end && tp < te)
+						*tp++ = *sp++;
+				}
+				*tp = '\0';
+
+				if (strstr((char *)txt_tmp, "v=DMARC") != NULL)
+				{
+					dmarc_count++;
+					if (dmarc_count == 1)
+						(void) strlcpy((char *)saved_buf,
+						               (char *)txt_tmp,
+						               sizeof saved_buf);
+				}
+			}
+
+			cur_ptr = rdata_end;
 		}
-		if (strstr(got_txtbuf, "v=DMARC") != NULL)
+
+		if (dmarc_count == 1)
 		{
+			(void) strlcpy(got_txtbuf, (char *)saved_buf, got_txtlen);
 			*reply_ptr = NETDB_SUCCESS;
 			return got_txtbuf;
 		}
-		*got_txtbuf = '\0';
-		cur_ptr += cur_len;
-		cur_ptr += answer_len;
-		continue;
 	}
 	*reply_ptr = NO_DATA;
 	return NULL;

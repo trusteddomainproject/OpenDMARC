@@ -61,6 +61,15 @@ main(int argc, char **argv)
 	 * Use a distinct domain per test to avoid cross-contamination.
 	 */
 
+	/*
+	 * Multi-record discard test (RFC 7489 S 6.6.3 step 5 / RFC 9989 S 4.10):
+	 * two "v=DMARC1" entries for the same name must both be discarded.
+	 */
+	opendmarc_dns_fake_record("_dmarc.multi.example",
+	    "v=DMARC1; p=reject");
+	opendmarc_dns_fake_record("_dmarc.multi.example",
+	    "v=DMARC1; p=none");
+
 	/* Test domains and their fake records. */
 	opendmarc_dns_fake_record("_dmarc.parent1.example",
 	    "v=DMARC1; p=reject; rua=mailto:dmarc@parent1.example");
@@ -79,6 +88,22 @@ main(int argc, char **argv)
 	opendmarc_dns_fake_record("_dmarc.bcx.com",
 	    "v=DMARC1; p=reject");
 	/* _dmarc.sub.bcx.com: absent → NO_DATA */
+
+	/*
+	 * === Test 0 ===
+	 * Multi-record discard: two "v=DMARC1" records at the same name must
+	 * both be discarded per RFC 7489 S 6.6.3 step 5 / RFC 9989 S 4.10.
+	 */
+	pctx = opendmarc_policy_connect_init((u_char *)"1.2.3.4", 0);
+	if (pctx == NULL) { fprintf(stderr, "connect_init failed\n"); return 1; }
+
+	(void) opendmarc_policy_store_from_domain(pctx, (u_char *)"multi.example");
+	status = opendmarc_policy_query_dmarc(pctx, (u_char *)"multi.example");
+
+	CHECK(status == DMARC_DNS_ERROR_NO_RECORD,
+	    "multi-record discard: two v=DMARC1 records must yield NO_RECORD");
+
+	pctx = opendmarc_policy_connect_shutdown(pctx);
 
 	/*
 	 * === Test 1 ===
