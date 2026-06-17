@@ -729,8 +729,290 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 	}
 }
 
+/*
+ * dmarc_query_at: query _dmarc.{target}, following CNAMEs up to
+ * DNS_MAX_RETRIES hops.  On success returns bp (== buf) and sets
+ * *dns_reply to NETDB_SUCCESS; on failure returns NULL.
+ */
+static char *
+dmarc_query_at(const char *target, int *dns_reply,
+               u_char *buf, size_t bufsz)
+{
+	char	copy[256];
+	char *	bp;
+	int	loop_count = DNS_MAX_RETRIES;
+
+	(void) strlcpy(copy, "_dmarc.", sizeof copy);
+	(void) strlcat(copy, target, sizeof copy);
+
+	for (;;)
+	{
+		(void) memset(buf, '\0', bufsz);
+		bp = dmarc_dns_get_record(copy, dns_reply, (char *)buf, bufsz);
+		if (bp != NULL)
+			return bp;
+		/* CNAME: buf holds the redirect target */
+		if (*buf == '\0')
+			return NULL;
+		(void) strlcpy(copy, (char *)buf, sizeof copy);
+		if (--loop_count == 0)
+			return NULL;
+	}
+}
+
+/*
+ * psd_from_record: extract psd= value from a raw DMARC record string.
+ * Returns DMARC_RECORD_PSD_Y, _N, or _UNSPECIFIED.
+ */
+static int
+psd_from_record(const u_char *record)
+{
+	const u_char *p = record;
+
+	while ((p = (const u_char *)strchr((const char *)p, 'p')) != NULL)
+	{
+		/* Must be at start or after a ';' and optional whitespace */
+		if (p != record && *(p - 1) != ';' && *(p - 1) != ' ' && *(p - 1) != '\t')
+		{
+			p++;
+			continue;
+		}
+		if (strncasecmp((const char *)p, "psd=", 4) == 0)
+		{
+			switch (*(p + 4))
+			{
+				case 'y': case 'Y': return DMARC_RECORD_PSD_Y;
+				case 'n': case 'N': return DMARC_RECORD_PSD_N;
+				default:            return DMARC_RECORD_PSD_UNSPECIFIED;
+			}
+		}
+		p++;
+	}
+	return DMARC_RECORD_PSD_UNSPECIFIED;
+}
+
+/*
+ * query_dmarc_psl: PSL-only strategy (OPENDMARC_WALK_MODE_PSL).
+ *
+ * Asks the PSL for the organizational domain of 'domain'.  If the PSL
+ * returns a different domain, queries exactly that one and stops.  Does
+ * not fall through to any label-walking; if the PSL cannot identify a
+ * boundary (no PSL loaded, or PSL returned the same domain), returns
+ * DMARC_DNS_ERROR_NO_RECORD.
+ *
+ * Sets pctx->organizational_domain on success.
+ * Fills buf with the raw DMARC record on success.
+ */
+static OPENDMARC_STATUS_T
+query_dmarc_psl(DMARC_POLICY_T *pctx, u_char *domain,
+                u_char *buf, size_t bufsz, int *dns_reply_out)
+{
+	u_char	tld[256];
+	int	dns_reply = 0;
+
+	(void) memset(tld, '\0', sizeof tld);
+	if (opendmarc_get_tld(domain, tld, sizeof tld) != 0)
+		return DMARC_DNS_ERROR_NO_RECORD;
+	if (strlen((char *)tld) == 0 ||
+	    strcasecmp((char *)tld, (char *)domain) == 0)
+		return DMARC_DNS_ERROR_NO_RECORD;
+
+	pctx->organizational_domain = strdup((char *)tld);
+
+	if (dmarc_query_at((char *)tld, &dns_reply, buf, bufsz) != NULL)
+	{
+		if (dns_reply_out != NULL)
+			*dns_reply_out = dns_reply;
+		return DMARC_PARSE_OKAY;
+	}
+	if (dns_reply_out != NULL)
+		*dns_reply_out = dns_reply;
+	return (dns_reply == TRY_AGAIN || dns_reply == NETDB_INTERNAL)
+	    ? DMARC_DNS_ERROR_TMPERR : DMARC_DNS_ERROR_NO_RECORD;
+}
+
+/*
+ * query_dmarc_rfc7489_walk: RFC 7489 label-strip walk
+ * (OPENDMARC_WALK_MODE_RFC7489).
+ *
+ * Strips labels from the left one at a time and queries each parent,
+ * stopping before a bare TLD (a label with no further dot).  This is
+ * the original no-PSL fallback behaviour.
+ *
+ * Sets pctx->organizational_domain and pctx->org_domain_from_fallback
+ * on success.  Fills buf with the raw DMARC record on success.
+ */
+static OPENDMARC_STATUS_T
+query_dmarc_rfc7489_walk(DMARC_POLICY_T *pctx, u_char *domain,
+                          u_char *buf, size_t bufsz, int *dns_reply_out)
+{
+	u_char *	cur = domain;
+	u_char *	dot;
+	int		dns_reply = 0;
+
+	while ((dot = (u_char *)strchr((char *)cur, '.')) != NULL)
+	{
+		cur = dot + 1;
+
+		/* Stop before bare TLDs (labels with no further dot). */
+		if (strchr((char *)cur, '.') == NULL)
+			break;
+
+		if (dmarc_query_at((char *)cur, &dns_reply, buf, bufsz) != NULL)
+		{
+			pctx->organizational_domain = strdup((char *)cur);
+			pctx->org_domain_from_fallback = 1;
+			if (dns_reply_out != NULL)
+				*dns_reply_out = dns_reply;
+			return DMARC_PARSE_OKAY;
+		}
+	}
+	if (dns_reply_out != NULL)
+		*dns_reply_out = dns_reply;
+	return (dns_reply == TRY_AGAIN || dns_reply == NETDB_INTERNAL)
+	    ? DMARC_DNS_ERROR_TMPERR : DMARC_DNS_ERROR_NO_RECORD;
+}
+
+/*
+ * query_dmarc_rfc9989_walk: RFC 9989 S 4.10 DNS Tree Walk
+ * (OPENDMARC_WALK_MODE_RFC9989).
+ *
+ * Implements the generic walk from RFC 9989 S 4.10 as applied to policy
+ * discovery per S 4.10.1.  Key differences from the RFC 7489 walk:
+ *
+ *  - 8-query cap: domains with more than 8 labels are shortened to 7
+ *    before the walk begins, so no more than 8 DNS queries are made.
+ *  - Walks all the way to the TLD apex (no "stop before bare TLD" rule).
+ *  - Collects all valid single-record responses encountered.
+ *  - Stops when a record with psd=n or psd=y is found.
+ *  - Applies the S 4.10.2 selection to determine the org domain.
+ *
+ * Known gaps (see DMARCBIS-WALK-NOTES.txt):
+ *  - Multiple records at one level cannot be detected; dmarc_dns_get_record()
+ *    returns only the first match.
+ *  - Walk-exhaustion-without-psd= behaviour is treated as no-record.
+ *
+ * Sets pctx->organizational_domain on success.
+ * Fills buf with the raw DMARC record on success.
+ */
+static OPENDMARC_STATUS_T
+query_dmarc_rfc9989_walk(DMARC_POLICY_T *pctx, u_char *domain,
+                          u_char *buf, size_t bufsz, int *dns_reply_out)
+{
+	char	cur[256];
+	char	prev[256];		/* level visited before current */
+	char	best_domain[256];	/* domain of best record so far */
+	u_char	best_buf[BUFSIZ];	/* record text of best so far */
+	int	best_psd;
+	int	found_any;
+	int	nqueries;
+	int	nlabels;
+	int	dns_reply = 0;
+	char *	p;
+	char *	bp;
+
+	/* Count labels in the author domain. */
+	nlabels = 1;
+	for (p = (char *)domain; *p != '\0'; p++)
+		if (*p == '.') nlabels++;
+
+	/*
+	 * Determine starting point per S 4.10.1:
+	 *   <= 8 labels: immediate parent (remove leftmost label)
+	 *   >  8 labels: shorten until 7 labels remain
+	 */
+	(void) strlcpy(cur, (char *)domain, sizeof cur);
+	if (nlabels > 8)
+	{
+		int to_remove = nlabels - 7;
+		p = cur;
+		while (to_remove-- > 0)
+		{
+			p = strchr(p, '.');
+			if (p == NULL)
+				break;
+			p++;
+		}
+		if (p != NULL && p != cur)
+			(void) memmove(cur, p, strlen(p) + 1);
+	}
+	else
+	{
+		p = strchr(cur, '.');
+		if (p == NULL)
+			return DMARC_DNS_ERROR_NO_RECORD;
+		(void) memmove(cur, p + 1, strlen(p + 1) + 1);
+	}
+
+	best_psd  = DMARC_RECORD_PSD_UNSPECIFIED;
+	found_any = 0;
+	nqueries  = 0;
+	(void) strlcpy(prev, (char *)domain, sizeof prev);
+	(void) memset(best_domain, '\0', sizeof best_domain);
+	(void) memset(best_buf, '\0', sizeof best_buf);
+
+	for (;;)
+	{
+		if (nqueries >= 8 || cur[0] == '\0')
+			break;
+		nqueries++;
+
+		bp = dmarc_query_at(cur, &dns_reply, buf, bufsz);
+		if (bp != NULL)
+		{
+			int psd = psd_from_record(buf);
+
+			/*
+			 * Per S 4.10.2 step 3, if the walk exhausts without
+			 * a psd= record, we use the record with the fewest
+			 * labels, which is the last one found (highest in tree).
+			 * Unconditionally overwrite best so the last wins.
+			 */
+			(void) strlcpy(best_domain, cur, sizeof best_domain);
+			(void) strlcpy((char *)best_buf, (char *)buf, sizeof best_buf);
+			best_psd  = psd;
+			found_any = 1;
+
+			/* psd= record terminates the walk (S 4.10 steps 2, 6). */
+			if (psd != DMARC_RECORD_PSD_UNSPECIFIED)
+				break;
+		}
+
+		(void) strlcpy(prev, cur, sizeof prev);
+
+		/* Remove leftmost label. */
+		p = strchr(cur, '.');
+		if (p == NULL)
+			break;
+		(void) memmove(cur, p + 1, strlen(p + 1) + 1);
+	}
+
+	if (dns_reply_out != NULL)
+		*dns_reply_out = dns_reply;
+
+	if (!found_any)
+		return (dns_reply == TRY_AGAIN || dns_reply == NETDB_INTERNAL)
+		    ? DMARC_DNS_ERROR_TMPERR : DMARC_DNS_ERROR_NO_RECORD;
+
+	/*
+	 * Apply S 4.10.2 org domain selection:
+	 *   Step 1: psd=n -> this level is the org domain.
+	 *   Step 2: psd=y -> org domain is one label below (prev).
+	 *   Step 3: no psd= -> use best_domain (fewest labels = last found).
+	 */
+	if (best_psd == DMARC_RECORD_PSD_N)
+		pctx->organizational_domain = strdup(best_domain);
+	else if (best_psd == DMARC_RECORD_PSD_Y)
+		pctx->organizational_domain = strdup(prev);
+	else
+		pctx->organizational_domain = strdup(best_domain);
+
+	(void) strlcpy((char *)buf, (char *)best_buf, bufsz);
+	return DMARC_PARSE_OKAY;
+}
+
 /**************************************************************************
-** OPENDMARC_POLICY_QUERY_DMARC -- Look up the _dmarc record for the 
+** OPENDMARC_POLICY_QUERY_DMARC -- Look up the _dmarc record for the
 **					specified domain. If not found
 **				  	try the organizational domain.
 **	Parameters:
@@ -761,13 +1043,10 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 OPENDMARC_STATUS_T
 opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 {
-	u_char 		buf[BUFSIZ];
-	u_char 		copy[256];
-	u_char 		tld[256];
-	u_char *	bp = NULL;
-	int		dns_reply = 0;
-	int		tld_reply = 0;
-	int		loop_count = DNS_MAX_RETRIES;
+	u_char			buf[BUFSIZ];
+	int			dns_reply = 0;
+	int			walk_mode;
+	OPENDMARC_STATUS_T	status;
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
@@ -779,122 +1058,48 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 			return DMARC_PARSE_ERROR_EMPTY;
 	}
 
-	(void) strlcpy((char *)copy, "_dmarc.", sizeof copy);
-	(void) strlcat((char *)copy, (char *)domain, sizeof copy);
-
-query_again:
+	/* Direct query at _dmarc.{domain}; done if a record is found. */
 	(void) memset(buf, '\0', sizeof buf);
-	bp = (u_char *)dmarc_dns_get_record((char *)copy, &dns_reply, (char *)buf, sizeof buf);
-	if (bp != NULL)
-	{
-		if (dns_reply != HOST_NOT_FOUND)
-			goto got_record;
-	}
-	/*
-	 * Was a CNAME was found that the resolver did
-	 * not follow on its own?
-	 */
-	if (bp == NULL && *buf != '\0')
-	{
-		(void) strlcpy((char *)copy, (char *)buf, sizeof copy);
-		if (--loop_count != 0)
-			goto query_again;
-	}
+	if (dmarc_query_at((char *)domain, &dns_reply, buf, sizeof buf) != NULL)
+		return opendmarc_policy_parse_dmarc(pctx, domain, buf);
 
-	(void) memset(tld, '\0', sizeof tld);
-	tld_reply = opendmarc_get_tld(domain, tld, sizeof tld);
-	if (tld_reply != 0)
-		goto dns_failed;
+	if (dns_reply == TRY_AGAIN || dns_reply == NETDB_INTERNAL)
+		return DMARC_DNS_ERROR_TMPERR;
 
-	/*
-	 * If the PSL identified an organizational domain distinct from the
-	 * queried domain, try exactly that domain and stop.  Per RFC 7489
-	 * §6.6.3 we look at one domain: the organizational domain.
-	 */
-	if (strlen((char *)tld) > 0 && strcasecmp((char *)tld, (char *)domain) != 0)
+	/* No direct record; walk up the tree using the configured strategy. */
+	walk_mode = (Opendmarc_Libp != NULL)
+	    ? Opendmarc_Libp->walk_mode
+	    : OPENDMARC_WALK_MODE_AUTO;
+
+	switch (walk_mode)
 	{
-		pctx->organizational_domain = (u_char *)strdup((char *)tld);
+	case OPENDMARC_WALK_MODE_PSL:
+		status = query_dmarc_psl(pctx, domain, buf, sizeof buf, &dns_reply);
+		break;
 
-		loop_count = DNS_MAX_RETRIES;
-		(void) strlcpy((char *)copy, "_dmarc.", sizeof copy);
-		(void) strlcat((char *)copy, (char *)tld, sizeof copy);
-query_again2:
-		(void) memset(buf, '\0', sizeof buf);
-		bp = (u_char *)dmarc_dns_get_record((char *)copy, &dns_reply, (char *)buf, sizeof buf);
-		if (bp != NULL)
-			goto got_record;
+	case OPENDMARC_WALK_MODE_RFC9989:
+		status = query_dmarc_rfc9989_walk(pctx, domain, buf, sizeof buf, &dns_reply);
+		break;
+
+	case OPENDMARC_WALK_MODE_RFC7489:
+		status = query_dmarc_rfc7489_walk(pctx, domain, buf, sizeof buf, &dns_reply);
+		break;
+
+	case OPENDMARC_WALK_MODE_AUTO:
+	default:
 		/*
-		 * Was a CNAME found that the resolver did not follow on its own?
+		 * AUTO: use PSL if a TLD file is loaded, otherwise fall back to
+		 * the RFC 7489 label-strip walk.  Preserves pre-refactor behaviour.
 		 */
-		if (bp == NULL && *buf != '\0')
-		{
-			(void) strlcpy((char *)copy, (char *)buf, sizeof copy);
-			if (--loop_count != 0)
-				goto query_again2;
-		}
-		/* Organizational domain has no DMARC record; do not try further. */
-		goto dns_failed;
+		status = query_dmarc_psl(pctx, domain, buf, sizeof buf, &dns_reply);
+		if (status != DMARC_PARSE_OKAY)
+			status = query_dmarc_rfc7489_walk(pctx, domain, buf, sizeof buf, &dns_reply);
+		break;
 	}
 
-	/*
-	 * No PSL was loaded, or the PSL could not identify an organizational
-	 * domain boundary (it returned the input domain unchanged).  Walk up
-	 * the label tree as a best-effort fallback, stopping before bare TLDs.
-	 * This is not strictly per RFC 7489 (which requires a PSL to determine
-	 * the organizational domain), but it handles the common case where no
-	 * PSL is configured and a parent domain has a DMARC record.
-	 * Configure PublicSuffixList in opendmarc.conf for RFC-compliant behavior.
-	 */
-	{
-		u_char *cur = (u_char *)domain;
-		u_char *dot;
+	if (status != DMARC_PARSE_OKAY)
+		return status;
 
-		while ((dot = (u_char *)strchr((char *)cur, '.')) != NULL)
-		{
-			cur = dot + 1;
-
-			/* Stop before bare TLDs (labels with no further dot). */
-			if (strchr((char *)cur, '.') == NULL)
-				break;
-
-			loop_count = DNS_MAX_RETRIES;
-			(void) strlcpy((char *)copy, "_dmarc.", sizeof copy);
-			(void) strlcat((char *)copy, (char *)cur, sizeof copy);
-query_again3:
-			(void) memset(buf, '\0', sizeof buf);
-			bp = (u_char *)dmarc_dns_get_record((char *)copy, &dns_reply, (char *)buf, sizeof buf);
-			if (bp != NULL)
-			{
-				pctx->organizational_domain = (u_char *)strdup((char *)cur);
-				pctx->org_domain_from_fallback = 1;
-				goto got_record;
-			}
-			/*
-			 * Was a CNAME found that the resolver did not follow on its own?
-			 */
-			if (bp == NULL && *buf != '\0')
-			{
-				(void) strlcpy((char *)copy, (char *)buf, sizeof copy);
-				if (--loop_count != 0)
-					goto query_again3;
-			}
-		}
-	}
-dns_failed:
-	switch (dns_reply)
-	{
-		case HOST_NOT_FOUND:
-		case NO_DATA:
-		case NO_RECOVERY:
-			return DMARC_DNS_ERROR_NO_RECORD;
-		case TRY_AGAIN:
-		case NETDB_INTERNAL:
-			return DMARC_DNS_ERROR_TMPERR;
-		default:
-			return DMARC_DNS_ERROR_NO_RECORD;
-
-	}
-got_record:
 	return opendmarc_policy_parse_dmarc(pctx, domain, buf);
 }
 
@@ -1097,6 +1302,28 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				/* A totaly unknown value */
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
+		}
+		else if (strcasecmp((char *)cp, "np") == 0)
+		{
+			/* RFC 9989: non-existent subdomain policy */
+			if (strncasecmp((char *)vp, "reject", strlen((char *)vp)) == 0)
+				pctx->np = DMARC_RECORD_P_REJECT;
+			else if (strncasecmp((char *)vp, "none", strlen((char *)vp)) == 0)
+				pctx->np = DMARC_RECORD_P_NONE;
+			else if (strncasecmp((char *)vp, "quarantine", strlen((char *)vp)) == 0)
+				pctx->np = DMARC_RECORD_P_QUARANTINE;
+			else
+				return DMARC_PARSE_ERROR_BAD_VALUE;
+		}
+		else if (strcasecmp((char *)cp, "psd") == 0)
+		{
+			/* RFC 9989: public suffix declaration */
+			if (strncasecmp((char *)vp, "y", 1) == 0)
+				pctx->psd = DMARC_RECORD_PSD_Y;
+			else if (strncasecmp((char *)vp, "n", 1) == 0)
+				pctx->psd = DMARC_RECORD_PSD_N;
+			else
+				return DMARC_PARSE_ERROR_BAD_VALUE;
 		}
 		else if (strcasecmp((char *)cp, "adkim") == 0)
 		{
