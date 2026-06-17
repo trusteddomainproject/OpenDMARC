@@ -188,6 +188,37 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 ---
 
+## DNS policy discovery survey tools
+
+Operators considering a move from PSL-based organizational domain discovery
+to the RFC 9989 DNS tree walk should be aware that the two methods can
+produce different results. One known case: `_dmarc.nhk` publishes a record,
+but PSL-based lookup queries `_dmarc.{registrable}.nhk` and finds nothing,
+while the RFC 9989 walk reaches the TLD apex. The survey scripts below query
+live DNS and can be used to characterize this gap across a domain population
+before switching discovery modes.
+
+- **`contrib/dmarc-root-survey.pl`** (new): Queries `_dmarc` at every
+  delegated TLD in the DNS root zone via AXFR from a configurable transfer
+  server (default: `xfr.lax.dns.icann.org`). Outputs a dated TSV of TLD,
+  `psd=` value, and full record; appends a row to a cumulative summary log.
+  (#419)
+
+- **`contrib/dmarc-psd-survey.pl`**: Now walks parent labels above each PSL
+  entry and reports `_dmarc` records found at levels not in the PSL
+  (`--extra-output` file), with a `trigger_has_dmarc` column indicating
+  whether the triggering PSL entry itself had a record. TSV output now uses
+  UTF-8 encoding. Errors on individual domains are written as comments rather
+  than halting the run. Stale DNS sockets in the throttle loop are reaped.
+  (#419)
+
+- **`contrib/dmarc-pct-survey.pl`**: Now tracks the DMARCbis `t=` (testing
+  mode) tag and counts no-op `pct=` usage (pct=100 or absent). TSV output
+  now uses UTF-8 encoding. Errors on individual domains are written as
+  comments. (#419)
+
+---
+
 ## CI
 
 - **GitHub Actions CI workflow added**: Linux build and test on Ubuntu, running on push and pull request to `develop`. (#330)
