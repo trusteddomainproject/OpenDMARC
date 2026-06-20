@@ -120,7 +120,7 @@ opendmarc_arcares_strip_whitespace(u_char *string)
 	/* set remaining chars to null */
 	memset(&string[a], '\0', b - a);
 
-	return string;
+	return (char *)string;
 }
 
 /*
@@ -196,7 +196,7 @@ opendmarc_arcares_arc_parse (struct arcares *aar,
 					if (p_found++)
 						return -1;
 
-					strlcpy(arc->smtpclientip,
+					strlcpy((char *)arc->smtpclientip,
 					        (char *) arc->arcresult.result_value[cp],
 					        sizeof arc->smtpclientip);
 				}

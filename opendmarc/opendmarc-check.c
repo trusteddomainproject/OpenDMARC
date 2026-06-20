@@ -92,7 +92,7 @@ main(int argc, char **argv)
 		return EX_SOFTWARE;
 	}
 
-	dmarc = opendmarc_policy_connect_init(LOCALHOST, FALSE);
+	dmarc = opendmarc_policy_connect_init((u_char *)LOCALHOST, FALSE);
 	if (dmarc == NULL)
 	{
 		fprintf(stderr, "%s: opendmarc_policy_connect_init() failed\n",
@@ -105,7 +105,7 @@ main(int argc, char **argv)
 	{
 		(void) opendmarc_policy_connect_rset(dmarc);
 
-		status = opendmarc_policy_store_from_domain(dmarc, argv[c]);
+		status = opendmarc_policy_store_from_domain(dmarc, (u_char *)argv[c]);
 		if (status != DMARC_PARSE_OKAY)
 		{
 			fprintf(stderr,

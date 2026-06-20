@@ -76,7 +76,7 @@ opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt)
 		{
 			return NULL;
 		}
-		ary[0] = strdup(str);
+		ary[0] = (u_char *)strdup((char *)str);
 		ary[1] = NULL;
 		if (ary[0] == NULL)
 		{
@@ -104,7 +104,7 @@ opendmarc_util_pushargv(u_char *str, u_char **ary, int *cnt)
 		return NULL;
 	}
 	ary = tmp;
-	ary[i] = strdup(str);
+	ary[i] = (u_char *)strdup((char *)str);
 	if (ary[i] == NULL)
 	{
 		ary = opendmarc_util_clearargv(ary);
@@ -168,7 +168,7 @@ opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen)
 
 	(void) memset(buf, '\0', buflen);
 
-	for (sp = str, ep = buf; *sp != '\0'; sp++)
+	for (sp = (char *)str, ep = (char *)buf; *sp != '\0'; sp++)
 	{
 		if (!isascii(*sp) || !isspace(*sp))
 			*ep++ = *sp;
@@ -214,7 +214,7 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 	len = strlen((char *)raw);
 	if (len > BUFSIZ)
 		len = BUFSIZ - 1;
-	(void) strncpy(copy, raw, len);
+	(void) strncpy((char *)copy, (char *)raw, len);
 
 	/*
 	 * Quoted commas do not delimit addresses.
@@ -354,7 +354,7 @@ opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen)
 strip_local_part:
 	if (cp == NULL)
 		cp = copy;
-	ep = strchr(cp, '@');
+	ep = (u_char *)strchr((char *)cp, '@');
 	if (ep != NULL)
 		cp = ep + 1;
 	len = strlen((char *)cp);
@@ -370,7 +370,7 @@ strip_local_part:
 		if (*ep == '.')
 			*ep = '\0';
 	}
-	(void) strlcpy(buf, cp, buflen);
+	(void) strlcpy((char *)buf, (char *)cp, buflen);
 	return buf;
 }
 

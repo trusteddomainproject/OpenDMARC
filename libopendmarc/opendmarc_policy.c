@@ -84,7 +84,7 @@ opendmarc_policy_library_init(OPENDMARC_LIB_T *lib_init)
 		switch (Opendmarc_Libp->tld_type)
 		{
 			case OPENDMARC_TLD_TYPE_MOZILLA:
-				ret = opendmarc_tld_read_file(Opendmarc_Libp->tld_source_file,
+				ret = opendmarc_tld_read_file((char *)Opendmarc_Libp->tld_source_file,
 						"//", "*.", "!");
 				if (ret != 0)
 					ret = errno;
@@ -287,24 +287,24 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 		mode= DMARC_RECORD_A_RELAXED;
 
 	(void) memset(tld_buf, '\0', sizeof tld_buf);
-	(void) strlcpy(tld_buf, tld, sizeof tld_buf);
+	(void) strlcpy((char *)tld_buf, (char *)tld, sizeof tld_buf);
 
 	(void) memset(rev_sub, '\0', sizeof rev_sub);
 	(void) opendmarc_reverse_domain(subdomain, rev_sub, sizeof rev_sub);
-	ep = rev_sub + strlen(rev_sub) -1;
+	ep = rev_sub + strlen((char *)rev_sub) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_sub, ".", sizeof rev_sub);
 
 	(void) memset(rev_tld, '\0', sizeof rev_tld);
 	(void) opendmarc_reverse_domain(tld_buf,   rev_tld, sizeof rev_tld);
-	ep = rev_tld + strlen(rev_tld) -1;
+	ep = rev_tld + strlen((char *)rev_tld) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_tld, ".", sizeof rev_tld);
 
 	/*
 	 * Perfect match is aligned irrespective of relaxed or strict.
 	 */
-	if (strcasecmp(rev_tld, rev_sub) == 0)
+	if (strcasecmp((char *)rev_tld, (char *)rev_sub) == 0)
 		return 0;
 
 	/*
@@ -314,11 +314,11 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 	if (mode == DMARC_RECORD_A_STRICT)
 		return -1;
 
-	ret = strncasecmp(rev_tld, rev_sub, strlen(rev_tld));
+	ret = strncasecmp((char *)rev_tld, (char *)rev_sub, strlen((char *)rev_tld));
 	if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
 			return 0;
 
-        ret = strncasecmp(rev_sub, rev_tld, strlen(rev_sub));
+        ret = strncasecmp((char *)rev_sub, (char *)rev_tld, strlen((char *)rev_sub));
         if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
                         return 0;
 
@@ -327,21 +327,21 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 		return -1;
 	(void) memset(rev_tld, '\0', sizeof rev_tld);
 	(void) opendmarc_reverse_domain(tld_buf,   rev_tld, sizeof rev_tld);
-	ep = rev_tld + strlen(rev_tld) -1;
+	ep = rev_tld + strlen((char *)rev_tld) -1;
 	if (*ep != '.')
 		(void) strlcat((char *)rev_tld, ".", sizeof rev_tld);
 
 	/*
 	 * Perfect match is aligned irrespective of relaxed or strict.
 	 */
-	if (strcasecmp(rev_tld, rev_sub) == 0)
+	if (strcasecmp((char *)rev_tld, (char *)rev_sub) == 0)
 		return 0;
 
-	ret = strncasecmp(rev_tld, rev_sub, strlen(rev_tld));
+	ret = strncasecmp((char *)rev_tld, (char *)rev_sub, strlen((char *)rev_tld));
 	if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
 			return 0;
 
-        ret = strncasecmp(rev_sub, rev_tld, strlen(rev_sub));
+        ret = strncasecmp((char *)rev_sub, (char *)rev_tld, strlen((char *)rev_sub));
         if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
                         return 0;
 	return -1;
@@ -377,10 +377,10 @@ opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *from_domain)
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (from_domain == NULL || strlen((char *)from_domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
-	dp = opendmarc_util_finddomain(from_domain, domain_buf, sizeof domain_buf);
+	dp = (char *)opendmarc_util_finddomain(from_domain, (u_char *)domain_buf, sizeof domain_buf);
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
-	pctx->from_domain = strdup((char *)dp);
+	pctx->from_domain = (u_char *)strdup((char *)dp);
 	if (pctx->from_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;
 	return DMARC_PARSE_OKAY;
@@ -422,14 +422,14 @@ opendmarc_policy_store_spf(DMARC_POLICY_T *pctx, u_char *domain, int result, int
 		return DMARC_PARSE_ERROR_NULL_CTX;
 	if (domain == NULL || strlen((char *)domain) == 0)
 		return DMARC_PARSE_ERROR_EMPTY;
-	dp = opendmarc_util_finddomain(domain, domain_buf, sizeof domain_buf);
+	dp = (char *)opendmarc_util_finddomain(domain, (u_char *)domain_buf, sizeof domain_buf);
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
-	if (!check_domain(dp))
+	if (!check_domain((u_char *)dp))
 		return DMARC_PARSE_ERROR_BAD_VALUE;
 	if (human_readable != NULL)
-		pctx->spf_human_outcome = strdup((char *)human_readable);
-	pctx->spf_domain = strdup((char *)dp);
+		pctx->spf_human_outcome = (u_char *)strdup((char *)human_readable);
+	pctx->spf_domain = (u_char *)strdup((char *)dp);
 	if (pctx->spf_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;
 	switch (result)
@@ -513,8 +513,8 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 	if (pctx->dkim_final == TRUE)
 		return DMARC_PARSE_OKAY;
 
-	dp = opendmarc_util_finddomain(d_equal_domain, domain_buf, sizeof domain_buf);
-	if (dp == NULL || strlen(dp) == 0)
+	dp = opendmarc_util_finddomain(d_equal_domain, (u_char *)domain_buf, sizeof domain_buf);
+	if (dp == NULL || strlen((char *)dp) == 0)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
 
 	/*
@@ -522,7 +522,7 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 	 * select this one as the domain of choice.
 	 * If the outcome is pass, make this the final choice.
 	 */
-	if (strcasecmp((char *)dp, pctx->from_domain) == 0)
+	if (strcasecmp((char *)dp, (char *)pctx->from_domain) == 0)
 	{
 		if (pctx->dkim_domain != NULL)
 		{
@@ -579,16 +579,16 @@ opendmarc_policy_store_dkim(DMARC_POLICY_T *pctx, u_char *d_equal_domain,
 
 set_final:
 	if (pctx->dkim_domain == NULL)
-		pctx->dkim_domain = strdup((char *)dp);
+		pctx->dkim_domain = (u_char *)strdup((char *)dp);
 	if (pctx->dkim_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;
 	if (pctx->dkim_selector == NULL && s_equal_selector != NULL)
-		pctx->dkim_selector = strdup((char *)s_equal_selector);
+		pctx->dkim_selector = (u_char *)strdup((char *)s_equal_selector);
 	if (human_result != NULL)
 	{
 		if (pctx->dkim_human_outcome != NULL)
 			(void) free(pctx->dkim_human_outcome);
-		pctx->dkim_human_outcome = strdup((char *)human_result);
+		pctx->dkim_human_outcome = (u_char *)strdup((char *)human_result);
 	}
 	pctx->dkim_outcome = result;
 	return DMARC_PARSE_OKAY;
@@ -637,7 +637,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 	memset(uri_tld, '\0', sizeof uri_tld);
 
 	/* Get out domain from our URI */
-	if (strncasecmp(uri, "mailto:", 7) == 0)
+	if (strncasecmp((char *)uri, "mailto:", 7) == 0)
 		uri += 7;
 
 	if (opendmarc_util_finddomain(uri, domain, sizeof domain) == NULL)
@@ -673,7 +673,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 			continue;
 		}
 	}
-	if (dns_reply == NETDB_SUCCESS && strcmp( buf, "&" ) != 0)
+	if (dns_reply == NETDB_SUCCESS && strcmp( (char *)buf, "&" ) != 0)
 	{
 		/* Must include DMARC version */
 		if (strncasecmp((char *)buf, "v=DMARC1", sizeof buf) == 0)
@@ -702,7 +702,7 @@ opendmarc_policy_query_dmarc_xdomain(DMARC_POLICY_T *pctx, u_char *uri)
 			continue;
 		}
 	}
-	if (dns_reply == NETDB_SUCCESS && strcmp( buf, "&" ) != 0)
+	if (dns_reply == NETDB_SUCCESS && strcmp( (char *)buf, "&" ) != 0)
 	{
 		/* Must include DMARC version */
 		if (strncasecmp((char *)buf, "v=DMARC1", sizeof buf) == 0)
@@ -771,7 +771,7 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 
 	if (pctx == NULL)
 		return DMARC_PARSE_ERROR_NULL_CTX;
-	if (domain == NULL || strlen(domain) == 0)
+	if (domain == NULL || strlen((char *)domain) == 0)
 	{
 		if (pctx->from_domain != NULL)
 			domain = pctx->from_domain;
@@ -779,12 +779,12 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 			return DMARC_PARSE_ERROR_EMPTY;
 	}
 
-	(void) strlcpy(copy, "_dmarc.", sizeof copy);
-	(void) strlcat(copy, domain, sizeof copy);
+	(void) strlcpy((char *)copy, "_dmarc.", sizeof copy);
+	(void) strlcat((char *)copy, (char *)domain, sizeof copy);
 
 query_again:
 	(void) memset(buf, '\0', sizeof buf);
-	bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
+	bp = (u_char *)dmarc_dns_get_record((char *)copy, &dns_reply, (char *)buf, sizeof buf);
 	if (bp != NULL)
 	{
 		if (dns_reply != HOST_NOT_FOUND)
@@ -796,7 +796,7 @@ query_again:
 	 */
 	if (bp == NULL && *buf != '\0')
 	{
-		(void) strlcpy(copy, buf, sizeof copy);
+		(void) strlcpy((char *)copy, (char *)buf, sizeof copy);
 		if (--loop_count != 0)
 			goto query_again;
 	}
@@ -811,16 +811,16 @@ query_again:
 	 * queried domain, try exactly that domain and stop.  Per RFC 7489
 	 * §6.6.3 we look at one domain: the organizational domain.
 	 */
-	if (strlen(tld) > 0 && strcasecmp((char *)tld, (char *)domain) != 0)
+	if (strlen((char *)tld) > 0 && strcasecmp((char *)tld, (char *)domain) != 0)
 	{
-		pctx->organizational_domain = strdup(tld);
+		pctx->organizational_domain = (u_char *)strdup((char *)tld);
 
 		loop_count = DNS_MAX_RETRIES;
-		(void) strlcpy(copy, "_dmarc.", sizeof copy);
-		(void) strlcat(copy, tld, sizeof copy);
+		(void) strlcpy((char *)copy, "_dmarc.", sizeof copy);
+		(void) strlcat((char *)copy, (char *)tld, sizeof copy);
 query_again2:
 		(void) memset(buf, '\0', sizeof buf);
-		bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
+		bp = (u_char *)dmarc_dns_get_record((char *)copy, &dns_reply, (char *)buf, sizeof buf);
 		if (bp != NULL)
 			goto got_record;
 		/*
@@ -828,7 +828,7 @@ query_again2:
 		 */
 		if (bp == NULL && *buf != '\0')
 		{
-			(void) strlcpy(copy, buf, sizeof copy);
+			(void) strlcpy((char *)copy, (char *)buf, sizeof copy);
 			if (--loop_count != 0)
 				goto query_again2;
 		}
@@ -858,14 +858,14 @@ query_again2:
 				break;
 
 			loop_count = DNS_MAX_RETRIES;
-			(void) strlcpy(copy, "_dmarc.", sizeof copy);
-			(void) strlcat(copy, cur, sizeof copy);
+			(void) strlcpy((char *)copy, "_dmarc.", sizeof copy);
+			(void) strlcat((char *)copy, (char *)cur, sizeof copy);
 query_again3:
 			(void) memset(buf, '\0', sizeof buf);
-			bp = dmarc_dns_get_record(copy, &dns_reply, buf, sizeof buf);
+			bp = (u_char *)dmarc_dns_get_record((char *)copy, &dns_reply, (char *)buf, sizeof buf);
 			if (bp != NULL)
 			{
-				pctx->organizational_domain = strdup(cur);
+				pctx->organizational_domain = (u_char *)strdup((char *)cur);
 				pctx->org_domain_from_fallback = 1;
 				goto got_record;
 			}
@@ -874,7 +874,7 @@ query_again3:
 			 */
 			if (bp == NULL && *buf != '\0')
 			{
-				(void) strlcpy(copy, buf, sizeof copy);
+				(void) strlcpy((char *)copy, (char *)buf, sizeof copy);
 				if (--loop_count != 0)
 					goto query_again3;
 			}
@@ -1022,7 +1022,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 
 	for (cp = copy; cp != NULL && cp <= ep; )
 	{
-		sp = (u_char *)strchr(cp, ';');
+		sp = (u_char *)strchr((char *)cp, ';');
 		if (sp != NULL)
 			*sp++ = '\0';
 		eqp = (u_char *)strchr((char *)cp, '=');
@@ -1133,7 +1133,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 		else if (strcasecmp((char *)cp, "pct") == 0)
 		{
 			errno = 0;
-			pctx->pct = strtoul(vp, NULL, 10);
+			pctx->pct = strtoul((char *)vp, NULL, 10);
 			if (pctx->pct < 0 || pctx->pct > 100)
 			{
 				return DMARC_PARSE_ERROR_BAD_VALUE;
@@ -1147,13 +1147,13 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 		{
 			char *xp;
 
-			for (xp = vp; *xp != '\0'; ++xp)
+			for (xp = (char *)vp; *xp != '\0'; ++xp)
 			{
 				if (! isdigit((int)*xp))
 					return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
 			errno = 0;
-			pctx->ri = strtoul(vp, NULL, 10);
+			pctx->ri = strtoul((char *)vp, NULL, 10);
 			if (errno == EINVAL || errno == ERANGE)
 			{
 				return DMARC_PARSE_ERROR_BAD_VALUE;
@@ -1166,7 +1166,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			/*
 			 * The list may be a comma delimilted list of choices.
 			 */
-			for (xp = vp; *xp != '\0'; )
+			for (xp = (char *)vp; *xp != '\0'; )
 			{
 				u_char xbuf[32];
 
@@ -1174,7 +1174,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				if (yp != NULL)
 					*yp = '\0';
 
-				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
+				xp = (char *)opendmarc_util_cleanup((u_char *)xp, xbuf, sizeof xbuf);
 				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					/*
@@ -1213,7 +1213,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			if (pctx->rua_list != NULL)
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 
-			for (xp = vp; *xp != '\0'; )
+			for (xp = (char *)vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];
 
@@ -1221,10 +1221,10 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				if (yp != NULL)
 					*yp = '\0';
 
-				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
+				xp = (char *)opendmarc_util_cleanup((u_char *)xp, xbuf, sizeof xbuf);
 				if (xp != NULL && strlen((char *)xp) > 0)
 				{
-					pctx->rua_list = opendmarc_util_pushargv(xp, pctx->rua_list,
+					pctx->rua_list = opendmarc_util_pushargv((u_char *)xp, pctx->rua_list,
 										&(pctx->rua_cnt));
 				}
 				else
@@ -1250,7 +1250,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			if (pctx->ruf_list != NULL)
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 
-			for (xp = vp; *xp != '\0'; )
+			for (xp = (char *)vp; *xp != '\0'; )
 			{
 				u_char	xbuf[256];
 
@@ -1258,10 +1258,10 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				if (yp != NULL)
 					*yp = '\0';
 
-				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
+				xp = (char *)opendmarc_util_cleanup((u_char *)xp, xbuf, sizeof xbuf);
 				if (xp != NULL && strlen((char *)xp) > 0)
 				{
-					pctx->ruf_list = opendmarc_util_pushargv(xp, pctx->ruf_list,
+					pctx->ruf_list = opendmarc_util_pushargv((u_char *)xp, pctx->ruf_list,
 										&(pctx->ruf_cnt));
 				}
 				else
@@ -1282,7 +1282,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			/*
 			 * A possibly colon delimited list of on character settings.
 			 */
-			for (xp = vp; *xp != '\0'; )
+			for (xp = (char *)vp; *xp != '\0'; )
 			{
 				u_char xbuf[256];
 
@@ -1290,7 +1290,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				if (yp != NULL)
 					*yp = '\0';
 
-				xp = opendmarc_util_cleanup(xp, xbuf, sizeof xbuf);
+				xp = (char *)opendmarc_util_cleanup((u_char *)xp, xbuf, sizeof xbuf);
 				if (xp != NULL && strlen((char *)xp) > 0)
 				{
 					switch ((int)*xp)
@@ -1349,7 +1349,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 		pctx->fo = DMARC_RECORD_FO_0;
 
 	if (pctx->from_domain == NULL)
-		pctx->from_domain = strdup(domain);
+		pctx->from_domain = (u_char *)strdup((char *)domain);
 	return DMARC_PARSE_OKAY;
 }
 
@@ -1375,12 +1375,12 @@ opendmarc_policy_store_dmarc(DMARC_POLICY_T *pctx, u_char *dmarc_record, u_char 
 
 	if (pctx->from_domain != NULL)
 		(void) free(pctx->from_domain);
-	pctx->from_domain = strdup(domain);
+	pctx->from_domain = (u_char *)strdup((char *)domain);
 	if (organizationaldomain != NULL)
 	{
 		if (pctx->organizational_domain != NULL)
 			(void) free(pctx->organizational_domain);
-		pctx->organizational_domain = (u_char *)strdup(organizationaldomain);
+		pctx->organizational_domain = (u_char *)strdup((char *)organizationaldomain);
 	}
 	return DMARC_PARSE_OKAY;
 }
@@ -1822,7 +1822,7 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 
 	if (strlcat(buf, "IP_ADDR=", buflen) >= buflen) return E2BIG;
 	if (pctx->ip_addr != NULL)
-		if (strlcat(buf, pctx->ip_addr, buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)pctx->ip_addr, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
 	if (strlcat(buf, "IP_TYPE=", buflen) >= buflen) return E2BIG;
@@ -1841,7 +1841,7 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 
 	if (strlcat(buf, "SPF_DOMAIN=", buflen) >= buflen) return E2BIG;
 	if (pctx->spf_domain != NULL)
-		if (strlcat(buf, pctx->spf_domain, buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)pctx->spf_domain, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
 	if (strlcat(buf, "SPF_ORIGIN=", buflen) >= buflen) return E2BIG;
@@ -1879,7 +1879,7 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 
 	if (strlcat(buf, "SPF_HUMAN_OUTCOME=", buflen) >= buflen) return E2BIG;
 	if (pctx->spf_human_outcome != NULL)
-		if (strlcat(buf, pctx->spf_human_outcome, buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)pctx->spf_human_outcome, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
 	if (strlcat(buf, "DKIM_FINAL=", buflen) >= buflen) return E2BIG;
@@ -1897,12 +1897,12 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 
 	if (strlcat(buf, "DKIM_DOMAIN=", buflen) >= buflen) return E2BIG;
 	if (pctx->dkim_domain != NULL)
-		if (strlcat(buf, pctx->dkim_domain, buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)pctx->dkim_domain, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
 	if (strlcat(buf, "DKIM_SELECTOR=", buflen) >= buflen) return E2BIG;
 	if (pctx->dkim_selector != NULL)
-		if (strlcat(buf, pctx->dkim_selector, buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)pctx->dkim_selector, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
 	if (strlcat(buf, "DKIM_OUTOME=", buflen) >= buflen) return E2BIG;
@@ -1926,7 +1926,7 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 
 	if (strlcat(buf, "DKIM_HUMAN_OUTCOME=", buflen) >= buflen) return E2BIG;
 	if (pctx->dkim_human_outcome != NULL)
-		if (strlcat(buf, pctx->dkim_human_outcome, buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)pctx->dkim_human_outcome, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
 	if (strlcat(buf, "DKIM_ALIGNMENT=", buflen) >= buflen) return E2BIG;
@@ -2079,7 +2079,7 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 		{
 			if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
 		}
-		if (strlcat(buf, (pctx->rua_list)[i], buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)(pctx->rua_list)[i], buflen) >= buflen) return E2BIG;
 	}
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
@@ -2090,7 +2090,7 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 		{
 			if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
 		}
-		if (strlcat(buf, (pctx->ruf_list)[i], buflen) >= buflen) return E2BIG;
+		if (strlcat(buf, (char *)(pctx->ruf_list)[i], buflen) >= buflen) return E2BIG;
 	}
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 
