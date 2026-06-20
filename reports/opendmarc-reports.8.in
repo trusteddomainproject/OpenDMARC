@@ -129,6 +129,17 @@ and
 .I Bcc:
 headers of the message on standard input, replicating the behaviour of
 .IR "sendmail -t" .
+If the message contains a
+.I Reported-Domain
+field (set by the milter in the AFRF
+.I message/feedback-report
+part), that domain is checked against the same sending-domain suppression
+--skipdomains/bare
+.B NoReportsList
+entries, StaleMARC, and the suppressions DB -- applied to aggregate
+reports; if suppressed, the report is discarded without being sent.  See
+.B REPORTING SUPPRESSIONS
+below.
 .TP
 .I --help
 Prints a help message and terminates.
@@ -153,14 +164,17 @@ Reads a list of domain names from
 .I file
 (one per line, comments introduced by
 .BR # )
-and skips generating reports for any domain in the list.  Equivalent to
-specifying
+and skips generating aggregate reports for any domain in the list.
+Equivalent to specifying
 .B --nodomain
 for each entry in the file.  Bare domain entries in the
 .B NoReportsList
 file (see
 .IR opendmarc.conf (5))
-are automatically applied as if passed via this option.
+are automatically applied as if passed via this option, and also suppress
+.I --forensic
+reports about that domain (see above) -- the only entry format that
+affects both report types.
 .TP
 .I --noupdate
 Suppresses marking the time of the transmission of the report in the database.

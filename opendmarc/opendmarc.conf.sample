@@ -282,11 +282,13 @@
 ##  full address (reports@gmail.com) suppresses delivery to that address;
 ##  a domain prefixed with "@" (@gmail.com) suppresses delivery to all
 ##  addresses at that mail domain; a bare domain (gmail.com) instead
-##  suppresses aggregate reports for that sending domain (equivalent to
-##  --skipdomains in opendmarc-reports) and has no effect on ruf=
-##  suppression in the milter.  Matching is case-insensitive.  The same
-##  file is honoured by opendmarc-reports for aggregate report delivery
-##  suppression.
+##  suppresses reports for that sending domain -- for aggregate reports
+##  this is equivalent to --skipdomains in opendmarc-reports, and for
+##  forensic reports it applies when ReportCommand is
+##  "opendmarc-reports --forensic" (which checks the Reported-Domain
+##  field before sending), but has no effect when ReportCommand pipes
+##  directly to sendmail.  Matching is case-insensitive.  The same file
+##  is honoured by opendmarc-reports for both report types.
 #
 # NoReportsList /etc/opendmarc/noreports.txt
 

@@ -262,21 +262,35 @@ Suppresses delivery to any address at that mail domain (the
 sigil distinguishes this from a sending-domain entry below).
 .TP
 .I example.com
-Suppresses aggregate reports for that sending domain (i.e. domains whose
+Suppresses reports for that sending domain (i.e. domains whose
 .I _dmarc
-record is being evaluated), equivalent to passing the domain to
+record is being evaluated).  For aggregate reports this is equivalent to
+passing the domain to
 .BR --skipdomains (8)
 in
 .IR opendmarc-reports .
-This form has no effect on failure report
-.RI ( ruf= )
-suppression in the milter itself.
+For forensic reports, when
+.I ReportCommand
+is
+.I opendmarc-reports --forensic
+(see
+.IR opendmarc-reports (8)),
+the script checks the
+.I Reported-Domain
+field of the message and discards it before sending; this form has no
+effect when
+.I ReportCommand
+pipes directly to
+.IR sendmail (8)
+or anything else, since only
+.I opendmarc-reports
+performs that check.
 .RE
 .P
 Matching is case-insensitive.  The same file is read by
 .IR opendmarc-reports (8)
-for aggregate report delivery suppression.  The default is unset, meaning
-all requested report destinations are used.
+for aggregate and forensic report delivery suppression.  The default is
+unset, meaning all requested report destinations are used.
 
 .TP
 .I PidFile (string)
