@@ -51,6 +51,15 @@
 # Encode recipient into envelope sender so bounces identify failing address.
 #verp = 1
 
+# --- Report suppression ---
+# Same file used by the milter's NoReportsList; suppresses delivery here too.
+#no-reports-list = /etc/opendmarc/noreports.txt
+
+# --- Archiving ---
+# Save a copy of every outbound report (full message, not just the
+# attachment) for later review, e.g. RFC-compliance checking.
+#archive-dir = /var/spool/opendmarc/sent
+
 # --- Miscellaneous ---
 #interval = 86400
 #utc = 1

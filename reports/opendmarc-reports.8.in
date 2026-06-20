@@ -28,6 +28,25 @@ as the milter's
 .I ReportCommand.
 .SH OPTIONS
 .TP
+.I --archive-dir=dir
+Saves a copy of every outbound report to
+.IR dir ,
+one file per report, named
+.IR seconds-pid-seq-label.eml .
+Each file contains the full message exactly as handed to SMTP (headers and
+MIME body), not just the gzipped XML or AFRF attachment, for later review
+of RFC compliance or message structure.
+.I label
+is the destination domain for aggregate reports, or the (first) recipient
+for forensic reports, with characters outside
+.RI [ A-Za-z0-9_.- ]
+replaced by
+.IR _ .
+Reports that are suppressed, or that are only previewed under
+.IR --test ,
+are not archived.  Applies to both aggregate and forensic modes.  Default
+is unset, meaning nothing is archived.
+.TP
 .I --config=file
 Read configuration from
 .I file
@@ -267,7 +286,7 @@ skipped.  The table is also checked at the domain level, so adding a bare
 domain name (e.g.
 .IR example.com )
 suppresses all reports for that domain regardless of their destination
-address.
+address.  Applies to both aggregate and forensic modes.
 .PP
 The table is loaded once at startup and is not queried per-message, so
 changes take effect on the next run.  If the table does not exist (e.g. on

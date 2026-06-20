@@ -117,6 +117,7 @@ my $doupdate = 1;
 my $testmode = 0;
 my $keepfiles = 0;
 my $workdir = ".";
+my $archive_dir;
 my $use_utc = 0;
 my $daybound = 0;
 my $forensic = 0;
@@ -240,6 +241,101 @@ sub db_skip
 	return 0;
 }
 
+# Check the in-memory NoReportsList loaded at startup.  $address may match
+# as an exact address or by its domain prefixed with "@", matching the
+# semantics described in opendmarc.conf(5).  Shared by both the aggregate
+# report loop and --forensic mode so NoReportsList applies identically
+# regardless of which one is delivering.
+sub noreports_skip
+{
+	my ($address) = @_;
+
+	return 0 unless %noreports;
+
+	my $addr_lc = lc($address);
+	return 1 if $noreports{$addr_lc};
+
+	if ($addr_lc =~ /\@(.+)$/)
+	{
+		return 1 if $noreports{"\@$1"};
+	}
+
+	return 0;
+}
+
+# Returns the reason a destination address should be skipped (for logging),
+# or undef if it should be sent to.  Combines every suppression source so
+# the result -- and therefore the recipients who actually get mail -- is
+# identical whether the aggregate loop or --forensic mode is asking.
+sub skip_reason
+{
+	my ($address) = @_;
+
+	return "StaleMARC" if stale_skip("rua", $address);
+	return "suppression DB" if db_skip($address);
+	return "NoReportsList" if noreports_skip($address);
+
+	return undef;
+}
+
+# Open a connection to the configured SMTP server, applying SSL/StartTLS
+# and SMTP AUTH settings if configured.  Shared by both aggregate and
+# --forensic sending so those settings apply no matter which is delivering
+# mail.  Returns the connected Net::SMTP object, or undef on failure (after
+# printing a diagnostic).
+sub smtp_connect
+{
+	my $smtp = Net::SMTP->new($smtp_server,
+	                           'Port'  => $smtp_port,
+	                           'Hello' => hostfqdn(),
+	                           'SSL'   => $smtp_ssl,
+	                           defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
+	if (!defined($smtp))
+	{
+		print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
+		return undef;
+	}
+
+	if (defined($smtp_username) && defined($smtp_password))
+	{
+		if (!$smtp->auth($smtp_username, $smtp_password))
+		{
+			print STDERR "$progname: SMTP authentication failed\n";
+			return undef;
+		}
+	}
+
+	return $smtp;
+}
+
+# Save a copy of a fully-composed outbound message (headers and body, the
+# exact bytes handed to SMTP) under $archive_dir for later inspection, e.g.
+# to check delivered reports against the RFCs.  $label identifies the
+# report (a domain for aggregate, a recipient for forensic) and is used
+# only to make the filename recognisable.  No-op unless --archive-dir is
+# set.  Shared by both aggregate and --forensic sending.
+my $archive_seq = 0;
+sub archive_report
+{
+	my ($label, $message) = @_;
+
+	return unless defined($archive_dir);
+
+	(my $safe_label = $label) =~ s/[^A-Za-z0-9_.-]/_/g;
+	my $fname = sprintf("%s/%d-%d-%03d-%s.eml",
+	                     $archive_dir, time(), $$, $archive_seq++, $safe_label);
+
+	if (open(my $fh, '>', $fname))
+	{
+		print $fh $message;
+		close($fh);
+	}
+	else
+	{
+		print STDERR "$progname: can't write archive copy to $fname: $!\n";
+	}
+}
+
 # Build a VERP envelope sender encoding $rcpt into $sender.
 # e.g. postmaster@r.example.com + dmarc@target.com -> postmaster+dmarc=target.com@r.example.com
 sub verp_sender
@@ -253,6 +349,9 @@ sub verp_sender
 sub usage
 {
 	print STDERR "$progname: usage: $progname [options]\n";
+	print STDERR "\t--archive-dir=dir  save a copy of every outbound report\n";
+	print STDERR "\t                   (the full message, not just the\n";
+	print STDERR "\t                   attachment) to dir for later review\n";
 	print STDERR "\t--day              send yesterday's data\n";
 	print STDERR "\t--db-dsn=dsn       full DBI DSN (overrides --dbscheme/--dbhost/--dbname/--dbport)\n";
 	print STDERR "\t--dbscheme=scheme  mysql or MariaDB [$def_dbscheme]\n";
@@ -361,7 +460,8 @@ if (-f $configfile)
 setlocale(LC_ALL, 'C');
 
 # parse command line arguments
-my $opt_retval = &Getopt::Long::GetOptions ('day!' => \$daybound,
+my $opt_retval = &Getopt::Long::GetOptions ('archive-dir=s' => \$archive_dir,
+                                            'day!' => \$daybound,
                                             'db-dsn=s' => \$db_dsn,
                                             'dbscheme=s' => \$dbscheme,
                                             'dbhost=s' => \$dbhost,
@@ -537,6 +637,11 @@ if ($verbose)
 ### "sendmail -t" as the milter's ReportCommand.
 ###
 
+# Exit code meaning "nothing was sent, all recipients were suppressed by
+# policy" (StaleMARC/NoReportsList), distinct from 0 (sent) and 1 (error).
+# Keep in sync with REPORTCMD_EXIT_SUPPRESSED in opendmarc.h.
+my $EXIT_SUPPRESSED = 2;
+
 if ($forensic)
 {
 	# Slurp the full message from stdin.
@@ -577,13 +682,20 @@ if ($forensic)
 		exit(1);
 	}
 
-	# StaleMARC check: remove any recipients that are known-stale.
-	@rcpts = grep { !stale_skip("rua", $_) } @rcpts;
+	# Apply the same suppression rules (StaleMARC, suppression DB,
+	# NoReportsList) used by the aggregate-sending path, so a recipient is
+	# suppressed identically no matter which path is delivering mail.
+	@rcpts = grep {
+		my $reason = skip_reason($_);
+		print STDERR "$progname: --forensic: skipping $_ ($reason)\n"
+			if defined($reason) && $verbose;
+		!defined($reason);
+	} @rcpts;
 
 	if (!@rcpts)
 	{
-		print STDERR "$progname: --forensic: all recipients suppressed by StaleMARC check\n";
-		exit(0);
+		print STDERR "$progname: --forensic: all recipients suppressed\n";
+		exit($EXIT_SUPPRESSED);
 	}
 
 	if ($testmode)
@@ -598,14 +710,12 @@ if ($forensic)
 		print STDERR "$progname: --forensic: connecting to $smtp_server:$smtp_port\n";
 	}
 
-	$smtp = Net::SMTP->new($smtp_server,
-	                       'Port' => $smtp_port,
-	                       'Hello' => hostfqdn());
-	if (!defined($smtp))
-	{
-		print STDERR "$progname: --forensic: open SMTP server $smtp_server:$smtp_port failed\n";
-		exit(1);
-	}
+	$smtp = smtp_connect();
+	exit(1) unless defined($smtp);
+
+	my $archive_label = $rcpts[0];
+	$archive_label .= "+" . (scalar(@rcpts) - 1) if @rcpts > 1;
+	archive_report($archive_label, $message);
 
 	$smtpfail = 0;
 
@@ -1448,22 +1558,15 @@ foreach (@$domainset)
 			}
 		}
 
-		# Skip if this RUA address is known-stale or locally suppressed.
-		if ($uri->scheme eq "mailto" &&
-		    (stale_skip("rua", $repdest) || db_skip($repdest)))
+		# Skip if this destination should be suppressed for any reason
+		# (StaleMARC, suppression DB, or NoReportsList) -- the same check
+		# --forensic mode applies to its recipients.
+		if ($uri->scheme eq "mailto")
 		{
-			next;
-		}
-
-		# Skip if this destination is in the NoReportsList.
-		if ($uri->scheme eq "mailto" && %noreports)
-		{
-			my $dest_lc = lc($repdest);
-			my ($dest_user, $dest_domain) = split(/\@/, $dest_lc, 2);
-			if ($noreports{$dest_lc} ||
-			    (defined($dest_domain) && $noreports{"@$dest_domain"}))
+			my $reason = skip_reason($repdest);
+			if (defined($reason))
 			{
-				print STDERR "$progname: skipping $domain report to $repdest (NoReportsList)\n"
+				print STDERR "$progname: skipping $domain report to $repdest ($reason)\n"
 					if $verbose;
 				next;
 			}
@@ -1537,6 +1640,8 @@ foreach (@$domainset)
 			$mailout .= "--$boundary--\n";
 			my $reportsize = length($mailout);
 
+			archive_report($domain, $mailout);
+
 			if ($reportsize > $report_maxbytes)
 			{
 				# XXX -- generate an error report here
@@ -1549,25 +1654,8 @@ foreach (@$domainset)
 
 				if (!defined($smtp))
 				{
-					$smtp = Net::SMTP->new($smtp_server,
-					                       'Port'    => $smtp_port,
-					                       'Hello'   => hostfqdn(),
-					                       'SSL'     => $smtp_ssl,
-					                       defined($smtp_ssl_ca_file) ? ('SSL_ca_file' => $smtp_ssl_ca_file) : ());
-					if (!defined($smtp))
-					{
-						print STDERR "$progname: open SMTP server $smtp_server:$smtp_port failed\n";
-						exit(1);
-					}
-
-					if (defined($smtp_username) && defined($smtp_password))
-					{
-						if (!$smtp->auth($smtp_username, $smtp_password))
-						{
-							print STDERR "$progname: SMTP authentication failed\n";
-							exit(1);
-						}
-					}
+					$smtp = smtp_connect();
+					exit(1) unless defined($smtp);
 				}
 
 				my $mailfrom = $verp ? verp_sender($repemail, $repdest) : $repemail;

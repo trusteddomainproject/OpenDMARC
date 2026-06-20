@@ -335,8 +335,22 @@ will otherwise be ignored by the filter (the default).
 Indicates the shell command to which failure reports should be passed for
 delivery when
 .I FailureReports
-is enabled.  Defaults to
+is enabled.  The composed report is piped to this command on stdin; the
+command is responsible for delivering it.  Defaults to
 .I /usr/sbin/sendmail -t -odq.
+.IP
+The default hands the report directly to sendmail, which has no way to
+apply StaleMARC checks, NoReportsList suppression, SMTP AUTH, SSL/TLS, or
+VERP, since those require an actual SMTP conversation rather than a pipe to
+.IR sendmail (8).
+Setting this instead to
+.I opendmarc-reports --forensic
+(see
+.IR opendmarc-reports (8))
+applies all of the above, using the same
+.IR NoReportsList ,
+StaleMARC, and SMTP settings configured for aggregate report delivery, and
+connects directly to the configured SMTP server rather than shelling out.
 
 .TP
 .I RequiredHeaders (Boolean)

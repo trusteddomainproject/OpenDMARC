@@ -276,12 +276,17 @@
 ##  NoReportsList path
 ##  	default (none)
 ##
-##  Specifies a file containing email addresses and/or domains to which
-##  failure reports (ruf=) should never be delivered.  Each line is one
-##  entry; lines beginning with # are comments.  An entry may be a full
-##  address (reports@gmail.com) or a bare domain (gmail.com) to suppress
-##  all addresses at that domain.  The same file is honoured by
-##  opendmarc-reports for aggregate report delivery suppression.
+##  Specifies a file containing email addresses and/or domains for which
+##  report delivery should be suppressed.  Each line is one entry; lines
+##  beginning with # are comments.  Three entry formats are recognised: a
+##  full address (reports@gmail.com) suppresses delivery to that address;
+##  a domain prefixed with "@" (@gmail.com) suppresses delivery to all
+##  addresses at that mail domain; a bare domain (gmail.com) instead
+##  suppresses aggregate reports for that sending domain (equivalent to
+##  --skipdomains in opendmarc-reports) and has no effect on ruf=
+##  suppression in the milter.  Matching is case-insensitive.  The same
+##  file is honoured by opendmarc-reports for aggregate report delivery
+##  suppression.
 #
 # NoReportsList /etc/opendmarc/noreports.txt
 
@@ -346,12 +351,23 @@
 # RejectMultiValueFrom false
 
 ##  ReportCommand string
-##  	default "/usr/sbin/sendmail -t"
+##  	default "/usr/sbin/sendmail -t -odq"
 ##
 ##  Indicates the shell command to which failure reports should be passed for
-##  delivery when "FailureReports" is enabled.
+##  delivery when "FailureReports" is enabled.  The composed report is piped
+##  to this command on stdin; the command is responsible for delivering it.
+##
+##  The default hands the report to sendmail directly, which has no way to
+##  apply StaleMARC checks, NoReportsList suppression, SMTP AUTH, SSL/TLS, or
+##  VERP -- those require an actual SMTP conversation, not just "sendmail -t".
+##  Pointing this at "opendmarc-reports --forensic" instead applies all of
+##  the above (using the same NoReportsList, StaleMARC, and SMTP settings
+##  configured for aggregate report delivery), connecting directly to the
+##  SMTP server named by --smtp-server/--smtp-port (or OPENDMARC_SMTPSERVER/
+##  OPENDMARC_SMTPPORT) rather than shelling out to sendmail.
 #
-# ReportCommand /usr/sbin/sendmail -t
+# ReportCommand /usr/sbin/sendmail -t -odq
+# ReportCommand /usr/local/sbin/opendmarc-reports --forensic --NoReportsList=/etc/opendmarc/noreports.txt
 
 ##  RequiredHeaders { true | false }
 ##  	default "false"
