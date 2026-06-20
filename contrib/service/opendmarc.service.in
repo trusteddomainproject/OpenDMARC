@@ -19,8 +19,8 @@ Before=postfix.service sendmail.service exim.service exim4.service opensmtpd.ser
 # Type=simple with -f (foreground) lets systemd track the process directly
 # without relying on a PIDFile, avoiding the PIDFile race condition.
 Type=simple
-EnvironmentFile=-@sysconfdir@/sysconfig/opendmarc
-ExecStart=@sbindir@/opendmarc -f $OPTIONS
+EnvironmentFile=-@SYSCONFDIR@/sysconfig/opendmarc
+ExecStart=@SBINDIR@/opendmarc -f $OPTIONS
 ExecReload=/bin/kill -USR1 $MAINPID
 Restart=on-abnormal
 User=opendmarc
@@ -35,7 +35,7 @@ RuntimeDirectory=opendmarc
 #   ReadWritePaths=-/var/db/opendmarc
 # For Postfix socket access via /var/spool/postfix add:
 #   ReadWritePaths=-/var/spool/postfix/opendmarc
-ReadWritePaths=-@localstatedir@/lib/opendmarc
+ReadWritePaths=-@LOCALSTATEDIR@/lib/opendmarc
 
 # Hardening - see systemd.exec(5)
 CapabilityBoundingSet=

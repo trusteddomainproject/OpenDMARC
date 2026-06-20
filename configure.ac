@@ -545,14 +545,20 @@ AC_SUBST(LIBMILTER_LIBS)
 # 
 CPPFLAGS="$CPPFLAGS -DCONFIG_BASE=\\\"$sysconfdir\\\""
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
+test "x$exec_prefix" = xNONE && exec_prefix=$prefix
 SYSCONFDIR=`eval echo "$sysconfdir"`
 AC_SUBST([SYSCONFDIR])
+SBINDIR=`eval echo "$sbindir"`
+AC_SUBST([SBINDIR])
+LOCALSTATEDIR=`eval echo "$localstatedir"`
+AC_SUBST([LOCALSTATEDIR])
 
 #
 # Generate files
 #
 AC_CONFIG_FILES([ Makefile
 	contrib/Makefile
+		contrib/opendmarc-run
 	contrib/init/Makefile
 	contrib/init/generic/Makefile
 	contrib/init/redhat/Makefile

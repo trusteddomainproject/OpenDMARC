@@ -17,9 +17,9 @@ my $helponly    = 0;
 my $showversion = 0;
 my $verbose     = 0;
 
-my $def_conffile    = '@sysconfdir@/opendmarc/opendmarc.conf';
+my $def_conffile    = '@SYSCONFDIR@/opendmarc/opendmarc.conf';
 my $def_historyfile = '/var/run/opendmarc.dat';
-my $import          = '@sbindir@/opendmarc-import';
+my $import          = '@SBINDIR@/opendmarc-import';
 
 my $conffile;
 my $historyfile;

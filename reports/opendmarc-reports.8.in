@@ -32,7 +32,7 @@ as the milter's
 Read configuration from
 .I file
 instead of the default
-.IR @sysconfdir@/opendmarc/opendmarc-reports.conf .
+.IR @SYSCONFDIR@/opendmarc/opendmarc-reports.conf .
 The file contains one
 .I key = value
 entry per line; keys are the long option names without the leading
