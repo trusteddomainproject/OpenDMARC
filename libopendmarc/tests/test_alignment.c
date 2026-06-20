@@ -47,7 +47,7 @@ main(int argc, char **argv)
 	for (alignp = alignm_test; alignp != NULL && alignp->subdomain != NULL; ++alignp)
 	{
 		count += 1;
-		outcome = opendmarc_policy_check_alignment(alignp->subdomain, alignp->tld, alignp->mode);
+		outcome = opendmarc_policy_check_alignment((u_char *)alignp->subdomain, (u_char *)alignp->tld, alignp->mode);
 		if (outcome == alignp->outcome)
 		{
 			//printf("\tALIGNMENT No TLD file: find test: %d: PASS\n", count);
@@ -71,7 +71,7 @@ main(int argc, char **argv)
 	for (alignp = alignm_test; alignp != NULL && alignp->subdomain != NULL; ++alignp)
 	{
 		count += 1;
-		outcome = opendmarc_policy_check_alignment(alignp->subdomain, alignp->tld, alignp->mode);
+		outcome = opendmarc_policy_check_alignment((u_char *)alignp->subdomain, (u_char *)alignp->tld, alignp->mode);
 		if (outcome == alignp->outcome)
 		{
 			//printf("\tALIGNMENT With TLD file: find test: %d: PASS\n", count);

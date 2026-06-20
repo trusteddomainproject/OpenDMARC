@@ -45,13 +45,13 @@ main(int argc, char **argv)
 	for (dpp = dpp_test; dpp != NULL && dpp->dmarc != NULL; ++dpp)
 	{
 		count += 1;
-		pctx = opendmarc_policy_connect_init("1.2.3.4", 0);
+		pctx = opendmarc_policy_connect_init((u_char *)"1.2.3.4", 0);
 		if (pctx == NULL)
 		{
 			(void) fprintf(stderr, "opendmarc_policy_connect_init: %s\n", strerror(errno));
 			return 1;
 		}
-		status = opendmarc_policy_parse_dmarc(pctx, "abuse.net", dpp->dmarc);
+		status = opendmarc_policy_parse_dmarc(pctx, (u_char *)"abuse.net", (u_char *)dpp->dmarc);
 		if (status == dpp->outcome)
 		{
 			//printf("\tDMARC Policy Parse: %d: PASS\n", count);

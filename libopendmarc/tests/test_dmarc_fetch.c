@@ -15,13 +15,13 @@ main(int argc, char **argv)
 	int aspf;
 	
 	pass = fails = count = 0;
-	pctx = opendmarc_policy_connect_init("1.2.3.4", 0);
+	pctx = opendmarc_policy_connect_init((u_char *)"1.2.3.4", 0);
 	if (pctx == NULL)
 	{
 		(void) fprintf(stderr, "opendmarc_policy_connect_init: %s\n", strerror(errno));
 		return 1;
 	}
-	status = opendmarc_policy_parse_dmarc(pctx, "abuse.net", record);
+	status = opendmarc_policy_parse_dmarc(pctx, (u_char *)"abuse.net", (u_char *)record);
 	if (status != DMARC_PARSE_OKAY)
 	{
 		printf("\t%s(%d): opendmarc_policy_parse_dmarc: %s: FAIL\n", __FILE__, __LINE__, opendmarc_policy_status_to_str(status));
@@ -85,7 +85,7 @@ main(int argc, char **argv)
 	count++;
 	{
 		u_char buf[256];
-		u_char *ret = opendmarc_policy_fetch_ruf(pctx, buf, sizeof buf, 1);
+		u_char **ret = opendmarc_policy_fetch_ruf(pctx, buf, sizeof buf, 1);
 		if (ret == NULL)
 		{
 			printf("\t%s(%d): fetch_ruf with valid buf returned NULL: FAIL\n", __FILE__, __LINE__);
@@ -107,7 +107,7 @@ main(int argc, char **argv)
 	count++;
 	{
 		u_char buf[256];
-		u_char *ret = opendmarc_policy_fetch_rua(pctx, buf, sizeof buf, 1);
+		u_char **ret = opendmarc_policy_fetch_rua(pctx, buf, sizeof buf, 1);
 		if (ret == NULL)
 		{
 			printf("\t%s(%d): fetch_rua with valid buf returned NULL: FAIL\n", __FILE__, __LINE__);

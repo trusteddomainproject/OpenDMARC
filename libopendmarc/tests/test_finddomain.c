@@ -35,14 +35,14 @@ main(int argc, char **argv)
 	for (domp = domain_test; domp != NULL && domp->raw != NULL; ++domp)
 	{
 		count += 1;
-		dp = opendmarc_util_finddomain(domp->raw, dbuf, sizeof dbuf);
+		dp = opendmarc_util_finddomain((u_char *)domp->raw, dbuf, sizeof dbuf);
 		if (dp == NULL)
 		{
 			(void) printf("\t%s: %s\n", domp->raw, strerror(errno));
 			++fails;
 			continue;
 		}
-		if (strcmp(dbuf, domp->should_get) == 0)
+		if (strcmp((char *)dbuf, domp->should_get) == 0)
 		{
 			//printf("\tFinddomain test: %d: PASS\n", count);
 			pass += 1;

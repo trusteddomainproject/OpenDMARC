@@ -30,7 +30,7 @@ main(int argc, char **argv)
 	for (tldp = tld_test; tldp != NULL && tldp->domain != NULL; ++tldp)
 	{
 		count += 1;
-		(void) opendmarc_get_tld(tldp->domain, tldbuf, sizeof tldbuf);
+		(void) opendmarc_get_tld((u_char *)tldp->domain, tldbuf, sizeof tldbuf);
 		if (memcmp(tldp->tld, tldbuf, strlen(tldp->tld)) == 0)
 		{
 			//printf("\tTLD find test: %d: PASS\n", count);
