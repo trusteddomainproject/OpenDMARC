@@ -2,6 +2,4 @@
 
 SUBDIRS = init rddmarc service spec
 
-dist_doc_DATA = README opendmarc-run.conf.sample
-
-libexec_SCRIPTS = opendmarc-run
+dist_doc_DATA = README
