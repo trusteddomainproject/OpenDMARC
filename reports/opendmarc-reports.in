@@ -170,7 +170,7 @@ my $smtp_ssl        = 0;
 my $smtp_ssl_ca_file;
 my $smtp;
 
-my $configfile   = '@sysconfdir@/opendmarc/opendmarc-reports.conf';
+my $configfile   = '@SYSCONFDIR@/opendmarc/opendmarc-reports.conf';
 
 my $answer;
 

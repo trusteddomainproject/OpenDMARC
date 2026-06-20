@@ -1,9 +1,11 @@
 # opendmarc-run.conf.sample
 #
 # Local configuration for opendmarc-run.  Copy this file to
-# /etc/opendmarc/opendmarc-run.conf and uncomment/edit the values you
-# want to override.  This file is sourced by opendmarc-run after its
-# built-in defaults, so any variable set here takes precedence.
+# <sysconfdir>/opendmarc/opendmarc-run.conf (e.g. /etc/opendmarc/opendmarc-run.conf,
+# or /usr/local/etc/opendmarc/opendmarc-run.conf on BSD systems) and
+# uncomment/edit the values you want to override.  This file is sourced by
+# opendmarc-run after its built-in defaults, so any variable set here takes
+# precedence.
 #
 # This file is not managed by the package and will survive upgrades.
 #

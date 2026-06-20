@@ -12,9 +12,9 @@ IMPORTFILE=${HISTFILE}.import
 # to use PostgreSQL variants: opendmarc-import-pg, opendmarc-reports-pg, etc.
 SUFFIX=
 
-IMPORT=/usr/local/sbin/opendmarc-import${SUFFIX}
-EXPIRE=/usr/local/sbin/opendmarc-expire${SUFFIX}
-REPORTS=/usr/local/sbin/opendmarc-reports${SUFFIX}
+IMPORT=@SBINDIR@/opendmarc-import${SUFFIX}
+EXPIRE=@SBINDIR@/opendmarc-expire${SUFFIX}
+REPORTS=@SBINDIR@/opendmarc-reports${SUFFIX}
 
 DBHOST=localhost
 DBUSER=opendmarc
@@ -40,7 +40,7 @@ DOMAIN=
 
 # Load local configuration, overriding the defaults above.  This file
 # survives package upgrades since it is not managed by the package.
-[ -f /etc/opendmarc/opendmarc-run.conf ] && . /etc/opendmarc/opendmarc-run.conf
+[ -f @SYSCONFDIR@/opendmarc/opendmarc-run.conf ] && . @SYSCONFDIR@/opendmarc/opendmarc-run.conf
 
 if [ -n "${DBDSN}" ]; then
 	DBOPTS="--db-dsn=${DBDSN} --dbuser=${DBUSER} --dbpasswd=${DBPASSWD}"
