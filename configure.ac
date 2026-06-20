@@ -558,7 +558,6 @@ AC_SUBST([LOCALSTATEDIR])
 #
 AC_CONFIG_FILES([ Makefile
 	contrib/Makefile
-		contrib/opendmarc-run
 	contrib/init/Makefile
 	contrib/init/generic/Makefile
 	contrib/init/redhat/Makefile
@@ -590,6 +589,7 @@ AC_CONFIG_FILES([ Makefile
 		reports/opendmarc-params.8
 		reports/opendmarc-reports
 		reports/opendmarc-reports.8
+		reports/opendmarc-run
 	])
 AC_DEFINE_UNQUOTED([CONFIGURE_ARGS], ["$ac_configure_args"],
                    [Arguments passed to configure])

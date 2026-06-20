@@ -3,10 +3,12 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-dist_doc_DATA = README
+dist_doc_DATA = README opendmarc-run.conf.sample
 
 dist_sbin_SCRIPTS = opendmarc-expire opendmarc-import opendmarc-importstats \
 	opendmarc-params opendmarc-reports
+
+libexec_SCRIPTS = opendmarc-run
 
 CLEANFILES = opendmarc-importstats
 
