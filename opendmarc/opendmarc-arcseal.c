@@ -113,7 +113,7 @@ opendmarc_arcseal_strip_whitespace(u_char *string)
 	/* set remaining chars to null */
 	memset(&string[a], '\0', b - a);
 
-	return string;
+	return (char *)string;
 }
 
 /*
@@ -145,9 +145,9 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 	memset(tmp, '\0', sizeof tmp);
 
 	// guarantee a null-terminated string
-	memcpy(tmp, hdr, MIN(strlen(hdr), sizeof tmp - 1));
+	memcpy(tmp, hdr, MIN(strlen((char *)hdr), sizeof tmp - 1));
 
-	while ((token = strsep((char **)&tmp_ptr, ";")) != NULL)
+	while ((token = (u_char *)strsep((char **)&tmp_ptr, ";")) != NULL)
 	{
 		size_t leading_space_len;
 		as_tag_t tag_code;
@@ -155,24 +155,24 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 		char *tag_label;
 		char *tag_value;
 
-		leading_space_len = strspn(token, " \r\n\t");
-		token_ptr = token + leading_space_len;
+		leading_space_len = strspn((char *)token, " \r\n\t");
+		token_ptr = (char *)token + leading_space_len;
 		if (*token_ptr == '\0')
 			return 0;
 		tag_label = strsep(&token_ptr, "=");
 		if (token_ptr == NULL)
 			return -1;
-		tag_value = opendmarc_arcseal_strip_whitespace(token_ptr);
+		tag_value = opendmarc_arcseal_strip_whitespace((u_char *)token_ptr);
 		tag_code = opendmarc_arcseal_convert(as_tags, tag_label);
 
 		switch (tag_code)
 		{
 		  case AS_TAG_ALGORITHM:
-			strlcpy(as->algorithm, tag_value, sizeof as->algorithm);
+			strlcpy((char *)as->algorithm, tag_value, sizeof as->algorithm);
 				break;
 
 		  case AS_TAG_CHAIN_VALIDATION:
-			strlcpy(as->chain_validation, tag_value, sizeof as->chain_validation);
+			strlcpy((char *)as->chain_validation, tag_value, sizeof as->chain_validation);
 			break;
 
 		  case AS_TAG_INSTANCE:
@@ -180,19 +180,19 @@ opendmarc_arcseal_parse(u_char *hdr, struct arcseal *as)
 			break;
 
 		  case AS_TAG_SIGNATURE_DOMAIN:
-			strlcpy(as->signature_domain, tag_value, sizeof as->signature_domain);
+			strlcpy((char *)as->signature_domain, tag_value, sizeof as->signature_domain);
 			break;
 
 		  case AS_TAG_SIGNATURE_SELECTOR:
-			strlcpy(as->signature_selector, tag_value, sizeof as->signature_selector);
+			strlcpy((char *)as->signature_selector, tag_value, sizeof as->signature_selector);
 			break;
 
 		  case AS_TAG_SIGNATURE_TIME:
-			strlcpy(as->signature_time, tag_value, sizeof as->signature_time);
+			strlcpy((char *)as->signature_time, tag_value, sizeof as->signature_time);
 			break;
 
 		  case AS_TAG_SIGNATURE_VALUE:
-			strlcpy(as->signature_value, tag_value, sizeof as->signature_value);
+			strlcpy((char *)as->signature_value, tag_value, sizeof as->signature_value);
 			break;
 
 		  default:

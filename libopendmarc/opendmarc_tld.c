@@ -47,14 +47,14 @@ opendmarc_reverse_domain(u_char *domain, u_char *buf, size_t buflen)
 		if (*cp !=  '.')
 			break;
 	}
-	if (strlen(cp) == 0)
+	if (strlen((char *)cp) == 0)
 	{
 		return EINVAL;
 	}
 	if (cp > domain)
 		--cp;
 	(void) memset((char *)copy, '\0', sizeof copy);
-	(void) strlcpy((char *)copy, cp, sizeof copy);
+	(void) strlcpy((char *)copy, (char *)cp, sizeof copy);
 	ep = copy + strlen((char *)copy);
 
 	/*
@@ -188,7 +188,7 @@ got_xn:
 		if (adddot == TRUE)
 			(void) strlcat((char *)revbuf, ".", sizeof revbuf);
 
-		if (opendmarc_hash_lookup(hashp, revbuf, (void *)revbuf, strlen(revbuf)) == NULL)
+		if (opendmarc_hash_lookup(hashp, (char *)revbuf, (void *)revbuf, strlen((char *)revbuf)) == NULL)
 			return 1;
 		nlines++;
 	}
@@ -261,16 +261,16 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 		/*
 		** No tld list was supplied so copy the domain and return.
 		*/
-		(void) strlcpy(tld, domain, tld_len);
+		(void) strlcpy((char *)tld, (char *)domain, tld_len);
 		return 0;
 	}
 
-	for (rp = revbuf + strlen(revbuf) -1; rp > revbuf; --rp)
+	for (rp = revbuf + strlen((char *)revbuf) -1; rp > revbuf; --rp)
 	{
 		if (rp == revbuf)
 		{
 			/* no match found in the hash table. */
-			(void) strlcpy(tld, domain, tld_len);
+			(void) strlcpy((char *)tld, (char *)domain, tld_len);
 			break;
 		}
 		if (*rp == '.')
@@ -280,7 +280,7 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 # if HAVE_PTHREAD_H || HAVE_PTHREAD
 			(void) pthread_mutex_lock(&TLD_hctx_mutex);
 # endif
-			vp = opendmarc_hash_lookup(TLD_hctx, revbuf, NULL, 0);
+			vp = opendmarc_hash_lookup(TLD_hctx, (char *)revbuf, NULL, 0);
 # if HAVE_PTHREAD_H || HAVE_PTHREAD
 			(void) pthread_mutex_unlock(&TLD_hctx_mutex);
 # endif
@@ -295,13 +295,13 @@ opendmarc_get_tld(u_char *domain, u_char *tld, size_t tld_len)
 # if HAVE_PTHREAD_H || HAVE_PTHREAD
 			(void) pthread_mutex_lock(&TLD_hctx_mutex);
 # endif
-			vp = opendmarc_hash_lookup(TLD_hctx, revbuf, NULL, 0);
+			vp = opendmarc_hash_lookup(TLD_hctx, (char *)revbuf, NULL, 0);
 # if HAVE_PTHREAD_H || HAVE_PTHREAD
 			(void) pthread_mutex_unlock(&TLD_hctx_mutex);
 # endif
 			if (vp != NULL)
 			{
-				char * cp = strchr(revbuf, '.');
+				char * cp = strchr((char *)revbuf, '.');
 
 				if (cp == NULL)
 					*rp = '.';

@@ -517,8 +517,8 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 	unsigned char *d;
 
 	/* walk the input string looking for unenclosed commas */
-	addr = line;
-	for (p = line; !done; p++)
+	addr = (char *)line;
+	for (p = (char *)line; !done; p++)
 	{
 		if (escaped)
 		{
@@ -556,7 +556,7 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			else
 				*p = '\0';
 
-			status = dmarcf_mail_parse(addr, &u, &d);
+			status = dmarcf_mail_parse((unsigned char *)addr, &u, &d);
 			if (status != 0)
 			{
 				if (uout != NULL)
@@ -617,8 +617,8 @@ dmarcf_mail_parse_multi(unsigned char *line, unsigned char ***users_out,
 			uout[n] = u;
 			dout[n++] = d;
 
-			uout[n] = (char *) NULL;
-			dout[n] = (char *) NULL;
+			uout[n] = (unsigned char *) NULL;
+			dout[n] = (unsigned char *) NULL;
 
 			addr = p + 1;
 
