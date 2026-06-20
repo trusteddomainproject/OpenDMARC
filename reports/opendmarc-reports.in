@@ -278,6 +278,28 @@ sub skip_reason
 	return undef;
 }
 
+# Returns the reason a sending/reported domain should be skipped (for
+# logging), or undef if reports about it should proceed.  Checks the
+# explicit --nodomain/--skipdomains list (which bare NoReportsList entries
+# also feed), StaleMARC, and the suppressions DB.  Shared by the aggregate
+# domain loop and --forensic mode (via the Reported-Domain field), so a
+# bare NoReportsList entry suppresses reports about that domain no matter
+# which path would otherwise generate them.
+sub domain_skip_reason
+{
+	my ($domain) = @_;
+
+	if (@skipdomains && grep({lc($_) eq lc($domain)} @skipdomains) != 0)
+	{
+		return "NoReportsList/--skipdomains";
+	}
+
+	return "StaleMARC" if stale_skip("domain", $domain);
+	return "suppression DB" if db_skip($domain);
+
+	return undef;
+}
+
 # Open a connection to the configured SMTP server, applying SSL/StartTLS
 # and SMTP AUTH settings if configured.  Shared by both aggregate and
 # --forensic sending so those settings apply no matter which is delivering
@@ -653,6 +675,24 @@ if ($forensic)
 		exit(1);
 	}
 
+	# If the message identifies a Reported-Domain (set by the milter in
+	# the AFRF message/feedback-report part), apply the same
+	# sending-domain suppression -- --skipdomains/bare NoReportsList
+	# entries, StaleMARC, the suppressions DB -- that the aggregate path
+	# applies, so a bare NoReportsList entry suppresses reports about
+	# that domain no matter which path would otherwise send them.
+	if ($message =~ /^Reported-Domain:\s*(\S+)/mi)
+	{
+		my $reported_domain = lc($1);
+		my $reason = domain_skip_reason($reported_domain);
+		if (defined($reason))
+		{
+			print STDERR "$progname: --forensic: skipping report for $reported_domain ($reason)\n"
+				if $verbose;
+			exit($EXIT_SUPPRESSED);
+		}
+	}
+
 	# Split headers from body on the first blank line.
 	my ($hdr_block, $body) = split(/\r?\n\r?\n/, $message, 2);
 
@@ -964,13 +1004,10 @@ foreach (@$domainset)
 		next;
 	}
 
-	if (@skipdomains && grep({$_ eq $domain} @skipdomains) != 0)
+	my $domain_reason = domain_skip_reason($domain);
+	if (defined($domain_reason))
 	{
-		next;
-	}
-
-	if (stale_skip("domain", $domain) || db_skip($domain))
-	{
+		print STDERR "$progname: skipping $domain ($domain_reason)\n" if $verbose;
 		next;
 	}
 
