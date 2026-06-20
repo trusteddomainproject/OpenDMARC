@@ -3746,8 +3746,18 @@ mlfi_eom(SMFICTX *ctx)
 						val = status;
 					}
 
-					syslog(LOG_ERR, "%s: pclose() %s %d",
-					       dfc->mctx_jobid, how, val);
+					if (WIFEXITED(status) &&
+					    WEXITSTATUS(status) == REPORTCMD_EXIT_SUPPRESSED)
+					{
+						syslog(LOG_INFO,
+						       "%s: failure report not sent; all recipients suppressed by policy",
+						       dfc->mctx_jobid);
+					}
+					else
+					{
+						syslog(LOG_ERR, "%s: pclose() %s %d",
+						       dfc->mctx_jobid, how, val);
+					}
 				}
 			}
 		}

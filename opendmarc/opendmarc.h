@@ -34,6 +34,7 @@
 #define	BUFRSZ		2048
 #define	DEFCONFFILE	CONFIG_BASE "/opendmarc.conf"
 #define	DEFREPORTCMD	"/usr/sbin/sendmail -t -odq"
+#define	REPORTCMD_EXIT_SUPPRESSED	2	/* ReportCommand sent nothing; all recipients were suppressed by policy (e.g. NoReportsList/StaleMARC), not an error */
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
 #define	MAXARGV		65536
 #define	MAXHEADER	4096
