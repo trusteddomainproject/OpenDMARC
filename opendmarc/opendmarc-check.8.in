@@ -4,6 +4,8 @@
 \- DMARC record check tool
 .SH SYNOPSIS
 .B opendmarc-check
+[\-p pslfile]
+[\-m mode | \-a]
 domain [domain [...]]
 .SH DESCRIPTION
 .B opendmarc-check
@@ -11,6 +13,46 @@ queries the DNS for a DMARC record for the named domain(s) and then translates
 the content found to a human-readable form.  This can be used to ensure that
 the DMARC policy you have placed in the nameserver is what you intended for
 others to see.
+
+.B opendmarc-check
+uses the same libopendmarc query path as the milter itself, so its output
+reflects exactly what the filter would do for a given domain, including
+which organizational domain it would land on and by what mode.
+.SH OPTIONS
+.TP
+.I \-p pslfile
+Load the named Public Suffix List file before querying.  Required for the
+.I psl
+walk mode to find an organizational domain; also affects
+.I auto
+mode.  Without this option no PSL is loaded, matching the longstanding
+default behavior of this tool.
+.TP
+.I \-m mode
+Use the named walk mode to determine the organizational domain when the
+queried domain itself has no DMARC record.
+.I mode
+is one of
+.IR auto " (the default),"
+.IR psl ", " rfc7489 ", or " rfc9989 .
+See
+.I DMARCbisWalkMode
+in
+.I opendmarc.conf(5)
+for what each mode does.  Mutually exclusive with
+.I \-a.
+.TP
+.I \-a
+For each domain, query using all four walk modes in turn and print one
+line of results per mode, instead of the normal detailed single-mode
+report.  Useful for comparing how
+.I psl,
+.I rfc7489,
+and
+.I rfc9989
+diverge or agree on a given domain's organizational domain and policy.
+Mutually exclusive with
+.I \-m.
 .SH VERSION
 This man page covers version @VERSION@ of
 .I opendmarc.
