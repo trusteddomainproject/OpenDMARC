@@ -193,6 +193,7 @@ struct dmarcf_config
 	char *			conf_historyfile;
 	char *			conf_rejectstring;
 	char *			conf_pslist;
+	char *			conf_walkmode;
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
@@ -1332,6 +1333,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "PublicSuffixList",
 		                  &conf->conf_pslist,
 		                  sizeof conf->conf_pslist);
+
+		(void) config_get(data, "DMARCbisWalkMode",
+		                  &conf->conf_walkmode,
+		                  sizeof conf->conf_walkmode);
 
 		if (!conf->conf_dolog)
 		{
@@ -5339,6 +5344,18 @@ main(int argc, char **argv)
 		libopendmarc.tld_type = OPENDMARC_TLD_TYPE_MOZILLA;
 		strncpy((char *)libopendmarc.tld_source_file, curconf->conf_pslist,
 		        sizeof libopendmarc.tld_source_file - 1);
+	}
+
+	if (curconf->conf_walkmode != NULL)
+	{
+		if (strcasecmp(curconf->conf_walkmode, "PSL") == 0)
+			libopendmarc.walk_mode = OPENDMARC_WALK_MODE_PSL;
+		else if (strcasecmp(curconf->conf_walkmode, "RFC7489") == 0)
+			libopendmarc.walk_mode = OPENDMARC_WALK_MODE_RFC7489;
+		else if (strcasecmp(curconf->conf_walkmode, "RFC9989") == 0)
+			libopendmarc.walk_mode = OPENDMARC_WALK_MODE_RFC9989;
+		else
+			libopendmarc.walk_mode = OPENDMARC_WALK_MODE_AUTO;
 	}
 
 	if (opendmarc_policy_library_init(&libopendmarc) != 0)

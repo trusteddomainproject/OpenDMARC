@@ -99,10 +99,23 @@ typedef struct {
 	u_char 			tld_source_file[MAXPATHLEN];
 	int    			nscount;
 	struct sockaddr_in 	nsaddr_list[MAXNS];
+	int			walk_mode;	/* OPENDMARC_WALK_MODE_* */
 } OPENDMARC_LIB_T;
 
 #define OPENDMARC_TLD_TYPE_NONE    (0)	/* Will not use a tld file             */
 #define OPENDMARC_TLD_TYPE_MOZILLA (1)	/* mozilla.org effective_tld_names.dat */
+
+/* Walk mode: how to find the organizational domain when the author domain
+ * has no DMARC record of its own. */
+#define OPENDMARC_WALK_MODE_AUTO    (0)	/* PSL if configured, label walk if not */
+#define OPENDMARC_WALK_MODE_PSL     (1)	/* PSL only; no fallback walk           */
+#define OPENDMARC_WALK_MODE_RFC7489 (2)	/* Label-strip walk, stops before TLD   */
+#define OPENDMARC_WALK_MODE_RFC9989 (3)	/* RFC 9989 S 4.10 DNS Tree Walk        */
+
+/* psd= tag values (RFC 9989) */
+#define DMARC_RECORD_PSD_UNSPECIFIED (0)	/* psd= absent                     */
+#define DMARC_RECORD_PSD_N           (1)	/* psd=n: organizational domain    */
+#define DMARC_RECORD_PSD_Y           (2)	/* psd=y: public suffix domain     */
                
 /*
  * Library one time initialization.

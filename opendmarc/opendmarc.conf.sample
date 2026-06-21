@@ -140,6 +140,31 @@
 # 
 # DomainWhitelistSize 3000
 
+##  DMARCbisWalkMode (string)
+##  	default (none, behaves as "Auto")
+##
+##  Selects the strategy used to find the Organizational Domain when the
+##  author domain has no DMARC record of its own.  Accepted values:
+##
+##    Auto    -- Use PSL if PublicSuffixList is configured; otherwise
+##               fall back to the RFC 7489 label-strip walk.  This is
+##               the pre-DMARCbis default and preserves existing behaviour.
+##
+##    PSL     -- Use the Public Suffix List only.  No fallback walk is
+##               performed if the PSL cannot identify a boundary.  Requires
+##               PublicSuffixList to be configured.
+##
+##    RFC7489 -- Label-strip walk per RFC 7489.  Strips labels from the
+##               left one at a time and stops before bare TLDs.  Does not
+##               require a PSL.
+##
+##    RFC9989 -- DNS Tree Walk per RFC 9989 section 4.10.  Walks upward
+##               through the DNS hierarchy stopping only when a record
+##               with psd=n or psd=y is found.  Applies an 8-query cap.
+##               Does not require a PSL.
+#
+# DMARCbisWalkMode Auto
+
 ##  DNSTimeout (integer)
 ##  	default 5
 ##

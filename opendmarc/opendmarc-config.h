@@ -26,6 +26,7 @@ struct configdef dmarcf_config[] =
 	{ "BaseDirectory",		CONFIG_TYPE_STRING,	FALSE },
 	{ "ChangeRootDirectory",	CONFIG_TYPE_STRING,	FALSE },
 	{ "CopyFailuresTo",		CONFIG_TYPE_STRING,	FALSE },
+	{ "DMARCbisWalkMode",		CONFIG_TYPE_STRING,	FALSE },
 	{ "DNSTimeout",			CONFIG_TYPE_INTEGER,	FALSE },
 	{ "DomainWhitelist",		CONFIG_TYPE_STRING,	FALSE },
 	{ "DomainWhitelistFile",	CONFIG_TYPE_STRING,	FALSE },

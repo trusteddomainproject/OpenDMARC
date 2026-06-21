@@ -145,6 +145,37 @@ final size will be increased by approximately 20% to increase the efficiency of
 the hashing algorithm.
 
 .TP
+.I DMARCbisWalkMode (string)
+Selects the strategy used to find the Organizational Domain when the author
+domain has no DMARC record of its own.  Accepted values are:
+.RS
+.TP
+.B Auto
+Use the Public Suffix List if
+.I PublicSuffixList
+is configured; otherwise fall back to the RFC 7489 label-strip walk.
+This is the default and preserves pre-DMARCbis behaviour.
+.TP
+.B PSL
+Use only the Public Suffix List.  No fallback walk is performed if the PSL
+cannot identify a boundary.  Requires
+.I PublicSuffixList
+to be configured.
+.TP
+.B RFC7489
+Label-strip walk per RFC 7489.  Strips labels from the left one at a time
+and stops before bare TLDs.  Does not require a PSL.
+.TP
+.B RFC9989
+DNS Tree Walk per RFC 9989 section 4.10.  Walks upward through the DNS
+hierarchy stopping when a record with
+.I psd=n
+or
+.I psd=y
+is found.  Applies an 8-query cap.  Does not require a PSL.
+.RE
+
+.TP
 .I DNSTimeout (integer)
 Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
 The default is 5.  Ignored if not using an asynchronous resolver package.

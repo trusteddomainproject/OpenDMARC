@@ -1,0 +1,128 @@
+Open questions and implementation notes for RFC 9989 DNS Tree Walk
+===================================================================
+
+This file tracks uncertainties identified while reading RFC 9989 and
+designing the walk-mode refactor in libopendmarc.  Each item references
+the RFC section where the ambiguity was found.
+
+------------------------------------------------------------------------
+1. Walk exhaustion without psd= (SS 4.10, 4.10.1)
+------------------------------------------------------------------------
+
+If the walk exhausts all labels without finding a record marked psd=n or
+psd=y, but valid DMARC records were encountered along the way (records
+without a psd= tag), the RFC does not clearly specify what to do.
+
+SS 4.10.1 says "if the set produced by the DNS Tree Walk contains no
+DMARC Policy Record, Mail Receivers MUST NOT apply the DMARC mechanism"
+-- but does not define whether records-without-psd= constitute "the set"
+or are considered absent for this purpose.
+
+SS 4.10.1 also contains the paragraph: "If the DMARC Policy Record to be
+applied is that of either the Organizational Domain or the PSD and the
+Author Domain is a subdomain of that domain, then the Domain Owner
+Assessment Policy is taken from the sp= tag (if any) if the Author Domain
+exists or the np= tag (if any) if the Author Domain does not exist."
+This could be read to imply that records-without-psd= found during the
+walk are applicable as org-domain records when the walk exhausts, but
+this is not stated explicitly.
+
+Status: deferred.  Current implementation treats walk exhaustion without
+psd= as no-record-found.
+
+------------------------------------------------------------------------
+2. "might" in secondary alignment walks (S 4.10.2)
+------------------------------------------------------------------------
+
+Section 4.10.2 says: "DNS Tree Walks done to discover an Organizational
+Domain for use in Identifier Alignment Evaluation *might* start at any
+of the following locations: the Author Domain, the SPF-Authenticated
+Identifier, any DKIM-Authenticated Identifier."
+
+"Might" is not a normative term per RFC 2119.  Section 5.3.4 normatively
+requires alignment checking by reference to 4.10.2, but the walk itself
+is described non-normatively.
+
+This means implementations are not clearly required to perform separate
+tree walks for each authenticated identifier to determine its
+organizational domain for relaxed alignment comparison.  A strict reading
+permits using only the org domain found during policy discovery.
+
+Status: secondary alignment walks not implemented in this pass.  Relaxed
+alignment continues to compare org domains using the single walk
+performed during policy discovery.
+
+------------------------------------------------------------------------
+3. Multiple DMARC records at one level (SS 4.10 steps 2 and 6)
+------------------------------------------------------------------------
+
+The walk algorithm says: "if multiple DMARC Policy Records are returned
+for a single target, they are all discarded."
+
+The current dmarc_dns_get_record() implementation returns only the first
+DMARC TXT record found at a name; it cannot detect the presence of
+additional records.  Full compliance with this requirement would need a
+DNS-layer change to count matching records before returning.
+
+Status: known gap.  Current implementation returns the first record;
+multi-record discard is not enforced.
+
+------------------------------------------------------------------------
+4. "One label below" psd=y with the 8-label skip (SS 4.10, 4.10.2)
+------------------------------------------------------------------------
+
+Section 4.10.2 step 2 says: if psd=y is found at a domain other than the
+walk's starting domain, "the Organizational Domain is the domain one label
+below this one in the DNS hierarchy."
+
+When the 8-label skip applies (domains with more than 8 labels jump
+directly to 7 labels per S 4.10 step 4), the walk may not have visited
+the level immediately below the psd=y domain.  "One label below in the
+DNS hierarchy" must therefore be reconstructed from the original starting
+domain, not inferred from the walk's previous step.
+
+Status: tracked.  Implementation computes "one label below" by finding
+the child of the psd=y domain that is an ancestor of the original
+starting domain.
+
+------------------------------------------------------------------------
+5. Fate of records-without-psd= collected during the walk (S 4.10.2)
+------------------------------------------------------------------------
+
+Section 4.10.2 describes a 3-step selection process that operates on
+"domains for which valid DMARC Policy Records were retrieved" -- implying
+the walk accumulates records (including those without psd=) and the
+selection is made afterward.
+
+Section 4.10 steps 2 and 6 say to stop when psd= is found but do not
+say to discard records found at earlier levels.  It is not stated
+explicitly whether the policy-discovery walk (S 4.10.1) also accumulates
+intermediate records or only uses the record at the stopping point.
+
+The 4.10.2 selection step 3 ("select the DMARC Policy Record found at
+the name with the fewest number of labels") only makes sense if multiple
+records were collected.  This implies the walk accumulates all valid
+single records encountered, stopping only when psd= is hit.
+
+Status: walk implementation accumulates records.  The selection process
+from 4.10.2 is applied post-walk.  Policy discovery (4.10.1) uses the
+psd= stopping record when found; falls back to fewest-labels selection
+when the walk exhausts without psd=.
+
+------------------------------------------------------------------------
+6. AUTO mode fallback scope when a PSL boundary is found but unqueryable
+------------------------------------------------------------------------
+
+In OPENDMARC_WALK_MODE_AUTO, query_dmarc_psl() is tried first.  If it
+fails for any reason, query_dmarc_rfc7489_walk() is tried next.  This
+includes the case where the PSL found a real organizational-domain
+boundary but a query at that boundary turned up no record, not only the
+case where the PSL found no boundary at all (not loaded, or returned the
+input domain unchanged).
+
+This is broader than the pre-refactor (RFC 7489-only) behavior, which
+stopped without falling back to the label walk once a PSL boundary was
+identified and queried unsuccessfully.
+
+Status: intentional.  AUTO favors finding a record over strict adherence
+to the PSL boundary when one was identified but had nothing there.
