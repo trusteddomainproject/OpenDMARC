@@ -30,7 +30,7 @@ require LWP::UserAgent;
 
 # general
 my $progname      = basename($0);
-my $version       = "@VERSION@";
+my $version       = "@DMARCF_VERSION@";
 my $verbose       = 0;
 my $helponly      = 0;
 my $showversion   = 0;
@@ -752,6 +752,13 @@ if ($forensic)
 
 	$smtp = smtp_connect();
 	exit(1) unless defined($smtp);
+
+	# Mark the relay hop so a recipient (or an admin troubleshooting
+	# delivery) can tell this report passed through opendmarc-reports
+	# rather than going straight out via the milter's ReportCommand
+	# (e.g. "sendmail -t"), which leaves no such trace of its own.
+	my $received_datestr = strftime("%a, %e %b %Y %H:%M:%S %z (%Z)", localtime);
+	$message = "Received: by " . hostfqdn() . " (opendmarc-reports v$version) via forensic relay; $received_datestr\n" . $message;
 
 	my $archive_label = $rcpts[0];
 	$archive_label .= "+" . (scalar(@rcpts) - 1) if @rcpts > 1;

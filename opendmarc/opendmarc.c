@@ -3635,7 +3635,7 @@ mlfi_eom(SMFICTX *ctx)
 			                   "Version: 1\n");
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
-			                      "User-Agent: %s/%s\n",
+			                      "X-Mailer: %s/%s\n",
 			                      DMARCF_PRODUCTNS, DMARCF_VERSION);
 
 			dmarcf_dstring_cat(dfc->mctx_afrf,

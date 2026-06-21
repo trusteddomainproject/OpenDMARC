@@ -82,6 +82,7 @@ fi
 AC_MSG_RESULT([$DMARCF_VERSION])
 AC_DEFINE_UNQUOTED([DMARCF_VERSION], ["$DMARCF_VERSION"],
                    [Version string, including git hash on development builds])
+AC_SUBST([DMARCF_VERSION])
 
 #
 # Hexadecimal version, for use in generating dmarc.h
