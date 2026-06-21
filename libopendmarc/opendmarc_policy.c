@@ -817,7 +817,7 @@ query_dmarc_psl(DMARC_POLICY_T *pctx, u_char *domain,
 	    strcasecmp((char *)tld, (char *)domain) == 0)
 		return DMARC_DNS_ERROR_NO_RECORD;
 
-	pctx->organizational_domain = strdup((char *)tld);
+	pctx->organizational_domain = (u_char *)strdup((char *)tld);
 
 	if (dmarc_query_at((char *)tld, &dns_reply, buf, bufsz) != NULL)
 	{
@@ -860,7 +860,7 @@ query_dmarc_rfc7489_walk(DMARC_POLICY_T *pctx, u_char *domain,
 
 		if (dmarc_query_at((char *)cur, &dns_reply, buf, bufsz) != NULL)
 		{
-			pctx->organizational_domain = strdup((char *)cur);
+			pctx->organizational_domain = (u_char *)strdup((char *)cur);
 			pctx->org_domain_from_fallback = 1;
 			if (dns_reply_out != NULL)
 				*dns_reply_out = dns_reply;
@@ -1001,11 +1001,11 @@ query_dmarc_rfc9989_walk(DMARC_POLICY_T *pctx, u_char *domain,
 	 *   Step 3: no psd= -> use best_domain (fewest labels = last found).
 	 */
 	if (best_psd == DMARC_RECORD_PSD_N)
-		pctx->organizational_domain = strdup(best_domain);
+		pctx->organizational_domain = (u_char *)strdup(best_domain);
 	else if (best_psd == DMARC_RECORD_PSD_Y)
-		pctx->organizational_domain = strdup(prev);
+		pctx->organizational_domain = (u_char *)strdup(prev);
 	else
-		pctx->organizational_domain = strdup(best_domain);
+		pctx->organizational_domain = (u_char *)strdup(best_domain);
 
 	(void) strlcpy((char *)buf, (char *)best_buf, bufsz);
 	return DMARC_PARSE_OKAY;
