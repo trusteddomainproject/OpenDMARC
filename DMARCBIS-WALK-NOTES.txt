@@ -108,3 +108,21 @@ Status: walk implementation accumulates records.  The selection process
 from 4.10.2 is applied post-walk.  Policy discovery (4.10.1) uses the
 psd= stopping record when found; falls back to fewest-labels selection
 when the walk exhausts without psd=.
+
+------------------------------------------------------------------------
+6. AUTO mode fallback scope when a PSL boundary is found but unqueryable
+------------------------------------------------------------------------
+
+In OPENDMARC_WALK_MODE_AUTO, query_dmarc_psl() is tried first.  If it
+fails for any reason, query_dmarc_rfc7489_walk() is tried next.  This
+includes the case where the PSL found a real organizational-domain
+boundary but a query at that boundary turned up no record, not only the
+case where the PSL found no boundary at all (not loaded, or returned the
+input domain unchanged).
+
+This is broader than the pre-refactor (RFC 7489-only) behavior, which
+stopped without falling back to the label walk once a PSL boundary was
+identified and queried unsuccessfully.
+
+Status: intentional.  AUTO favors finding a record over strict adherence
+to the PSL boundary when one was identified but had nothing there.
