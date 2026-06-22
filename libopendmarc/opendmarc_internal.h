@@ -209,10 +209,15 @@ typedef struct {
 #define	OPENDMARC_MIN_SHELVES	(1 << OPENDMARC_MIN_SHELVES_LG2)
 
 /*
- * max * sizeof internal_entry must fit into size_t.
- * assumes internal_entry is <= 32 (2^5) bytes.
+ * Largest table size opendmarc_hash_init() will honor. The real
+ * caller (opendmarc_tld.c) only ever asks for 8192; this just keeps a
+ * runaway or hostile tablesize argument from reaching calloc(). Fixed
+ * well below any allocator limit rather than derived from sizeof(size_t),
+ * since the size of OPENDMARC_HASH_SHELF (which includes a pthread_mutex_t)
+ * varies by platform and a sizeof-derived bound can creep past what
+ * calloc() will actually allocate.
  */
-#define	OPENDMARC_MAX_SHELVES_LG2	(sizeof (size_t) * 8 - 1 - 5)
+#define	OPENDMARC_MAX_SHELVES_LG2	24
 #define	OPENDMARC_MAX_SHELVES	((size_t)1 << OPENDMARC_MAX_SHELVES_LG2)
 
 typedef struct {
