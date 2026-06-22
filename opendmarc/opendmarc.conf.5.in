@@ -198,6 +198,36 @@ is unchanged from before this setting existed.
 own PSL-then-RFC7489 fallback behaviour is unaffected by this setting.
 
 .TP
+.I DMARCbisIgnorePct (Boolean)
+RFC 9989 removes the
+.I pct
+tag.  By default (false), this filter keeps honoring it exactly as before:
+a published
+.I pct
+value gates whether
+.I RejectFailures
+or
+.I HoldQuarantinedMessages
+actually act on a given message, via a per-message random draw against
+.IR pct .
+This default exists because
+.I pct=0
+and
+.I pct=100
+remain common in real published DMARC records (notably as a Domain
+Owner's deliberate way to publish a stricter
+.I p
+value, such as during pre-production testing, without yet enforcing it).
+Setting this to true ignores
+.I pct
+entirely, equivalent to treating every record as
+.IR pct=100 ,
+for full RFC 9989 compliance.  This does not affect the
+.I t
+tag, which is honored unconditionally per RFC 9989 regardless of this
+setting.
+
+.TP
 .I DNSTimeout (integer)
 Sets the DNS timeout in seconds.  A value of 0 causes an infinite wait.
 The default is 5.  Ignored if not using an asynchronous resolver package.

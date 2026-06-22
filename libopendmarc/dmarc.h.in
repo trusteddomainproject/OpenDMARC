@@ -55,6 +55,9 @@ extern "C" {
 #define DMARC_RECORD_FO_1		(0x2)		/* fo, a bitmap */
 #define DMARC_RECORD_FO_D		(0x4)		/* fo, a bitmap */
 #define DMARC_RECORD_FO_S		(0x8)		/* fo, a bitmap */
+#define DMARC_RECORD_T_UNSPECIFIED	('\0')		/* t, RFC 9989 test mode; absent behaves as "n" */
+#define DMARC_RECORD_T_N		('n')		/* t */
+#define DMARC_RECORD_T_Y		('y')		/* t */
 
 #define DMARC_PARSE_OKAY			(0)	/* Okay to continue */
 #define DMARC_PARSE_ERROR_EMPTY			(1)	/* Nothing to parse */
@@ -161,6 +164,7 @@ OPENDMARC_STATUS_T opendmarc_policy_fetch_adkim(DMARC_POLICY_T *pctx, int *adkim
 OPENDMARC_STATUS_T opendmarc_policy_fetch_aspf(DMARC_POLICY_T *pctx, int *aspf);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_p(DMARC_POLICY_T *pctx, int *p);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_t(DMARC_POLICY_T *pctx, int *t);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_fo(DMARC_POLICY_T *pctx, int *fo);
 u_char **	   opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);
 u_char **	   opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);

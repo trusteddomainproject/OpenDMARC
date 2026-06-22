@@ -1440,6 +1440,16 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			else
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 		}
+		else if (strcasecmp((char *)cp, "t") == 0)
+		{
+			/* RFC 9989: test mode, replaces most of pct='s former role */
+			if (strncasecmp((char *)vp, "y", 1) == 0)
+				pctx->t = DMARC_RECORD_T_Y;
+			else if (strncasecmp((char *)vp, "n", 1) == 0)
+				pctx->t = DMARC_RECORD_T_N;
+			else
+				return DMARC_PARSE_ERROR_BAD_VALUE;
+		}
 		else if (strcasecmp((char *)cp, "adkim") == 0)
 		{
 			/*
@@ -1804,6 +1814,21 @@ opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp)
 		return DMARC_PARSE_ERROR_EMPTY;
 	}
 	*sp = pctx->sp;
+	return DMARC_PARSE_OKAY;
+}
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_t(DMARC_POLICY_T *pctx, int *t)
+{
+	if (pctx == NULL)
+	{
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	}
+	if (t == NULL)
+	{
+		return DMARC_PARSE_ERROR_EMPTY;
+	}
+	*t = pctx->t;
 	return DMARC_PARSE_OKAY;
 }
 

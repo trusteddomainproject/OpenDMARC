@@ -171,6 +171,7 @@ typedef struct dmarc_policy_t {
 	int		sp;
 	int		np;		/* RFC 9989: non-existent subdomain policy */
 	int		psd;		/* RFC 9989: DMARC_RECORD_PSD_* */
+	int		t;		/* RFC 9989: DMARC_RECORD_T_*, test mode */
 	int		pct;
 	int		rf;
 	uint32_t	ri;

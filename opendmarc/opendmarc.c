@@ -182,6 +182,7 @@ struct dmarcf_config
 	_Bool			conf_ignoreauthclients;
 	_Bool			conf_holdquarantinedmessages;
 	_Bool			conf_reject_multi_from;
+	_Bool			conf_ignorepct;
 	unsigned int		conf_refcnt;
 	unsigned int		conf_dnstimeout;
 	struct config *		conf_data;
@@ -1283,6 +1284,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		                  &conf->conf_rejectfail,
 		                  sizeof conf->conf_rejectfail);
 
+		(void) config_get(data, "DMARCbisIgnorePct",
+		                  &conf->conf_ignorepct,
+		                  sizeof conf->conf_ignorepct);
+
 		(void) config_get(data, "RejectString",
 		                  &conf->conf_rejectstring,
 		                  sizeof conf->conf_rejectstring);
@@ -2270,6 +2275,7 @@ mlfi_eom(SMFICTX *ctx)
 	int c;
 	int pc;
 	int policy;
+	int enforce_policy;
 	int skiphistory = 0;
 	int status;
 	int adkim;
@@ -2277,6 +2283,7 @@ mlfi_eom(SMFICTX *ctx)
 	int pct;
 	int p;
 	int sp;
+	int t;
 	int align_dkim;
 	int align_spf;
 	int limit_arc = 0;
@@ -3316,6 +3323,8 @@ mlfi_eom(SMFICTX *ctx)
 	opendmarc_policy_fetch_sp(cc->cctx_dmarc, &sp);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "sp %d\n", sp);
 
+	opendmarc_policy_fetch_t(cc->cctx_dmarc, &t);
+
 	{
 		int fo = DMARC_RECORD_FO_UNSPECIFIED;
 		opendmarc_policy_fetch_fo(cc->cctx_dmarc, &fo);
@@ -3349,12 +3358,31 @@ mlfi_eom(SMFICTX *ctx)
 
 	/*
 	**  Enact policy based on DMARC results.
+	**
+	**  RFC 9989 S 3.2.7/Appendix A.6: t=y is a request that the policy
+	**  actually applied be one level below the published Domain Owner
+	**  Assessment Policy ("reject" -> "quarantine", "quarantine" -> "none"),
+	**  not a request to suppress enforcement outright.  It has no effect
+	**  when the policy is already "none".  This is kept in a separate
+	**  variable rather than overwriting "policy": t= "does not affect the
+	**  generation of DMARC reports" per RFC 9989, and "policy" is read
+	**  again below (failure report eligibility) where the unadjusted,
+	**  published policy must still apply.
 	*/
+
+	enforce_policy = policy;
+	if (t == DMARC_RECORD_T_Y)
+	{
+		if (enforce_policy == DMARC_POLICY_REJECT)
+			enforce_policy = DMARC_POLICY_QUARANTINE;
+		else if (enforce_policy == DMARC_POLICY_QUARANTINE)
+			enforce_policy = DMARC_POLICY_NONE;
+	}
 
 	result = DMARC_RESULT_ACCEPT;
 	ret = SMFIS_ACCEPT;
 
-	switch (policy)
+	switch (enforce_policy)
 	{
 	  case DMARC_POLICY_ABSENT:		/* No DMARC record found */
 	  case DMARC_FROM_DOMAIN_ABSENT:	/* No From: domain */
@@ -3374,7 +3402,7 @@ mlfi_eom(SMFICTX *ctx)
 		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_rejectfail &&
-		    random() % 100 < pct)
+		    (conf->conf_ignorepct || random() % 100 < pct))
 		{
 			if (strstr(conf->conf_rejectstring, "%s") != NULL)
 				snprintf((char *)replybuf, sizeof replybuf,
@@ -3412,7 +3440,7 @@ mlfi_eom(SMFICTX *ctx)
 		ret = SMFIS_CONTINUE;
 
 		if (conf->conf_holdquarantinedmessages &&
-		    random() % 100 < pct)
+		    (conf->conf_ignorepct || random() % 100 < pct))
 		{
 			/* quarantine will be deferred until after the ARC policy eval */
 
