@@ -762,7 +762,28 @@ if ($forensic)
 
 	my $archive_label = $rcpts[0];
 	$archive_label .= "+" . (scalar(@rcpts) - 1) if @rcpts > 1;
-	archive_report($archive_label, $message);
+
+	# Record the envelope sender(s) actually used for this report as a
+	# non-standard comment preamble on the archived copy.  VERP only
+	# changes the SMTP envelope (MAIL FROM), which leaves no trace in the
+	# message itself, so without this the archive can't show whether, or
+	# how, VERP fired.  Deliberately not formatted as RFC822 headers:
+	# archive_report()'s whole point is to capture the message exactly as
+	# it's handed to SMTP, and inventing header lines that were never
+	# really part of it would misrepresent that more than a few
+	# non-standard "#" lines on top do.
+	my $archive_preamble;
+	if ($verp)
+	{
+		$archive_preamble = "# VERP envelope senders used for this report:\n";
+		$archive_preamble .= "#   $_ -> " . verp_sender($repemail, $_) . "\n"
+			for @rcpts;
+	}
+	else
+	{
+		$archive_preamble = "# Envelope sender used for this report: $repemail\n";
+	}
+	archive_report($archive_label, $archive_preamble . $message);
 
 	$smtpfail = 0;
 
