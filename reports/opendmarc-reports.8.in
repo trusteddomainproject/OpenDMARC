@@ -35,7 +35,14 @@ one file per report, named
 .IR seconds-pid-seq-label.eml .
 Each file contains the full message exactly as handed to SMTP (headers and
 MIME body), not just the gzipped XML or AFRF attachment, for later review
-of RFC compliance or message structure.
+of RFC compliance or message structure, with one exception: in forensic
+mode, the archived copy is prefixed with one or more non-standard
+.B #
+comment lines recording the envelope sender(s) actually used to send it,
+since that information (particularly the per-recipient address used when
+.I --verp
+is enabled) is otherwise never recorded anywhere -- the SMTP envelope
+leaves no trace in the message itself.
 .I label
 is the destination domain for aggregate reports, or the (first) recipient
 for forensic reports, with characters outside
