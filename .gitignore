@@ -24,3 +24,4 @@ HOURS
 tags
 .vscode
 libopendmarc/dmarc.h
+compile_commands.json

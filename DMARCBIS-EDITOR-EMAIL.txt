@@ -1,0 +1,120 @@
+Subject: RFC 9989 S4.10 DNS Tree Walk - a few questions from an implementer
+
+Todd, John,
+
+I've been implementing the S4.10 DNS Tree Walk in OpenDMARC (replacing
+the old PSL-based lookup for the Organizational Domain) and hit a few
+spots where the text doesn't quite pin down what to do. Figured it was
+worth asking rather than guessing and shipping it.
+
+1. Walk exhaustion without psd= (S4.10.1)
+
+If the walk runs out of labels without ever finding a record with
+psd=n or psd=y, but it passed one or more valid DMARC Policy Records
+(no psd= tag) along the way, does that count as "the set produced by
+the DNS Tree Walk contains no DMARC Policy Record" (S4.10.1), or do
+those earlier records still count for something? Right now we're
+treating exhaustion-without-psd= the same as no-record-found at all,
+which seemed like the safe reading, but it's not stated either way as
+far as I can tell.
+
+2. "might" in S4.10.2
+
+S4.10.2 says alignment-evaluation tree walks "might" start at the
+Author Domain, the SPF-Authenticated Identifier, or a DKIM-Authenticated
+Identifier. Since "might" isn't 2119 language, is it actually optional
+whether an implementation runs separate walks per identifier, or is
+reusing the org domain from policy discovery for all of them not
+really compliant? S5.3.4 points back at 4.10.2 normatively, so I want
+to make sure we're not quietly skipping something that's meant to be
+required.
+
+3. "one label below" plus the 8-label shortcut (S4.10 step 4, S4.10.2 step 2)
+
+S4.10.2 step 2 says when psd=y shows up somewhere other than the
+walk's starting domain, the Organizational Domain is the domain one
+label below it in the DNS hierarchy. But if the walk got there via the
+8-label shortcut, it may never have actually queried that intermediate
+label. We're reconstructing "one label below" from the original
+starting domain rather than from whatever the walk's previous step
+happened to be, since the previous step may not be that label at all
+in shortcut cases. Does that match what you intended?
+
+4. What happens to the non-psd= records collected along the way (S4.10.2)
+
+The step 3 selection ("found at the name with the fewest number of
+labels") only makes sense if the walk is accumulating every valid
+record it sees, not just whatever it has when it stops. We're
+accumulating all of them and running the psd=n / psd=y / fewest-labels
+selection after the walk finishes. Wanted to confirm that's the model
+rather than, say, only the stopping record being eligible.
+
+Happy to send over the relevant bit of our implementation (C, in
+libopendmarc) if that's easier than describing it in prose. Thanks for
+any clarification.
+
+Dan
+
+========================================================================
+Reply: John Levine <johnl@ietf.email>, dmarc@ietf.org, 2026-06-20
+========================================================================
+
+We tried hard to make the tree walk produce the same result as the old
+PSL check in nearly every case, because we did not want to introduce
+gratuitous incompatibilities, and because we know that most people are
+not going to change the DMARC records they've already published. So
+you know that most DMARC records will not need to change and if you're
+usually getting different results from the old PSL approach, you're
+reading the spec wrong.
+
+> 1. Walk exhaustion without psd= (S4.10.1)
+>
+> If the walk runs out of labels without ever finding a record with
+> psd=n or psd=y, but it passed one or more valid DMARC Policy Records
+> (no psd= tag) along the way, does that count as "the set produced by
+> the DNS Tree Walk contains no DMARC Policy Record" (S4.10.1), or do
+> those earlier records still count for something?
+
+A DMARC policy record is defined in section 3.2.6. In section 4.7 you
+will find the description of the psd= flag, with the word OPTIONAL in
+bold face capitals, and text telling you that the default value is "u".
+
+> Right now we're treating exhaustion-without-psd= the same as
+> no-record-found at all,
+
+That is completely wrong. See above. Every record without an explicit
+psd value has an implicit psd=u, if you really really want to find psd
+values everywhere.
+
+> 2. "might" in S4.10.2
+>
+> ... is it actually optional whether an implementation runs separate
+> walks per identifier,
+
+No. When looking for an organizational domain, the tree walk starts at
+one of the places it looked for but did not find a strictly aligned
+record. That point might be the author domain, or it might be the SPF
+domain, or it might be the DKIM domain. But it's definitely one of
+those three.
+
+> 3. "one label below" plus the 8-label shortcut (S4.10 step 4, S4.10.2
+> step 2)
+>
+> ... if the walk got there via the 8-label shortcut, it may never have
+> actually queried that intermediate label.
+
+That's OK. You do what it says. I would be very surprised if there were
+any situations where this particular thing happened other than
+contrived examples.
+
+> 4. What happens to the non-psd= records collected along the way
+> (S4.10.2)
+>
+> The step 3 selection ... only makes sense if the walk is accumulating
+> every valid record it sees, not just whatever it has when it stops.
+
+You're in luck. It's accumulating every valid record it sees, whether
+or not they contain the optional psd= flag.
+
+R's,
+John

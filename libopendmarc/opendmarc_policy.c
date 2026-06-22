@@ -25,6 +25,14 @@
 # include <opendmarc_strl.h>
 #endif /* USE_DMARCSTRL_H */
 
+/* Forward declarations for the walk strategies defined further below,
+ * needed by opendmarc_policy_check_alignment()'s S 4.10.2 secondary
+ * alignment walk. */
+static OPENDMARC_STATUS_T query_dmarc_rfc7489_walk(DMARC_POLICY_T *pctx, u_char *domain,
+                                                    u_char *buf, size_t bufsz, int *dns_reply_out);
+static OPENDMARC_STATUS_T query_dmarc_rfc9989_walk(DMARC_POLICY_T *pctx, u_char *domain,
+                                                    u_char *buf, size_t bufsz, int *dns_reply_out);
+
 /*
 **  CHECK_DOMAIN -- check for syntactical validity of a domain name
 **
@@ -269,6 +277,70 @@ opendmarc_policy_connect_shutdown(DMARC_POLICY_T *pctx)
 	return pctx;
 }
 
+/*
+ * reduce_to_org_domain_for_alignment: find the organizational domain of
+ * 'domain' (an SPF- or DKIM-authenticated identifier) per S 4.10.2's
+ * secondary alignment walk, using whichever strategy is given by
+ * walk_mode.  PSL and AUTO are handled as a direct PSL lookup, as before
+ * this function existed -- a name-boundary lookup with no DNS query and
+ * no requirement that a record exist at the result.  RFC7489 and RFC9989
+ * run the same DNS walk used for policy discovery (S 4.10), started at
+ * 'domain' instead of the Author Domain, since for those strategies the
+ * walk itself -- not a static list -- is what defines the organizational
+ * domain.  A throwaway policy context is used so this has no effect on
+ * any real DMARC_POLICY_T the caller may be holding.
+ *
+ * Returns 0 on success (outbuf filled), nonzero on failure.
+ */
+static int
+reduce_to_org_domain_for_alignment(u_char *domain, int walk_mode,
+                                    u_char *outbuf, size_t outbufsz)
+{
+	switch (walk_mode)
+	{
+	case OPENDMARC_WALK_MODE_RFC7489:
+	case OPENDMARC_WALK_MODE_RFC9989:
+	{
+		DMARC_POLICY_T scratch;
+		u_char rectext[BUFSIZ];
+		int dns_reply = 0;
+		OPENDMARC_STATUS_T status;
+
+		(void) memset(&scratch, '\0', sizeof scratch);
+		status = (walk_mode == OPENDMARC_WALK_MODE_RFC9989)
+		    ? query_dmarc_rfc9989_walk(&scratch, domain, rectext, sizeof rectext, &dns_reply)
+		    : query_dmarc_rfc7489_walk(&scratch, domain, rectext, sizeof rectext, &dns_reply);
+
+		if (status == DMARC_PARSE_OKAY && scratch.organizational_domain != NULL)
+			(void) strlcpy((char *)outbuf, (char *)scratch.organizational_domain, outbufsz);
+
+		if (scratch.organizational_domain != NULL)
+			free(scratch.organizational_domain);
+
+		return (status == DMARC_PARSE_OKAY) ? 0 : -1;
+	}
+
+	case OPENDMARC_WALK_MODE_PSL:
+	case OPENDMARC_WALK_MODE_AUTO:
+	default:
+	{
+		int ret = opendmarc_get_tld(domain, outbuf, outbufsz);
+
+		/*
+		 * No PSL loaded (or no boundary found in it) leaves outbuf
+		 * identical to domain; treat that as failure here too, the same
+		 * way query_dmarc_psl() does for policy discovery, so the caller
+		 * knows to try walk_mode_fallback instead of silently "succeeding"
+		 * with no actual reduction.
+		 */
+		if (ret == 0 && (outbuf[0] == '\0' || strcasecmp((char *)outbuf, (char *)domain) == 0))
+			return -1;
+
+		return ret;
+	}
+	}
+}
+
 int
 opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
 {
@@ -322,7 +394,21 @@ opendmarc_policy_check_alignment(u_char *subdomain, u_char *tld, int mode)
         if (ret == 0 && mode == DMARC_RECORD_A_RELAXED)
                         return 0;
 
-	ret = opendmarc_get_tld(tld, tld_buf, sizeof tld_buf);
+	{
+		int walk_mode = (Opendmarc_Libp != NULL)
+		    ? Opendmarc_Libp->walk_mode : OPENDMARC_WALK_MODE_AUTO;
+
+		ret = reduce_to_org_domain_for_alignment(tld, walk_mode, tld_buf, sizeof tld_buf);
+		if (ret != 0)
+		{
+			int walk_mode_fallback = (Opendmarc_Libp != NULL)
+			    ? Opendmarc_Libp->walk_mode_fallback : OPENDMARC_WALK_MODE_NONE;
+
+			if (walk_mode_fallback != OPENDMARC_WALK_MODE_NONE)
+				ret = reduce_to_org_domain_for_alignment(tld, walk_mode_fallback,
+				                                         tld_buf, sizeof tld_buf);
+		}
+	}
 	if (ret != 0)
 		return -1;
 	(void) memset(rev_tld, '\0', sizeof rev_tld);
@@ -1011,6 +1097,33 @@ query_dmarc_rfc9989_walk(DMARC_POLICY_T *pctx, u_char *domain,
 	return DMARC_PARSE_OKAY;
 }
 
+/*
+ * run_walk_strategy: dispatch to one concrete org-domain strategy
+ * (OPENDMARC_WALK_MODE_PSL, _RFC7489, or _RFC9989).  Used for both the
+ * primary walk_mode and, if configured, walk_mode_fallback; AUTO is not
+ * a valid argument here since it is a combinator of these three, not a
+ * strategy itself.
+ */
+static OPENDMARC_STATUS_T
+run_walk_strategy(int mode, DMARC_POLICY_T *pctx, u_char *domain,
+                   u_char *buf, size_t bufsz, int *dns_reply_out)
+{
+	switch (mode)
+	{
+	case OPENDMARC_WALK_MODE_PSL:
+		return query_dmarc_psl(pctx, domain, buf, bufsz, dns_reply_out);
+
+	case OPENDMARC_WALK_MODE_RFC9989:
+		return query_dmarc_rfc9989_walk(pctx, domain, buf, bufsz, dns_reply_out);
+
+	case OPENDMARC_WALK_MODE_RFC7489:
+		return query_dmarc_rfc7489_walk(pctx, domain, buf, bufsz, dns_reply_out);
+
+	default:
+		return DMARC_DNS_ERROR_NO_RECORD;
+	}
+}
+
 /**************************************************************************
 ** OPENDMARC_POLICY_QUERY_DMARC -- Look up the _dmarc record for the
 **					specified domain. If not found
@@ -1071,30 +1184,32 @@ opendmarc_policy_query_dmarc(DMARC_POLICY_T *pctx, u_char *domain)
 	    ? Opendmarc_Libp->walk_mode
 	    : OPENDMARC_WALK_MODE_AUTO;
 
-	switch (walk_mode)
+	if (walk_mode == OPENDMARC_WALK_MODE_AUTO)
 	{
-	case OPENDMARC_WALK_MODE_PSL:
-		status = query_dmarc_psl(pctx, domain, buf, sizeof buf, &dns_reply);
-		break;
-
-	case OPENDMARC_WALK_MODE_RFC9989:
-		status = query_dmarc_rfc9989_walk(pctx, domain, buf, sizeof buf, &dns_reply);
-		break;
-
-	case OPENDMARC_WALK_MODE_RFC7489:
-		status = query_dmarc_rfc7489_walk(pctx, domain, buf, sizeof buf, &dns_reply);
-		break;
-
-	case OPENDMARC_WALK_MODE_AUTO:
-	default:
 		/*
 		 * AUTO: use PSL if a TLD file is loaded, otherwise fall back to
-		 * the RFC 7489 label-strip walk.  Preserves pre-refactor behaviour.
+		 * the RFC 7489 label-strip walk.  Preserves pre-refactor behaviour;
+		 * walk_mode_fallback is not consulted here since AUTO is already
+		 * a fixed two-strategy combinator.
 		 */
 		status = query_dmarc_psl(pctx, domain, buf, sizeof buf, &dns_reply);
 		if (status != DMARC_PARSE_OKAY)
 			status = query_dmarc_rfc7489_walk(pctx, domain, buf, sizeof buf, &dns_reply);
-		break;
+	}
+	else
+	{
+		status = run_walk_strategy(walk_mode, pctx, domain, buf, sizeof buf, &dns_reply);
+
+		if (status != DMARC_PARSE_OKAY)
+		{
+			int walk_mode_fallback = (Opendmarc_Libp != NULL)
+			    ? Opendmarc_Libp->walk_mode_fallback
+			    : OPENDMARC_WALK_MODE_NONE;
+
+			if (walk_mode_fallback != OPENDMARC_WALK_MODE_NONE)
+				status = run_walk_strategy(walk_mode_fallback, pctx, domain,
+				                           buf, sizeof buf, &dns_reply);
+		}
 	}
 
 	if (status != DMARC_PARSE_OKAY)

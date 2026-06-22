@@ -147,7 +147,9 @@ the hashing algorithm.
 .TP
 .I DMARCbisWalkMode (string)
 Selects the strategy used to find the Organizational Domain when the author
-domain has no DMARC record of its own.  Accepted values are:
+domain has no DMARC record of its own, and, per RFC 9989 section 4.10.2, the
+Organizational Domain of an SPF- or DKIM-authenticated identifier during
+relaxed alignment evaluation.  Accepted values are:
 .RS
 .TP
 .B Auto
@@ -158,7 +160,9 @@ This is the default and preserves pre-DMARCbis behaviour.
 .TP
 .B PSL
 Use only the Public Suffix List.  No fallback walk is performed if the PSL
-cannot identify a boundary.  Requires
+cannot identify a boundary, unless one is configured with
+.IR DMARCbisWalkModeFallback .
+Requires
 .I PublicSuffixList
 to be configured.
 .TP
@@ -174,6 +178,24 @@ or
 .I psd=y
 is found.  Applies an 8-query cap.  Does not require a PSL.
 .RE
+
+.TP
+.I DMARCbisWalkModeFallback (string)
+Selects a second strategy to try, using the same accepted values as
+.I DMARCbisWalkMode
+except
+.BR Auto ,
+if the strategy chosen by
+.I DMARCbisWalkMode
+fails to identify an Organizational Domain.  This lets any one of PSL,
+RFC7489, or RFC9989 serve as either the primary or the fallback strategy,
+which is useful while transitioning between PSL-based and DNS-Tree-Walk-based
+discovery.  The default is unset, meaning no fallback is attempted and the
+behaviour of
+.I DMARCbisWalkMode
+is unchanged from before this setting existed.
+.IR Auto 's
+own PSL-then-RFC7489 fallback behaviour is unaffected by this setting.
 
 .TP
 .I DNSTimeout (integer)

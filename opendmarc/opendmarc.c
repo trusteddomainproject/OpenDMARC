@@ -194,6 +194,7 @@ struct dmarcf_config
 	char *			conf_rejectstring;
 	char *			conf_pslist;
 	char *			conf_walkmode;
+	char *			conf_walkmodefallback;
 	char *			conf_ignorelist;
 	char **			conf_trustedauthservids;
 	char **			conf_ignoredomains;
@@ -1337,6 +1338,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "DMARCbisWalkMode",
 		                  &conf->conf_walkmode,
 		                  sizeof conf->conf_walkmode);
+
+		(void) config_get(data, "DMARCbisWalkModeFallback",
+		                  &conf->conf_walkmodefallback,
+		                  sizeof conf->conf_walkmodefallback);
 
 		if (!conf->conf_dolog)
 		{
@@ -5356,6 +5361,18 @@ main(int argc, char **argv)
 			libopendmarc.walk_mode = OPENDMARC_WALK_MODE_RFC9989;
 		else
 			libopendmarc.walk_mode = OPENDMARC_WALK_MODE_AUTO;
+	}
+
+	if (curconf->conf_walkmodefallback != NULL)
+	{
+		if (strcasecmp(curconf->conf_walkmodefallback, "PSL") == 0)
+			libopendmarc.walk_mode_fallback = OPENDMARC_WALK_MODE_PSL;
+		else if (strcasecmp(curconf->conf_walkmodefallback, "RFC7489") == 0)
+			libopendmarc.walk_mode_fallback = OPENDMARC_WALK_MODE_RFC7489;
+		else if (strcasecmp(curconf->conf_walkmodefallback, "RFC9989") == 0)
+			libopendmarc.walk_mode_fallback = OPENDMARC_WALK_MODE_RFC9989;
+		else
+			libopendmarc.walk_mode_fallback = OPENDMARC_WALK_MODE_NONE;
 	}
 
 	if (opendmarc_policy_library_init(&libopendmarc) != 0)

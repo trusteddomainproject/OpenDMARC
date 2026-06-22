@@ -100,6 +100,7 @@ typedef struct {
 	int    			nscount;
 	struct sockaddr_in 	nsaddr_list[MAXNS];
 	int			walk_mode;	/* OPENDMARC_WALK_MODE_* */
+	int			walk_mode_fallback; /* OPENDMARC_WALK_MODE_*, tried if walk_mode finds nothing */
 } OPENDMARC_LIB_T;
 
 #define OPENDMARC_TLD_TYPE_NONE    (0)	/* Will not use a tld file             */
@@ -111,6 +112,11 @@ typedef struct {
 #define OPENDMARC_WALK_MODE_PSL     (1)	/* PSL only; no fallback walk           */
 #define OPENDMARC_WALK_MODE_RFC7489 (2)	/* Label-strip walk, stops before TLD   */
 #define OPENDMARC_WALK_MODE_RFC9989 (3)	/* RFC 9989 S 4.10 DNS Tree Walk        */
+
+/* For walk_mode_fallback only: no fallback strategy configured.  Aliases
+ * AUTO's zero value so a zero-initialized OPENDMARC_LIB_T (the common case)
+ * defaults to "no fallback" rather than silently enabling one. */
+#define OPENDMARC_WALK_MODE_NONE    OPENDMARC_WALK_MODE_AUTO
 
 /* psd= tag values (RFC 9989) */
 #define DMARC_RECORD_PSD_UNSPECIFIED (0)	/* psd= absent                     */
