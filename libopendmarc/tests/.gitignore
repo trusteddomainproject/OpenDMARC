@@ -14,5 +14,7 @@ test_parse_to_buf
 test_arcares
 test_spf_parse
 test_subdomain_fallback
+test_spf
+test_dmarc_walk
 *.log
 *.trs

@@ -3,7 +3,9 @@ Open questions and implementation notes for RFC 9989 DNS Tree Walk
 
 This file tracks uncertainties identified while reading RFC 9989 and
 designing the walk-mode refactor in libopendmarc.  Each item references
-the RFC section where the ambiguity was found.
+the RFC section where the ambiguity was found.  Several items below were
+resolved by direct correspondence with an RFC 9989 co-author; see
+DMARCBIS-EDITOR-EMAIL.txt for the full question/answer thread.
 
 ------------------------------------------------------------------------
 1. Walk exhaustion without psd= (SS 4.10, 4.10.1)
@@ -27,8 +29,15 @@ This could be read to imply that records-without-psd= found during the
 walk are applicable as org-domain records when the walk exhausts, but
 this is not stated explicitly.
 
-Status: deferred.  Current implementation treats walk exhaustion without
-psd= as no-record-found.
+Status: resolved.  Per John Levine (RFC 9989 co-author), dmarc@ietf.org,
+2026-06-20 (see DMARCBIS-EDITOR-EMAIL.txt): psd= is OPTIONAL (S 4.7) and
+defaults to psd=u; a record with no explicit psd= tag is a valid DMARC
+Policy Record, not an absent one.  The status note previously here,
+describing the implementation as treating walk exhaustion without psd=
+as no-record-found, was inaccurate: query_dmarc_rfc9989_walk() already
+returns the last accumulated record (best_domain) when the walk exhausts
+without an explicit psd=y/psd=n, and only reports no-record when zero
+valid records were found at any level (found_any == 0).
 
 ------------------------------------------------------------------------
 2. "might" in secondary alignment walks (S 4.10.2)
@@ -48,24 +57,60 @@ tree walks for each authenticated identifier to determine its
 organizational domain for relaxed alignment comparison.  A strict reading
 permits using only the org domain found during policy discovery.
 
-Status: secondary alignment walks not implemented in this pass.  Relaxed
-alignment continues to compare org domains using the single walk
-performed during policy discovery.
+Status: resolved.  Per John Levine (RFC 9989 co-author), dmarc@ietf.org,
+2026-06-20 (see DMARCBIS-EDITOR-EMAIL.txt): the tree walk for Identifier
+Alignment Evaluation starts at whichever of the Author Domain, the
+SPF-Authenticated Identifier, or the DKIM-Authenticated Identifier failed
+strict alignment -- it is definitely one of those three, not an optional
+refinement.  Reusing the single policy-discovery walk's org domain for
+all three identifiers was confirmed non-compliant.
+
+Fixed: opendmarc_policy_check_alignment() now reduces the SPF/DKIM
+identifier (the 'tld' argument) to its own organizational domain via
+reduce_to_org_domain_for_alignment(), which dispatches on the configured
+walk_mode/walk_mode_fallback exactly like policy discovery does (PSL and
+AUTO keep the pre-existing direct opendmarc_get_tld() lookup; RFC7489 and
+RFC9989 run the same DNS walk used for policy discovery, started at the
+identifier instead of the Author Domain, via a throwaway DMARC_POLICY_T
+so the caller's real policy context is untouched).  Covered by the
+secondary-alignment-walk cases in test_dmarc_walk.c.
 
 ------------------------------------------------------------------------
-3. Multiple DMARC records at one level (SS 4.10 steps 2 and 6)
+3. Multiple DMARC records at one level (SS 4.10 steps 2 and 6; RFC 7489
+   S 6.6.3 step 5)
 ------------------------------------------------------------------------
 
-The walk algorithm says: "if multiple DMARC Policy Records are returned
-for a single target, they are all discarded."
+Both RFC 7489 and RFC 9989 require that when multiple valid DMARC records
+are found at a single DNS name, they are all discarded and policy
+discovery terminates without applying DMARC.
 
-The current dmarc_dns_get_record() implementation returns only the first
-DMARC TXT record found at a name; it cannot detect the presence of
-additional records.  Full compliance with this requirement would need a
-DNS-layer change to count matching records before returning.
+RFC 7489 S 6.6.3 step 5: "If the remaining set contains multiple records
+or no records, policy discovery terminates and DMARC processing is not
+applied to this message."
 
-Status: known gap.  Current implementation returns the first record;
-multi-record discard is not enforced.
+RFC 9989 SS 4.10 steps 2 and 6: "If multiple DMARC Policy Records are
+returned for a single target, they are all discarded."
+
+Status: fixed.  dmarc_dns_get_record() scans all TXT records in the
+answer (and the fake-DNS test table) before returning, counts those
+containing "v=DMARC", and returns the record only when exactly one is
+found; zero or more than one yields NO_DATA / DMARC_DNS_ERROR_NO_RECORD.
+Covered by a fake-DNS test case (_dmarc.multi.example, two v=DMARC1
+entries) in test_subdomain_fallback.c.
+
+Note on wording: RFC 7489 step 5 says discovery "terminates" on multiple
+records, while RFC 9989 steps 2/6 say the records are "discarded" and
+(per step 7) the walk continues to the next label.  This is not a
+behavioral conflict requiring different handling: RFC 7489's algorithm
+has only two levels (From domain, then Organizational Domain), so its
+"terminate" is just "no more levels to try" -- the same outcome the 9989
+walk reaches when it runs out of labels.  query_dmarc_rfc9989_walk()
+treats any NULL return from dmarc_query_at() (whether caused by zero
+records or by the multiple-records discard) identically: strip the
+leftmost label and continue, since that "no usable record at this level,
+try the next one" loop already existed for the plain-absent case.  The
+fix at the DNS layer therefore satisfies both RFCs' wording without any
+walk-level changes.
 
 ------------------------------------------------------------------------
 4. "One label below" psd=y with the 8-label skip (SS 4.10, 4.10.2)
@@ -81,9 +126,13 @@ the level immediately below the psd=y domain.  "One label below in the
 DNS hierarchy" must therefore be reconstructed from the original starting
 domain, not inferred from the walk's previous step.
 
-Status: tracked.  Implementation computes "one label below" by finding
-the child of the psd=y domain that is an ancestor of the original
-starting domain.
+Status: confirmed correct.  Per John Levine (RFC 9989 co-author),
+dmarc@ietf.org, 2026-06-20 (see DMARCBIS-EDITOR-EMAIL.txt): reconstructing
+"one label below" from the original starting domain is the intended
+approach; divergence from the walk's literal previous step in
+8-label-skip cases is expected to be rare to the point of contrived.
+Implementation computes "one label below" by finding the child of the
+psd=y domain that is an ancestor of the original starting domain.
 
 ------------------------------------------------------------------------
 5. Fate of records-without-psd= collected during the walk (S 4.10.2)
@@ -104,10 +153,14 @@ the name with the fewest number of labels") only makes sense if multiple
 records were collected.  This implies the walk accumulates all valid
 single records encountered, stopping only when psd= is hit.
 
-Status: walk implementation accumulates records.  The selection process
-from 4.10.2 is applied post-walk.  Policy discovery (4.10.1) uses the
-psd= stopping record when found; falls back to fewest-labels selection
-when the walk exhausts without psd=.
+Status: confirmed correct.  Per John Levine (RFC 9989 co-author),
+dmarc@ietf.org, 2026-06-20 (see DMARCBIS-EDITOR-EMAIL.txt): the walk
+accumulates every valid record it sees regardless of an explicit psd=
+tag, confirming the S 4.10.2 fewest-labels selection should run over all
+accumulated records.  Walk implementation accumulates records; the
+selection process from 4.10.2 is applied post-walk.  Policy discovery
+(4.10.1) uses the psd= stopping record when found; falls back to
+fewest-labels selection when the walk exhausts without psd=.
 
 ------------------------------------------------------------------------
 6. AUTO mode fallback scope when a PSL boundary is found but unqueryable
@@ -126,3 +179,32 @@ identified and queried unsuccessfully.
 
 Status: intentional.  AUTO favors finding a record over strict adherence
 to the PSL boundary when one was identified but had nothing there.
+
+------------------------------------------------------------------------
+7. Configurable default/fallback walk strategy (not an RFC ambiguity --
+   an operational requirement raised independently of the items above)
+------------------------------------------------------------------------
+
+RFC 9989 deprecates PSL-based discovery as the recommended mechanism, but
+RFC 9990's aggregate-report schema still defines policy_published's
+discovery_method as exactly { psl, treewalk } -- meaning reports must be
+able to truthfully declare PSL as the discovery method, so PSL has to
+remain a live, selectable strategy rather than something to delete once
+the tree walk works.  Operators transitioning between the two also need
+to choose, independently, which strategy is the default and which (if
+any) is the fallback when the default finds nothing, rather than being
+stuck with AUTO's fixed PSL-then-RFC7489 combinator.
+
+Status: implemented.  walk_mode_fallback (OPENDMARC_LIB_T) /
+DMARCbisWalkModeFallback (opendmarc.conf) lets any one of PSL, RFC7489,
+or RFC9989 serve as either the primary (DMARCbisWalkMode) or fallback
+strategy.  Consulted by opendmarc_policy_query_dmarc() for policy
+discovery and by opendmarc_policy_check_alignment() (via
+reduce_to_org_domain_for_alignment(), item 2 above) for the secondary
+alignment walk, so both code paths agree on strategy.  AUTO's own
+PSL-then-RFC7489 combinator (item 6 above) is unaffected: walk_mode_fallback
+is only consulted when DMARCbisWalkMode names a concrete strategy, not
+when it is Auto.  Defaults to no fallback (OPENDMARC_WALK_MODE_NONE,
+which aliases AUTO's zero value so a zero-initialized OPENDMARC_LIB_T --
+the common case -- never silently enables a fallback nobody configured).
+Covered by test_dmarc_walk.c.

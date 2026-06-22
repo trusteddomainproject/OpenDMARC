@@ -51,10 +51,12 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	        "%s: usage: %s [-p pslfile] [-m mode | -a] domain [domain ...]\n"
+	        "%s: usage: %s [-p pslfile] [-m mode | -a] [-f fallback] domain [domain ...]\n"
 	        "\t-p pslfile  path to a Public Suffix List file\n"
 	        "\t-m mode     walk mode: auto (default), psl, rfc7489, rfc9989\n"
-	        "\t-a          query all four walk modes per domain and compare\n",
+	        "\t-a          query all four walk modes per domain and compare\n"
+	        "\t-f fallback walk mode to try if -m's choice finds nothing:\n"
+	        "\t            none (default), psl, rfc7489, rfc9989\n",
 	        progname, progname);
 }
 
@@ -69,6 +71,31 @@ parse_walk_mode(const char *name, int *modep)
 {
 	if (strcasecmp(name, "auto") == 0)
 		*modep = OPENDMARC_WALK_MODE_AUTO;
+	else if (strcasecmp(name, "psl") == 0)
+		*modep = OPENDMARC_WALK_MODE_PSL;
+	else if (strcasecmp(name, "rfc7489") == 0)
+		*modep = OPENDMARC_WALK_MODE_RFC7489;
+	else if (strcasecmp(name, "rfc9989") == 0)
+		*modep = OPENDMARC_WALK_MODE_RFC9989;
+	else
+		return FALSE;
+
+	return TRUE;
+}
+
+/*
+**  PARSE_WALK_MODE_FALLBACK -- translate a fallback mode name to an
+**  OPENDMARC_WALK_MODE_* value.  Unlike parse_walk_mode(), accepts "none"
+**  and rejects "auto", matching what DMARCbisWalkModeFallback accepts.
+**
+**  Returns TRUE on success, FALSE if the name is not recognized.
+*/
+
+static int
+parse_walk_mode_fallback(const char *name, int *modep)
+{
+	if (strcasecmp(name, "none") == 0)
+		*modep = OPENDMARC_WALK_MODE_NONE;
 	else if (strcasecmp(name, "psl") == 0)
 		*modep = OPENDMARC_WALK_MODE_PSL;
 	else if (strcasecmp(name, "rfc7489") == 0)
@@ -175,6 +202,7 @@ main(int argc, char **argv)
 	int compare_all = FALSE;
 	int mode_given = FALSE;
 	int walk_mode = OPENDMARC_WALK_MODE_AUTO;
+	int walk_mode_fallback = OPENDMARC_WALK_MODE_NONE;
 	char *pslfile = NULL;
 	OPENDMARC_STATUS_T status;
 	char *p;
@@ -193,12 +221,23 @@ main(int argc, char **argv)
 
 	progname = (p = strrchr(argv[0], '/')) == NULL ? argv[0] : p + 1;
 
-	while ((ch = getopt(argc, argv, "am:p:h")) != -1)
+	while ((ch = getopt(argc, argv, "af:m:p:h")) != -1)
 	{
 		switch (ch)
 		{
 		  case 'a':
 			compare_all = TRUE;
+			break;
+
+		  case 'f':
+			if (!parse_walk_mode_fallback(optarg, &walk_mode_fallback))
+			{
+				fprintf(stderr, "%s: unknown fallback walk mode '%s'\n",
+				        progname, optarg);
+				usage();
+
+				return EX_USAGE;
+			}
 			break;
 
 		  case 'm':
@@ -253,6 +292,7 @@ main(int argc, char **argv)
 		               sizeof lib.tld_source_file);
 	}
 	lib.walk_mode = walk_mode;
+	lib.walk_mode_fallback = walk_mode_fallback;
 
 	status = opendmarc_policy_library_init(&lib);
 	if (status != DMARC_PARSE_OKAY)

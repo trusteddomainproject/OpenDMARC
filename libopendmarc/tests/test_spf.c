@@ -16,11 +16,11 @@ int
 opendmarc_spf2_run_test()
 {
 	SPF2_T tests[] = {
-		/* {"gushi.org",   "root@gushi.org",   "149.20.68.145",    DMARC_POLICY_SPF_OUTCOME_PASS}, */
-		{"agari.com", "root@agari.com", "2001:a60:901e::22", DMARC_POLICY_SPF_OUTCOME_FAIL},
-		{"agari.com", "root@agari.com", "1.2.3.4",           DMARC_POLICY_SPF_OUTCOME_FAIL},
-		{"agari.com", "root@agari.com", "185.28.196.1",      DMARC_POLICY_SPF_OUTCOME_PASS},
-		/* {"gushi.org",    "<>",             "204.14.152.227",   DMARC_POLICY_SPF_OUTCOME_FAIL}, */
+		{"gushi.org", "root@gushi.org", "149.20.68.145",         DMARC_POLICY_SPF_OUTCOME_PASS}, /* matches "a" (gushi.org's own A record) */
+		{"gushi.org", "root@gushi.org", "2620:137:6000:10::142", DMARC_POLICY_SPF_OUTCOME_PASS}, /* matches explicit ip6: mechanism */
+		{"gushi.org", "root@gushi.org", "149.20.68.142",         DMARC_POLICY_SPF_OUTCOME_PASS}, /* matches "mx" and "a:prime.gushi.org" */
+		{"gushi.org", "root@gushi.org", "1.2.3.4",                DMARC_POLICY_SPF_OUTCOME_FAIL}, /* no match, falls through to ~all */
+		{"gushi.org", "<>",             "203.0.113.1",            DMARC_POLICY_SPF_OUTCOME_FAIL}, /* null envelope sender, falls back to HELO; no match */
 		{NULL, NULL, NULL, 0}
 	};
 	int		status;

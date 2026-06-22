@@ -144,14 +144,17 @@
 ##  	default (none, behaves as "Auto")
 ##
 ##  Selects the strategy used to find the Organizational Domain when the
-##  author domain has no DMARC record of its own.  Accepted values:
+##  author domain has no DMARC record of its own, and, per RFC 9989 section
+##  4.10.2, the Organizational Domain of an SPF- or DKIM-authenticated
+##  identifier during relaxed alignment evaluation.  Accepted values:
 ##
 ##    Auto    -- Use PSL if PublicSuffixList is configured; otherwise
 ##               fall back to the RFC 7489 label-strip walk.  This is
 ##               the pre-DMARCbis default and preserves existing behaviour.
 ##
 ##    PSL     -- Use the Public Suffix List only.  No fallback walk is
-##               performed if the PSL cannot identify a boundary.  Requires
+##               performed if the PSL cannot identify a boundary, unless
+##               one is configured with DMARCbisWalkModeFallback.  Requires
 ##               PublicSuffixList to be configured.
 ##
 ##    RFC7489 -- Label-strip walk per RFC 7489.  Strips labels from the
@@ -164,6 +167,20 @@
 ##               Does not require a PSL.
 #
 # DMARCbisWalkMode Auto
+
+##  DMARCbisWalkModeFallback (string)
+##  	default (none, no fallback)
+##
+##  Selects a second strategy to try, using the same accepted values as
+##  DMARCbisWalkMode except Auto, if the strategy chosen by DMARCbisWalkMode
+##  fails to identify an Organizational Domain.  This lets any one of PSL,
+##  RFC7489, or RFC9989 serve as either the primary or the fallback
+##  strategy, which is useful while transitioning between PSL-based and
+##  DNS-Tree-Walk-based discovery.  Leaving this unset preserves the
+##  behaviour DMARCbisWalkMode had before this setting existed.  Auto's own
+##  PSL-then-RFC7489 fallback behaviour is unaffected by this setting.
+#
+# DMARCbisWalkModeFallback RFC9989
 
 ##  DNSTimeout (integer)
 ##  	default 5
