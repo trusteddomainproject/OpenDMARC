@@ -182,6 +182,23 @@
 #
 # DMARCbisWalkModeFallback RFC9989
 
+##  DMARCbisIgnorePct { true | false }
+##  	default false
+##
+##  RFC 9989 removes the pct tag.  By default, this filter keeps honoring
+##  it exactly as before: a published pct value gates whether
+##  RejectFailures or HoldQuarantinedMessages actually act on a given
+##  message, via a per-message random draw against pct.  This default
+##  exists because pct=0 and pct=100 remain common in real published
+##  DMARC records (notably as a Domain Owner's deliberate way to publish a
+##  stricter p value, such as during pre-production testing, without yet
+##  enforcing it).  Setting this to true ignores pct entirely, equivalent
+##  to treating every record as pct=100, for full RFC 9989 compliance.
+##  This does not affect the t tag, which is honored unconditionally per
+##  RFC 9989 regardless of this setting.
+#
+# DMARCbisIgnorePct false
+
 ##  DNSTimeout (integer)
 ##  	default 5
 ##
