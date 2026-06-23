@@ -1,3 +1,4 @@
+AUTOMAKE_OPTIONS = subdir-objects
 SUBDIRS=testfiles
 LDADD = ../libopendmarc.la $(LIBRESOLV)
 AM_CPPFLAGS = -I.. -I../..

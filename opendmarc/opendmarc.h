@@ -37,7 +37,7 @@
 #define	REPORTCMD_EXIT_SUPPRESSED	2	/* ReportCommand sent nothing; all recipients were suppressed by policy (e.g. NoReportsList/StaleMARC), not an error */
 #define	JOBIDUNKNOWN	"(unknown-jobid)"
 #define	MAXARGV		65536
-#define	MAXHEADER	4096
+#define	MAXHEADER	8192
 #define	TEMPFILE	"/var/tmp/dmarcXXXXXX"
 
 #define AUTHRESULTSHDR	"Authentication-Results"
