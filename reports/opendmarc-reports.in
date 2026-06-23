@@ -23,6 +23,7 @@ use IO::Compress::Gzip qw(gzip);
 use POSIX;
 use MIME::Base64;
 use Net::SMTP;
+use Sys::Syslog qw(:standard :macros);
 use Time::Local;
 
 require HTTP::Request;
@@ -275,6 +276,26 @@ sub loud_skip
 	return $reason eq "StaleMARC" || $reason eq "suppression DB";
 }
 
+# Prints a report-skip diagnostic to stderr, gated by --verbose except for
+# loud_skip() reasons which are always shown there too.  loud_skip() reasons
+# are additionally sent to syslog (facility mail, opened at startup) since a
+# skipped report never reaches the local MTA to leave its own trace in the
+# conventional mail log.
+sub log_skip
+{
+	my ($reason, $message) = @_;
+
+	if ($verbose || loud_skip($reason))
+	{
+		print STDERR "$progname: $message\n";
+	}
+
+	if (loud_skip($reason))
+	{
+		syslog('notice', '%s', $message);
+	}
+}
+
 # Returns the reason a destination address should be skipped (for logging),
 # or undef if it should be sent to.  Combines every suppression source so
 # the result -- and therefore the recipients who actually get mail -- is
@@ -493,6 +514,11 @@ if (-f $configfile)
 # set locale
 setlocale(LC_ALL, 'C');
 
+# Facility "mail" so loud_skip() events land in the conventional mail log
+# (e.g. /var/log/maillog) alongside everything else about mail delivery,
+# even though these never reach the local MTA to write their own entry.
+openlog($progname, 'pid', 'mail');
+
 # parse command line arguments
 my $opt_retval = &Getopt::Long::GetOptions ('archive-dir=s' => \$archive_dir,
                                             'day!' => \$daybound,
@@ -699,8 +725,7 @@ if ($forensic)
 		my $reason = domain_skip_reason($reported_domain);
 		if (defined($reason))
 		{
-			print STDERR "$progname: --forensic: skipping report for $reported_domain ($reason)\n"
-				if $verbose || loud_skip($reason);
+			log_skip($reason, "--forensic: skipping report for $reported_domain ($reason)");
 			exit($EXIT_SUPPRESSED);
 		}
 	}
@@ -739,8 +764,7 @@ if ($forensic)
 	# suppressed identically no matter which path is delivering mail.
 	@rcpts = grep {
 		my $reason = skip_reason($_);
-		print STDERR "$progname: --forensic: skipping $_ ($reason)\n"
-			if defined($reason) && ($verbose || loud_skip($reason));
+		log_skip($reason, "--forensic: skipping $_ ($reason)") if defined($reason);
 		!defined($reason);
 	} @rcpts;
 
@@ -1047,8 +1071,7 @@ foreach (@$domainset)
 	my $domain_reason = domain_skip_reason($domain);
 	if (defined($domain_reason))
 	{
-		print STDERR "$progname: skipping $domain ($domain_reason)\n"
-			if $verbose || loud_skip($domain_reason);
+		log_skip($domain_reason, "skipping $domain ($domain_reason)");
 		next;
 	}
 
@@ -1644,8 +1667,7 @@ foreach (@$domainset)
 			my $reason = skip_reason($repdest);
 			if (defined($reason))
 			{
-				print STDERR "$progname: skipping $domain report to $repdest ($reason)\n"
-					if $verbose || loud_skip($reason);
+				log_skip($reason, "skipping $domain report to $repdest ($reason)");
 				next;
 			}
 		}

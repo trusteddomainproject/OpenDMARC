@@ -313,15 +313,19 @@ Skips caused by the suppressions table or by
 .I --stale-check
 are always written to standard error, even without
 .IR --verbose ,
-since these come from dynamic or external sources the operator may not be
-expecting.  Skips caused by
+and are also sent to syslog using facility
+.B mail
+and priority
+.BR notice ,
+since a skipped report never reaches the local MTA to leave its own trace
+in the conventional mail log.  Skips caused by
 .B NoReportsList
 or
 .I --skipdomains
-are not, since those are operator-curated and the operator already knows
-what they contain; pass
+go to neither by default, since those are operator-curated and the
+operator already knows what they contain; pass
 .I --verbose
-to see those as well.
+to see those on standard error as well (they are never sent to syslog).
 .PP
 The table is loaded once at startup and is not queried per-message, so
 changes take effect on the next run.  If the table does not exist (e.g. on
