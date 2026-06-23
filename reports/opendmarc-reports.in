@@ -162,6 +162,8 @@ my $dbscheme     = $def_dbscheme;
 my $repdom       = hostdomain();
 my $repemail     = "postmaster@" . $repdom;
 my $repcontact;
+my $repbodyfile;
+my $repbodytemplate;
 
 my $smtp_server  = '127.0.0.1';
 my $smtp_port    = 25;
@@ -393,6 +395,8 @@ sub usage
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--report-bcc       bcc address for aggregate reports\n";
+	print STDERR "\t--report-body-file=file  custom plain-text body for aggregate\n";
+	print STDERR "\t                   reports (%DOMAIN%/%DATE% tokens substituted)\n";
 	print STDERR "\t--report-contact   contact address for report metadata (default: --report-email)\n";
 	print STDERR "\t--report-email     envelope/From address for outgoing reports [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
@@ -500,6 +504,7 @@ my $opt_retval = &Getopt::Long::GetOptions ('archive-dir=s' => \$archive_dir,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
                                             'report-bcc=s' => \$repbcc,
+                                            'report-body-file=s' => \$repbodyfile,
                                             'report-contact=s' => \$repcontact,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
@@ -642,6 +647,14 @@ if (defined($noreports_file))
 		}
 	}
 	close($nrf);
+}
+
+if (defined($repbodyfile))
+{
+	open(my $rbf, '<', $repbodyfile)
+		or die "$progname: can't open report body file $repbodyfile: $!\n";
+	$repbodytemplate = do { local $/; <$rbf> };
+	close($rbf);
 }
 
 # Test mode requested, don't update last sent and keep xml files
@@ -1687,8 +1700,18 @@ foreach (@$domainset)
 			$mailout .= "--$boundary\n";
 			$mailout .= "Content-Type: text/plain;\n";
 			$mailout .= "\n";
-			$mailout .= "This is a DMARC aggregate report for $domain\n";
-			$mailout .= "generated at " . localtime() . "\n";
+			if (defined($repbodytemplate))
+			{
+				my $body = $repbodytemplate;
+				$body =~ s/%DOMAIN%/$domain/g;
+				$body =~ s/%DATE%/$datestr/g;
+				$mailout .= $body;
+			}
+			else
+			{
+				$mailout .= "This is a DMARC aggregate report for $domain\n";
+				$mailout .= "generated at " . localtime() . "\n";
+			}
 			$mailout .= "\n";
 			$mailout .= "--$boundary\n";
 			$mailout .= "Content-Type: application/gzip\n";
