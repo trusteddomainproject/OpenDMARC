@@ -189,6 +189,24 @@ Normally this would be done to prevent reports from being sent too close
 together.  Implied by
 .IR --test .
 .TP
+.I --report-body-file=file
+Replaces the default plain-text body of aggregate report e-mail messages
+with the contents of
+.IR file ,
+read once at startup.  The tokens
+.B %DOMAIN%
+and
+.B %DATE%
+are substituted, if present, with the reporting domain and the message's
+.I Date:
+header value, respectively.  If not specified, the default body is
+.RS
+.nf
+This is a DMARC aggregate report for <domain>
+generated at <timestamp>
+.fi
+.RE
+.TP
 .I --report-contact=addr
 Specifies the contact address written into the
 .I <email>
