@@ -302,12 +302,26 @@ Print version number and exit.
 The script checks the
 .I suppressions
 database table before sending each report.  If the destination RUA/RUF
-address, or its domain, appears in that table the report is silently
-skipped.  The table is also checked at the domain level, so adding a bare
-domain name (e.g.
+address, or its domain, appears in that table the report is skipped.  The
+table is also checked at the domain level, so adding a bare domain name
+(e.g.
 .IR example.com )
 suppresses all reports for that domain regardless of their destination
 address.  Applies to both aggregate and forensic modes.
+.PP
+Skips caused by the suppressions table or by
+.I --stale-check
+are always written to standard error, even without
+.IR --verbose ,
+since these come from dynamic or external sources the operator may not be
+expecting.  Skips caused by
+.B NoReportsList
+or
+.I --skipdomains
+are not, since those are operator-curated and the operator already knows
+what they contain; pass
+.I --verbose
+to see those as well.
 .PP
 The table is loaded once at startup and is not queried per-message, so
 changes take effect on the next run.  If the table does not exist (e.g. on

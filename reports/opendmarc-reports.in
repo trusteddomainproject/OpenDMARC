@@ -263,6 +263,18 @@ sub noreports_skip
 	return 0;
 }
 
+# StaleMARC and the suppressions DB are dynamic/external sources that can
+# silently drop reports the operator wasn't expecting, so skips they cause
+# are always worth printing.  NoReportsList is operator-curated -- the
+# operator already knows what's in it -- so it stays --verbose-only to
+# avoid flooding output when it's used heavily.
+sub loud_skip
+{
+	my ($reason) = @_;
+
+	return $reason eq "StaleMARC" || $reason eq "suppression DB";
+}
+
 # Returns the reason a destination address should be skipped (for logging),
 # or undef if it should be sent to.  Combines every suppression source so
 # the result -- and therefore the recipients who actually get mail -- is
@@ -688,7 +700,7 @@ if ($forensic)
 		if (defined($reason))
 		{
 			print STDERR "$progname: --forensic: skipping report for $reported_domain ($reason)\n"
-				if $verbose;
+				if $verbose || loud_skip($reason);
 			exit($EXIT_SUPPRESSED);
 		}
 	}
@@ -728,7 +740,7 @@ if ($forensic)
 	@rcpts = grep {
 		my $reason = skip_reason($_);
 		print STDERR "$progname: --forensic: skipping $_ ($reason)\n"
-			if defined($reason) && $verbose;
+			if defined($reason) && ($verbose || loud_skip($reason));
 		!defined($reason);
 	} @rcpts;
 
@@ -1035,7 +1047,8 @@ foreach (@$domainset)
 	my $domain_reason = domain_skip_reason($domain);
 	if (defined($domain_reason))
 	{
-		print STDERR "$progname: skipping $domain ($domain_reason)\n" if $verbose;
+		print STDERR "$progname: skipping $domain ($domain_reason)\n"
+			if $verbose || loud_skip($domain_reason);
 		next;
 	}
 
@@ -1632,7 +1645,7 @@ foreach (@$domainset)
 			if (defined($reason))
 			{
 				print STDERR "$progname: skipping $domain report to $repdest ($reason)\n"
-					if $verbose;
+					if $verbose || loud_skip($reason);
 				next;
 			}
 		}
