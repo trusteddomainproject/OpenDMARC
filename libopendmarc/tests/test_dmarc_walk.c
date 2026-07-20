@@ -68,6 +68,7 @@ main(int argc, char **argv)
 	OPENDMARC_STATUS_T status;
 	u_char utilized[256];
 	int fallback;
+	int discovery_method;
 
 	/*
 	 * === Test 0: direct hit ===
@@ -92,6 +93,10 @@ main(int argc, char **argv)
 
 		(void) opendmarc_policy_fetch_org_domain_from_fallback(pctx, &fallback);
 		CHECK(fallback == 0, "direct hit: no fallback should have occurred");
+
+		(void) opendmarc_policy_fetch_discovery_method(pctx, &discovery_method);
+		CHECK(discovery_method == OPENDMARC_DISCOVERY_UNSPECIFIED,
+		    "direct hit: discovery_method should be unspecified, no walk occurred");
 	}
 
 	pctx = opendmarc_policy_connect_shutdown(pctx);
@@ -119,6 +124,10 @@ main(int argc, char **argv)
 		(void) opendmarc_policy_fetch_utilized_domain(pctx, utilized, sizeof utilized);
 		CHECK(strcasecmp((char *)utilized, "psdn." ZONE) == 0,
 		    "rfc9989 psd=n: org domain should be psdn.dmarcwalk.gushi.org");
+
+		(void) opendmarc_policy_fetch_discovery_method(pctx, &discovery_method);
+		CHECK(discovery_method == OPENDMARC_DISCOVERY_TREEWALK,
+		    "rfc9989 psd=n: discovery_method should be treewalk");
 	}
 
 	pctx = opendmarc_policy_connect_shutdown(pctx);
@@ -141,6 +150,10 @@ main(int argc, char **argv)
 
 		(void) opendmarc_policy_fetch_org_domain_from_fallback(pctx, &fallback);
 		CHECK(fallback == 1, "rfc7489 psd=n name: fallback flag should be set");
+
+		(void) opendmarc_policy_fetch_discovery_method(pctx, &discovery_method);
+		CHECK(discovery_method == OPENDMARC_DISCOVERY_PSL,
+		    "rfc7489 psd=n name: discovery_method should be psl (RFC 9990's name for the RFC 7489 method)");
 	}
 
 	pctx = opendmarc_policy_connect_shutdown(pctx);
@@ -409,6 +422,10 @@ main(int argc, char **argv)
 		(void) opendmarc_policy_fetch_utilized_domain(pctx, utilized, sizeof utilized);
 		CHECK(strcasecmp((char *)utilized, "nopsd." ZONE) == 0,
 		    "psl falling back to rfc9989: org domain should be nopsd.dmarcwalk.gushi.org");
+
+		(void) opendmarc_policy_fetch_discovery_method(pctx, &discovery_method);
+		CHECK(discovery_method == OPENDMARC_DISCOVERY_TREEWALK,
+		    "psl falling back to rfc9989: discovery_method should reflect rfc9989, the strategy that actually resolved it");
 	}
 
 	pctx = opendmarc_policy_connect_shutdown(pctx);

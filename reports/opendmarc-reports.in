@@ -66,11 +66,17 @@ my @skipdomains;
 
 my $policy;
 my $spolicy;
+my $npolicy;
 my $policystr;
 my $spolicystr;
+my $npolicystr;
 my $pct;
 my $fo;
 my $fostr;
+my $testing;
+my $testingstr;
+my $discovery_method;
+my $discovery_methodstr;
 
 my $repuri;
 my @repuris;
@@ -1109,7 +1115,7 @@ foreach (@$domainset)
 	# MySQL-specific: UNIX_TIMESTAMP() converts a DATETIME to a Unix timestamp.
 	# SQLite equivalent: strftime('%s', lastsent)
 	# PostgreSQL equivalent: EXTRACT(EPOCH FROM lastsent)
-	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, fo, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, npolicy, pct, fo, testing, discovery_method, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
         $dbi_s->bind_param(1, $domainid, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
 	{
@@ -1145,15 +1151,27 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[5]))
 		{
-			$pct = $dbi_a->[5];
+			$npolicy = $dbi_a->[5];
 		}
 		if (defined($dbi_a->[6]))
 		{
-			$fo = $dbi_a->[6];
+			$pct = $dbi_a->[6];
 		}
 		if (defined($dbi_a->[7]))
 		{
-			$lastsent = $dbi_a->[7];
+			$fo = $dbi_a->[7];
+		}
+		if (defined($dbi_a->[8]))
+		{
+			$testing = $dbi_a->[8];
+		}
+		if (defined($dbi_a->[9]))
+		{
+			$discovery_method = $dbi_a->[9];
+		}
+		if (defined($dbi_a->[10]))
+		{
+			$lastsent = $dbi_a->[10];
 		}
 	}
 
@@ -1237,6 +1255,16 @@ foreach (@$domainset)
 	elsif ($spolicy == ord("r")) { $spolicystr = "reject"; }
 	else                         { $spolicystr = "unknown"; }
 
+	# RFC 9990: np is OPTIONAL and, unlike sp, has no "falls back to p"
+	# reporting convention -- only emit it when the record actually
+	# published an np= value.
+	undef $npolicystr;
+	if    (!defined($npolicy) || $npolicy == 0) { undef $npolicystr; }
+	elsif ($npolicy == ord("n"))                { $npolicystr = "none"; }
+	elsif ($npolicy == ord("q"))                { $npolicystr = "quarantine"; }
+	elsif ($npolicy == ord("r"))                { $npolicystr = "reject"; }
+	else                                         { $npolicystr = "unknown"; }
+
 	{
 		my @fo_values;
 		if (!defined($fo) || $fo == 0)
@@ -1253,9 +1281,21 @@ foreach (@$domainset)
 		}
 	}
 
+	# RFC 9990: testing (t=) and discovery_method (psl|treewalk) are both
+	# OPTIONAL; omit them unless a concrete value was recorded.
+	undef $testingstr;
+	if    (!defined($testing) || $testing == 0) { undef $testingstr; }
+	elsif ($testing == ord("y"))                { $testingstr = "y"; }
+	elsif ($testing == ord("n"))                { $testingstr = "n"; }
+
+	undef $discovery_methodstr;
+	if    (!defined($discovery_method) || $discovery_method == 0) { undef $discovery_methodstr; }
+	elsif ($discovery_method == 1)                                { $discovery_methodstr = "psl"; }
+	elsif ($discovery_method == 2)                                { $discovery_methodstr = "treewalk"; }
+
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
-	print $tmpout "<feedback>\n";
-	print $tmpout "    <version>1</version>\n";
+	print $tmpout "<feedback xmlns=\"urn:ietf:params:xml:ns:dmarc-2.0\">\n";
+	print $tmpout "    <version>1.0</version>\n";
 
 	print $tmpout "    <report_metadata>\n";
 	print $tmpout "        <org_name>$repdom</org_name>\n";
@@ -1273,8 +1313,10 @@ foreach (@$domainset)
 	print $tmpout "        <aspf>$aspfstr</aspf>\n";
 	print $tmpout "        <p>$policystr</p>\n";
 	print $tmpout "        <sp>$spolicystr</sp>\n";
-	print $tmpout "        <pct>$pct</pct>\n";
+	print $tmpout "        <np>$npolicystr</np>\n" if defined($npolicystr);
 	print $tmpout "        <fo>$fostr</fo>\n";
+	print $tmpout "        <testing>$testingstr</testing>\n" if defined($testingstr);
+	print $tmpout "        <discovery_method>$discovery_methodstr</discovery_method>\n" if defined($discovery_methodstr);
 	print $tmpout "    </policy_published>\n";
 
 	# MySQL-specific: FROM_UNIXTIME() in both queries below.

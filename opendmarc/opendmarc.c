@@ -2283,7 +2283,9 @@ mlfi_eom(SMFICTX *ctx)
 	int pct;
 	int p;
 	int sp;
+	int np;
 	int t;
+	int discovery_method;
 	int align_dkim;
 	int align_spf;
 	int limit_arc = 0;
@@ -3323,7 +3325,15 @@ mlfi_eom(SMFICTX *ctx)
 	opendmarc_policy_fetch_sp(cc->cctx_dmarc, &sp);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "sp %d\n", sp);
 
+	opendmarc_policy_fetch_np(cc->cctx_dmarc, &np);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "np %d\n", np);
+
 	opendmarc_policy_fetch_t(cc->cctx_dmarc, &t);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "testing %d\n", t);
+
+	opendmarc_policy_fetch_discovery_method(cc->cctx_dmarc, &discovery_method);
+	dmarcf_dstring_printf(dfc->mctx_histbuf, "discovery_method %d\n",
+	                      discovery_method);
 
 	{
 		int fo = DMARC_RECORD_FO_UNSPECIFIED;

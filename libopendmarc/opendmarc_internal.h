@@ -160,6 +160,7 @@ typedef struct dmarc_policy_t {
 	u_char *	from_domain;		/* Input: From: header domain */
 	u_char *	organizational_domain;
 	int		org_domain_from_fallback; /* Non-zero if PSL was absent and label-walk was used */
+	int		discovery_method;	/* RFC 9990: OPENDMARC_DISCOVERY_*, how the record was found */
 
 	/*
 	 * Found in the _dmarc record or supplied to us.

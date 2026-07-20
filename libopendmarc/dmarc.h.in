@@ -125,7 +125,16 @@ typedef struct {
 #define DMARC_RECORD_PSD_UNSPECIFIED (0)	/* psd= absent                     */
 #define DMARC_RECORD_PSD_N           (1)	/* psd=n: organizational domain    */
 #define DMARC_RECORD_PSD_Y           (2)	/* psd=y: public suffix domain     */
-               
+
+/* RFC 9990 policy_published/discovery_method: how the record was found.
+ * UNSPECIFIED covers a direct match at _dmarc.<domain>, where no PSL
+ * lookup or tree walk was needed at all; the RFC only defines "psl" and
+ * "treewalk", so that case is left unreported (discovery_method is
+ * OPTIONAL) rather than forced into one of the two. */
+#define OPENDMARC_DISCOVERY_UNSPECIFIED (0)
+#define OPENDMARC_DISCOVERY_PSL         (1)	/* RFC 7489 org-domain method       */
+#define OPENDMARC_DISCOVERY_TREEWALK    (2)	/* RFC 9989 S 4.10 DNS Tree Walk    */
+
 /*
  * Library one time initialization.
  */
@@ -164,7 +173,9 @@ OPENDMARC_STATUS_T opendmarc_policy_fetch_adkim(DMARC_POLICY_T *pctx, int *adkim
 OPENDMARC_STATUS_T opendmarc_policy_fetch_aspf(DMARC_POLICY_T *pctx, int *aspf);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_p(DMARC_POLICY_T *pctx, int *p);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_sp(DMARC_POLICY_T *pctx, int *sp);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_np(DMARC_POLICY_T *pctx, int *np);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_t(DMARC_POLICY_T *pctx, int *t);
+OPENDMARC_STATUS_T opendmarc_policy_fetch_discovery_method(DMARC_POLICY_T *pctx, int *discovery_method);
 OPENDMARC_STATUS_T opendmarc_policy_fetch_fo(DMARC_POLICY_T *pctx, int *fo);
 u_char **	   opendmarc_policy_fetch_rua(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);
 u_char **	   opendmarc_policy_fetch_ruf(DMARC_POLICY_T *pctx, u_char *list_buf, size_t size_of_buf, int constant);

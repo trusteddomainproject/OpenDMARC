@@ -6,7 +6,7 @@
 int
 main(int argc, char **argv)
 {
-	static char *record=	"v=DMARC1; p=none; sp=none; adkim=s; aspf=s; pct=50; t=y; ri=300; rf=afrf; rua=mailto:dmarc-a@abuse.net; ruf=mailto:dmarc-f@abuse.net";
+	static char *record=	"v=DMARC1; p=none; sp=none; np=quarantine; adkim=s; aspf=s; pct=50; t=y; ri=300; rf=afrf; rua=mailto:dmarc-a@abuse.net; ruf=mailto:dmarc-f@abuse.net";
 	DMARC_POLICY_T *pctx;
 	OPENDMARC_STATUS_T status;
 	int pass, fails, count;
@@ -14,7 +14,9 @@ main(int argc, char **argv)
 	int adkim;
 	int aspf;
 	int t;
-	
+	int np;
+	int discovery_method;
+
 	pass = fails = count = 0;
 	pctx = opendmarc_policy_connect_init((u_char *)"1.2.3.4", 0);
 	if (pctx == NULL)
@@ -70,6 +72,37 @@ main(int argc, char **argv)
 	if (t != DMARC_RECORD_T_Y)
 	{
 		printf("\t%s(%d): opendmarc_policy_fetch_t: expected %d got %d: FAIL\n", __FILE__, __LINE__,  DMARC_RECORD_T_Y, t);
+		fails += 1;
+	}
+	status = opendmarc_policy_fetch_np(pctx, &np);
+	if (status != DMARC_PARSE_OKAY)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_np: %s: FAIL\n", __FILE__, __LINE__, opendmarc_policy_status_to_str(status));
+		fails += 1;
+	}
+	if (np != DMARC_RECORD_P_QUARANTINE)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_np: expected %d got %d: FAIL\n", __FILE__, __LINE__,  DMARC_RECORD_P_QUARANTINE, np);
+		fails += 1;
+	}
+
+	/*
+	** RFC 9990: discovery_method is only ever set by the walk-mode query
+	** functions (query_dmarc_psl/_rfc7489_walk/_rfc9989_walk), not by
+	** opendmarc_policy_parse_dmarc() directly, which is all this test
+	** exercises. So a directly-parsed record (no walk performed) should
+	** report OPENDMARC_DISCOVERY_UNSPECIFIED -- see test_dmarc_walk.c for
+	** the psl/treewalk cases.
+	*/
+	status = opendmarc_policy_fetch_discovery_method(pctx, &discovery_method);
+	if (status != DMARC_PARSE_OKAY)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_discovery_method: %s: FAIL\n", __FILE__, __LINE__, opendmarc_policy_status_to_str(status));
+		fails += 1;
+	}
+	if (discovery_method != OPENDMARC_DISCOVERY_UNSPECIFIED)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_discovery_method: expected %d got %d: FAIL\n", __FILE__, __LINE__,  OPENDMARC_DISCOVERY_UNSPECIFIED, discovery_method);
 		fails += 1;
 	}
 
@@ -148,6 +181,13 @@ main(int argc, char **argv)
 	if (status != DMARC_PARSE_OKAY || t != DMARC_RECORD_T_UNSPECIFIED)
 	{
 		printf("\t%s(%d): opendmarc_policy_fetch_t: expected unspecified, got %d: FAIL\n", __FILE__, __LINE__, t);
+		fails += 1;
+	}
+	/* RFC 9990: np= absent defaults to DMARC_RECORD_P_UNSPECIFIED */
+	status = opendmarc_policy_fetch_np(pctx, &np);
+	if (status != DMARC_PARSE_OKAY || np != DMARC_RECORD_P_UNSPECIFIED)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_np: expected unspecified, got %d: FAIL\n", __FILE__, __LINE__, np);
 		fails += 1;
 	}
 	pctx = opendmarc_policy_connect_shutdown(pctx);
