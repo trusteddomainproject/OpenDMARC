@@ -22,6 +22,7 @@ use IO::Handle;
 use IO::Compress::Gzip qw(gzip);
 use POSIX;
 use MIME::Base64;
+use Net::DNS;
 use Net::SMTP;
 use Sys::Syslog qw(:standard :macros);
 use Time::Local;
@@ -136,6 +137,17 @@ my $report_maxbytes_global = 15728640; # default: 15M, per spec
 
 my $noreports_file;
 my %noreports;
+
+# RFC 9990 S4 / RFC 9991 S5: external-destination verification.
+my $publicsuffixlist;
+my %psl;
+my $psl_loaded = 0;
+
+# RFC 9991 S2/S8.1: rate-limit on outgoing failure reports. Disabled
+# (undef) by default -- new, potentially traffic-shaping behavior should
+# not turn on silently.
+my $forensic_rate_limit;
+my $forensic_rate_window = 3600;
 
 my $msgid;
 
@@ -279,7 +291,8 @@ sub loud_skip
 {
 	my ($reason) = @_;
 
-	return $reason eq "StaleMARC" || $reason eq "suppression DB";
+	return $reason eq "StaleMARC" || $reason eq "suppression DB" ||
+	       $reason eq "rate limit";
 }
 
 # Prints a report-skip diagnostic to stderr, gated by --verbose except for
@@ -337,6 +350,171 @@ sub domain_skip_reason
 	return "suppression DB" if db_skip($domain);
 
 	return undef;
+}
+
+# Load the Public Suffix List from disk into %psl.  Called once on first use.
+sub load_psl
+{
+	return if $psl_loaded;
+	$psl_loaded = 1;
+	return unless defined($publicsuffixlist);
+	open(my $fh, '<', $publicsuffixlist) or return;
+	while (my $line = <$fh>)
+	{
+		chomp $line;
+		$line =~ s/\s*\/\/.*//;
+		next if $line =~ /^\s*$/;
+		$psl{lc($line)} = 1;
+	}
+	close($fh);
+}
+
+# Return the organizational domain (eTLD+1) of $domain.
+# Uses the PSL when available; falls back to the last two labels otherwise.
+sub get_org_domain
+{
+	my ($domain) = @_;
+	$domain = lc($domain);
+	my @labels = split(/\./, $domain);
+
+	if (defined($publicsuffixlist) && -r $publicsuffixlist)
+	{
+		load_psl();
+		for my $i (0 .. $#labels - 1)
+		{
+			my $suffix    = join('.', @labels[$i+1 .. $#labels]);
+			my $wildcard  = '*.' . $suffix;
+			my $exception = '!' . join('.', @labels[$i .. $#labels]);
+			if (exists $psl{$exception})
+			{
+				return join('.', @labels[$i .. $#labels]);
+			}
+			if (exists $psl{join('.', @labels[$i .. $#labels])} ||
+			    exists $psl{$wildcard})
+			{
+				return $i > 0 ? join('.', @labels[$i-1 .. $#labels]) : undef;
+			}
+		}
+	}
+
+	# Fallback: last two labels.
+	return @labels >= 2 ? join('.', @labels[-2 .. $#labels]) : $domain;
+}
+
+# RFC 9990 S4 / RFC 9991 S5 "Verifying External Destinations".  $domain is
+# the DMARC-Policy-Record-owning (sending) domain; $address is a rua= or
+# ruf= mailto: destination address; $tag is "rua" or "ruf", used only for
+# log messages -- the verification procedure itself (same-org check, then
+# the "<domain>._report._dmarc.<dest-domain>" DNS query) is identical for
+# both per RFC 9991 S5, which just substitutes "ruf" for "rua" in RFC 9990
+# S4's procedure. Same-org addresses are authorized without a DNS query.
+# Fails open (authorizes) on SERVFAIL/timeout/other non-definitive answers,
+# per the same "don't let report delivery hinge on transient DNS trouble"
+# reasoning as the rest of this script's suppression checks.
+sub verify_external_destination
+{
+	my ($domain, $address, $tag) = @_;
+
+	my ($dest_domain) = $address =~ /\@(.+)$/;
+	$dest_domain = lc($dest_domain // '');
+	return 0 unless length($dest_domain);
+
+	my $domain_org = get_org_domain($domain);
+	my $dest_org   = get_org_domain($dest_domain);
+
+	if (defined($domain_org) && defined($dest_org) && $domain_org eq $dest_org)
+	{
+		# Same organizational domain -- no DNS check required.
+		return 1;
+	}
+
+	my $res   = Net::DNS::Resolver->new(udp_timeout => 15);
+	my $qname = "$domain._report._dmarc.$dest_domain";
+	my $reply = $res->query($qname, "TXT");
+	my $authorized = 0;
+
+	if ($reply)
+	{
+		for my $rr ($reply->answer)
+		{
+			next unless $rr->type eq "TXT";
+			if ($rr->txtdata =~ /^\s*v\s*=\s*DMARC1\b/i)
+			{
+				$authorized = 1;
+				last;
+			}
+		}
+	}
+	else
+	{
+		my $err = $res->errorstring;
+
+		# NXDOMAIN (name doesn't exist) and NOERROR (name resolves but has
+		# no TXT records -- NODATA) are both definitive negative answers,
+		# not failures: Net::DNS returns undef for either, distinguishable
+		# only via errorstring.  A NODATA response is exactly as common in
+		# practice as a real NXDOMAIN for a nonexistent subdomain -- e.g.
+		# Cloudflare-hosted zones answer this way -- so treating it as
+		# "fail open" would make verification silently weaker against any
+		# nameserver that responds this way, rather than failing open only
+		# for genuinely indeterminate conditions (SERVFAIL, timeout).
+		if ($err eq "NXDOMAIN" || $err eq "NOERROR")
+		{
+			# Wildcard fallback: *._report._dmarc.<dest-domain>
+			my $wreply = $res->query("*._report._dmarc.$dest_domain", "TXT");
+			if ($wreply)
+			{
+				for my $rr ($wreply->answer)
+				{
+					next unless $rr->type eq "TXT";
+					if ($rr->txtdata =~ /^\s*v\s*=\s*DMARC1\b/i)
+					{
+						$authorized = 1;
+						last;
+					}
+				}
+			}
+		}
+		else
+		{
+			# SERVFAIL, timeout, or anything else non-definitive: fail open.
+			$authorized = 1;
+		}
+	}
+
+	if (!$authorized && $verbose)
+	{
+		print STDERR "$progname: $domain is not authorized to send $tag reports to $address ($qname returned " . $res->errorstring . "); dropping\n";
+	}
+
+	return $authorized;
+}
+
+# RFC 9991 S2/S8.1: rate-limit outgoing failure reports per recipient
+# address, so a bad actor can't use deliberately-triggered DMARC failures
+# to flood a ruf= destination. Counts (and records) attempts, not confirmed
+# deliveries -- an attempt still represents outbound traffic/load toward
+# the destination, which is what S8.1 is protecting against. Returns 1
+# (send, and records this send) if under the configured limit, 0 (skip) if
+# at or over it. Always returns 1 without touching the DB when rate-
+# limiting isn't configured.
+sub forensic_rate_check
+{
+	my ($address) = @_;
+
+	return 1 unless defined($forensic_rate_limit);
+
+	my $sth = $dbi_h->prepare(
+		"SELECT COUNT(*) FROM forensic_sent WHERE address = ? AND sent_at > FROM_UNIXTIME(?)");
+	$sth->execute($address, time() - $forensic_rate_window);
+	my ($count) = $sth->fetchrow_array();
+	$sth->finish;
+
+	return 0 if $count >= $forensic_rate_limit;
+
+	$dbi_h->do("INSERT INTO forensic_sent (address) VALUES (?)", undef, $address);
+
+	return 1;
 }
 
 # Open a connection to the configured SMTP server, applying SSL/StartTLS
@@ -555,6 +733,12 @@ my $opt_retval = &Getopt::Long::GetOptions ('archive-dir=s' => \$archive_dir,
                                             'smtp-username=s' => \$smtp_username,
                                             'no-reports-list=s' => \$noreports_file,
                                             'NoReportsList=s' => \$noreports_file,
+                                            'public-suffix-list=s' => \$publicsuffixlist,
+                                            'PublicSuffixList=s' => \$publicsuffixlist,
+                                            'forensic-rate-limit=i' => \$forensic_rate_limit,
+                                            'ForensicRateLimit=i' => \$forensic_rate_limit,
+                                            'forensic-rate-window=i' => \$forensic_rate_window,
+                                            'ForensicRateWindow=i' => \$forensic_rate_window,
                                             'stale-check!' => \$stale_check,
                                             'stale-def-deny!' => \$stale_def_deny,
                                             'stale-server=s' => \$stale_server,
@@ -724,10 +908,15 @@ if ($forensic)
 	# sending-domain suppression -- --skipdomains/bare NoReportsList
 	# entries, StaleMARC, the suppressions DB -- that the aggregate path
 	# applies, so a bare NoReportsList entry suppresses reports about
-	# that domain no matter which path would otherwise send them.
+	# that domain no matter which path would otherwise send them.  Also
+	# used below as the "domain" half of external-destination verification
+	# (RFC 9990 S4 / RFC 9991 S5) -- without it we have no sending domain
+	# to verify recipients against, so verification is skipped rather than
+	# guessed at.
+	my $reported_domain;
 	if ($message =~ /^Reported-Domain:\s*(\S+)/mi)
 	{
-		my $reported_domain = lc($1);
+		$reported_domain = lc($1);
 		my $reason = domain_skip_reason($reported_domain);
 		if (defined($reason))
 		{
@@ -772,6 +961,24 @@ if ($forensic)
 		my $reason = skip_reason($_);
 		log_skip($reason, "--forensic: skipping $_ ($reason)") if defined($reason);
 		!defined($reason);
+	} @rcpts;
+
+	# RFC 9991 S5 external-destination verification, substituting ruf for
+	# rua per that section.  Skipped (not enforced) when there's no
+	# Reported-Domain to verify against -- see the comment above where
+	# $reported_domain is set.
+	if (defined($reported_domain))
+	{
+		@rcpts = grep { verify_external_destination($reported_domain, $_, "ruf") } @rcpts;
+	}
+
+	# RFC 9991 S2/S8.1 rate-limiting. Deliberately last, after the (cheap)
+	# suppression/verification checks, so a recipient that would be
+	# dropped anyway doesn't consume a slot in its own rate-limit window.
+	@rcpts = grep {
+		my $ok = forensic_rate_check($_);
+		log_skip("rate limit", "--forensic: skipping $_ (forensic rate limit exceeded)") unless $ok;
+		$ok;
 	} @rcpts;
 
 	if (!@rcpts)
@@ -1710,6 +1917,11 @@ foreach (@$domainset)
 			if (defined($reason))
 			{
 				log_skip($reason, "skipping $domain report to $repdest ($reason)");
+				next;
+			}
+
+			if (!verify_external_destination($domain, $repdest, "rua"))
+			{
 				next;
 			}
 		}

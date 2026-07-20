@@ -232,6 +232,35 @@ Causes reports to be sent by transmitting them using SMTP to the specified
 Defaults to the value of the environment variable OPENDMARC_SMTPPORT,
 or 25 if the environment variable is not set.
 .TP
+.I --public-suffix-list=file
+Path to a Public Suffix List file, used to determine the organizational
+domain of the sending and destination domains when verifying external
+RUA/RUF destinations (see
+.B EXTERNAL DESTINATION VERIFICATION
+below).  Falls back to a two-label heuristic if not set.  Same file format
+as the milter's
+.I PublicSuffixList
+option
+.RI ( opendmarc.conf (5)).
+.TP
+.I --forensic-rate-limit=n
+Limit failure reports sent by
+.I --forensic
+mode to at most
+.I n
+per destination address within
+.IR --forensic-rate-window .
+Unset (no limit) by default.  See
+.B RATE LIMITING
+below.
+.TP
+.I --forensic-rate-window=secs
+The rolling window, in seconds, over which
+.I --forensic-rate-limit
+is counted.  Defaults to 3600 (one hour).  Has no effect unless
+.I --forensic-rate-limit
+is also set.
+.TP
 .I --stale-check
 Before sending each report, query the StaleMARC RBL to determine whether the
 target domain or RUA/RUF address has known delivery problems.  Reports are
@@ -345,6 +374,49 @@ is enabled, DMARC report bounces return to an encoded envelope sender
 that identifies the failing address.  A bounce-processing script can
 decode that address and insert it into this table automatically, building
 a locally-maintained suppression list informed by real delivery failures.
+.SH EXTERNAL DESTINATION VERIFICATION
+Before sending to a cross-domain
+.RI ( mailto: )
+RUA or RUF address, the script verifies the destination is willing to
+receive reports from the sending domain, per RFC 9990 section 4 (aggregate)
+and RFC 9991 section 5 (failure, which reuses the same procedure).
+Addresses in the same organizational domain as the sender (per
+.I --public-suffix-list
+or the two-label fallback) are accepted without a DNS query.  Otherwise the
+script queries
+.I <sending-domain>._report._dmarc.<destination-domain>
+for a
+.I v=DMARC1
+TXT record, falling back to the wildcard form
+.RI ( *._report._dmarc.<destination-domain> )
+on NXDOMAIN.  The destination is rejected, and the report for it skipped,
+if neither query returns an authorizing record.  Lookup failures
+(SERVFAIL, timeout) fail open.  For
+.I --forensic
+mode, the sending domain is taken from the
+.I Reported-Domain
+field described above; verification is skipped (not enforced) when that
+field is absent.  Applies to both aggregate and forensic modes.
+.SH RATE LIMITING
+When
+.I --forensic-rate-limit
+is set,
+.I --forensic
+mode will send at most that many failure reports to a given destination
+address within
+.I --forensic-rate-window
+seconds, per RFC 9991 section 2 and section 8.1 (preventing a bad actor
+from using deliberately-triggered DMARC failures to flood a RUF
+destination).  Send attempts, not confirmed deliveries, count against the
+limit.  Backed by the
+.I forensic_sent
+database table; see
+.B "SCHEMA CHANGES"
+in the top-level CHANGES file if upgrading from an installation predating
+this option.  Disabled (no limit) by default.  Has no effect on aggregate
+report delivery or on the milter's direct
+.I ReportCommand
+path.
 .SH ENVIRONMENT
 .TP
 .B OPENDMARC_DBHOST

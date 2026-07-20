@@ -129,6 +129,9 @@ struct dmarcf_msgctx
 	int			mctx_arcpolicypass;
 	int			mctx_spfresult;
 	int			mctx_spfmode;
+	u_char *		mctx_dkimdomain;	/* RFC 9991: d= of the last DKIM signature seen; not owned, points into "ar" */
+	u_char *		mctx_dkimselector;	/* RFC 9991: s= of same */
+	u_char *		mctx_dkimidentity;	/* RFC 9991: i= of same, if present */
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
 	struct arcares_header * mctx_aarhead;
@@ -2286,6 +2289,7 @@ mlfi_eom(SMFICTX *ctx)
 	int np;
 	int t;
 	int discovery_method;
+	int psd;
 	int align_dkim;
 	int align_spf;
 	int limit_arc = 0;
@@ -2899,6 +2903,7 @@ mlfi_eom(SMFICTX *ctx)
 			{
 				u_char *dkim_selector = NULL;
 				u_char *dkim_domain = NULL;
+				u_char *dkim_identity = NULL;
 
 				for (pc = 0;
 				     pc < ar->ares_result[c].result_props;
@@ -2914,11 +2919,27 @@ mlfi_eom(SMFICTX *ctx)
 						{
 							dkim_selector = ar->ares_result[c].result_value[pc];
 						}
+						if (ar->ares_result[c].result_property[pc][0] == 'i')
+						{
+							dkim_identity = ar->ares_result[c].result_value[pc];
+						}
 					}
 				}
 
 				if (dkim_domain == NULL)
 					continue;
+
+				/*
+				** RFC 9991 S4: DKIM-Domain/-Identity/-Selector for the
+				** failure report.  These fields allow only one appearance
+				** each, so when multiple signatures are present, the last
+				** one seen here is what gets reported if DKIM alignment
+				** ultimately fails.  Not owned -- points into "ar", which
+				** outlives this function's use of it (freed at "done:").
+				*/
+				dfc->mctx_dkimdomain   = dkim_domain;
+				dfc->mctx_dkimselector = dkim_selector;
+				dfc->mctx_dkimidentity = dkim_identity;
 
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %s %d\n",
@@ -3531,6 +3552,21 @@ mlfi_eom(SMFICTX *ctx)
 	*/
 
 	ruv = opendmarc_policy_fetch_ruf(cc->cctx_dmarc, NULL, 0, TRUE);
+
+	/*
+	** RFC 9991 S2: "Report generators MUST NOT consider 'ruf' tags in
+	** DMARC Policy Records that have a 'psd=y' tag, unless there are
+	** specific agreements between the interested parties." No such
+	** agreement mechanism exists here, so psd=y always drops ruf=-derived
+	** recipients. conf_afrfbcc is operator-configured, not sourced from
+	** the record, so it's unaffected.
+	*/
+	if (opendmarc_policy_fetch_psd(cc->cctx_dmarc, &psd) == DMARC_PARSE_OKAY &&
+	    psd == DMARC_RECORD_PSD_Y)
+	{
+		ruv = NULL;
+	}
+
 	if ((policy == DMARC_POLICY_REJECT ||
 	     policy == DMARC_POLICY_QUARANTINE ||
 	     (conf->conf_afrfnone && policy == DMARC_POLICY_NONE)) &&
@@ -3688,6 +3724,54 @@ mlfi_eom(SMFICTX *ctx)
 
 			dmarcf_dstring_cat(dfc->mctx_afrf,
 			                   (u_char *)"Auth-Failure: dmarc\n");
+
+			/*
+			** RFC 9991 S4: Identity-Alignment lists the mechanisms that
+			** failed to produce an *aligned* identity (not merely a
+			** mechanism failure), or "none" if both aligned. DKIM-Domain/
+			** -Identity/-Selector cite the DKIM signature involved, only
+			** when DKIM alignment failed and a signature was actually
+			** seen (mctx_dkimdomain is NULL when no trusted upstream
+			** Authentication-Results header carried a DKIM result at
+			** all -- this codebase never verifies DKIM locally).
+			*/
+			{
+				_Bool dkim_failed = (align_dkim != DMARC_POLICY_DKIM_ALIGNMENT_PASS);
+				_Bool spf_failed  = (align_spf != DMARC_POLICY_SPF_ALIGNMENT_PASS);
+
+				if (!dkim_failed && !spf_failed)
+				{
+					dmarcf_dstring_cat(dfc->mctx_afrf,
+					                   (u_char *)"Identity-Alignment: none\n");
+				}
+				else
+				{
+					dmarcf_dstring_printf(dfc->mctx_afrf,
+					                      "Identity-Alignment: %s%s%s\n",
+					                      dkim_failed ? "dkim" : "",
+					                      (dkim_failed && spf_failed) ? "," : "",
+					                      spf_failed ? "spf" : "");
+				}
+
+				if (dkim_failed && dfc->mctx_dkimdomain != NULL)
+				{
+					dmarcf_dstring_printf(dfc->mctx_afrf,
+					                      "DKIM-Domain: %s\n",
+					                      dfc->mctx_dkimdomain);
+					if (dfc->mctx_dkimselector != NULL)
+					{
+						dmarcf_dstring_printf(dfc->mctx_afrf,
+						                      "DKIM-Selector: %s\n",
+						                      dfc->mctx_dkimselector);
+					}
+					if (dfc->mctx_dkimidentity != NULL)
+					{
+						dmarcf_dstring_printf(dfc->mctx_afrf,
+						                      "DKIM-Identity: %s\n",
+						                      dfc->mctx_dkimidentity);
+					}
+				}
+			}
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
 			                      "Authentication-Results: %s; dmarc=fail header.from=%s\n",

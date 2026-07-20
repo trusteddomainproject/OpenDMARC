@@ -1851,6 +1851,21 @@ opendmarc_policy_fetch_np(DMARC_POLICY_T *pctx, int *np)
 }
 
 OPENDMARC_STATUS_T
+opendmarc_policy_fetch_psd(DMARC_POLICY_T *pctx, int *psd)
+{
+	if (pctx == NULL)
+	{
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	}
+	if (psd == NULL)
+	{
+		return DMARC_PARSE_ERROR_EMPTY;
+	}
+	*psd = pctx->psd;
+	return DMARC_PARSE_OKAY;
+}
+
+OPENDMARC_STATUS_T
 opendmarc_policy_fetch_discovery_method(DMARC_POLICY_T *pctx, int *discovery_method)
 {
 	if (pctx == NULL)

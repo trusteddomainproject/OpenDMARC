@@ -6,7 +6,7 @@
 int
 main(int argc, char **argv)
 {
-	static char *record=	"v=DMARC1; p=none; sp=none; np=quarantine; adkim=s; aspf=s; pct=50; t=y; ri=300; rf=afrf; rua=mailto:dmarc-a@abuse.net; ruf=mailto:dmarc-f@abuse.net";
+	static char *record=	"v=DMARC1; p=none; sp=none; np=quarantine; psd=y; adkim=s; aspf=s; pct=50; t=y; ri=300; rf=afrf; rua=mailto:dmarc-a@abuse.net; ruf=mailto:dmarc-f@abuse.net";
 	DMARC_POLICY_T *pctx;
 	OPENDMARC_STATUS_T status;
 	int pass, fails, count;
@@ -15,6 +15,7 @@ main(int argc, char **argv)
 	int aspf;
 	int t;
 	int np;
+	int psd;
 	int discovery_method;
 
 	pass = fails = count = 0;
@@ -83,6 +84,17 @@ main(int argc, char **argv)
 	if (np != DMARC_RECORD_P_QUARANTINE)
 	{
 		printf("\t%s(%d): opendmarc_policy_fetch_np: expected %d got %d: FAIL\n", __FILE__, __LINE__,  DMARC_RECORD_P_QUARANTINE, np);
+		fails += 1;
+	}
+	status = opendmarc_policy_fetch_psd(pctx, &psd);
+	if (status != DMARC_PARSE_OKAY)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_psd: %s: FAIL\n", __FILE__, __LINE__, opendmarc_policy_status_to_str(status));
+		fails += 1;
+	}
+	if (psd != DMARC_RECORD_PSD_Y)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_psd: expected %d got %d: FAIL\n", __FILE__, __LINE__,  DMARC_RECORD_PSD_Y, psd);
 		fails += 1;
 	}
 
@@ -188,6 +200,13 @@ main(int argc, char **argv)
 	if (status != DMARC_PARSE_OKAY || np != DMARC_RECORD_P_UNSPECIFIED)
 	{
 		printf("\t%s(%d): opendmarc_policy_fetch_np: expected unspecified, got %d: FAIL\n", __FILE__, __LINE__, np);
+		fails += 1;
+	}
+	/* RFC 9989: psd= absent defaults to DMARC_RECORD_PSD_UNSPECIFIED */
+	status = opendmarc_policy_fetch_psd(pctx, &psd);
+	if (status != DMARC_PARSE_OKAY || psd != DMARC_RECORD_PSD_UNSPECIFIED)
+	{
+		printf("\t%s(%d): opendmarc_policy_fetch_psd: expected unspecified, got %d: FAIL\n", __FILE__, __LINE__, psd);
 		fails += 1;
 	}
 	pctx = opendmarc_policy_connect_shutdown(pctx);
