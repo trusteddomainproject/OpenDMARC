@@ -22,7 +22,9 @@ use IO::Handle;
 use IO::Compress::Gzip qw(gzip);
 use POSIX;
 use MIME::Base64;
+use Net::DNS;
 use Net::SMTP;
+use Sys::Syslog qw(:standard :macros);
 use Time::Local;
 
 require HTTP::Request;
@@ -65,11 +67,17 @@ my @skipdomains;
 
 my $policy;
 my $spolicy;
+my $npolicy;
 my $policystr;
 my $spolicystr;
+my $npolicystr;
 my $pct;
 my $fo;
 my $fostr;
+my $testing;
+my $testingstr;
+my $discovery_method;
+my $discovery_methodstr;
 
 my $repuri;
 my @repuris;
@@ -130,6 +138,17 @@ my $report_maxbytes_global = 15728640; # default: 15M, per spec
 my $noreports_file;
 my %noreports;
 
+# RFC 9990 S4 / RFC 9991 S5: external-destination verification.
+my $publicsuffixlist;
+my %psl;
+my $psl_loaded = 0;
+
+# RFC 9991 S2/S8.1: rate-limit on outgoing failure reports. Disabled
+# (undef) by default -- new, potentially traffic-shaping behavior should
+# not turn on silently.
+my $forensic_rate_limit;
+my $forensic_rate_window = 3600;
+
 my $msgid;
 
 my $rowcount;
@@ -162,8 +181,6 @@ my $dbscheme     = $def_dbscheme;
 my $repdom       = hostdomain();
 my $repemail     = "postmaster@" . $repdom;
 my $repcontact;
-my $repbodyfile;
-my $repbodytemplate;
 
 my $smtp_server  = '127.0.0.1';
 my $smtp_port    = 25;
@@ -274,7 +291,28 @@ sub loud_skip
 {
 	my ($reason) = @_;
 
-	return $reason eq "StaleMARC" || $reason eq "suppression DB";
+	return $reason eq "StaleMARC" || $reason eq "suppression DB" ||
+	       $reason eq "rate limit";
+}
+
+# Prints a report-skip diagnostic to stderr, gated by --verbose except for
+# loud_skip() reasons which are always shown there too.  loud_skip() reasons
+# are additionally sent to syslog (facility mail, opened at startup) since a
+# skipped report never reaches the local MTA to leave its own trace in the
+# conventional mail log.
+sub log_skip
+{
+	my ($reason, $message) = @_;
+
+	if ($verbose || loud_skip($reason))
+	{
+		print STDERR "$progname: $message\n";
+	}
+
+	if (loud_skip($reason))
+	{
+		syslog('notice', '%s', $message);
+	}
 }
 
 # Returns the reason a destination address should be skipped (for logging),
@@ -312,6 +350,171 @@ sub domain_skip_reason
 	return "suppression DB" if db_skip($domain);
 
 	return undef;
+}
+
+# Load the Public Suffix List from disk into %psl.  Called once on first use.
+sub load_psl
+{
+	return if $psl_loaded;
+	$psl_loaded = 1;
+	return unless defined($publicsuffixlist);
+	open(my $fh, '<', $publicsuffixlist) or return;
+	while (my $line = <$fh>)
+	{
+		chomp $line;
+		$line =~ s/\s*\/\/.*//;
+		next if $line =~ /^\s*$/;
+		$psl{lc($line)} = 1;
+	}
+	close($fh);
+}
+
+# Return the organizational domain (eTLD+1) of $domain.
+# Uses the PSL when available; falls back to the last two labels otherwise.
+sub get_org_domain
+{
+	my ($domain) = @_;
+	$domain = lc($domain);
+	my @labels = split(/\./, $domain);
+
+	if (defined($publicsuffixlist) && -r $publicsuffixlist)
+	{
+		load_psl();
+		for my $i (0 .. $#labels - 1)
+		{
+			my $suffix    = join('.', @labels[$i+1 .. $#labels]);
+			my $wildcard  = '*.' . $suffix;
+			my $exception = '!' . join('.', @labels[$i .. $#labels]);
+			if (exists $psl{$exception})
+			{
+				return join('.', @labels[$i .. $#labels]);
+			}
+			if (exists $psl{join('.', @labels[$i .. $#labels])} ||
+			    exists $psl{$wildcard})
+			{
+				return $i > 0 ? join('.', @labels[$i-1 .. $#labels]) : undef;
+			}
+		}
+	}
+
+	# Fallback: last two labels.
+	return @labels >= 2 ? join('.', @labels[-2 .. $#labels]) : $domain;
+}
+
+# RFC 9990 S4 / RFC 9991 S5 "Verifying External Destinations".  $domain is
+# the DMARC-Policy-Record-owning (sending) domain; $address is a rua= or
+# ruf= mailto: destination address; $tag is "rua" or "ruf", used only for
+# log messages -- the verification procedure itself (same-org check, then
+# the "<domain>._report._dmarc.<dest-domain>" DNS query) is identical for
+# both per RFC 9991 S5, which just substitutes "ruf" for "rua" in RFC 9990
+# S4's procedure. Same-org addresses are authorized without a DNS query.
+# Fails open (authorizes) on SERVFAIL/timeout/other non-definitive answers,
+# per the same "don't let report delivery hinge on transient DNS trouble"
+# reasoning as the rest of this script's suppression checks.
+sub verify_external_destination
+{
+	my ($domain, $address, $tag) = @_;
+
+	my ($dest_domain) = $address =~ /\@(.+)$/;
+	$dest_domain = lc($dest_domain // '');
+	return 0 unless length($dest_domain);
+
+	my $domain_org = get_org_domain($domain);
+	my $dest_org   = get_org_domain($dest_domain);
+
+	if (defined($domain_org) && defined($dest_org) && $domain_org eq $dest_org)
+	{
+		# Same organizational domain -- no DNS check required.
+		return 1;
+	}
+
+	my $res   = Net::DNS::Resolver->new(udp_timeout => 15);
+	my $qname = "$domain._report._dmarc.$dest_domain";
+	my $reply = $res->query($qname, "TXT");
+	my $authorized = 0;
+
+	if ($reply)
+	{
+		for my $rr ($reply->answer)
+		{
+			next unless $rr->type eq "TXT";
+			if ($rr->txtdata =~ /^\s*v\s*=\s*DMARC1\b/i)
+			{
+				$authorized = 1;
+				last;
+			}
+		}
+	}
+	else
+	{
+		my $err = $res->errorstring;
+
+		# NXDOMAIN (name doesn't exist) and NOERROR (name resolves but has
+		# no TXT records -- NODATA) are both definitive negative answers,
+		# not failures: Net::DNS returns undef for either, distinguishable
+		# only via errorstring.  A NODATA response is exactly as common in
+		# practice as a real NXDOMAIN for a nonexistent subdomain -- e.g.
+		# Cloudflare-hosted zones answer this way -- so treating it as
+		# "fail open" would make verification silently weaker against any
+		# nameserver that responds this way, rather than failing open only
+		# for genuinely indeterminate conditions (SERVFAIL, timeout).
+		if ($err eq "NXDOMAIN" || $err eq "NOERROR")
+		{
+			# Wildcard fallback: *._report._dmarc.<dest-domain>
+			my $wreply = $res->query("*._report._dmarc.$dest_domain", "TXT");
+			if ($wreply)
+			{
+				for my $rr ($wreply->answer)
+				{
+					next unless $rr->type eq "TXT";
+					if ($rr->txtdata =~ /^\s*v\s*=\s*DMARC1\b/i)
+					{
+						$authorized = 1;
+						last;
+					}
+				}
+			}
+		}
+		else
+		{
+			# SERVFAIL, timeout, or anything else non-definitive: fail open.
+			$authorized = 1;
+		}
+	}
+
+	if (!$authorized && $verbose)
+	{
+		print STDERR "$progname: $domain is not authorized to send $tag reports to $address ($qname returned " . $res->errorstring . "); dropping\n";
+	}
+
+	return $authorized;
+}
+
+# RFC 9991 S2/S8.1: rate-limit outgoing failure reports per recipient
+# address, so a bad actor can't use deliberately-triggered DMARC failures
+# to flood a ruf= destination. Counts (and records) attempts, not confirmed
+# deliveries -- an attempt still represents outbound traffic/load toward
+# the destination, which is what S8.1 is protecting against. Returns 1
+# (send, and records this send) if under the configured limit, 0 (skip) if
+# at or over it. Always returns 1 without touching the DB when rate-
+# limiting isn't configured.
+sub forensic_rate_check
+{
+	my ($address) = @_;
+
+	return 1 unless defined($forensic_rate_limit);
+
+	my $sth = $dbi_h->prepare(
+		"SELECT COUNT(*) FROM forensic_sent WHERE address = ? AND sent_at > FROM_UNIXTIME(?)");
+	$sth->execute($address, time() - $forensic_rate_window);
+	my ($count) = $sth->fetchrow_array();
+	$sth->finish;
+
+	return 0 if $count >= $forensic_rate_limit;
+
+	$dbi_h->do("INSERT INTO forensic_sent (address) VALUES (?)", undef, $address);
+
+	return 1;
 }
 
 # Open a connection to the configured SMTP server, applying SSL/StartTLS
@@ -407,8 +610,6 @@ sub usage
 	print STDERR "\t--nodomain=name    omit a report for named domain\n";
 	print STDERR "\t--noupdate         don't record report transmission\n";
 	print STDERR "\t--report-bcc       bcc address for aggregate reports\n";
-	print STDERR "\t--report-body-file=file  custom plain-text body for aggregate\n";
-	print STDERR "\t                   reports (%DOMAIN%/%DATE% tokens substituted)\n";
 	print STDERR "\t--report-contact   contact address for report metadata (default: --report-email)\n";
 	print STDERR "\t--report-email     envelope/From address for outgoing reports [$repemail]\n";
 	print STDERR "\t--report-org       reporting organization [$repdom]\n";
@@ -497,6 +698,11 @@ if (-f $configfile)
 # set locale
 setlocale(LC_ALL, 'C');
 
+# Facility "mail" so loud_skip() events land in the conventional mail log
+# (e.g. /var/log/maillog) alongside everything else about mail delivery,
+# even though these never reach the local MTA to write their own entry.
+openlog($progname, 'pid', 'mail');
+
 # parse command line arguments
 my $opt_retval = &Getopt::Long::GetOptions ('archive-dir=s' => \$archive_dir,
                                             'day!' => \$daybound,
@@ -516,7 +722,6 @@ my $opt_retval = &Getopt::Long::GetOptions ('archive-dir=s' => \$archive_dir,
                                             'n|test' => \$testmode,
                                             'nodomain=s' => \@skipdomains,
                                             'report-bcc=s' => \$repbcc,
-                                            'report-body-file=s' => \$repbodyfile,
                                             'report-contact=s' => \$repcontact,
                                             'report-email=s' => \$repemail,
                                             'report-org=s' => \$repdom,
@@ -528,6 +733,12 @@ my $opt_retval = &Getopt::Long::GetOptions ('archive-dir=s' => \$archive_dir,
                                             'smtp-username=s' => \$smtp_username,
                                             'no-reports-list=s' => \$noreports_file,
                                             'NoReportsList=s' => \$noreports_file,
+                                            'public-suffix-list=s' => \$publicsuffixlist,
+                                            'PublicSuffixList=s' => \$publicsuffixlist,
+                                            'forensic-rate-limit=i' => \$forensic_rate_limit,
+                                            'ForensicRateLimit=i' => \$forensic_rate_limit,
+                                            'forensic-rate-window=i' => \$forensic_rate_window,
+                                            'ForensicRateWindow=i' => \$forensic_rate_window,
                                             'stale-check!' => \$stale_check,
                                             'stale-def-deny!' => \$stale_def_deny,
                                             'stale-server=s' => \$stale_server,
@@ -661,14 +872,6 @@ if (defined($noreports_file))
 	close($nrf);
 }
 
-if (defined($repbodyfile))
-{
-	open(my $rbf, '<', $repbodyfile)
-		or die "$progname: can't open report body file $repbodyfile: $!\n";
-	$repbodytemplate = do { local $/; <$rbf> };
-	close($rbf);
-}
-
 # Test mode requested, don't update last sent and keep xml files
 $doupdate  = ($testmode == 1) ? 0 : $doupdate;
 $keepfiles = ($testmode == 1) ? 1 : $keepfiles;
@@ -705,15 +908,19 @@ if ($forensic)
 	# sending-domain suppression -- --skipdomains/bare NoReportsList
 	# entries, StaleMARC, the suppressions DB -- that the aggregate path
 	# applies, so a bare NoReportsList entry suppresses reports about
-	# that domain no matter which path would otherwise send them.
+	# that domain no matter which path would otherwise send them.  Also
+	# used below as the "domain" half of external-destination verification
+	# (RFC 9990 S4 / RFC 9991 S5) -- without it we have no sending domain
+	# to verify recipients against, so verification is skipped rather than
+	# guessed at.
+	my $reported_domain;
 	if ($message =~ /^Reported-Domain:\s*(\S+)/mi)
 	{
-		my $reported_domain = lc($1);
+		$reported_domain = lc($1);
 		my $reason = domain_skip_reason($reported_domain);
 		if (defined($reason))
 		{
-			print STDERR "$progname: --forensic: skipping report for $reported_domain ($reason)\n"
-				if $verbose || loud_skip($reason);
+			log_skip($reason, "--forensic: skipping report for $reported_domain ($reason)");
 			exit($EXIT_SUPPRESSED);
 		}
 	}
@@ -752,9 +959,26 @@ if ($forensic)
 	# suppressed identically no matter which path is delivering mail.
 	@rcpts = grep {
 		my $reason = skip_reason($_);
-		print STDERR "$progname: --forensic: skipping $_ ($reason)\n"
-			if defined($reason) && ($verbose || loud_skip($reason));
+		log_skip($reason, "--forensic: skipping $_ ($reason)") if defined($reason);
 		!defined($reason);
+	} @rcpts;
+
+	# RFC 9991 S5 external-destination verification, substituting ruf for
+	# rua per that section.  Skipped (not enforced) when there's no
+	# Reported-Domain to verify against -- see the comment above where
+	# $reported_domain is set.
+	if (defined($reported_domain))
+	{
+		@rcpts = grep { verify_external_destination($reported_domain, $_, "ruf") } @rcpts;
+	}
+
+	# RFC 9991 S2/S8.1 rate-limiting. Deliberately last, after the (cheap)
+	# suppression/verification checks, so a recipient that would be
+	# dropped anyway doesn't consume a slot in its own rate-limit window.
+	@rcpts = grep {
+		my $ok = forensic_rate_check($_);
+		log_skip("rate limit", "--forensic: skipping $_ (forensic rate limit exceeded)") unless $ok;
+		$ok;
 	} @rcpts;
 
 	if (!@rcpts)
@@ -1060,8 +1284,7 @@ foreach (@$domainset)
 	my $domain_reason = domain_skip_reason($domain);
 	if (defined($domain_reason))
 	{
-		print STDERR "$progname: skipping $domain ($domain_reason)\n"
-			if $verbose || loud_skip($domain_reason);
+		log_skip($domain_reason, "skipping $domain ($domain_reason)");
 		next;
 	}
 
@@ -1099,7 +1322,7 @@ foreach (@$domainset)
 	# MySQL-specific: UNIX_TIMESTAMP() converts a DATETIME to a Unix timestamp.
 	# SQLite equivalent: strftime('%s', lastsent)
 	# PostgreSQL equivalent: EXTRACT(EPOCH FROM lastsent)
-	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, pct, fo, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
+	$dbi_s = $dbi_h->prepare("SELECT repuri, adkim, aspf, policy, spolicy, npolicy, pct, fo, testing, discovery_method, UNIX_TIMESTAMP(lastsent) FROM requests WHERE domain = ?");
         $dbi_s->bind_param(1, $domainid, {TYPE => SQL_INTEGER});
 	if (!$dbi_s->execute())
 	{
@@ -1135,15 +1358,27 @@ foreach (@$domainset)
 		}
 		if (defined($dbi_a->[5]))
 		{
-			$pct = $dbi_a->[5];
+			$npolicy = $dbi_a->[5];
 		}
 		if (defined($dbi_a->[6]))
 		{
-			$fo = $dbi_a->[6];
+			$pct = $dbi_a->[6];
 		}
 		if (defined($dbi_a->[7]))
 		{
-			$lastsent = $dbi_a->[7];
+			$fo = $dbi_a->[7];
+		}
+		if (defined($dbi_a->[8]))
+		{
+			$testing = $dbi_a->[8];
+		}
+		if (defined($dbi_a->[9]))
+		{
+			$discovery_method = $dbi_a->[9];
+		}
+		if (defined($dbi_a->[10]))
+		{
+			$lastsent = $dbi_a->[10];
 		}
 	}
 
@@ -1227,6 +1462,16 @@ foreach (@$domainset)
 	elsif ($spolicy == ord("r")) { $spolicystr = "reject"; }
 	else                         { $spolicystr = "unknown"; }
 
+	# RFC 9990: np is OPTIONAL and, unlike sp, has no "falls back to p"
+	# reporting convention -- only emit it when the record actually
+	# published an np= value.
+	undef $npolicystr;
+	if    (!defined($npolicy) || $npolicy == 0) { undef $npolicystr; }
+	elsif ($npolicy == ord("n"))                { $npolicystr = "none"; }
+	elsif ($npolicy == ord("q"))                { $npolicystr = "quarantine"; }
+	elsif ($npolicy == ord("r"))                { $npolicystr = "reject"; }
+	else                                         { $npolicystr = "unknown"; }
+
 	{
 		my @fo_values;
 		if (!defined($fo) || $fo == 0)
@@ -1243,9 +1488,21 @@ foreach (@$domainset)
 		}
 	}
 
+	# RFC 9990: testing (t=) and discovery_method (psl|treewalk) are both
+	# OPTIONAL; omit them unless a concrete value was recorded.
+	undef $testingstr;
+	if    (!defined($testing) || $testing == 0) { undef $testingstr; }
+	elsif ($testing == ord("y"))                { $testingstr = "y"; }
+	elsif ($testing == ord("n"))                { $testingstr = "n"; }
+
+	undef $discovery_methodstr;
+	if    (!defined($discovery_method) || $discovery_method == 0) { undef $discovery_methodstr; }
+	elsif ($discovery_method == 1)                                { $discovery_methodstr = "psl"; }
+	elsif ($discovery_method == 2)                                { $discovery_methodstr = "treewalk"; }
+
 	print $tmpout "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
-	print $tmpout "<feedback>\n";
-	print $tmpout "    <version>1</version>\n";
+	print $tmpout "<feedback xmlns=\"urn:ietf:params:xml:ns:dmarc-2.0\">\n";
+	print $tmpout "    <version>1.0</version>\n";
 
 	print $tmpout "    <report_metadata>\n";
 	print $tmpout "        <org_name>$repdom</org_name>\n";
@@ -1263,8 +1520,10 @@ foreach (@$domainset)
 	print $tmpout "        <aspf>$aspfstr</aspf>\n";
 	print $tmpout "        <p>$policystr</p>\n";
 	print $tmpout "        <sp>$spolicystr</sp>\n";
-	print $tmpout "        <pct>$pct</pct>\n";
+	print $tmpout "        <np>$npolicystr</np>\n" if defined($npolicystr);
 	print $tmpout "        <fo>$fostr</fo>\n";
+	print $tmpout "        <testing>$testingstr</testing>\n" if defined($testingstr);
+	print $tmpout "        <discovery_method>$discovery_methodstr</discovery_method>\n" if defined($discovery_methodstr);
 	print $tmpout "    </policy_published>\n";
 
 	# MySQL-specific: FROM_UNIXTIME() in both queries below.
@@ -1657,8 +1916,12 @@ foreach (@$domainset)
 			my $reason = skip_reason($repdest);
 			if (defined($reason))
 			{
-				print STDERR "$progname: skipping $domain report to $repdest ($reason)\n"
-					if $verbose || loud_skip($reason);
+				log_skip($reason, "skipping $domain report to $repdest ($reason)");
+				next;
+			}
+
+			if (!verify_external_destination($domain, $repdest, "rua"))
+			{
 				next;
 			}
 		}
@@ -1713,18 +1976,8 @@ foreach (@$domainset)
 			$mailout .= "--$boundary\n";
 			$mailout .= "Content-Type: text/plain;\n";
 			$mailout .= "\n";
-			if (defined($repbodytemplate))
-			{
-				my $body = $repbodytemplate;
-				$body =~ s/%DOMAIN%/$domain/g;
-				$body =~ s/%DATE%/$datestr/g;
-				$mailout .= $body;
-			}
-			else
-			{
-				$mailout .= "This is a DMARC aggregate report for $domain\n";
-				$mailout .= "generated at " . localtime() . "\n";
-			}
+			$mailout .= "This is a DMARC aggregate report for $domain\n";
+			$mailout .= "generated at " . localtime() . "\n";
 			$mailout .= "\n";
 			$mailout .= "--$boundary\n";
 			$mailout .= "Content-Type: application/gzip\n";

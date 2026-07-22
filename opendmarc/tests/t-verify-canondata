@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# Test that X-DKIM-Canonicalized-Header/-Body staging headers (as added by
+# an upstream OpenDKIM's AddCanonicalizedData) are stripped before final
+# delivery.
+#
+
+if [ x"$srcdir" = x"" ]
+then
+	srcdir=`pwd`
+fi
+
+miltertest -s $srcdir/t-verify-canondata.lua

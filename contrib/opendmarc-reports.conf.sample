@@ -60,6 +60,17 @@
 # attachment) for later review, e.g. RFC-compliance checking.
 #archive-dir = /var/spool/opendmarc/sent
 
+# --- External destination verification (RFC 9990 S4 / RFC 9991 S5) ---
+# Same file used by the milter's PublicSuffixList; used to recognize
+# same-organization RUA/RUF destinations without a DNS query.
+#public-suffix-list = /etc/opendmarc/public_suffix_list.dat
+
+# --- Forensic report rate limiting (RFC 9991 S2/S8.1) ---
+# Uncomment to cap failure reports per destination address. Unset (no
+# limit) by default.
+#forensic-rate-limit = 10
+#forensic-rate-window = 3600
+
 # --- Miscellaneous ---
 #interval = 86400
 #utc = 1

@@ -37,7 +37,16 @@ if mt.getreply(conn) ~= SMFIR_CONTINUE then
 end
 
 -- send envelope macros and sender data
--- mt.helo() is called implicitly
+-- HELO must precede any SMFIC_MAIL-scoped macro (see
+-- t-verify-authservid-jobid.lua for why: real libmilter's HELO handler
+-- clears macros stored for later protocol stages).
+if mt.helo(conn, "localhost2") ~= nil then
+	error("mt.helo() failed")
+end
+if mt.getreply(conn) ~= SMFIR_CONTINUE then
+	error("mt.helo() unexpected reply")
+end
+
 mt.macro(conn, SMFIC_MAIL, "i", "t-verify-received-spf-good")
 if mt.mailfrom(conn, "user@trusteddomain.org") ~= nil then
 	error("mt.mailfrom() failed")

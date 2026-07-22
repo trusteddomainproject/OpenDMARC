@@ -32,6 +32,13 @@ ALTER TABLE messages MODIFY COLUMN arc_policy TINYINT UNSIGNED NOT NULL DEFAULT 
 -- RFC 7489 §8.2: spf_scope distinguishes mfrom vs. helo SPF evaluation.
 ALTER TABLE messages ADD COLUMN spf_scope TINYINT NOT NULL DEFAULT '-1' AFTER spf;
 
+-- RFC 9990 policy_published extensions: npolicy (non-existent-subdomain
+-- policy, the np= tag), testing (t=, RFC 9989 Appendix A.6), and
+-- discovery_method (psl|treewalk, how the record was found).
+ALTER TABLE requests ADD COLUMN npolicy TINYINT NOT NULL DEFAULT '0' AFTER spolicy;
+ALTER TABLE requests ADD COLUMN testing TINYINT NOT NULL DEFAULT '0' AFTER fo;
+ALTER TABLE requests ADD COLUMN discovery_method TINYINT NOT NULL DEFAULT '0' AFTER testing;
+
 -- VERP bounce tracking: suppressions table for persistent report address suppression.
 CREATE TABLE IF NOT EXISTS suppressions (
 	id INT NOT NULL AUTO_INCREMENT,
@@ -41,4 +48,15 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 	PRIMARY KEY(id),
 	UNIQUE KEY(address)
+);
+
+-- RFC 9991 S2/S8.1: tracks outgoing failure (ruf=) report sends per
+-- recipient address, so opendmarc-reports --forensic can rate-limit them.
+CREATE TABLE IF NOT EXISTS forensic_sent (
+	id INT NOT NULL AUTO_INCREMENT,
+	address VARCHAR(255) NOT NULL,
+	sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	PRIMARY KEY(id),
+	KEY(address, sent_at)
 );

@@ -83,9 +83,12 @@ my $reporter;
 my $repuri;
 my $sigcount = 0;
 my $sp;
+my $np = 0;
 my $spf;
 my $spf_scope = -1;
 my $fo = 0;
+my $testing = 0;
+my $discovery_method = 0;
 my @rua;
 
 ###
@@ -421,9 +424,9 @@ sub update_db
 			$dbi_s->finish;
 		}
 
-		$dbi_s = $dbi_h->prepare("UPDATE requests SET adkim = ?, aspf = ?, policy = ?, spolicy = ?, pct = ?, fo = ? WHERE id = ?");
+		$dbi_s = $dbi_h->prepare("UPDATE requests SET adkim = ?, aspf = ?, policy = ?, spolicy = ?, npolicy = ?, pct = ?, fo = ?, testing = ?, discovery_method = ? WHERE id = ?");
 
-		if (!$dbi_s->execute($adkim, $aspf, $p, $sp, $pct, $fo, $request_id))
+		if (!$dbi_s->execute($adkim, $aspf, $p, $sp, $np, $pct, $fo, $testing, $discovery_method, $request_id))
 		{
 			print STDERR "$progname: failed to update policy data for $fdomain: " . $dbi_h->errstr . "\n";
 			$dbi_s->finish;
@@ -716,9 +719,12 @@ while (<$inputfh>)
 			undef @rua;
 			$sigcount = 0;
 			undef $sp;
+			$np = 0;
 			undef $spf;
 			$spf_scope = -1;
 			$fo = 0;
+			$testing = 0;
+			$discovery_method = 0;
 		}
 
 		$jobid = $value;
@@ -765,6 +771,18 @@ while (<$inputfh>)
 	elsif ($key eq "sp")
 	{
 		$sp = $value;
+	}
+	elsif ($key eq "np")
+	{
+		$np = $value;
+	}
+	elsif ($key eq "testing")
+	{
+		$testing = $value;
+	}
+	elsif ($key eq "discovery_method")
+	{
+		$discovery_method = $value;
 	}
 	elsif ($key eq "spf")
 	{

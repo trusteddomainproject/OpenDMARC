@@ -360,6 +360,19 @@ AC_ARG_WITH([spf],
 	AC_DEFINE(WITH_SPF, 1, [Define to 1 if you want SPF support.]),
 	[])
 
+dnl There is no "--with-spf2" flag -- SPF support is enabled with
+dnl --with-spf, and libspf2 (as opposed to the built-in fallback
+dnl evaluator) is selected by additionally pointing at it via
+dnl --with-spf2-include/--with-spf2-lib below. Autoconf silently ignores
+dnl unrecognized --with-* options by default (a warning, not an error),
+dnl so this exact, easy typo has previously caused builds to silently
+dnl fall back to the built-in evaluator instead of libspf2. Fail loudly
+dnl instead.
+AC_ARG_WITH([spf2],
+	AS_HELP_STRING([--with-spf2], [(invalid; see --with-spf, --with-spf2-include, --with-spf2-lib)]),
+	[AC_MSG_ERROR([[--with-spf2 is not a valid option. Use --with-spf to enable SPF checking; use --with-spf2-include=path and --with-spf2-lib=path to select libspf2 over the built-in fallback evaluator.]])],
+	[])
+
 AC_ARG_WITH([spf2-include],
 	AS_HELP_STRING([--with-spf2-include], [path to libspf2 includes]),
 	SPF2_INCLUDE="$withval",

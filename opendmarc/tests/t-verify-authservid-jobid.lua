@@ -29,6 +29,21 @@ if mt.getreply(conn) ~= SMFIR_CONTINUE then
 	error("mt.conninfo() unexpected reply")
 end
 
+-- HELO must precede the SMFIC_MAIL-scoped "i" macro below: real libmilter's
+-- st_helo() unconditionally clears any macros already stored for later
+-- protocol stages (mi_clr_macros(ctx, CI_HELO+1), a normal safeguard
+-- against stale macros surviving from a prior transaction on the same
+-- connection). mt.mailfrom() auto-inserts a HELO step if one hasn't
+-- happened yet, so sending the "i" macro before an explicit mt.helo()
+-- meant it was silently wiped out by that auto-inserted HELO before ever
+-- being read back.
+if mt.helo(conn, "localhost2") ~= nil then
+	error("mt.helo() failed")
+end
+if mt.getreply(conn) ~= SMFIR_CONTINUE then
+	error("mt.helo() unexpected reply")
+end
+
 mt.macro(conn, SMFIC_MAIL, "i", "testjobid")
 if mt.mailfrom(conn, "user@trusteddomain.org") ~= nil then
 	error("mt.mailfrom() failed")

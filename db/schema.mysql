@@ -64,8 +64,11 @@ CREATE TABLE IF NOT EXISTS requests (
 	aspf TINYINT NOT NULL DEFAULT '0',
 	policy TINYINT NOT NULL DEFAULT '0',
 	spolicy TINYINT NOT NULL DEFAULT '0',
+	npolicy TINYINT NOT NULL DEFAULT '0',
 	pct TINYINT NOT NULL DEFAULT '0',
 	fo TINYINT NOT NULL DEFAULT '0',
+	testing TINYINT NOT NULL DEFAULT '0',
+	discovery_method TINYINT NOT NULL DEFAULT '0',
 	locked TINYINT NOT NULL DEFAULT '0',
 	firstseen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	lastsent TIMESTAMP NULL DEFAULT NULL,
@@ -146,6 +149,17 @@ CREATE TABLE IF NOT EXISTS suppressions (
 
 	PRIMARY KEY(id),
 	UNIQUE KEY(address)
+);
+
+-- RFC 9991 S2/S8.1: tracks outgoing failure (ruf=) report sends per
+-- recipient address, so opendmarc-reports --forensic can rate-limit them.
+CREATE TABLE IF NOT EXISTS forensic_sent (
+	id INT NOT NULL AUTO_INCREMENT,
+	address VARCHAR(255) NOT NULL,
+	sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	PRIMARY KEY(id),
+	KEY(address, sent_at)
 );
 
 -- CREATE USER 'opendmarc'@'localhost' IDENTIFIED BY 'changeme';

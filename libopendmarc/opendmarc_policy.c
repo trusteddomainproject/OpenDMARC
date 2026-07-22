@@ -907,6 +907,7 @@ query_dmarc_psl(DMARC_POLICY_T *pctx, u_char *domain,
 
 	if (dmarc_query_at((char *)tld, &dns_reply, buf, bufsz) != NULL)
 	{
+		pctx->discovery_method = OPENDMARC_DISCOVERY_PSL;
 		if (dns_reply_out != NULL)
 			*dns_reply_out = dns_reply;
 		return DMARC_PARSE_OKAY;
@@ -948,6 +949,7 @@ query_dmarc_rfc7489_walk(DMARC_POLICY_T *pctx, u_char *domain,
 		{
 			pctx->organizational_domain = (u_char *)strdup((char *)cur);
 			pctx->org_domain_from_fallback = 1;
+			pctx->discovery_method = OPENDMARC_DISCOVERY_PSL;
 			if (dns_reply_out != NULL)
 				*dns_reply_out = dns_reply;
 			return DMARC_PARSE_OKAY;
@@ -1094,6 +1096,7 @@ query_dmarc_rfc9989_walk(DMARC_POLICY_T *pctx, u_char *domain,
 		pctx->organizational_domain = (u_char *)strdup(best_domain);
 
 	(void) strlcpy((char *)buf, (char *)best_buf, bufsz);
+	pctx->discovery_method = OPENDMARC_DISCOVERY_TREEWALK;
 	return DMARC_PARSE_OKAY;
 }
 
@@ -1829,6 +1832,51 @@ opendmarc_policy_fetch_t(DMARC_POLICY_T *pctx, int *t)
 		return DMARC_PARSE_ERROR_EMPTY;
 	}
 	*t = pctx->t;
+	return DMARC_PARSE_OKAY;
+}
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_np(DMARC_POLICY_T *pctx, int *np)
+{
+	if (pctx == NULL)
+	{
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	}
+	if (np == NULL)
+	{
+		return DMARC_PARSE_ERROR_EMPTY;
+	}
+	*np = pctx->np;
+	return DMARC_PARSE_OKAY;
+}
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_psd(DMARC_POLICY_T *pctx, int *psd)
+{
+	if (pctx == NULL)
+	{
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	}
+	if (psd == NULL)
+	{
+		return DMARC_PARSE_ERROR_EMPTY;
+	}
+	*psd = pctx->psd;
+	return DMARC_PARSE_OKAY;
+}
+
+OPENDMARC_STATUS_T
+opendmarc_policy_fetch_discovery_method(DMARC_POLICY_T *pctx, int *discovery_method)
+{
+	if (pctx == NULL)
+	{
+		return DMARC_PARSE_ERROR_NULL_CTX;
+	}
+	if (discovery_method == NULL)
+	{
+		return DMARC_PARSE_ERROR_EMPTY;
+	}
+	*discovery_method = pctx->discovery_method;
 	return DMARC_PARSE_OKAY;
 }
 

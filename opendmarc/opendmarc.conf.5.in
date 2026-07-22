@@ -323,6 +323,26 @@ breaks that loop.  Matching is case-insensitive.  The default is an empty
 list, meaning all inbound mail is recorded normally.
 
 .TP
+.I LogSPFDNS (Boolean)
+When
+.I SPFSelfValidate
+is also set, populate the RFC 6591
+.I SPF-DNS
+field of failure reports (RFC 9991) with the DNS records consulted
+during self-validation -- the SPF policy record at each domain visited,
+including those reached via
+.I include:
+or
+.I redirect=
+mechanisms.  Has no effect unless
+.I SPFSelfValidate
+is also set.  Building the DNS chain needed to capture this data has a
+small extra cost per self-validated message, so it is not enabled
+automatically alongside
+.IR SPFSelfValidate .
+The default is "false".
+
+.TP
 .I MilterDebug (integer)
 Sets the debug level to be requested from the milter library.  Six is the
 highest useful value.  The default is 0.
@@ -388,6 +408,30 @@ as described in the DMARC specification.  If not provided, the filter will
 not be able to determine the Organizational Domain and only the presented
 domain will be evaluated.  This file should be periodically updated.
 One location to retrieve the file from is https://publicsuffix.org/list/
+
+.TP
+.I ReadCanonicalizedData (Boolean)
+If set, and
+.I FailureReports
+is also set, the filter will look for
+.I X-DKIM-Canonicalized-Header
+and
+.I X-DKIM-Canonicalized-Body
+headers added by an upstream signing filter (e.g.
+.IR OpenDKIM (8)
+with its
+.I AddCanonicalizedData
+directive enabled) and, when a DKIM signature is the one blamed for a
+DMARC failure, populate the
+.I DKIM-Canonicalized-Header
+and
+.I DKIM-Canonicalized-Body
+fields of the resulting RFC 6591 failure report with their contents.
+These staging headers are always stripped from the outgoing message
+before final delivery, whether or not this option is set, so they never
+reach the recipient.  Note that for large messages this can make for a
+correspondingly large failure report, since the canonicalized message
+body is included in full; no size limit is applied.  Not set by default.
 
 .TP
 .I RecordAllMessages (Boolean)

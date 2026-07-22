@@ -325,6 +325,20 @@
 #
 # IgnoreMailTo dmarc-reports@example.com
 
+##  LogSPFDNS { true | false }
+##  	default "false"
+##
+##  When SPFSelfValidate is also set, populate the RFC 6591 SPF-DNS field
+##  of failure reports (RFC 9991) with the DNS records consulted during
+##  self-validation -- the SPF policy record at each domain visited,
+##  including those reached via include:/redirect= mechanisms. Has no
+##  effect unless SPFSelfValidate is also set. Building the DNS chain
+##  needed to capture this data has a small extra cost per
+##  self-validated message, so it is not enabled automatically alongside
+##  SPFSelfValidate.
+#
+# LogSPFDNS false
+
 ##  MilterDebug (integer)
 ##  	default 0
 ##
@@ -370,6 +384,20 @@
 ##  One location to retrieve the file from is https://publicsuffix.org/list/
 #
 # PublicSuffixList path
+
+##  ReadCanonicalizedData { true | false }
+##  	default "false"
+##
+##  If set, and "FailureReports" is also set, look for
+##  X-DKIM-Canonicalized-Header/-Body headers added by an upstream signing
+##  filter (e.g. OpenDKIM with AddCanonicalizedData enabled) and use them
+##  to populate the DKIM-Canonicalized-Header/-Body fields of the RFC 6591
+##  failure report. These staging headers are always stripped before final
+##  delivery regardless of this setting. No size limit is applied to the
+##  canonicalized body data, so large messages can produce correspondingly
+##  large failure reports.
+#
+# ReadCanonicalizedData false
 
 ##  RecordAllMessages { true | false }
 ##  	default "false"
