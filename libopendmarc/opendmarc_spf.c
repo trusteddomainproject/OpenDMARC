@@ -25,8 +25,8 @@
 #if HAVE_SPF2_H
 // Here we have spf.h, so libspf2 is available.
 
-SPF_CTX_T *
-opendmarc_spf2_alloc_ctx()
+static SPF_CTX_T *
+opendmarc_spf2_alloc_ctx(int want_dns_log)
 {
 	SPF_CTX_T *spfctx = NULL;
 
@@ -34,7 +34,31 @@ opendmarc_spf2_alloc_ctx()
 	if (spfctx == NULL)
 		return NULL;
 	(void) memset(spfctx, '\0', sizeof(SPF_CTX_T));
-	spfctx->spf_server = SPF_server_new(SPF_DNS_CACHE, 0);
+
+	if (want_dns_log)
+	{
+		/*
+		** Build the same resolv+cache chain SPF_server_new(SPF_DNS_CACHE, 0)
+		** builds internally (confirmed against upstream libspf2's
+		** spf_server.c: SPF_dns_resolv_new(NULL, NULL, debug) then
+		** SPF_dns_cache_new(dc_r, NULL, debug, 8)), with a logging layer
+		** spliced in above the cache so every SPF-record lookup this
+		** evaluation makes is seen regardless of cache hits.
+		*/
+		SPF_dns_server_t *resolv;
+		SPF_dns_server_t *cache;
+		SPF_dns_server_t *logging;
+
+		resolv = SPF_dns_resolv_new(NULL, NULL, 0);
+		cache = SPF_dns_cache_new(resolv, NULL, 0, 8);
+		logging = opendmarc_spf_dns_log_new(cache, &spfctx->spf_dns_log, 0);
+		spfctx->spf_server = SPF_server_new_dns(logging, 0);
+	}
+	else
+	{
+		spfctx->spf_server = SPF_server_new(SPF_DNS_CACHE, 0);
+	}
+
 	spfctx->spf_request = SPF_request_new(spfctx->spf_server);
 	return spfctx;
 }
@@ -118,7 +142,7 @@ opendmarc_spf2_specify_ip_address(SPF_CTX_T *spfctx, char *ip_address, size_t ip
 }
 
 int
-opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom)
+opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom, int want_dns_log, char **spf_dns_lines)
 {
 	SPF_CTX_T *	ctx;
 	int		ret;
@@ -129,8 +153,11 @@ opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain,
 	if (used_mfrom != NULL)
 		*used_mfrom = FALSE;
 
+	if (spf_dns_lines != NULL)
+		*spf_dns_lines = NULL;
+
 	(void) memset(xbuf, '\0', sizeof xbuf);
-	ctx = opendmarc_spf2_alloc_ctx();
+	ctx = opendmarc_spf2_alloc_ctx(want_dns_log);
 	if (ctx == NULL)
 	{
 		if (human_readable != NULL)
@@ -191,6 +218,13 @@ opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain,
 		(void) strlcpy(human_readable, SPF_strresult(SPF_response_result(ctx->spf_response)), human_readable_len);
 	ctx->spf_result = SPF_response_result(ctx->spf_response);
 	ret = (int) ctx->spf_result;
+
+	if (want_dns_log && spf_dns_lines != NULL)
+	{
+		*spf_dns_lines = ctx->spf_dns_log;
+		ctx->spf_dns_log = NULL;
+	}
+
 	ctx = opendmarc_spf2_free_ctx(ctx);
 
 	if (ret != SPF_RESULT_PASS)
@@ -2101,7 +2135,7 @@ opendmarc_spf_specify_record(SPF_CTX_T *spfctx, char *spf_record, size_t spf_rec
 }
 
 int
-opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom)
+opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom, int want_dns_log, char **spf_dns_lines)
 {
 	SPF_CTX_T *	ctx;
 	int		ret;
@@ -2110,6 +2144,17 @@ opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, 
 
 	if (used_mfrom != NULL)
 		*used_mfrom = FALSE;
+
+	/*
+	** This fallback evaluator doesn't yet populate spf_dns_lines --
+	** it isn't the path linked in production (libspf2 is, when
+	** available), so real wiring here (it already tracks queried
+	** domains/records internally via its own recursion stack) is left
+	** as a follow-up rather than done speculatively.
+	*/
+	if (spf_dns_lines != NULL)
+		*spf_dns_lines = NULL;
+	(void) want_dns_log;
 
 	(void) memset(xbuf, '\0', sizeof xbuf);
 	ctx = opendmarc_spf_alloc_ctx();

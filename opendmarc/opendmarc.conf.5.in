@@ -323,6 +323,26 @@ breaks that loop.  Matching is case-insensitive.  The default is an empty
 list, meaning all inbound mail is recorded normally.
 
 .TP
+.I LogSPFDNS (Boolean)
+When
+.I SPFSelfValidate
+is also set, populate the RFC 6591
+.I SPF-DNS
+field of failure reports (RFC 9991) with the DNS records consulted
+during self-validation -- the SPF policy record at each domain visited,
+including those reached via
+.I include:
+or
+.I redirect=
+mechanisms.  Has no effect unless
+.I SPFSelfValidate
+is also set.  Building the DNS chain needed to capture this data has a
+small extra cost per self-validated message, so it is not enabled
+automatically alongside
+.IR SPFSelfValidate .
+The default is "false".
+
+.TP
 .I MilterDebug (integer)
 Sets the debug level to be requested from the milter library.  Six is the
 highest useful value.  The default is 0.

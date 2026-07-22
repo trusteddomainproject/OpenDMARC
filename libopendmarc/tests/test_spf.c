@@ -33,7 +33,7 @@ opendmarc_spf2_run_test()
 	for (tpp = tests; tpp->helo != NULL; tpp++)
 	{
 		(void) memset(human, '\0', sizeof human);
-		status = opendmarc_spf2_test(tpp->ip, tpp->mfrom, tpp->helo, NULL, FALSE, human, sizeof human, &used_mfrom);
+		status = opendmarc_spf2_test(tpp->ip, tpp->mfrom, tpp->helo, NULL, FALSE, human, sizeof human, &used_mfrom, FALSE, NULL);
 		if (status != tpp->outcome)
 		{
 			printf("Error: ip=\"%s\", mfrom=\"%s\", helo=\"%s\", error(%d)= %s\n", tpp->ip, tpp->mfrom, tpp->helo, status, human);
@@ -97,7 +97,7 @@ opendmarc_spf_test_records(void)
 	success = failures = 0;
 	for (sp = spflist; sp->ip != NULL; ++sp)
 	{
-		status = opendmarc_spf_test(sp->ip, sp->mfrom, sp->helo, sp->spfrecord, FALSE, human, sizeof human, &use_mfrom);
+		status = opendmarc_spf_test(sp->ip, sp->mfrom, sp->helo, sp->spfrecord, FALSE, human, sizeof human, &use_mfrom, FALSE, NULL);
 		if (status != sp->status)
 		{
 			printf("Error: ip=\"%s\", mfrom=\"%s\", helo=\"%s\", spf=\"%s\", error(%d)= %s\n", sp->ip, sp->mfrom, sp->helo, 

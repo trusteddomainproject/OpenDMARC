@@ -11,7 +11,7 @@ endif
 
 if TEST_SPF
 if LIVE_TESTS
-check_SCRIPTS += t-verify-self-spf
+check_SCRIPTS += t-verify-self-spf t-verify-self-spf-report
 endif
 endif
 
@@ -27,6 +27,8 @@ EXTRA_DIST = \
 	t-verify-received-spf-bad t-verify-received-spf-bad.conf \
 		t-verify-received-spf-bad.lua \
 	t-verify-self-spf t-verify-self-spf.conf t-verify-self-spf.lua \
+	t-verify-self-spf-report t-verify-self-spf-report.conf \
+		t-verify-self-spf-report.lua \
 	t-verify-multi-from-reject t-verify-multi-from-reject.conf \
 		t-verify-multi-from-reject.lua \
 	t-verify-multi-from-malformed t-verify-multi-from-malformed.conf \
@@ -35,4 +37,4 @@ EXTRA_DIST = \
 		t-verify-authservid-jobid.lua \
 	t-verify-canondata t-verify-canondata.conf t-verify-canondata.lua
 
-MOSTLYCLEANFILES=
+MOSTLYCLEANFILES= t-verify-self-spf-report.out

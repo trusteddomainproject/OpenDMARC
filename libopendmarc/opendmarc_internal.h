@@ -259,7 +259,9 @@ void opendmarc_policy_library_dns_hook(int *nscountp, struct sockaddr_in *nsaddr
 
 #if HAVE_SPF2_H
 #include "spf.h"
-typedef struct spf_context_struct { 
+#include "spf_dns_resolv.h"
+#include "spf_dns_cache.h"
+typedef struct spf_context_struct {
 	SPF_server_t *		spf_server;
 	SPF_request_t *		spf_request;
 	SPF_response_t *	spf_response;
@@ -267,8 +269,10 @@ typedef struct spf_context_struct {
 	char    		mailfrom_addr[512];
 	char			mailfrom_domain[256];
 	char    		helo_domain[256];
+	char *			spf_dns_log;	/* RFC 9991 SPF-DNS lines, owned by caller once handed over */
 } SPF_CTX_T;
-int opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom);
+int opendmarc_spf2_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom, int want_dns_log, char **spf_dns_lines);
+SPF_dns_server_t *opendmarc_spf_dns_log_new(SPF_dns_server_t *layer_below, char **logbuf, int debug);
 
 #else /* not HAVE_SPF2_H */
 
@@ -290,7 +294,7 @@ typedef struct spf_context_struct {
 	char    exp_buf[512];
 	int     did_get_exp;
 } SPF_CTX_T;
-int		opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom);
+int		opendmarc_spf_test(char *ip_address, char *mail_from_domain, char *helo_domain, char *spf_record, int softfail_okay_flag, char *human_readable, size_t human_readable_len, int *used_mfrom, int want_dns_log, char **spf_dns_lines);
 char ** 	opendmarc_spf_dns_lookup_a(char *domain, char **ary, int *cnt);
 char ** 	opendmarc_spf_dns_lookup_mx(char *domain, char **ary, int *cnt);
 char ** 	opendmarc_spf_dns_lookup_mx_domain(char *domain, char **ary, int *cnt);

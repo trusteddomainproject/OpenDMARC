@@ -325,6 +325,20 @@
 #
 # IgnoreMailTo dmarc-reports@example.com
 
+##  LogSPFDNS { true | false }
+##  	default "false"
+##
+##  When SPFSelfValidate is also set, populate the RFC 6591 SPF-DNS field
+##  of failure reports (RFC 9991) with the DNS records consulted during
+##  self-validation -- the SPF policy record at each domain visited,
+##  including those reached via include:/redirect= mechanisms. Has no
+##  effect unless SPFSelfValidate is also set. Building the DNS chain
+##  needed to capture this data has a small extra cost per
+##  self-validated message, so it is not enabled automatically alongside
+##  SPFSelfValidate.
+#
+# LogSPFDNS false
+
 ##  MilterDebug (integer)
 ##  	default 0
 ##

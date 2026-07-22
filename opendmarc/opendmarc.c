@@ -134,6 +134,9 @@ struct dmarcf_msgctx
 	u_char *		mctx_dkimidentity;	/* RFC 9991: i= of same, if present */
 	char *			mctx_dkimcanonhdr;	/* RFC 9991: unfolded base64 from X-DKIM-Canonicalized-Header, owned */
 	char *			mctx_dkimcanonbody;	/* RFC 9991: unfolded base64 from X-DKIM-Canonicalized-Body, owned */
+#if WITH_SPF
+	char *			mctx_spfdnslines;	/* RFC 9991: pre-formatted SPF-DNS: lines from LogSPFDNS, owned */
+#endif /* WITH_SPF */
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
 	struct arcares_header * mctx_aarhead;
@@ -184,6 +187,7 @@ struct dmarcf_config
 #if WITH_SPF
 	_Bool			conf_spfignoreresults;
 	_Bool			conf_spfselfvalidate;
+	_Bool			conf_spfdnslog;
 #endif /* WITH_SPF */
 	_Bool			conf_ignoreauthclients;
 	_Bool			conf_holdquarantinedmessages;
@@ -1507,6 +1511,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "SPFSelfValidate",
 		                  &conf->conf_spfselfvalidate,
 		                  sizeof conf->conf_spfselfvalidate);
+
+		(void) config_get(data, "LogSPFDNS",
+		                  &conf->conf_spfdnslog,
+		                  sizeof conf->conf_spfdnslog);
 #endif /* WITH_SPF */
 
 		(void) config_get(data, "RejectFailures",
@@ -1993,6 +2001,9 @@ dmarcf_cleanup(SMFICTX *ctx)
 
 		TRYFREE(dfc->mctx_dkimcanonhdr);
 		TRYFREE(dfc->mctx_dkimcanonbody);
+#if WITH_SPF
+		TRYFREE(dfc->mctx_spfdnslines);
+#endif /* WITH_SPF */
 
 		if (dfc->mctx_hqhead != NULL)
 		{
@@ -2369,6 +2380,21 @@ mlfi_envfrom(SMFICTX *ctx, char **envfrom)
 	dfc->mctx_jobid = JOBIDUNKNOWN;
 	dfc->mctx_spfresult = -1;
 	dfc->mctx_spfmode = -1;
+
+	/*
+	**  Capture the job ID as early as it's available; mlfi_eom() retries
+	**  this later (its own comment: "in case it came down later than
+	**  expected, e.g. postfix") for MTAs that don't have it yet at
+	**  envfrom time, but that retry only works if something tried first.
+	*/
+
+	{
+		char *i;
+
+		i = dmarcf_getsymval(ctx, "i");
+		if (i != NULL)
+			dfc->mctx_jobid = i;
+	}
 
 	dfc->mctx_histbuf = dmarcf_dstring_new(BUFRSZ, 0);
 	if (dfc->mctx_histbuf == NULL)
@@ -3406,7 +3432,9 @@ mlfi_eom(SMFICTX *ctx)
 				FALSE,
 				human,
 				sizeof human,
-				&used_mfrom);
+				&used_mfrom,
+				conf->conf_spfdnslog,
+				conf->conf_spfdnslog ? &dfc->mctx_spfdnslines : NULL);
 			if (used_mfrom == TRUE)
 			{
 				use_domain = (char *)dfc->mctx_envdomain;
@@ -4050,6 +4078,14 @@ mlfi_eom(SMFICTX *ctx)
 						}
 					}
 				}
+
+#if WITH_SPF
+				if (spf_failed && dfc->mctx_spfdnslines != NULL)
+				{
+					dmarcf_dstring_cat(dfc->mctx_afrf,
+					                   (u_char *) dfc->mctx_spfdnslines);
+				}
+#endif /* WITH_SPF */
 			}
 
 			dmarcf_dstring_printf(dfc->mctx_afrf,
