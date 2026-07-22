@@ -132,6 +132,8 @@ struct dmarcf_msgctx
 	u_char *		mctx_dkimdomain;	/* RFC 9991: d= of the last DKIM signature seen; not owned, points into "ar" */
 	u_char *		mctx_dkimselector;	/* RFC 9991: s= of same */
 	u_char *		mctx_dkimidentity;	/* RFC 9991: i= of same, if present */
+	char *			mctx_dkimcanonhdr;	/* RFC 9991: unfolded base64 from X-DKIM-Canonicalized-Header, owned */
+	char *			mctx_dkimcanonbody;	/* RFC 9991: unfolded base64 from X-DKIM-Canonicalized-Body, owned */
 	char *			mctx_jobid;
 	char **			mctx_arcchain;
 	struct arcares_header * mctx_aarhead;
@@ -172,6 +174,7 @@ struct dmarcf_config
 	_Bool			conf_reqfrom;
 	_Bool			conf_afrf;
 	_Bool			conf_afrfnone;
+	_Bool			conf_readcanon;
 	_Bool			conf_rejectfail;
 	_Bool			conf_dolog;
 	_Bool			conf_enablecores;
@@ -269,6 +272,7 @@ static struct dmarcf_config *dmarcf_config_new __P((void));
 void dmarcf_freearray __P((char **a));
 int dmarcf_mkarray __P((char *str, char *delim, char ***array));
 sfsistat dmarcf_insheader __P((SMFICTX *, int, char *, char *));
+sfsistat dmarcf_chgheader __P((SMFICTX *, char *, int, char *));
 sfsistat dmarcf_setreply __P((SMFICTX *, char *, char *, char *));
 
 /* globals */
@@ -361,6 +365,31 @@ dmarcf_insheader(SMFICTX *ctx, int idx, char *hname, char *hvalue)
 #else /* HAVE_SMFI_INSHEADER */
 		return smfi_addheader(ctx, hname, hvalue);
 #endif /* HAVE_SMFI_INSHEADER */
+}
+
+/*
+**  DMARCF_CHGHEADER -- wrapper for smfi_chgheader()
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**  	hname -- header name
+**  	idx -- index of the header instance to change (1-based)
+**  	hvalue -- header value, or NULL to delete the instance
+**
+**  Return value:
+**  	An sfsistat.
+*/
+
+sfsistat
+dmarcf_chgheader(SMFICTX *ctx, char *hname, int idx, char *hvalue)
+{
+	assert(ctx != NULL);
+	assert(hname != NULL);
+
+	if (testmode)
+		return dmarcf_test_chgheader(ctx, hname, idx, hvalue);
+	else
+		return smfi_chgheader(ctx, hname, idx, hvalue);
 }
 
 /*
@@ -1185,6 +1214,203 @@ dmarcf_findheader(DMARCF_MSGCTX dfc, char *hname, int instance)
 }
 
 /*
+**  DMARCF_FIND_CANON_HEADER -- find an X-DKIM-Canonicalized-Header/-Body
+**                              value matching a given signature
+**
+**  Parameters:
+**  	dfc -- filter context
+**  	hname -- name of the header to look for ("X-DKIM-Canonicalized-Header"
+**  	         or "X-DKIM-Canonicalized-Body")
+**  	domain -- "d=" value to match
+**  	selector -- "s=" value to match (may be NULL)
+**
+**  Return value:
+**  	A malloc'd, whitespace-stripped copy of the "b=" tag's value from
+**  	the first matching instance, or NULL if none matched.
+**
+**  Notes:
+**  	OpenDKIM's AddCanonicalizedData feature values these headers
+**  	"d=<domain>; s=<selector>; b=<base64>", base64-folded with its own
+**  	(non-RFC-5322) convention.  "b=" is always the last tag and its
+**  	value is never itself semicolon-delimited, so everything from "b="
+**  	to the end of the header value is taken as the payload; all
+**  	whitespace (including whatever survived OpenDKIM's own folding) is
+**  	stripped to leave one contiguous base64 string.
+*/
+
+static char *
+dmarcf_find_canon_header(DMARCF_MSGCTX dfc, char *hname,
+                         u_char *domain, u_char *selector)
+{
+	int instance;
+	struct dmarcf_header *hdr;
+
+	assert(dfc != NULL);
+	assert(hname != NULL);
+
+	if (domain == NULL)
+		return NULL;
+
+	for (instance = 0;
+	     (hdr = dmarcf_findheader(dfc, hname, instance)) != NULL;
+	     instance++)
+	{
+		char *d;
+		char *s;
+		char *b;
+		char *p;
+		char *q;
+		char *out;
+		size_t outlen;
+		size_t len;
+
+		d = strstr(hdr->hdr_value, "d=");
+		b = strstr(hdr->hdr_value, "b=");
+		if (d == NULL || b == NULL)
+			continue;
+
+		len = strlen((char *) domain);
+		if (strncasecmp(d + 2, (char *) domain, len) != 0 ||
+		    (d[2 + len] != ';' && d[2 + len] != '\0' &&
+		     !isspace((unsigned char) d[2 + len])))
+			continue;
+
+		if (selector != NULL)
+		{
+			s = strstr(hdr->hdr_value, "s=");
+			len = strlen((char *) selector);
+			if (s == NULL ||
+			    strncasecmp(s + 2, (char *) selector, len) != 0 ||
+			    (s[2 + len] != ';' && s[2 + len] != '\0' &&
+			     !isspace((unsigned char) s[2 + len])))
+				continue;
+		}
+
+		p = b + 2;
+		outlen = strlen(p);
+		out = (char *) malloc(outlen + 1);
+		if (out == NULL)
+			return NULL;
+
+		for (q = out; *p != '\0'; p++)
+		{
+			if (!isspace((unsigned char) *p))
+				*q++ = *p;
+		}
+		*q = '\0';
+
+		return out;
+	}
+
+	return NULL;
+}
+
+/*
+**  DMARCF_STRIP_CANON_HEADERS -- remove any X-DKIM-Canonicalized-Header/
+**                                -Body headers from the outgoing message
+**
+**  Parameters:
+**  	ctx -- milter (or test) context
+**  	dfc -- filter context
+**
+**  Return value:
+**  	None.
+**
+**  Notes:
+**  	RFC 9991: these are internal staging headers an upstream OpenDKIM
+**  	may add for this filter's own use; they must never reach the
+**  	recipient.  Called on every code path in mlfi_eom that results in
+**  	the message actually being delivered (SMFIS_ACCEPT/SMFIS_CONTINUE),
+**  	regardless of whether ReadCanonicalizedData is set, so a mismatched
+**  	OpenDKIM/OpenDMARC configuration can't leak them.  Not called on
+**  	REJECT/TEMPFAIL paths since no message reaches anyone in that case.
+**
+**  	smfi_chgheader()'s return value only reflects whether the request
+**  	was written to the MTA socket, not whether a header existed at that
+**  	index -- it is NOT safe to loop on it.  Count real instances in the
+**  	received header queue first via dmarcf_findheader(), then issue
+**  	exactly that many deletes.  Deleting index 1 repeatedly removes
+**  	every instance, since each deletion shifts what was index 2 into
+**  	index 1's place.
+*/
+
+static void
+dmarcf_strip_canon_headers(SMFICTX *ctx, DMARCF_MSGCTX dfc)
+{
+	static char *canon_headers[] =
+	{
+		"X-DKIM-Canonicalized-Header",
+		"X-DKIM-Canonicalized-Body",
+		NULL
+	};
+	int hc;
+
+	assert(ctx != NULL);
+	assert(dfc != NULL);
+
+	for (hc = 0; canon_headers[hc] != NULL; hc++)
+	{
+		int count;
+
+		for (count = 0;
+		     dmarcf_findheader(dfc, canon_headers[hc], count) != NULL;
+		     count++)
+			continue;
+
+		while (count-- > 0)
+			(void) dmarcf_chgheader(ctx, canon_headers[hc], 1, NULL);
+	}
+}
+
+/*
+**  DMARCF_AFRF_CAT_FOLDED -- append a "Label: <folded value>\n" field to an
+**                            AFRF report buffer
+**
+**  Parameters:
+**  	dstr -- destination dstring (dfc->mctx_afrf)
+**  	label -- field name
+**  	value -- NUL-terminated value to fold
+**
+**  Return value:
+**  	None.
+**
+**  Notes:
+**  	Folds at 78 columns using "\n " (RFC 5322-legal folding whitespace),
+**  	matching this codebase's bare-LF ARF body convention. Used for the
+**  	base64 DKIM-Canonicalized-Header/-Body fields, which can be much
+**  	longer than anything else in this report.
+*/
+
+#define	DMARCF_AFRF_FOLDWIDTH	78
+
+static void
+dmarcf_afrf_cat_folded(struct dmarcf_dstring *dstr, const char *label,
+                       const char *value)
+{
+	size_t len;
+	size_t off;
+
+	dmarcf_dstring_printf(dstr, "%s: ", label);
+
+	len = strlen(value);
+	for (off = 0; off < len; off += DMARCF_AFRF_FOLDWIDTH)
+	{
+		size_t chunk;
+
+		chunk = len - off;
+		if (chunk > DMARCF_AFRF_FOLDWIDTH)
+			chunk = DMARCF_AFRF_FOLDWIDTH;
+
+		if (off > 0)
+			dmarcf_dstring_cat(dstr, (u_char *) "\n ");
+
+		dmarcf_dstring_catn(dstr, (u_char *) (value + off), chunk);
+	}
+
+	dmarcf_dstring_cat(dstr, (u_char *) "\n");
+}
+
+/*
 **  DMARCF_CONFIG_LOAD -- load a configuration handle based on file content
 **
 **  Paramters:
@@ -1314,6 +1540,10 @@ dmarcf_config_load(struct config *data, struct dmarcf_config *conf,
 		(void) config_get(data, "FailureReportsOnNone",
 		                  &conf->conf_afrfnone,
 		                  sizeof conf->conf_afrfnone);
+
+		(void) config_get(data, "ReadCanonicalizedData",
+		                  &conf->conf_readcanon,
+		                  sizeof conf->conf_readcanon);
 
 		(void) config_get(data, "FailureReportsSentBy",
 		                  &conf->conf_afrfas,
@@ -1760,6 +1990,9 @@ dmarcf_cleanup(SMFICTX *ctx)
 			dmarcf_dstring_free(dfc->mctx_histbuf);
 		if (dfc->mctx_afrf != NULL)
 			dmarcf_dstring_free(dfc->mctx_afrf);
+
+		TRYFREE(dfc->mctx_dkimcanonhdr);
+		TRYFREE(dfc->mctx_dkimcanonbody);
 
 		if (dfc->mctx_hqhead != NULL)
 		{
@@ -2470,6 +2703,7 @@ mlfi_eom(SMFICTX *ctx)
 		}
 		else
 		{
+			dmarcf_strip_canon_headers(ctx, dfc);
 			ret = SMFIS_ACCEPT;
 			goto done;
 		}
@@ -2503,6 +2737,7 @@ mlfi_eom(SMFICTX *ctx)
 				}
 				else
 				{
+					dmarcf_strip_canon_headers(ctx, dfc);
 					ret = SMFIS_ACCEPT;
 					goto done;
 				}
@@ -2529,6 +2764,7 @@ mlfi_eom(SMFICTX *ctx)
 		}
 		else
 		{
+			dmarcf_strip_canon_headers(ctx, dfc);
 			ret = SMFIS_ACCEPT;
 			goto done;
 		}
@@ -2543,6 +2779,7 @@ mlfi_eom(SMFICTX *ctx)
 			       dfc->mctx_jobid, domain);
 		}
 
+		dmarcf_strip_canon_headers(ctx, dfc);
 		ret = SMFIS_ACCEPT;
 		goto done;
 	}
@@ -2941,6 +3178,30 @@ mlfi_eom(SMFICTX *ctx)
 				dfc->mctx_dkimselector = dkim_selector;
 				dfc->mctx_dkimidentity = dkim_identity;
 
+				/*
+				** RFC 9991: DKIM-Canonicalized-Header/-Body, sourced
+				** from an upstream OpenDKIM's (optional)
+				** X-DKIM-Canonicalized-Header/-Body headers.  Same
+				** last-wins semantics as the fields just above --
+				** free any value kept for a previous signature.
+				*/
+				if (conf->conf_readcanon && conf->conf_afrf)
+				{
+					TRYFREE(dfc->mctx_dkimcanonhdr);
+					TRYFREE(dfc->mctx_dkimcanonbody);
+
+					dfc->mctx_dkimcanonhdr =
+						dmarcf_find_canon_header(dfc,
+						                         "X-DKIM-Canonicalized-Header",
+						                         dkim_domain,
+						                         dkim_selector);
+					dfc->mctx_dkimcanonbody =
+						dmarcf_find_canon_header(dfc,
+						                         "X-DKIM-Canonicalized-Body",
+						                         dkim_domain,
+						                         dkim_selector);
+				}
+
 				dmarcf_dstring_printf(dfc->mctx_histbuf,
 				                      "dkim %s %s %d\n",
 				                      dkim_domain,
@@ -3283,6 +3544,7 @@ mlfi_eom(SMFICTX *ctx)
 			}
 		}
 
+		dmarcf_strip_canon_headers(ctx, dfc);
 		ret = SMFIS_ACCEPT;
 		goto done;
 	}
@@ -3770,6 +4032,23 @@ mlfi_eom(SMFICTX *ctx)
 						                      "DKIM-Identity: %s\n",
 						                      dfc->mctx_dkimidentity);
 					}
+
+					if (conf->conf_readcanon)
+					{
+						if (dfc->mctx_dkimcanonhdr != NULL)
+						{
+							dmarcf_afrf_cat_folded(dfc->mctx_afrf,
+							                       "DKIM-Canonicalized-Header",
+							                       dfc->mctx_dkimcanonhdr);
+						}
+
+						if (dfc->mctx_dkimcanonbody != NULL)
+						{
+							dmarcf_afrf_cat_folded(dfc->mctx_afrf,
+							                       "DKIM-Canonicalized-Body",
+							                       dfc->mctx_dkimcanonbody);
+						}
+					}
 				}
 			}
 
@@ -4133,6 +4412,8 @@ mlfi_eom(SMFICTX *ctx)
 			}
 		}
 	}
+
+	dmarcf_strip_canon_headers(ctx, dfc);
 
 	dmarcf_cleanup(ctx);
 

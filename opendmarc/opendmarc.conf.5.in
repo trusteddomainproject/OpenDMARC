@@ -390,6 +390,30 @@ domain will be evaluated.  This file should be periodically updated.
 One location to retrieve the file from is https://publicsuffix.org/list/
 
 .TP
+.I ReadCanonicalizedData (Boolean)
+If set, and
+.I FailureReports
+is also set, the filter will look for
+.I X-DKIM-Canonicalized-Header
+and
+.I X-DKIM-Canonicalized-Body
+headers added by an upstream signing filter (e.g.
+.IR OpenDKIM (8)
+with its
+.I AddCanonicalizedData
+directive enabled) and, when a DKIM signature is the one blamed for a
+DMARC failure, populate the
+.I DKIM-Canonicalized-Header
+and
+.I DKIM-Canonicalized-Body
+fields of the resulting RFC 6591 failure report with their contents.
+These staging headers are always stripped from the outgoing message
+before final delivery, whether or not this option is set, so they never
+reach the recipient.  Note that for large messages this can make for a
+correspondingly large failure report, since the canonicalized message
+body is included in full; no size limit is applied.  Not set by default.
+
+.TP
 .I RecordAllMessages (Boolean)
 If set and
 .I HistoryFile

@@ -371,6 +371,20 @@
 #
 # PublicSuffixList path
 
+##  ReadCanonicalizedData { true | false }
+##  	default "false"
+##
+##  If set, and "FailureReports" is also set, look for
+##  X-DKIM-Canonicalized-Header/-Body headers added by an upstream signing
+##  filter (e.g. OpenDKIM with AddCanonicalizedData enabled) and use them
+##  to populate the DKIM-Canonicalized-Header/-Body fields of the RFC 6591
+##  failure report. These staging headers are always stripped before final
+##  delivery regardless of this setting. No size limit is applied to the
+##  canonicalized body data, so large messages can produce correspondingly
+##  large failure reports.
+#
+# ReadCanonicalizedData false
+
 ##  RecordAllMessages { true | false }
 ##  	default "false"
 ##
