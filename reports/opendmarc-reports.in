@@ -1512,6 +1512,7 @@ foreach (@$domainset)
 	print $tmpout "         <begin>$repstart</begin>\n";
 	print $tmpout "         <end>$repend</end>\n";
 	print $tmpout "         </date_range>\n";
+	print $tmpout "         <generator>$progname v$version</generator>\n";
 	print $tmpout "    </report_metadata>\n";
 
 	print $tmpout "    <policy_published>\n";
@@ -1650,6 +1651,7 @@ foreach (@$domainset)
 			elsif ($disp == 1) { $dispstr = "reject"; }
 			elsif ($disp == 2) { $dispstr = "none"; }
 			elsif ($disp == 4) { $dispstr = "quarantine"; }
+			elsif ($disp == 5) { $dispstr = "pass"; }
 			else               { $dispstr = "unknown"; }
 
 			if    ($spfresult ==  0) { $spfresultstr = "pass"; }
@@ -1881,31 +1883,13 @@ foreach (@$domainset)
 		$repdest = $uri->opaque;
 		my $report_maxbytes = $report_maxbytes_global;
 
-		# check for max report size
-		if ($repdest =~ m/^(\S+)!(\d{1,15})([kmgt])?$/i)
+		# Strip the obsolete "!NNNk" report-size suffix (obs-dmarc-uri /
+		# obs-dmarc-report-size in RFC 9989's ABNF) from the destination
+		# address. Per that grammar, reporters MUST ignore this value if
+		# present rather than honor it as a per-destination size cap.
+		if ($repdest =~ m/^(\S+)!\d{1,15}[kmgt]?$/i)
 		{
 			$repdest = $1;
-			$report_maxbytes = $2;
-			if ($3)
-			{
-				my $letter = lc($3);
-				if ($letter eq 'k')
-				{
-					$report_maxbytes = $report_maxbytes * 1024;
-				}
-				if ($letter eq 'm')
-				{
-					$report_maxbytes = $report_maxbytes * 1048576;
-				}
-				if ($letter eq 'g')
-				{
-					$report_maxbytes = $report_maxbytes * (2**30);
-				}
-				if ($letter eq 't')
-				{
-					$report_maxbytes = $report_maxbytes * (2**40);
-				}
-			}
 		}
 
 		# Skip if this destination should be suppressed for any reason

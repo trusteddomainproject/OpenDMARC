@@ -13,7 +13,6 @@ dist_doc_DATA = index.html \
 	opendmarc_policy_fetch_fo.html \
 	opendmarc_policy_fetch_p.html \
 	opendmarc_policy_fetch_pct.html \
-	opendmarc_policy_fetch_rf.html \
 	opendmarc_policy_fetch_rua.html \
 	opendmarc_policy_fetch_ruf.html \
 	opendmarc_policy_fetch_sp.html \

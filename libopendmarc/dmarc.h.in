@@ -47,9 +47,6 @@ extern "C" {
 #define DMARC_RECORD_P_NONE		('n')		/* p and sp */
 #define DMARC_RECORD_P_QUARANTINE	('q')		/* p and sp */
 #define DMARC_RECORD_P_REJECT		('r')		/* p and sp */
-#define DMARC_RECORD_RF_UNSPECIFIED	(0x0)		/* rf, a bitmap */
-#define DMARC_RECORD_RF_AFRF		(0x1)		/* rf, a bitmap */
-#define DMARC_RECORD_RF_IODEF		(0x2)		/* rf, a bitmap */
 #define DMARC_RECORD_FO_UNSPECIFIED	(0x0)		/* fo, a bitmap */
 #define DMARC_RECORD_FO_0		(0x1)		/* fo, a bitmap */
 #define DMARC_RECORD_FO_1		(0x2)		/* fo, a bitmap */

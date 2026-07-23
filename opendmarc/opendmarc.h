@@ -54,6 +54,7 @@
 #define	DMARC_RESULT_ACCEPT	2
 #define	DMARC_RESULT_TEMPFAIL	3
 #define	DMARC_RESULT_QUARANTINE	4
+#define	DMARC_RESULT_PASS	5	/* RFC 9990: aligned under an enforcing (reject/quarantine) policy */
 
 #define	DMARC_ARC_POLICY_RESULT_PASS	0
 #define	DMARC_ARC_POLICY_RESULT_UNUSED	1

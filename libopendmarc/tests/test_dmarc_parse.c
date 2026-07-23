@@ -27,14 +27,14 @@ main(int argc, char **argv)
 		/* 9  */ {"v=DMARC1; p=none; sp=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
 		/* 10 */ {"v=DMARC1; p=none; adkim=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
 		/* 11 */ {"v=DMARC1; p=none; aspf=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 12 */ {"v=DMARC1; p=none; rf=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 13 */ {"v=DMARC1; p=none; ri=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 12 */ {"v=DMARC1; p=none; rf=bob;", DMARC_PARSE_OKAY}, /* rf= removed by RFC 9989; now an ignored unknown tag */
+		/* 13 */ {"v=DMARC1; p=none; ri=bob;", DMARC_PARSE_OKAY}, /* ri= removed by RFC 9989; now an ignored unknown tag */
 		/* 14 */ {"v=DMARC1; p=none; pct=500;", DMARC_PARSE_ERROR_BAD_VALUE},
 		/* 15 */ {"v=DMARC1; pct=100;", DMARC_PARSE_ERROR_NO_REQUIRED_P},
 		/* 16 */ {"v=DMARC1; p=none; rua=ftp://abuse.com", DMARC_PARSE_OKAY},
 		/* 17 */ {"v=DMARC1; p=none; ruf=mailto://abuse.com", DMARC_PARSE_OKAY},
 		/* 18 */ {"v=DMARC1; p=none; ruf=mailto://abuse.com; foo=bar; buzz=happy;", DMARC_PARSE_OKAY},
-		/* 19 */ {"v=DMARC1; p=none; rf=000000000000000000000000000000000", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 19 */ {"v=DMARC1; p=none; rf=000000000000000000000000000000000", DMARC_PARSE_OKAY}, /* rf= removed by RFC 9989; now an ignored unknown tag */
 		/* 20 */ {"v=DMARC1; p=reject; t=y;", DMARC_PARSE_OKAY},
 		/* 21 */ {"v=DMARC1; p=reject; t=n;", DMARC_PARSE_OKAY},
 		/* 22 */ {"v=DMARC1; p=reject; t=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
