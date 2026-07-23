@@ -1336,7 +1336,6 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 	 * Set the defaults to detect missing required items.
 	 */
 	pctx->pct = -1;
-	pctx->ri  = -1;
 
 	(void) memset((char *)copy, '\0', sizeof copy);
 	(void) strlcpy((char *)copy, (char *)record, sizeof copy);
@@ -1498,65 +1497,6 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
 		}
-		else if (strcasecmp((char *)cp, "ri") == 0)
-		{
-			char *xp;
-
-			for (xp = (char *)vp; *xp != '\0'; ++xp)
-			{
-				if (! isdigit((int)*xp))
-					return DMARC_PARSE_ERROR_BAD_VALUE;
-			}
-			errno = 0;
-			pctx->ri = strtoul((char *)vp, NULL, 10);
-			if (errno == EINVAL || errno == ERANGE)
-			{
-				return DMARC_PARSE_ERROR_BAD_VALUE;
-			}
-		}
-		else if (strcasecmp((char *)cp, "rf") == 0)
-		{
-			char *xp, *yp;
-
-			/*
-			 * The list may be a comma delimilted list of choices.
-			 */
-			for (xp = (char *)vp; *xp != '\0'; )
-			{
-				u_char xbuf[32];
-
-				yp = strchr(xp, ',');
-				if (yp != NULL)
-					*yp = '\0';
-
-				xp = (char *)opendmarc_util_cleanup((u_char *)xp, xbuf, sizeof xbuf);
-				if (xp != NULL && strlen((char *)xp) > 0)
-				{
-					/*
-					 * Be generous. Accept, for example, "rf=a, aspf=afrf or any
-					 * left match of "afrf".
-					 */
-					if (strncasecmp((char *)xp, "afrf", strlen((char *)xp)) == 0)
-						pctx->rf |= DMARC_RECORD_RF_AFRF;
-					else if (strncasecmp((char *)xp, "iodef", strlen((char *)xp)) == 0)
-						pctx->aspf |= DMARC_RECORD_RF_IODEF;
-					else
-					{
-						/* A totaly unknown value */
-						return DMARC_PARSE_ERROR_BAD_VALUE;
-					}
-				}
-				else
-				{
-					return DMARC_PARSE_ERROR_BAD_VALUE;
-				}
-
-				if (yp != NULL)
-					xp = yp+1;
-				else
-					break;
-			}
-		}
 		else if (strcasecmp((char *)cp, "rua") == 0)
 		{
 			char *xp, *yp;
@@ -1696,10 +1636,6 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 		pctx->aspf = DMARC_RECORD_A_RELAXED;
 	if (pctx->pct < 0)
 		pctx->pct = 100;
-	if (pctx->rf == DMARC_RECORD_RF_UNSPECIFIED)
-		pctx->rf = DMARC_RECORD_RF_AFRF;
-	if (pctx->ri == -1)
-		pctx->ri = 86400;
 	if (pctx->fo == DMARC_RECORD_FO_UNSPECIFIED)
 		pctx->fo = DMARC_RECORD_FO_0;
 
@@ -1989,20 +1925,6 @@ opendmarc_policy_fetch_fo(DMARC_POLICY_T *pctx, int *fo)
 		*fo = DMARC_RECORD_FO_UNSPECIFIED;
 	else
 		*fo = pctx->fo;
-	return DMARC_PARSE_OKAY;
-}
-
-OPENDMARC_STATUS_T
-opendmarc_policy_fetch_rf(DMARC_POLICY_T *pctx, int *rf)
-{
-	if (pctx == NULL)
-		return DMARC_PARSE_ERROR_NULL_CTX;
-	if (rf == NULL)
-		return DMARC_PARSE_ERROR_EMPTY;
-	if (pctx->ruf_list == NULL)
-		*rf = DMARC_RECORD_RF_UNSPECIFIED;
-	else
-		*rf = pctx->rf;
 	return DMARC_PARSE_OKAY;
 }
 
@@ -2459,31 +2381,6 @@ opendmarc_policy_to_buf(DMARC_POLICY_T *pctx, char *buf, size_t buflen)
 
 	if (strlcat(buf, "PCT=", buflen) >= buflen) return E2BIG;
 	(void) snprintf(nbuf, sizeof nbuf, "%d", pctx->pct);
-	if (strlcat(buf, nbuf, buflen) >= buflen) return E2BIG;
-	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
-
-	if (strlcat(buf, "RF=", buflen) >= buflen) return E2BIG;
-	if (pctx->rf == 0)
-	{
-		if (strlcat(buf, "UNSPECIFIED", buflen) >= buflen) return E2BIG;
-	}
-	if ((pctx->rf&DMARC_RECORD_RF_AFRF) != 0)
-	{
-		if (strlcat(buf, "AFRF", buflen) >= buflen) return E2BIG;
-	}
-	if ((pctx->rf&DMARC_RECORD_RF_IODEF) != 0 &&
-	    (pctx->rf&DMARC_RECORD_RF_AFRF) != 0)
-	{
-		if (strlcat(buf, ",", buflen) >= buflen) return E2BIG;
-	}
-	if ((pctx->rf&DMARC_RECORD_RF_IODEF) != 0)
-	{
-		if (strlcat(buf, "IODEF", buflen) >= buflen) return E2BIG;
-	}
-	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
-
-	if (strlcat(buf, "RI=", buflen) >= buflen) return E2BIG;
-	(void) snprintf(nbuf, sizeof nbuf, "%d", pctx->ri);
 	if (strlcat(buf, nbuf, buflen) >= buflen) return E2BIG;
 	if (strlcat(buf, "\n", buflen) >= buflen) return E2BIG;
 

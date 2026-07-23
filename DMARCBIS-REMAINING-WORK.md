@@ -20,9 +20,50 @@ specifically (all resolved) and are not duplicated here.
 - **RFC 9989 `t=`/`pct=`**: `t=` parsing, fetch accessor, and enforcement
   step-down (reject->quarantine->none). `pct=` deliberately kept for POLA,
   with `DMARCbisIgnorePct` for operators who want strict compliance. (#434)
+- **`!NNNk` RUA size-suffix syntax**: RFC 9989's ABNF marks this obsolete
+  (`obs-dmarc-uri`/`obs-dmarc-report-size`) and says reporters MUST ignore
+  it. Unlike the `pct=` POLA call above, `opendmarc-reports` now drops the
+  enforcement PR #392 had restored -- the suffix is still stripped from
+  the destination address so delivery isn't broken, but it no longer
+  overrides `report_maxbytes`.
 - **RFC 9990 aggregate reporting**: `np`/`testing`/`discovery_method` in
   `policy_published`, namespace bumped to `dmarc-2.0`, `<pct>` removed
   (branch `feat/rfc9990-aggregate-reporting`).
+- **RFC 9990 `generator` element** (S3.1.1.3): `report_metadata` now
+  includes `<generator>` identifying the report-generating software
+  (`$progname v$version`), matching the string already used for
+  `--version` output and the `X-Mailer` header. (Unrelated: the separate
+  `contrib/dmarc-report-totext.pl` *consumer* tool already parses this
+  field from other senders' reports — that's reading, not writing.)
+- **`rf=`/`ri=` cleanup**: both tags were removed from the DMARC record
+  format by RFC 9989. Removed the parsing (`opendmarc_policy.c`), the
+  now-dead `DMARC_POLICY_T` fields (`rf`, `ri`), the orphaned
+  `opendmarc_policy_fetch_rf()` (never declared in the public header, so
+  unreachable by consumers anyway) and its stale doc page, and the
+  `RF=`/`RI=` lines from `opendmarc_policy_to_buf()`'s dump. Unrecognized
+  tags are already silently ignored by the parser per spec, so `rf=`/`ri=`
+  now fall through to that same path rather than being validated.
+  Verified via a real `./configure && make check` on quark (this sandbox
+  lacks milter headers) — all 10 `libopendmarc` tests pass, including
+  `test_dmarc_parse`'s negative cases updated to expect `DMARC_PARSE_OKAY`
+  now that these are unknown tags rather than validated ones.
+- **`pass` disposition value** (S3.1.1.9): `ActionDispositionType` now
+  emits `pass` alongside `none`/`quarantine`/`reject`. New
+  `DMARC_RESULT_PASS` (`opendmarc.h`) is set in `opendmarc.c`'s
+  `enforce_policy` switch specifically when alignment passed *and* the
+  unadjusted published `p`/`sp` (whichever applies) was `reject` or
+  `quarantine` -- under `p=none`/`sp=none` the disposition stays `none`,
+  since RFC 9990 reserves `pass` for "passing DMARC w/enforcing policy".
+  Deliberately keyed off the unadjusted policy rather than the
+  `t=y`-downgraded `enforce_policy`, matching the existing rule that `t=`
+  doesn't affect report generation. Also added a `dis=pass` case to the
+  Authentication-Results `dis=` tag mapping for consistency with the
+  existing `dmarc=pass` `aresult`. Flows through `messages.disp` (a plain
+  unconstrained `TINYINT`, so no schema migration) into
+  `opendmarc-reports.in`'s disposition mapping. Verified with a clean
+  `./configure && make check` on quark: full project builds with no
+  warnings, `libopendmarc` suite still 10/10 (unaffected, but a good
+  regression signal since this touches the same enforcement path).
 - **RFC 9991 failure reporting**: `Identity-Alignment` and
   `DKIM-Domain`/`-Identity`/`-Selector` ARF headers, `ruf=` external
   destination verification + rate-limiting in `opendmarc-reports
@@ -56,18 +97,10 @@ specifically (all resolved) and are not duplicated here.
 
 ### RFC 9990 aggregate reporting
 
-- **`pass` disposition value** (S3.1.1.9): `ActionDispositionType` now
-  includes `pass` (message passed DMARC under an *enforcing* policy)
-  alongside `none`/`quarantine`/`reject`. Current code only ever emits the
-  original three. Not touched by the `np`/`testing`/`discovery_method` work.
 - **`policy_test_mode` reason type** (S3.1.6): a `<reason><type>` value a
   report record should carry when `t=y` caused a policy step-down. Directly
   adjacent to work already done — `t=` enforcement and `<testing>` in
   `policy_published` both shipped, but this per-record annotation didn't.
-- **`generator` element** (S3.1.1.3): identifies the report-generating
-  software. Not implemented in `opendmarc-reports`. (Unrelated: the
-  separate `contrib/dmarc-report-totext.pl` *consumer* tool already parses
-  this field from other senders' reports — that's reading, not writing.)
 - **`error` element** (S3.1.1.3/S3.1.5): describes processing errors
   encountered while evaluating the DMARC Policy Record. Not implemented.
 - **DKIM signature priority + 100-signature cap** (S3.1.3): defines which
@@ -77,10 +110,6 @@ specifically (all resolved) and are not duplicated here.
 - **Extension mechanism** (S3.2, S5): `<extension>` at file level,
   namespaced elements at record level. Low priority — only matters if
   extensions are actually adopted by report consumers.
-- **`rf=`/`ri=` cleanup**: both tags were removed from the DMARC record
-  format by RFC 9989. OpenDMARC still parses them into unused
-  `DMARC_POLICY_T` fields (`rf`, `ri`). Minor; safe to remove.
-
 ### RFC 9991 failure reporting
 
 Both RFC 6591 fields originally tracked here (`DKIM-Canonicalized-Header`/
@@ -135,14 +164,3 @@ in this section.
   startup instead of a compile error until someone actually parses a
   config file containing it, which apparently hadn't happened for three
   of these four since they were introduced.
-
-### Open decision, not just missing code
-
-- **`!NNNk` RUA size-suffix syntax**: RFC 9990 Appendix C says this syntax
-  is obsolete and receivers (i.e. OpenDMARC, acting as report generator)
-  MUST ignore it. The restored PR #392 code (`check_size_restriction`)
-  actively parses and enforces it, faithfully reproducing pre-regression
-  behavior rather than the RFC 9990 text. Same shape of question as the
-  `pct=` POLA decision: keep honoring it for senders who rely on it, or
-  drop it now that it's back in front of you. Needs an explicit call, not
-  a default.

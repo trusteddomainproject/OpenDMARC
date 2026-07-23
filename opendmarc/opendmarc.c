@@ -3716,6 +3716,24 @@ mlfi_eom(SMFICTX *ctx)
 
 	  case DMARC_POLICY_PASS:		/* Explicit accept */
 		aresult = "pass";
+
+		/*
+		 * RFC 9990 S3.1.1.9: the "pass" disposition is reserved for
+		 * messages that aligned despite an enforcing (quarantine/reject)
+		 * policy. Under p=none/sp=none the outcome is unenforced either
+		 * way, so the report disposition stays "none". Deliberately uses
+		 * the unadjusted published p/sp, not t=y-downgraded
+		 * enforce_policy: t= "does not affect the generation of DMARC
+		 * reports" per RFC 9989, same as the failure-report eligibility
+		 * check below.
+		 */
+		switch (apused == DMARC_USED_POLICY_IS_SP ? sp : p)
+		{
+		  case DMARC_RECORD_P_REJECT:
+		  case DMARC_RECORD_P_QUARANTINE:
+			result = DMARC_RESULT_PASS;
+			break;
+		}
 		break;
 
 	  case DMARC_POLICY_REJECT:		/* Explicit reject */
@@ -4279,6 +4297,10 @@ mlfi_eom(SMFICTX *ctx)
 
 	  case DMARC_RESULT_QUARANTINE:
 		adisposition = "quarantine";
+		break;
+
+	  case DMARC_RESULT_PASS:
+		adisposition = "pass";
 		break;
 
 	  default:

@@ -174,8 +174,6 @@ typedef struct dmarc_policy_t {
 	int		psd;		/* RFC 9989: DMARC_RECORD_PSD_* */
 	int		t;		/* RFC 9989: DMARC_RECORD_T_*, test mode */
 	int		pct;
-	int		rf;
-	uint32_t	ri;
 	int		rua_cnt;
 	u_char **	rua_list;
 	int		ruf_cnt;
