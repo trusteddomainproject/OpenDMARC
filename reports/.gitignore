@@ -1,6 +1,8 @@
 *.orig
 *.rej
 Makefile.in
+opendmarc-bounce-handler
+opendmarc-bounce-handler.8
 opendmarc-expire
 opendmarc-expire.8
 opendmarc-import

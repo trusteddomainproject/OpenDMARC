@@ -593,6 +593,8 @@ AC_CONFIG_FILES([ Makefile
 		opendmarc/opendmarc-check.8
 	opendmarc/tests/Makefile
 	reports/Makefile
+		reports/opendmarc-bounce-handler
+		reports/opendmarc-bounce-handler.8
 		reports/opendmarc-expire
 		reports/opendmarc-expire.8
 		reports/opendmarc-import

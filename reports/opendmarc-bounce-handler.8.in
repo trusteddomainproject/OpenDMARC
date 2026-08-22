@@ -1,0 +1,138 @@
+.TH opendmarc-bounce-handler 8 "The Trusted Domain Project"
+.SH NAME
+.B opendmarc-bounce-handler
+\- process bounces of VERP'd DMARC reports
+.SH SYNOPSIS
+.B opendmarc-bounce-handler
+[options]
+.SH DESCRIPTION
+.B opendmarc-reports
+.RI ( 8 ),
+when run with
+.IR --verp ,
+encodes the failing recipient address -- and, for aggregate reports, the
+domain the report concerned -- into the envelope sender of each report it
+sends, so that a bounce returns to an address identifying what failed.
+See
+.B opendmarc-reports (8)
+under
+.I --verp
+for the exact encoding.
+.PP
+.B opendmarc-bounce-handler
+decodes that information back out of a bounce.  It is meant to be run as
+the pipe target of a mail alias for the mailbox
+.I --report-email
+uses, e.g. in
+.IR /etc/aliases :
+.sp
+.in +4n
+postmaster: "|@sbindir@/opendmarc-bounce-handler"
+.in
+.sp
+When invoked this way, the bounce (or DSN) is read from standard input and
+the VERP-encoded recipient is recovered from its
+.IR Original-Recipient ,
+.IR Final-Recipient ,
+.IR X-Original-To ,
+.IR Delivered-To ", or"
+.I To
+fields, in that order of preference.  If the MTA can instead pass the
+original recipient directly (for example, a Postfix
+.I pipe
+transport configured with
+.IR ${original_recipient} ),
+supply it with
+.I --address
+and standard input is ignored.
+.PP
+Once decoded,
+.B opendmarc-bounce-handler
+inserts the failing address into the
+.I suppressions
+table so subsequent
+.B opendmarc-reports
+runs skip it, and, if a domain was also recovered, optionally requests
+StaleMARC's
+.I checkDomain
+endpoint for that domain to prompt a recheck of its DMARC reporting
+deliverability.
+.SH OPTIONS
+.TP
+.I --address=tag
+Decode this VERP tag (the local-part extension after the first
+.RI ' + '
+in the envelope recipient the bounce concerns) instead of scanning
+standard input for it.
+.TP
+.I --dbscheme=scheme
+Specify "mysql" (the default) or "MariaDB".
+.TP
+.I --dbhost=host
+Attempts to connect to the database server on the named
+.I host.
+The default is "localhost".
+.TP
+.I --dbname=name
+Requests a connection to the database called
+.I name.
+The default is "opendmarc".
+.TP
+.I --dbpasswd=password
+Attempts to authenticate to the database server using the specified
+.I password.
+The default is "opendmarc".
+.TP
+.I --dbport=port
+Tries to connect to the database at the specified TCP
+.I port.
+The default is 3306.
+.TP
+.I --dbuser=user
+Attempts to authenticate to the database server as the specified
+.I user.
+The default is "opendmarc".
+.TP
+.I --help
+Prints a usage message and exits.
+.TP
+.I --reason=text
+The value to record in the
+.I suppressions
+table's
+.I reason
+column.  The default is "bounce".
+.TP
+.I --stale-notify
+Prompts StaleMARC to retest the recovered domain's DMARC reporting
+deliverability.  Enabled by default; disable with
+.IR --no-stale-notify .
+Has no effect when no domain was recovered (e.g. a forensic report bounce,
+or an older aggregate report sent before domain encoding was added).
+.TP
+.I --stale-server=url
+StaleMARC API base URL.
+.TP
+.I --test
+Decodes and prints what would be done, without touching the database or
+contacting StaleMARC.
+.TP
+.I --verbose
+Requests verbose output.
+.TP
+.I --version
+Prints version number and exits.
+.SH EXIT STATUS
+Exits non-zero only on a database connection or query failure.  A bounce
+from which nothing could be decoded is logged to standard error and
+otherwise ignored (exit status 0), so a malformed or unrelated piece of
+mail delivered to the same alias cannot itself trigger further bounces.
+.SH VERSION
+This man page covers the version of
+.I opendmarc-bounce-handler
+that shipped with version @VERSION@ of
+.I OpenDMARC.
+.SH COPYRIGHT
+Copyright (c) 2026, The Trusted Domain Project.  All rights reserved.
+.SH SEE ALSO
+.I opendmarc-reports(8)

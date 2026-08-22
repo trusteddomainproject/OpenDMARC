@@ -1,0 +1,316 @@
+#!@PERL@
+#
+# Copyright (c) 2026, The Trusted Domain Project.  All rights reserved.
+#
+# Mail delivery agent for bounces of VERP'd DMARC reports sent by
+# opendmarc-reports --verp.  Meant to be invoked as the pipe target of a
+# mail alias for the report envelope-sender mailbox (i.e. the local part
+# of --report-email), e.g. in /etc/aliases:
+#
+#   postmaster: "|@sbindir@/opendmarc-bounce-handler"
+#
+# Recovers the failing RUA/RUF address -- and, for aggregate reports, the
+# domain the report concerned -- from the VERP-encoded recipient the
+# bounce was addressed to, records the failing address in the
+# suppressions table, and (for aggregate reports) optionally prompts
+# StaleMARC to (re-)test the recovered domain's DMARC reporting
+# deliverability.
+
+###
+### Setup
+###
+
+use strict;
+use warnings;
+
+use DBI;
+use File::Basename;
+use Getopt::Long;
+use HTTP::Tiny;
+use POSIX;
+
+# general
+my $progname      = basename($0);
+my $version       = "@VERSION@";
+my $verbose       = 0;
+my $helponly      = 0;
+my $showversion   = 0;
+my $test          = 0;
+
+my $address;
+my $reason        = "bounce";
+
+# DB parameters
+my $def_dbscheme  = "@SQL_BACKEND@";
+my $def_dbhost    = "localhost";
+my $def_dbname    = "opendmarc";
+my $def_dbuser    = "opendmarc";
+my $def_dbpasswd  = "opendmarc";
+my $def_dbport    = "3306";
+my $dbhost;
+my $dbname;
+my $dbuser;
+my $dbpasswd;
+my $dbport;
+
+my $dbscheme      = $def_dbscheme;
+
+# StaleMARC
+my $stale_notify  = 1;
+my $stale_server  = "https://stalemarc.measurement.network/api";
+
+my $dbi_h;
+my $dbi_s;
+
+###
+### NO user-serviceable parts beyond this point
+###
+
+sub usage
+{
+	print STDERR "$progname: usage: $progname [options]\n";
+	print STDERR "\t--address=tag      decode this VERP tag instead of scanning stdin\n";
+	print STDERR "\t--dbscheme=scheme  mysql or MariaDB [$def_dbscheme]\n";
+	print STDERR "\t--dbhost=host      database host [$def_dbhost]\n";
+	print STDERR "\t--dbname=name      database name [$def_dbname]\n";
+	print STDERR "\t--dbpasswd=passwd  database password [$def_dbpasswd]\n";
+	print STDERR "\t--dbport=port      database port [$def_dbport]\n";
+	print STDERR "\t--dbuser=user      database user [$def_dbuser]\n";
+	print STDERR "\t--help             print help and exit\n";
+	print STDERR "\t--reason=text      suppressions.reason to record [$reason]\n";
+	print STDERR "\t--stale-notify     prompt StaleMARC to retest the recovered\n";
+	print STDERR "\t                   domain (default; use --no-stale-notify\n";
+	print STDERR "\t                   to disable)\n";
+	print STDERR "\t--stale-server=url StaleMARC API base URL\n";
+	print STDERR "\t--test             decode and report only; don't touch the\n";
+	print STDERR "\t                   database or contact StaleMARC\n";
+	print STDERR "\t--verbose          verbose output\n";
+	print STDERR "\t--version          print version and exit\n";
+}
+
+# Reverses verp_sender()'s encoding (see reports/opendmarc-reports.in).
+# $tag is the local-part extension a bounce was delivered to, i.e.
+# everything after the first '+' in the envelope recipient:
+#
+#   dmarc-rua=aggregator.com                     (forensic, or pre-domain)
+#   example.com+dmarc-rua=aggregator.com          (aggregate, with domain)
+#
+# Returns ($domain, $address); $domain is undef if none was encoded.
+#
+# This is a heuristic, not an exact inverse: if the failing RUA/RUF
+# address's own local part contains a '+', a tag with no domain will
+# contain one too, and will be misread as domain+address.  That case is
+# rare (report addresses are operator-chosen), and worth noting to anyone
+# troubleshooting a decode that looks wrong.
+sub decode_verp
+{
+	my ($tag) = @_;
+
+	return (undef, undef) unless defined($tag) && length($tag);
+
+	my ($first, $rest) = split(/\+/, $tag, 2);
+
+	if (defined($rest) && $first !~ /=/ && $first =~ /\./ && $rest =~ /=/)
+	{
+		(my $addr = $rest) =~ s/=/\@/;
+		return ($first, $addr);
+	}
+
+	(my $addr = $tag) =~ s/=/\@/;
+	return (undef, $addr);
+}
+
+# Scans lines of a bounce message (a DSN's per-message/per-recipient
+# fields, or a plain header block) for the VERP address the report was
+# sent to, and returns its local-part extension (the tag decode_verp()
+# expects), or undef if none was found.
+sub find_tag
+{
+	my (@lines) = @_;
+
+	my @candidates;
+
+	for (@lines)
+	{
+		if (/^(?:Original-Recipient|Final-Recipient)\s*:\s*(?:rfc822;)?\s*(.+?)\s*$/i)
+		{
+			push @candidates, $1;
+		}
+		elsif (/^(?:X-Original-To|Delivered-To|To)\s*:\s*(.+?)\s*$/i)
+		{
+			push @candidates, $1;
+		}
+	}
+
+	for my $addr (@candidates)
+	{
+		$addr =~ s/^.*<//;
+		$addr =~ s/>.*$//;
+
+		if ($addr =~ /^[^@+\s]+\+([^@\s]+)@/)
+		{
+			return $1;
+		}
+	}
+
+	return undef;
+}
+
+# parse command line arguments
+my $opt_retval = &Getopt::Long::GetOptions ('address=s' => \$address,
+                                            'dbscheme=s' => \$dbscheme,
+                                            'dbhost=s' => \$dbhost,
+                                            'dbname=s' => \$dbname,
+                                            'dbpasswd=s' => \$dbpasswd,
+                                            'dbport=s' => \$dbport,
+                                            'dbuser=s' => \$dbuser,
+                                            'help!' => \$helponly,
+                                            'reason=s' => \$reason,
+                                            'stale-notify!' => \$stale_notify,
+                                            'stale-server=s' => \$stale_server,
+                                            'test!' => \$test,
+                                            'verbose!' => \$verbose,
+                                            'version!' => \$showversion,
+                                           );
+
+if (!$opt_retval || $helponly)
+{
+	usage();
+
+	if ($helponly)
+	{
+		exit(0);
+	}
+	else
+	{
+		exit(1);
+	}
+}
+
+if ($showversion)
+{
+	print STDOUT "$progname v$version\n";
+	exit(0);
+}
+
+# apply defaults
+if (!defined($dbhost))
+{
+	$dbhost = defined($ENV{'OPENDMARC_DBHOST'}) ? $ENV{'OPENDMARC_DBHOST'} : $def_dbhost;
+}
+
+if (!defined($dbname))
+{
+	$dbname = defined($ENV{'OPENDMARC_DB'}) ? $ENV{'OPENDMARC_DB'} : $def_dbname;
+}
+
+if (!defined($dbpasswd))
+{
+	$dbpasswd = defined($ENV{'OPENDMARC_PASSWORD'}) ? $ENV{'OPENDMARC_PASSWORD'} : $def_dbpasswd;
+}
+
+if (!defined($dbport))
+{
+	$dbport = defined($ENV{'OPENDMARC_PORT'}) ? $ENV{'OPENDMARC_PORT'} : $def_dbport;
+}
+
+if (!defined($dbuser))
+{
+	$dbuser = defined($ENV{'OPENDMARC_USER'}) ? $ENV{'OPENDMARC_USER'} : $def_dbuser;
+}
+
+#
+# Let's go!
+#
+
+my $tag = $address;
+
+if (!defined($tag))
+{
+	my @lines = <STDIN>;
+	$tag = find_tag(@lines);
+}
+
+if (!defined($tag))
+{
+	print STDERR "$progname: no VERP-encoded recipient found; nothing to do\n";
+	exit(0);
+}
+
+my ($domain, $failaddr) = decode_verp($tag);
+
+if (!defined($failaddr) || $failaddr !~ /\@/)
+{
+	print STDERR "$progname: couldn't decode a report address from '$tag'\n";
+	exit(0);
+}
+
+if ($verbose || $test)
+{
+	print STDERR "$progname: decoded address=$failaddr" .
+	             (defined($domain) ? ", domain=$domain" : "") . "\n";
+}
+
+if ($test)
+{
+	exit(0);
+}
+
+require "DBD/$dbscheme.pm";
+
+my $dbi_dsn = "DBI:" . $dbscheme . ":database=" . $dbname .
+              ";host=" . $dbhost;
+if ($dbport != $def_dbport) {
+    $dbi_dsn .= ";port=" . $dbport;
+}
+
+$dbi_h = DBI->connect($dbi_dsn, $dbuser, $dbpasswd, { PrintError => 0 });
+if (!defined($dbi_h))
+{
+	print STDERR "$progname: unable to connect to database: $DBI::errstr\n";
+	exit(1);
+}
+
+if ($verbose)
+{
+	print STDERR "$progname: connected to database\n";
+}
+
+$dbi_s = $dbi_h->prepare("INSERT IGNORE INTO suppressions (address, reason) VALUES (?, ?)");
+if (!$dbi_s->execute($failaddr, $reason))
+{
+	print STDERR "$progname: INSERT failed: " . $dbi_h->errstr . "\n";
+	$dbi_s->finish;
+	$dbi_h->disconnect;
+	exit(1);
+}
+
+if ($verbose)
+{
+	if ($dbi_s->rows > 0)
+	{
+		print STDERR "$progname: suppressed $failaddr\n";
+	}
+	else
+	{
+		print STDERR "$progname: $failaddr already suppressed\n";
+	}
+}
+
+$dbi_s->finish;
+$dbi_h->disconnect;
+
+if ($stale_notify && defined($domain))
+{
+	(my $enc_domain = $domain) =~ s/@/%40/g;
+	my $url = "$stale_server/checkDomain.php?key=$enc_domain";
+	my $resp = HTTP::Tiny->new(timeout => 10)->get($url);
+
+	if ($verbose)
+	{
+		print STDERR "$progname: StaleMARC: prompted recheck of $domain " .
+		             "(status $resp->{status})\n";
+	}
+}
+
+exit(0);
