@@ -575,14 +575,22 @@ sub archive_report
 	}
 }
 
-# Build a VERP envelope sender encoding $rcpt into $sender.
-# e.g. postmaster@r.example.com + dmarc@target.com -> postmaster+dmarc=target.com@r.example.com
+# Build a VERP envelope sender encoding $rcpt (and, optionally, the domain
+# being reported on) into $sender.
+# e.g. postmaster@r.example.com + dmarc@target.com
+#        -> postmaster+dmarc=target.com@r.example.com
+# e.g. postmaster@r.example.com + dmarc@aggregator.com + example.com
+#        -> postmaster+example.com+dmarc=aggregator.com@r.example.com
+# Including the reported-on domain lets a bounce handler recover it directly
+# from the envelope sender of a returned report, without having to look up
+# which domain(s) use a given RUA/RUF address.
 sub verp_sender
 {
-	my ($sender, $rcpt) = @_;
+	my ($sender, $rcpt, $domain) = @_;
 	my ($sloc, $sdom) = split(/@/, $sender, 2);
 	(my $enc = $rcpt) =~ s/@/=/;
-	return "$sloc+$enc\@$sdom";
+	my $tag = (defined($domain) && $domain ne "") ? "$domain+$enc" : $enc;
+	return "$sloc+$tag\@$sdom";
 }
 
 sub usage
@@ -629,7 +637,9 @@ sub usage
 	print STDERR "\t--stale-server=url StaleMARC API base URL\n";
 	print STDERR "\t--test             don't send reports\n";
 	print STDERR "\t--verp             use VERP envelope senders so bounces\n";
-	print STDERR "\t                   identify the failing recipient\n";
+	print STDERR "\t                   identify the failing recipient (and,\n";
+	print STDERR "\t                   for aggregate reports, the reported-on\n";
+	print STDERR "\t                   domain)\n";
 	print STDERR "\t                   (implies --keepfiles --noupdate)\n";
 	print STDERR "\t--utc              operate in UTC\n";
 	print STDERR "\t--verbose          verbose output\n";
@@ -1996,7 +2006,7 @@ foreach (@$domainset)
 					exit(1) unless defined($smtp);
 				}
 
-				my $mailfrom = $verp ? verp_sender($repemail, $repdest) : $repemail;
+				my $mailfrom = $verp ? verp_sender($repemail, $repdest, $domain) : $repemail;
 				if (!$smtp->mail($mailfrom) ||
 				    !$smtp->to($repdest) ||
 				    (defined($repbcc) && !$smtp->to($repbcc)) ||

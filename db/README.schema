@@ -54,6 +54,12 @@ suppressions	A table of RUA/RUF addresses and domains that should be
 		opendmarc-reports sends reports with --verp, bounces return
 		to an encoded envelope sender that identifies the failing
 		address, allowing a bounce handler to INSERT the address here.
+		For aggregate reports, the envelope sender also encodes the
+		domain the report concerned, so a bounce handler can act on
+		that domain too (e.g. prompting a third-party service like
+		StaleMARC to test its DMARC reporting deliverability)
+		without needing to look up which domain(s) route through the
+		failing address.
 
 
 UPGRADING AN EXISTING SCHEMA
