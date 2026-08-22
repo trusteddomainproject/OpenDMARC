@@ -322,6 +322,24 @@ identify the specific destination that failed, e.g.:
 postmaster+dmarc-rua=example.com@reporter.example.com
 .in
 .sp
+For aggregate reports, the domain the report is
+.I about
+is also encoded ahead of the recipient, so a bounce-processing script can
+recover it without having to look up which domain(s) use a given RUA
+address, e.g.:
+.sp
+.in +4n
+postmaster+example.com+dmarc-rua=aggregator.com@reporter.example.com
+.in
+.sp
+(here the report concerns
+.I example.com
+but is delivered to a third-party aggregator's RUA address).  Forensic
+report VERP addresses are not currently annotated with a domain, since
+.I --forensic
+mode relays a pre-formed AFRF message without a readily-available
+"domain being reported on" of its own.
+.sp
 In forensic mode, enabling VERP causes one SMTP transaction to be issued
 per recipient rather than grouping all recipients into a single transaction.
 .TP
@@ -371,9 +389,17 @@ INSERT INTO suppressions (address, reason)
 When
 .I --verp
 is enabled, DMARC report bounces return to an encoded envelope sender
-that identifies the failing address.  A bounce-processing script can
-decode that address and insert it into this table automatically, building
-a locally-maintained suppression list informed by real delivery failures.
+that identifies the failing address (and, for aggregate reports, the
+domain the report concerned).
+.B opendmarc-bounce-handler(8)
+decodes that address, inserts the failing address into this table
+automatically, and, for the recovered domain, optionally prompts a
+third-party service such as StaleMARC (see
+.IR --stale-check )
+to (re-)test that domain's DMARC reporting deliverability by requesting
+its
+.I checkDomain
+endpoint for it.
 .SH EXTERNAL DESTINATION VERIFICATION
 Before sending to a cross-domain
 .RI ( mailto: )
@@ -457,4 +483,5 @@ All rights reserved.
 .SH SEE ALSO
 .IR opendmarc(8) ,
 .IR opendmarc.conf(5) ,
-.IR opendmarc-import(8)
+.IR opendmarc-import(8) ,
+.IR opendmarc-bounce-handler(8)
