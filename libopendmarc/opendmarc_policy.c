@@ -457,6 +457,7 @@ OPENDMARC_STATUS_T
 opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *from_domain)
 {
 	char domain_buf[256];
+	char idna_buf[256];
 	char *dp;
 
 	if (pctx == NULL)
@@ -466,6 +467,18 @@ opendmarc_policy_store_from_domain(DMARC_POLICY_T *pctx, u_char *from_domain)
 	dp = (char *)opendmarc_util_finddomain(from_domain, (u_char *)domain_buf, sizeof domain_buf);
 	if (dp == NULL)
 		return DMARC_PARSE_ERROR_NO_DOMAIN;
+
+	/*
+	**  RFC 7489 6.6.1: convert a UTF-8 Author Domain to its
+	**  A-label before policy discovery and alignment.  Keep the
+	**  original if the conversion fails so existing behaviour
+	**  for non-IDN domains is unchanged.
+	*/
+
+	if (opendmarc_util_idna_toascii((u_char *)dp, (u_char *)idna_buf,
+	                                sizeof idna_buf) != NULL)
+		dp = idna_buf;
+
 	pctx->from_domain = (u_char *)strdup((char *)dp);
 	if (pctx->from_domain == NULL)
 		return DMARC_PARSE_ERROR_NO_ALLOC;

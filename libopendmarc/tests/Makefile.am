@@ -5,6 +5,7 @@ AM_CPPFLAGS = -I.. -I../..
 
 check_PROGRAMS		 = test_tld \
 			   test_finddomain \
+			   test_idna \
 			   test_dmarc_parse \
 			   test_dmarc_fetch \
 			   test_xml_parse \
@@ -27,6 +28,7 @@ endif
 test_tld_SOURCES         = test_tld.c
 
 test_finddomain_SOURCES  = test_finddomain.c
+test_idna_SOURCES        = test_idna.c
 
 test_dmarc_parse_SOURCES = test_dmarc_parse.c
 

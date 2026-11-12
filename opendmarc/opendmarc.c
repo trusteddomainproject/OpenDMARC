@@ -2827,6 +2827,28 @@ mlfi_eom(SMFICTX *ctx)
 		goto done;
 	}
 
+	/*
+	**  The library stores the A-label form of an IDN Author Domain.
+	**  Use it for the Authentication-Results header, history and
+	**  reports as well.
+	*/
+
+	{
+		u_char frombuf[BUFRSZ + 1];
+
+		(void) memset(frombuf, '\0', sizeof frombuf);
+		if (opendmarc_policy_fetch_from_domain(cc->cctx_dmarc,
+		                                       frombuf,
+		                                       sizeof frombuf) == DMARC_PARSE_OKAY)
+		{
+			(void) memset(dfc->mctx_fromdomain, '\0',
+			              sizeof dfc->mctx_fromdomain);
+			(void) strncpy((char *)dfc->mctx_fromdomain,
+			               (char *)frombuf,
+			               sizeof dfc->mctx_fromdomain - 1);
+		}
+	}
+
 	/* first part of the history buffer */
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "job %s\n", dfc->mctx_jobid);
 	dmarcf_dstring_printf(dfc->mctx_histbuf, "reporter %s\n", hostname);

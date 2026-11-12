@@ -246,6 +246,7 @@ u_char ** opendmarc_util_clearargv(u_char **ary);
 u_char ** opendmarc_util_dupe_argv(u_char **ary);
 u_char *  opendmarc_util_cleanup(u_char *str, u_char *buf, size_t buflen);
 u_char *  opendmarc_util_finddomain(u_char *raw, u_char *buf, size_t buflen);
+u_char *  opendmarc_util_idna_toascii(u_char *domain, u_char *buf, size_t buflen);
 char **   opendmarc_util_freenargv(char **ary, int *num);
 char **   opendmarc_util_pushnargv(char *str, char **ary, int *num);
 char *    opendmarc_util_ultoa(unsigned long val, char *buffer, size_t bufferlen);
