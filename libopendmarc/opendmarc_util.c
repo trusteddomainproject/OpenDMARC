@@ -4,6 +4,10 @@
 **************************************************************************/
 #include "opendmarc_internal.h"
 
+#ifdef HAVE_LIBIDN2
+# include <idn2.h>
+#endif /* HAVE_LIBIDN2 */
+
 /* libbsd if found */
 #ifdef USE_BSD_H
 # include <bsd/string.h>
@@ -372,6 +376,57 @@ strip_local_part:
 	}
 	(void) strlcpy((char *)buf, (char *)cp, buflen);
 	return buf;
+}
+
+/*****************************************************
+**  OPENDMARC_UTIL_IDNA_TOASCII -- Convert a domain to its A-label
+**
+**	Parameters:
+**		domain	-- UTF-8 domain name
+**		buf	-- destination buffer
+**		buflen	-- size of buf
+**	Returns:
+**		buf on success, NULL if the conversion fails or
+**		libidn2 is unavailable.
+**	Side Effects:
+**		Applies IDNA2008/UTS-46 processing, including the
+**		Unicode dot variants, before punycoding.
+*/
+u_char *
+opendmarc_util_idna_toascii(u_char *domain, u_char *buf, size_t buflen)
+{
+#ifdef HAVE_LIBIDN2
+	char *ascii = NULL;
+	int rc;
+
+	if (domain == NULL || buf == NULL || buflen == 0)
+		return NULL;
+
+	rc = idn2_to_ascii_8z((const char *)domain, &ascii,
+	                      IDN2_NFC_INPUT | IDN2_NONTRANSITIONAL);
+	if (rc != IDN2_OK || ascii == NULL)
+	{
+		if (ascii != NULL)
+			idn2_free(ascii);
+		return NULL;
+	}
+
+	if (strlen(ascii) >= buflen)
+	{
+		idn2_free(ascii);
+		return NULL;
+	}
+
+	(void) strlcpy((char *)buf, ascii, buflen);
+	idn2_free(ascii);
+
+	return buf;
+#else /* HAVE_LIBIDN2 */
+	(void) domain;
+	(void) buf;
+	(void) buflen;
+	return NULL;
+#endif /* HAVE_LIBIDN2 */
 }
 
 char **

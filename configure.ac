@@ -216,6 +216,20 @@ AC_SEARCH_LIBS(res_ndestroy, resolv,
 
 m4_rename_force([saved_AC_LANG_CALL], [AC_LANG_CALL])
 AC_CHECK_LIB(idn, idn_free)
+
+# IDNA/UTS-46 conversion for the DMARC Author Domain (RFC 7489 6.6.1).
+saved_LIBS="$LIBS"
+have_libidn2=no
+AC_CHECK_HEADERS([idn2.h], [have_libidn2_h=yes], [have_libidn2_h=no])
+AC_CHECK_LIB(idn2, idn2_to_ascii_8z, [have_libidn2=yes], [have_libidn2=no])
+LIBS="$saved_LIBS"
+if test "x$have_libidn2" = "xyes" && test "x$have_libidn2_h" = "xyes"; then
+    AC_DEFINE([HAVE_LIBIDN2], [1],
+              [Define to 1 if libidn2 is available])
+    LIBOPENDMARC_LIBS="-lidn2"
+fi
+AC_SUBST([LIBOPENDMARC_LIBS])
+
 AC_CHECK_LIB(rt, nanosleep)
 AC_SEARCH_LIBS(inet_addr, nsl)
 AC_SEARCH_LIBS(freehostent, resolv)

@@ -103,6 +103,17 @@ opendmarc_dns_fake_record(const char *name, const char *answer)
 **      name server and and may block waiting for a reply.
 **
 *************************************************************************/
+static int
+dmarc1_record(const char *record)
+{
+	while (*record == ' ' || *record == '\t')
+		record++;
+
+	return strncasecmp(record, "v=DMARC1", 8) == 0 &&
+	       (record[8] == '\0' || record[8] == ';' ||
+	        record[8] == ' ' || record[8] == '\t');
+}
+
 char *
 dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtlen)
 {
@@ -172,7 +183,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 		for (cur = fake_dns; cur != NULL; cur = cur->fdns_next)
 		{
 			if (strcasecmp(cur->fdns_name, domain) == 0 &&
-			    strstr(cur->fdns_answer, "v=DMARC") != NULL)
+			    dmarc1_record(cur->fdns_answer))
 			{
 				dmarc_count++;
 				found_entry = cur;
@@ -360,7 +371,7 @@ dmarc_dns_get_record(char *domain, int *reply, char *got_txtbuf, size_t got_txtl
 				}
 				*tp = '\0';
 
-				if (strstr((char *)txt_tmp, "v=DMARC") != NULL)
+				if (dmarc1_record((char *)txt_tmp))
 				{
 					dmarc_count++;
 					if (dmarc_count == 1)
