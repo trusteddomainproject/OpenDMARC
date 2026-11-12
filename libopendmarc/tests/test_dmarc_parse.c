@@ -38,6 +38,10 @@ main(int argc, char **argv)
 		/* 20 */ {"v=DMARC1; p=reject; t=y;", DMARC_PARSE_OKAY},
 		/* 21 */ {"v=DMARC1; p=reject; t=n;", DMARC_PARSE_OKAY},
 		/* 22 */ {"v=DMARC1; p=reject; t=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 23 */ {"v=DMARC1; p=none; pct=4294967296;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 24 */ {"v=DMARC1; p=none; pct=-1;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 25 */ {"v=DMARC1; p=none; pct=abc;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 26 */ {"v=DMARC1; p=none; pct=100;", DMARC_PARSE_OKAY},
 			{NULL, 0},
 	};
 	int	pass, fails, count;

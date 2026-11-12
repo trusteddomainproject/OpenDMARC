@@ -1499,16 +1499,23 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 		}
 		else if (strcasecmp((char *)cp, "pct") == 0)
 		{
+			char *end = NULL;
+			unsigned long pct;
+
+			/*
+			**  Range-check before narrowing: pct is a 0-100
+			**  percentage and values such as 2^32 or -1 must not
+			**  wrap into that range.
+			*/
+
 			errno = 0;
-			pctx->pct = strtoul((char *)vp, NULL, 10);
-			if (pctx->pct < 0 || pctx->pct > 100)
+			pct = strtoul((char *)vp, &end, 10);
+			if (errno == ERANGE || end == (char *)vp ||
+			    *end != '\0' || pct > 100)
 			{
 				return DMARC_PARSE_ERROR_BAD_VALUE;
 			}
-			if (errno == EINVAL || errno == ERANGE)
-			{
-				return DMARC_PARSE_ERROR_BAD_VALUE;
-			}
+			pctx->pct = (int)pct;
 		}
 		else if (strcasecmp((char *)cp, "rua") == 0)
 		{
