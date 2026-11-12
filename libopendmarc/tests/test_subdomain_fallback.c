@@ -80,6 +80,12 @@ main(int argc, char **argv)
 
 	opendmarc_dns_fake_record("_dmarc.parent3.example",
 	    "v=DMARC1; p=none; sp=reject");
+
+	/* v=DMARC2 at the subdomain must be ignored; the org record applies. */
+	opendmarc_dns_fake_record("_dmarc.sub.parent4.example",
+	    "v=DMARC2; p=none");
+	opendmarc_dns_fake_record("_dmarc.parent4.example",
+	    "v=DMARC1; p=reject");
 	/* _dmarc.a.b.parent3.example and _dmarc.b.parent3.example: absent → NO_DATA */
 
 	/* _dmarc.sub.nodmarc.example and _dmarc.nodmarc.example: absent → NO_DATA */
@@ -196,6 +202,33 @@ main(int argc, char **argv)
 
 	CHECK(status == DMARC_DNS_ERROR_NO_RECORD,
 	    "no-PSL no record anywhere: should return DMARC_DNS_ERROR_NO_RECORD");
+
+	pctx = opendmarc_policy_connect_shutdown(pctx);
+
+	/*
+	 * === Test 4b ===
+	 * A v=DMARC2 record at the subdomain must be ignored (RFC 7489 6.6.3)
+	 * and discovery must continue to the organizational domain.
+	 */
+	pctx = opendmarc_policy_connect_init((u_char *)"1.2.3.4", 0);
+	if (pctx == NULL) { fprintf(stderr, "connect_init failed\n"); return 1; }
+
+	(void) opendmarc_policy_store_from_domain(pctx, (u_char *)"sub.parent4.example");
+	status = opendmarc_policy_query_dmarc(pctx, (u_char *)"sub.parent4.example");
+
+	CHECK(status == DMARC_PARSE_OKAY,
+	    "v=DMARC2 at subdomain: query should fall back to org domain");
+	if (status == DMARC_PARSE_OKAY)
+	{
+		opendmarc_policy_fetch_p(pctx, &p);
+		CHECK(p == DMARC_RECORD_P_REJECT,
+		    "v=DMARC2 at subdomain: inherited p= should be reject");
+
+		(void) memset(utilized, '\0', sizeof utilized);
+		opendmarc_policy_fetch_utilized_domain(pctx, utilized, sizeof utilized);
+		CHECK(strcasecmp((char *)utilized, "parent4.example") == 0,
+		    "v=DMARC2 at subdomain: utilized domain should be parent4.example");
+	}
 
 	pctx = opendmarc_policy_connect_shutdown(pctx);
 
