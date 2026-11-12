@@ -24,12 +24,12 @@ main(int argc, char **argv)
 		/* 6  */ {"", DMARC_PARSE_ERROR_EMPTY},
 		/* 7  */ {"V=BOB", DMARC_PARSE_ERROR_BAD_VERSION},
 		/* 8  */ {"v=DMARC1; p=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 9  */ {"v=DMARC1; p=none; sp=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 10 */ {"v=DMARC1; p=none; adkim=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 11 */ {"v=DMARC1; p=none; aspf=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 9  */ {"v=DMARC1; p=none; sp=bob;", DMARC_PARSE_OKAY}, /* optional tag ignored */
+		/* 10 */ {"v=DMARC1; p=none; adkim=bob;", DMARC_PARSE_OKAY}, /* optional tag ignored */
+		/* 11 */ {"v=DMARC1; p=none; aspf=bob;", DMARC_PARSE_OKAY}, /* optional tag ignored */
 		/* 12 */ {"v=DMARC1; p=none; rf=bob;", DMARC_PARSE_OKAY}, /* rf= removed by RFC 9989; now an ignored unknown tag */
 		/* 13 */ {"v=DMARC1; p=none; ri=bob;", DMARC_PARSE_OKAY}, /* ri= removed by RFC 9989; now an ignored unknown tag */
-		/* 14 */ {"v=DMARC1; p=none; pct=500;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 14 */ {"v=DMARC1; p=none; pct=500;", DMARC_PARSE_OKAY}, /* optional tag ignored */
 		/* 15 */ {"v=DMARC1; pct=100;", DMARC_PARSE_ERROR_NO_REQUIRED_P},
 		/* 16 */ {"v=DMARC1; p=none; rua=ftp://abuse.com", DMARC_PARSE_OKAY},
 		/* 17 */ {"v=DMARC1; p=none; ruf=mailto://abuse.com", DMARC_PARSE_OKAY},
@@ -37,11 +37,13 @@ main(int argc, char **argv)
 		/* 19 */ {"v=DMARC1; p=none; rf=000000000000000000000000000000000", DMARC_PARSE_OKAY}, /* rf= removed by RFC 9989; now an ignored unknown tag */
 		/* 20 */ {"v=DMARC1; p=reject; t=y;", DMARC_PARSE_OKAY},
 		/* 21 */ {"v=DMARC1; p=reject; t=n;", DMARC_PARSE_OKAY},
-		/* 22 */ {"v=DMARC1; p=reject; t=bob;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 23 */ {"v=DMARC1; p=none; pct=4294967296;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 24 */ {"v=DMARC1; p=none; pct=-1;", DMARC_PARSE_ERROR_BAD_VALUE},
-		/* 25 */ {"v=DMARC1; p=none; pct=abc;", DMARC_PARSE_ERROR_BAD_VALUE},
+		/* 22 */ {"v=DMARC1; p=reject; t=bob;", DMARC_PARSE_OKAY}, /* optional tag ignored */
+		/* 23 */ {"v=DMARC1; p=none; pct=4294967296;", DMARC_PARSE_OKAY}, /* optional tag ignored */
+		/* 24 */ {"v=DMARC1; p=none; pct=-1;", DMARC_PARSE_OKAY}, /* optional tag ignored */
+		/* 25 */ {"v=DMARC1; p=none; pct=abc;", DMARC_PARSE_OKAY}, /* optional tag ignored */
 		/* 26 */ {"v=DMARC1; p=none; pct=100;", DMARC_PARSE_OKAY},
+		/* 27 */ {"v=DMARC1; p=reject; fo=9;", DMARC_PARSE_OKAY}, /* optional tag ignored */
+		/* 28 */ {"v=DMARC1; p=reject; rua=mailto:a@example.com,,mailto:b@example.com;", DMARC_PARSE_OKAY},
 			{NULL, 0},
 	};
 	int	pass, fails, count;

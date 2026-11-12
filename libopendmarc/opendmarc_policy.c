@@ -1430,7 +1430,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			else
 			{
 				/* A totaly unknown value */
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 			}
 		}
 		else if (strcasecmp((char *)cp, "np") == 0)
@@ -1443,7 +1443,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			else if (strncasecmp((char *)vp, "quarantine", strlen((char *)vp)) == 0)
 				pctx->np = DMARC_RECORD_P_QUARANTINE;
 			else
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 		}
 		else if (strcasecmp((char *)cp, "psd") == 0)
 		{
@@ -1453,7 +1453,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			else if (strncasecmp((char *)vp, "n", 1) == 0)
 				pctx->psd = DMARC_RECORD_PSD_N;
 			else
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 		}
 		else if (strcasecmp((char *)cp, "t") == 0)
 		{
@@ -1463,7 +1463,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			else if (strncasecmp((char *)vp, "n", 1) == 0)
 				pctx->t = DMARC_RECORD_T_N;
 			else
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 		}
 		else if (strcasecmp((char *)cp, "adkim") == 0)
 		{
@@ -1478,7 +1478,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			else
 			{
 				/* A totaly unknown value */
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 			}
 		}
 		else if (strcasecmp((char *)cp, "aspf") == 0)
@@ -1494,7 +1494,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			else
 			{
 				/* A totaly unknown value */
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 			}
 		}
 		else if (strcasecmp((char *)cp, "pct") == 0)
@@ -1513,20 +1513,22 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			if (errno == ERANGE || end == (char *)vp ||
 			    *end != '\0' || pct > 100)
 			{
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 			}
 			pctx->pct = (int)pct;
 		}
 		else if (strcasecmp((char *)cp, "rua") == 0)
 		{
 			char *xp, *yp;
+			u_char **tmp_list = NULL;
+			int tmp_cnt = 0;
 
 			/*
 			 * A possibly comma delimited list of URI of where to send reports.
 			 */
 
 			if (pctx->rua_list != NULL)
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 
 			for (xp = (char *)vp; *xp != '\0'; )
 			{
@@ -1539,12 +1541,13 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = (char *)opendmarc_util_cleanup((u_char *)xp, xbuf, sizeof xbuf);
 				if (xp != NULL && strlen((char *)xp) > 0)
 				{
-					pctx->rua_list = opendmarc_util_pushargv((u_char *)xp, pctx->rua_list,
-										&(pctx->rua_cnt));
+					tmp_list = opendmarc_util_pushargv((u_char *)xp, tmp_list,
+									   &tmp_cnt);
 				}
 				else
 				{
-					return DMARC_PARSE_ERROR_BAD_VALUE;
+					opendmarc_util_clearargv(tmp_list);
+					goto next_tag;
 				}
 
 				if (yp != NULL)
@@ -1552,10 +1555,15 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				else
 					break;
 			}
+
+			pctx->rua_list = tmp_list;
+			pctx->rua_cnt = tmp_cnt;
 		}
 		else if (strcasecmp((char *)cp, "ruf") == 0)
 		{
 			char *xp, *yp;
+			u_char **tmp_list = NULL;
+			int tmp_cnt = 0;
 
 			/*
 			 * A possibly comma delimited list of URI of where to send 
@@ -1563,7 +1571,7 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 			 */
 
 			if (pctx->ruf_list != NULL)
-				return DMARC_PARSE_ERROR_BAD_VALUE;
+				goto next_tag;
 
 			for (xp = (char *)vp; *xp != '\0'; )
 			{
@@ -1576,12 +1584,13 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				xp = (char *)opendmarc_util_cleanup((u_char *)xp, xbuf, sizeof xbuf);
 				if (xp != NULL && strlen((char *)xp) > 0)
 				{
-					pctx->ruf_list = opendmarc_util_pushargv((u_char *)xp, pctx->ruf_list,
-										&(pctx->ruf_cnt));
+					tmp_list = opendmarc_util_pushargv((u_char *)xp, tmp_list,
+									   &tmp_cnt);
 				}
 				else
 				{
-					return DMARC_PARSE_ERROR_BAD_VALUE;
+					opendmarc_util_clearargv(tmp_list);
+					goto next_tag;
 				}
 
 				if (yp != NULL)
@@ -1589,10 +1598,14 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				else
 					break;
 			}
+
+			pctx->ruf_list = tmp_list;
+			pctx->ruf_cnt = tmp_cnt;
 		}
 		else if (strcasecmp((char *)cp, "fo") == 0)
 		{
 			char *xp, *yp;
+			int fo = 0;
 
 			/*
 			 * A possibly colon delimited list of on character settings.
@@ -1611,26 +1624,26 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 					switch ((int)*xp)
 					{
 						case '0':
-							pctx->fo |= DMARC_RECORD_FO_0;
+							fo |= DMARC_RECORD_FO_0;
 							break;
 						case '1':
-							pctx->fo |= DMARC_RECORD_FO_1;
+							fo |= DMARC_RECORD_FO_1;
 							break;
 						case 'd':
 						case 'D':
-							pctx->fo |= DMARC_RECORD_FO_D;
+							fo |= DMARC_RECORD_FO_D;
 							break;
 						case 's':
 						case 'S':
-							pctx->fo |= DMARC_RECORD_FO_S;
+							fo |= DMARC_RECORD_FO_S;
 							break;
 						default:
-							return DMARC_PARSE_ERROR_BAD_VALUE;
+							goto next_tag;
 					}
 				}
 				else
 				{
-					return DMARC_PARSE_ERROR_BAD_VALUE;
+					goto next_tag;
 				}
 
 				if (yp != NULL)
@@ -1638,8 +1651,11 @@ opendmarc_policy_parse_dmarc(DMARC_POLICY_T *pctx, u_char *domain, u_char *recor
 				else
 					break;
 			}
-		}
 
+			pctx->fo |= fo;
+		}
+		
+next_tag:
 		cp = sp;
 	}
 
